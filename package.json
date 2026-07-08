@@ -1,0 +1,17 @@
+{
+  "name": "charge-trackr",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev:frontend": "pnpm --dir frontend dev",
+    "build:frontend": "pnpm --dir frontend build",
+    "lint:frontend": "pnpm --dir frontend lint",
+    "preview:frontend": "pnpm --dir frontend preview",
+    "dev:backend": "cd backend && C:/php/php.exe artisan serve --host=127.0.0.1 --port=8000",
+    "migrate:backend": "cd backend && C:/php/php.exe artisan migrate",
+    "test:backend": "cd backend && C:/php/php.exe artisan test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
