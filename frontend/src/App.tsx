@@ -1,18 +1,23 @@
-import { ConfigProvider } from 'antd'
+import { App as AntdApp, ConfigProvider } from 'antd'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import { AppRouter } from './routes/AppRouter'
 import { queryClient } from './app/queryClient'
 import { antdTheme } from './app/theme'
+import { AuthProvider } from './features/auth/AuthProvider'
 
 function App() {
   return (
     <ConfigProvider theme={antdTheme}>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AppRouter />
-        </BrowserRouter>
-      </QueryClientProvider>
+      <AntdApp>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <BrowserRouter>
+              <AppRouter />
+            </BrowserRouter>
+          </AuthProvider>
+        </QueryClientProvider>
+      </AntdApp>
     </ConfigProvider>
   )
 }

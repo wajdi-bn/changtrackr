@@ -32,3 +32,10 @@ Suggested feature modules:
 - `reports`
 - `settings`
 - `ai-assistant`
+
+Implemented foundation:
+
+- `src/api/httpClient.ts`: central Axios client using `VITE_API_URL`.
+- `src/features/auth`: login API, auth provider, protected route and role menu config.
+- `src/layouts/AppLayout.tsx`: Ant Design dashboard shell inspired by the prototype layout.
+- `src/pages/LoginPage.tsx`: real backend login with seeded demo accounts.

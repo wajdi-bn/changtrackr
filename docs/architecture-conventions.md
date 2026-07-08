@@ -85,6 +85,8 @@ Useful patterns:
 - Notification delivery status tracking.
 - Global backend error handling.
 - BCrypt password hashing.
+- Role-specific dashboards and menus derived from authenticated backend roles.
+- Prototype code is used as a visual reference only; production frontend uses Ant Design.
 
 Patterns to avoid:
 

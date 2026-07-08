@@ -38,7 +38,8 @@ Main dependencies:
 
 ## 3. Backend Laravel
 
-The backend is scaffolded with Laravel and currently configured for local PostgreSQL.
+The backend is scaffolded with Laravel 13 and currently configured for local PostgreSQL.
+The local runtime remains PHP 8.5.
 
 Current local database:
 
@@ -75,6 +76,22 @@ php artisan migrate
 php artisan vendor:publish --provider="Spatie\\Permission\\PermissionServiceProvider"
 php artisan reverb:install
 ```
+
+For local development after migrations:
+
+```bash
+php artisan db:seed
+```
+
+Seeded demo accounts all use the password `password`:
+
+| Role | Email |
+|---|---|
+| Super Admin | `superadmin@chargetrackr.local` |
+| Admin | `admin@chargetrackr.local` |
+| Operator | `operator@chargetrackr.local` |
+| Technician | `technician@chargetrackr.local` |
+| Client | `client@chargetrackr.local` |
 
 Note: `maatwebsite/excel` was intentionally not used in the current setup because its spreadsheet dependency is not compatible with PHP 8.5. `openspout/openspout` is installed instead for CSV/XLSX-style exports.
 
