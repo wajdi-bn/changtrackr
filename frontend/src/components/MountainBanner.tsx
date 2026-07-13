@@ -1,4 +1,4 @@
-type MountainBannerColor = 'pink' | 'orange' | 'green' | 'blue' | 'purple' | 'gold'
+type MountainBannerColor = 'pink' | 'orange' | 'green' | 'blue' | 'cyan' | 'purple' | 'gold'
 
 interface MountainBannerProps {
   color: MountainBannerColor

@@ -1,0 +1,270 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Users\StoreUserRequest;
+use App\Http\Requests\Users\UpdateUserRequest;
+use App\Http\Resources\UserResource;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class UserController extends Controller
+{
+    private const RELATIONS = ['organization', 'roles.permissions', 'permissions'];
+
+    private const COUNTS = ['assignedAlerts', 'assignedInterventions', 'chargingSessions', 'payments'];
+
+    public function index(Request $request): JsonResponse
+    {
+        Gate::authorize('viewAny', User::class);
+        $filters = $this->validateFilters($request);
+        /** @var User $actor */
+        $actor = $request->user();
+        $scope = $this->scopedQuery($actor);
+        $summary = clone $scope;
+        $users = $this->applyFilters($scope, $filters)
+            ->with(self::RELATIONS)
+            ->withCount(self::COUNTS)
+            ->orderBy('name')
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
+
+        return response()->json([
+            'data' => UserResource::collection($users->items()),
+            'summary' => [
+                'total' => (clone $summary)->count(),
+                'active' => (clone $summary)->where('status', 'active')->count(),
+                'inactive' => (clone $summary)->where('status', 'inactive')->count(),
+                'pending' => (clone $summary)->where('status', 'pending')->count(),
+                'by_role' => $this->roleSummary(clone $summary),
+            ],
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+            ],
+        ]);
+    }
+
+    public function store(StoreUserRequest $request): JsonResponse
+    {
+        Gate::authorize('create', User::class);
+        /** @var User $actor */
+        $actor = $request->user();
+        $attributes = $request->validated();
+        $this->assertRoleCanBeAssigned($actor, $attributes['role']);
+        $role = $attributes['role'];
+        unset($attributes['role']);
+        $attributes['organization_id'] = $actor->hasRole('super_admin')
+            ? $attributes['organization_id']
+            : $actor->organization_id;
+        $attributes['team'] ??= $this->defaultTeam($role);
+
+        $user = User::query()->create($attributes);
+        $user->syncRoles([$role]);
+
+        return (new UserResource($this->loadUser($user)))
+            ->response()
+            ->setStatusCode(201);
+    }
+
+    public function show(User $user): UserResource
+    {
+        Gate::authorize('view', $user);
+
+        return new UserResource($this->loadUser($user));
+    }
+
+    public function update(UpdateUserRequest $request, User $user): UserResource
+    {
+        Gate::authorize('update', $user);
+        /** @var User $actor */
+        $actor = $request->user();
+        $attributes = $request->validated();
+        $currentRole = $user->getRoleNames()->first();
+        if ($actor->is($user) && (
+            (isset($attributes['status']) && $attributes['status'] !== 'active')
+            || (isset($attributes['role']) && $attributes['role'] !== $currentRole)
+        )) {
+            throw ValidationException::withMessages(['user' => ['You cannot deactivate or remove your own administrator role.']]);
+        }
+        if (isset($attributes['role'])) {
+            $this->assertRoleCanBeAssigned($actor, $attributes['role']);
+        }
+        if (array_key_exists('password', $attributes) && ! $attributes['password']) {
+            unset($attributes['password']);
+        }
+        $role = $attributes['role'] ?? null;
+        unset($attributes['role']);
+        if (($attributes['status'] ?? null) === 'inactive') {
+            $this->assertCanDeactivate($user);
+        }
+
+        $user->update($attributes);
+        if ($role) {
+            $user->syncRoles([$role]);
+        }
+        if ($user->status === 'inactive') {
+            $user->tokens()->delete();
+        }
+
+        return new UserResource($this->loadUser($user->refresh()));
+    }
+
+    public function destroy(Request $request, User $user): JsonResponse
+    {
+        Gate::authorize('delete', $user);
+        /** @var User $actor */
+        $actor = $request->user();
+        if ($actor->is($user)) {
+            throw ValidationException::withMessages(['user' => ['You cannot deactivate your own account.']]);
+        }
+        $this->assertCanDeactivate($user);
+        $user->update(['status' => 'inactive']);
+        $user->tokens()->delete();
+
+        return response()->json(['data' => new UserResource($this->loadUser($user->refresh()))]);
+    }
+
+    public function export(Request $request): JsonResponse|StreamedResponse
+    {
+        Gate::authorize('viewAny', User::class);
+        $filters = $this->validateFilters($request);
+        $format = $request->validate(['format' => ['required', Rule::in(['csv', 'json'])]])['format'];
+        /** @var User $actor */
+        $actor = $request->user();
+        $users = $this->applyFilters($this->scopedQuery($actor), $filters)
+            ->with('roles')
+            ->orderBy('name')
+            ->get();
+
+        if ($format === 'json') {
+            return response()->json(['data' => $users->map(fn (User $user) => $this->exportRow($user))]);
+        }
+
+        return response()->streamDownload(function () use ($users): void {
+            $output = fopen('php://output', 'w');
+            if ($output === false) {
+                return;
+            }
+            fputcsv($output, ['Name', 'Email', 'Phone', 'Role', 'Team', 'Status', 'Last login']);
+            foreach ($users as $user) {
+                fputcsv($output, array_values($this->exportRow($user)));
+            }
+            fclose($output);
+        }, 'organization-users.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    /** @return array<string, mixed> */
+    private function validateFilters(Request $request): array
+    {
+        return $request->validate([
+            'search' => ['nullable', 'string', 'max:120'],
+            'role' => ['nullable', Rule::in(['super_admin', 'admin', 'operator', 'technician', 'client'])],
+            'status' => ['nullable', Rule::in(['active', 'inactive', 'pending'])],
+            'team' => ['nullable', 'string', 'max:120'],
+            'last_login' => ['nullable', Rule::in(['today', 'week', 'month'])],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+    }
+
+    private function scopedQuery(User $actor): Builder
+    {
+        return User::query()->when(
+            ! $actor->hasRole('super_admin'),
+            fn (Builder $query) => $query->where('organization_id', $actor->organization_id),
+        );
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function applyFilters(Builder $query, array $filters): Builder
+    {
+        return $query
+            ->when($filters['search'] ?? null, function (Builder $query, string $search): void {
+                $needle = '%'.mb_strtolower($search).'%';
+                $query->where(fn (Builder $query) => $query
+                    ->whereRaw('LOWER(name) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(email) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(team) LIKE ?', [$needle]));
+            })
+            ->when($filters['role'] ?? null, fn (Builder $query, string $role) => $query->whereHas('roles', fn (Builder $query) => $query->where('name', $role)))
+            ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
+            ->when($filters['team'] ?? null, fn (Builder $query, string $team) => $query->where('team', $team))
+            ->when($filters['last_login'] ?? null, function (Builder $query, string $period): void {
+                $start = match ($period) {
+                    'today' => now()->startOfDay(),
+                    'week' => now()->subWeek(),
+                    'month' => now()->subMonth(),
+                };
+                $query->where('last_login_at', '>=', $start);
+            });
+    }
+
+    /** @return array<string, int> */
+    private function roleSummary(Builder $query): array
+    {
+        return collect(['admin', 'operator', 'technician', 'client'])
+            ->mapWithKeys(fn (string $role) => [$role => (clone $query)->whereHas('roles', fn (Builder $query) => $query->where('name', $role))->count()])
+            ->all();
+    }
+
+    private function loadUser(User $user): User
+    {
+        return $user->load(self::RELATIONS)->loadCount(self::COUNTS);
+    }
+
+    private function assertRoleCanBeAssigned(User $actor, string $role): void
+    {
+        if (! $actor->hasRole('super_admin') && $role === 'super_admin') {
+            throw ValidationException::withMessages(['role' => ['Organization administrators cannot assign the super administrator role.']]);
+        }
+    }
+
+    private function assertCanDeactivate(User $user): void
+    {
+        if (! $user->hasRole('admin') || $user->status !== 'active') {
+            return;
+        }
+        $activeAdministrators = User::query()
+            ->where('organization_id', $user->organization_id)
+            ->where('status', 'active')
+            ->whereHas('roles', fn (Builder $query) => $query->where('name', 'admin'))
+            ->count();
+        if ($activeAdministrators <= 1) {
+            throw ValidationException::withMessages(['user' => ['The last active organization administrator cannot be deactivated.']]);
+        }
+    }
+
+    private function defaultTeam(string $role): string
+    {
+        return match ($role) {
+            'admin' => 'Management',
+            'operator' => 'Network Operations',
+            'technician' => 'Field Maintenance',
+            'client' => 'Driver Accounts',
+            default => 'Platform Administration',
+        };
+    }
+
+    /** @return array<string, mixed> */
+    private function exportRow(User $user): array
+    {
+        return [
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => $user->getRoleNames()->first(),
+            'team' => $user->team,
+            'status' => $user->status,
+            'last_login_at' => $user->last_login_at?->toISOString(),
+        ];
+    }
+}

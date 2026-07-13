@@ -16,11 +16,21 @@ export interface AuthUser {
   email: string
   phone: string | null
   avatar_url: string | null
+  team: string | null
+  address: string | null
   status: string
   roles: UserRole[]
   permissions: string[]
   organization: Organization | null
   last_login_at: string | null
+  activity: {
+    assigned_alerts: number
+    assigned_interventions: number
+    charging_sessions: number
+    payments: number
+  }
+  created_at: string | null
+  updated_at: string | null
 }
 
 export interface LoginResponse {

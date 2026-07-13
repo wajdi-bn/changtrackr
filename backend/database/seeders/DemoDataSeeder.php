@@ -33,12 +33,12 @@ class DemoDataSeeder extends Seeder
         );
 
         $users = [
-            ['name' => 'Meriem Haddad', 'email' => 'superadmin@chargetrackr.local', 'role' => 'super_admin', 'organization_id' => null],
-            ['name' => 'Sami Ben Amor', 'email' => 'admin@chargetrackr.local', 'role' => 'admin', 'organization_id' => $organization->id],
-            ['name' => 'Meriem Haddad', 'email' => 'operator@chargetrackr.local', 'role' => 'operator', 'organization_id' => $organization->id],
-            ['name' => 'Nour Trabelsi', 'email' => 'technician@chargetrackr.local', 'role' => 'technician', 'organization_id' => $organization->id],
-            ['name' => 'Karim Ben Salem', 'email' => 'technician2@chargetrackr.local', 'role' => 'technician', 'organization_id' => $organization->id],
-            ['name' => 'Yasmine B.', 'email' => 'client@chargetrackr.local', 'role' => 'client', 'organization_id' => $organization->id],
+            ['name' => 'Meriem Haddad', 'email' => 'superadmin@chargetrackr.local', 'role' => 'super_admin', 'organization_id' => null, 'phone' => '+216 20 100 100', 'team' => 'Platform Administration', 'address' => 'Tunis, Tunisia'],
+            ['name' => 'Sami Ben Amor', 'email' => 'admin@chargetrackr.local', 'role' => 'admin', 'organization_id' => $organization->id, 'phone' => '+216 20 200 200', 'team' => 'Management', 'address' => 'Les Berges du Lac, Tunis', 'avatar_url' => '/assets/avatar-vendor-1.jpg'],
+            ['name' => 'Meriem Haddad', 'email' => 'operator@chargetrackr.local', 'role' => 'operator', 'organization_id' => $organization->id, 'phone' => '+216 20 300 300', 'team' => 'Network Operations', 'address' => 'La Marsa, Tunis'],
+            ['name' => 'Nour Trabelsi', 'email' => 'technician@chargetrackr.local', 'role' => 'technician', 'organization_id' => $organization->id, 'phone' => '+216 20 400 400', 'team' => 'Field Maintenance', 'address' => 'Ariana, Tunisia'],
+            ['name' => 'Karim Ben Salem', 'email' => 'technician2@chargetrackr.local', 'role' => 'technician', 'organization_id' => $organization->id, 'phone' => '+216 20 500 500', 'team' => 'Field Maintenance', 'address' => 'Sfax, Tunisia'],
+            ['name' => 'Yasmine B.', 'email' => 'client@chargetrackr.local', 'role' => 'client', 'organization_id' => $organization->id, 'phone' => '+216 20 600 600', 'team' => 'Driver Accounts', 'address' => 'Nabeul, Tunisia'],
         ];
 
         foreach ($users as $userData) {
