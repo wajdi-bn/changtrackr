@@ -116,7 +116,7 @@ export function SessionsPage() {
         <div className="active-session-main">
           <span>Charging now</span>
           <h2>{activeSession.station.name}</h2>
-          <p>Connector {activeSession.connector.external_id} · {activeSession.connector.type} · started {activeSession.started_relative}</p>
+          <p>Connector {activeSession.connector.external_id} · {activeSession.connector.type} · {activeSession.tariff.name} · started {activeSession.started_relative}</p>
         </div>
         <div className="active-session-metrics">
           <div><Clock3 size={15} /><span><small>Elapsed</small><strong>{Math.max(1, dayjs().diff(dayjs(activeSession.started_at), 'minute'))} min</strong></span></div>

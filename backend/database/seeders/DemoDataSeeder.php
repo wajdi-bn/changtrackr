@@ -8,7 +8,10 @@ use App\Models\Intervention;
 use App\Models\Organization;
 use App\Models\Payment;
 use App\Models\Station;
+use App\Models\Tariff;
+use App\Models\TariffAssignment;
 use App\Models\User;
+use App\Services\TariffResolver;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -86,6 +89,62 @@ class DemoDataSeeder extends Seeder
                     ],
                 );
             }
+        }
+
+        $standardTariff = Tariff::updateOrCreate(
+            ['organization_id' => $organization->id, 'code' => 'STANDARD'],
+            [
+                'name' => 'Standard charging',
+                'description' => 'Default organization tariff for everyday charging.',
+                'status' => 'active',
+                'currency' => 'TND',
+                'price_per_kwh_millimes' => 850,
+                'session_fee_millimes' => 500,
+                'idle_fee_per_minute_millimes' => 100,
+                'minimum_charge_millimes' => 1000,
+                'is_default' => true,
+            ],
+        );
+        $fastTariff = Tariff::updateOrCreate(
+            ['organization_id' => $organization->id, 'code' => 'FAST-DC'],
+            [
+                'name' => 'Fast DC premium',
+                'description' => 'Premium rate for high-power hubs.',
+                'status' => 'active',
+                'currency' => 'TND',
+                'price_per_kwh_millimes' => 1100,
+                'session_fee_millimes' => 750,
+                'idle_fee_per_minute_millimes' => 150,
+                'minimum_charge_millimes' => 1500,
+                'is_default' => false,
+            ],
+        );
+        $nightTariff = Tariff::updateOrCreate(
+            ['organization_id' => $organization->id, 'code' => 'AC-NIGHT'],
+            [
+                'name' => 'AC night saver',
+                'description' => 'Lower AC rate prepared for off-peak operation.',
+                'status' => 'draft',
+                'currency' => 'TND',
+                'price_per_kwh_millimes' => 450,
+                'session_fee_millimes' => 300,
+                'idle_fee_per_minute_millimes' => 50,
+                'minimum_charge_millimes' => 750,
+                'is_default' => false,
+            ],
+        );
+
+        $fastStation = Station::query()->where('reference', 'CT-TUN-014')->firstOrFail();
+        TariffAssignment::query()->updateOrCreate(
+            ['station_id' => $fastStation->id],
+            ['tariff_id' => $fastTariff->id, 'connector_id' => null],
+        );
+        $acConnector = Station::query()->where('reference', 'CT-TUN-001')->firstOrFail()->connectors()->where('type', 'Type 2')->first();
+        if ($acConnector) {
+            TariffAssignment::query()->updateOrCreate(
+                ['connector_id' => $acConnector->id],
+                ['tariff_id' => $nightTariff->id, 'station_id' => null],
+            );
         }
 
         $nour = User::query()->where('email', 'technician@chargetrackr.local')->firstOrFail();
@@ -233,6 +292,7 @@ class DemoDataSeeder extends Seeder
         foreach ($sessionSeeds as $index => $seed) {
             $station = Station::query()->where('reference', $seed['station_reference'])->firstOrFail();
             $connector = $station->connectors()->orderBy('id')->firstOrFail();
+            $resolvedTariff = app(TariffResolver::class)->resolve($station, $connector);
             $session = ChargingSession::updateOrCreate(
                 ['reference' => $seed['reference']],
                 [
@@ -240,19 +300,23 @@ class DemoDataSeeder extends Seeder
                     'client_id' => $client->id,
                     'station_id' => $station->id,
                     'connector_id' => $connector->id,
+                    'tariff_id' => $resolvedTariff->id,
                     'client_name' => $client->name,
                     'station_name' => $station->name,
                     'connector_external_id' => $connector->external_id,
                     'status' => $seed['status'],
                     'payment_status' => $seed['payment_status'],
+                    'tariff_name' => $resolvedTariff->name,
                     'started_at' => $seed['started_at'],
                     'ended_at' => $seed['ended_at'],
                     'duration_seconds' => $seed['duration_seconds'],
                     'meter_start_kwh' => 2100 + ($index * 100),
                     'meter_stop_kwh' => $seed['status'] === 'completed' ? 2100 + ($index * 100) + $seed['energy_kwh'] : null,
                     'energy_kwh' => $seed['energy_kwh'],
-                    'price_per_kwh_millimes' => 850,
-                    'session_fee_millimes' => 500,
+                    'price_per_kwh_millimes' => $resolvedTariff->pricePerKwhMillimes,
+                    'session_fee_millimes' => $resolvedTariff->sessionFeeMillimes,
+                    'idle_fee_per_minute_millimes' => $resolvedTariff->idleFeePerMinuteMillimes,
+                    'minimum_charge_millimes' => $resolvedTariff->minimumChargeMillimes,
                     'total_millimes' => $seed['total_millimes'],
                     'currency' => 'TND',
                 ],

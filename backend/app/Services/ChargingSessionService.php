@@ -12,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class ChargingSessionService
 {
+    public function __construct(private readonly TariffResolver $tariffResolver) {}
+
     /** @param array{station_id:int, connector_id:int} $attributes */
     public function start(User $client, array $attributes): ChargingSession
     {
@@ -36,22 +38,28 @@ class ChargingSessionService
                 throw ValidationException::withMessages(['session' => ['The client or connector already has an active session.']]);
             }
 
+            $tariff = $this->tariffResolver->resolve($station, $connector);
+
             $session = ChargingSession::query()->create([
                 'organization_id' => $station->organization_id,
                 'client_id' => $client->id,
                 'station_id' => $station->id,
                 'connector_id' => $connector->id,
+                'tariff_id' => $tariff->id,
                 'reference' => 'SES-'.Str::upper(Str::random(10)),
                 'client_name' => $client->name,
                 'station_name' => $station->name,
                 'connector_external_id' => $connector->external_id,
                 'status' => 'charging',
                 'payment_status' => 'unpaid',
+                'tariff_name' => $tariff->name,
                 'started_at' => now(),
                 'meter_start_kwh' => 1000 + ($connector->id * 10),
-                'price_per_kwh_millimes' => config('charging.price_per_kwh_millimes'),
-                'session_fee_millimes' => config('charging.session_fee_millimes'),
-                'currency' => 'TND',
+                'price_per_kwh_millimes' => $tariff->pricePerKwhMillimes,
+                'session_fee_millimes' => $tariff->sessionFeeMillimes,
+                'idle_fee_per_minute_millimes' => $tariff->idleFeePerMinuteMillimes,
+                'minimum_charge_millimes' => $tariff->minimumChargeMillimes,
+                'currency' => $tariff->currency,
             ]);
 
             $connector->update(['status' => 'charging', 'last_status_at' => now(), 'error_code' => null]);
@@ -79,7 +87,10 @@ class ChargingSessionService
             $powerKw = min((float) ($connector?->max_power_kw ?? 60), 60);
             $energyKwh = max(0.5, round(($durationSeconds / 3600) * $powerKw, 3));
             $energyCost = (int) round($energyKwh * $session->price_per_kwh_millimes);
-            $totalMillimes = $energyCost + $session->session_fee_millimes;
+            $totalMillimes = max(
+                $energyCost + $session->session_fee_millimes,
+                $session->minimum_charge_millimes,
+            );
 
             $session->update([
                 'status' => 'completed',

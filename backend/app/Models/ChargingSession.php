@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
-    'organization_id', 'client_id', 'station_id', 'connector_id', 'reference',
+    'organization_id', 'client_id', 'station_id', 'connector_id', 'tariff_id', 'reference',
     'client_name', 'station_name', 'connector_external_id', 'status', 'payment_status',
     'started_at', 'ended_at', 'duration_seconds', 'meter_start_kwh', 'meter_stop_kwh',
-    'energy_kwh', 'price_per_kwh_millimes', 'session_fee_millimes', 'total_millimes', 'currency',
+    'energy_kwh', 'tariff_name', 'price_per_kwh_millimes', 'session_fee_millimes',
+    'idle_fee_per_minute_millimes', 'minimum_charge_millimes', 'total_millimes', 'currency',
 ])]
 class ChargingSession extends Model
 {
@@ -40,6 +41,11 @@ class ChargingSession extends Model
         return $this->hasOne(Payment::class);
     }
 
+    public function tariff(): BelongsTo
+    {
+        return $this->belongsTo(Tariff::class);
+    }
+
     protected function casts(): array
     {
         return [
@@ -51,6 +57,8 @@ class ChargingSession extends Model
             'energy_kwh' => 'float',
             'price_per_kwh_millimes' => 'integer',
             'session_fee_millimes' => 'integer',
+            'idle_fee_per_minute_millimes' => 'integer',
+            'minimum_charge_millimes' => 'integer',
             'total_millimes' => 'integer',
         ];
     }

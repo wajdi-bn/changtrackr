@@ -6,7 +6,10 @@ use App\Http\Controllers\Api\ChargingSessionController;
 use App\Http\Controllers\Api\ConnectorController;
 use App\Http\Controllers\Api\InterventionController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PricingController;
 use App\Http\Controllers\Api\StationController;
+use App\Http\Controllers\Api\TariffAssignmentController;
+use App\Http\Controllers\Api\TariffController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +41,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/charging-sessions/{chargingSession}/stop', [ChargingSessionController::class, 'stop']);
     Route::post('/charging-sessions/{chargingSession}/payments', [PaymentController::class, 'store']);
     Route::get('/payments', [PaymentController::class, 'index']);
+
+    Route::apiResource('tariffs', TariffController::class);
+    Route::post('/tariffs/{tariff}/assignments', [TariffAssignmentController::class, 'store']);
+    Route::delete('/tariff-assignments/{tariffAssignment}', [TariffAssignmentController::class, 'destroy']);
+    Route::get('/stations/{station}/pricing', [PricingController::class, 'effective']);
 });
 
 Route::get('/user', function (Request $request) {

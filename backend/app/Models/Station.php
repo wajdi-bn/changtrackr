@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
@@ -46,6 +47,11 @@ class Station extends Model
     public function chargingSessions(): HasMany
     {
         return $this->hasMany(ChargingSession::class);
+    }
+
+    public function tariffAssignment(): HasOne
+    {
+        return $this->hasOne(TariffAssignment::class);
     }
 
     /** @return array<string, string> */

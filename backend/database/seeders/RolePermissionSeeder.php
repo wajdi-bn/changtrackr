@@ -85,6 +85,7 @@ class RolePermissionSeeder extends Seeder
                 'connectors.manage',
                 'sessions.view',
                 'sessions.manage',
+                'tariffs.view',
                 'alerts.view',
                 'alerts.manage',
                 'alerts.assign',

@@ -17,6 +17,7 @@ const InterventionsPage = lazy(() => import('../pages/InterventionsPage').then((
 const SessionsPage = lazy(() => import('../pages/SessionsPage').then((module) => ({ default: module.SessionsPage })))
 const FindStationPage = lazy(() => import('../pages/FindStationPage').then((module) => ({ default: module.FindStationPage })))
 const PaymentsPage = lazy(() => import('../pages/PaymentsPage').then((module) => ({ default: module.PaymentsPage })))
+const TariffsPage = lazy(() => import('../pages/TariffsPage').then((module) => ({ default: module.TariffsPage })))
 
 function DefaultRedirect() {
   const { primaryRole } = useAuth()
@@ -42,7 +43,7 @@ export function AppRouter() {
           <Route path="/integrations" element={<WorkspacePage title="Integrations" subtitle="OAuth, email, payment and OCPP integration status." />} />
           <Route path="/system-settings" element={<WorkspacePage title="System Settings" subtitle="Platform-level settings and environment diagnostics." />} />
           <Route path="/users" element={<WorkspacePage title="Users" subtitle="Organization users with role-based CRUD." />} />
-          <Route path="/tariffs" element={<WorkspacePage title="Tariffs & Pricing" subtitle="Pricing profiles and tariff rules for charging sessions." />} />
+          <Route path="/tariffs" element={<TariffsPage />} />
           <Route path="/analytics-reports" element={<WorkspacePage title="Analytics & Reports" subtitle="Organization KPIs, trends and report generation." />} />
           <Route path="/stations" element={<StationsPage />} />
           <Route path="/stations/:stationId" element={<StationDetailPage />} />

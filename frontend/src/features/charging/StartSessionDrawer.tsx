@@ -1,7 +1,9 @@
 import { Alert, Button, Drawer, Empty, Form, Select } from 'antd'
 import { BatteryCharging, MapPin, PlugZap, Zap } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { Station } from '../../types/station'
+import { getEffectivePricing } from '../tariffs/tariffApi'
 
 interface StartSessionDrawerProps {
   open: boolean
@@ -15,9 +17,15 @@ interface StartSessionDrawerProps {
 export function StartSessionDrawer({ open, stations, initialStationId, submitting, onClose, onSubmit }: StartSessionDrawerProps) {
   const [form] = Form.useForm<{ station_id: number; connector_id: number }>()
   const stationId = Form.useWatch('station_id', form)
+  const connectorId = Form.useWatch('connector_id', form)
   const availableStations = useMemo(() => stations.filter((station) => station.available_connectors_count > 0), [stations])
   const selectedStation = availableStations.find((station) => station.id === stationId)
   const availableConnectors = selectedStation?.connectors.filter((connector) => connector.status === 'available') ?? []
+  const pricingQuery = useQuery({
+    queryKey: ['effective-pricing', stationId, connectorId],
+    queryFn: () => getEffectivePricing(stationId, connectorId),
+    enabled: Boolean(stationId && connectorId),
+  })
 
   useEffect(() => {
     if (!open) return
@@ -61,6 +69,12 @@ export function StartSessionDrawer({ open, stations, initialStationId, submittin
               }))}
             />
           </Form.Item>
+          {pricingQuery.data && <div className="effective-pricing-card">
+            <div><small>Applied tariff</small><strong>{pricingQuery.data.name}</strong><span>{pricingSourceLabel(pricingQuery.data.source)}</span></div>
+            <div><small>Energy</small><strong>{(pricingQuery.data.price_per_kwh_millimes / 1000).toFixed(3)} TND/kWh</strong></div>
+            <div><small>Start fee</small><strong>{(pricingQuery.data.session_fee_millimes / 1000).toFixed(3)} TND</strong></div>
+            <div><small>Minimum</small><strong>{(pricingQuery.data.minimum_charge_millimes / 1000).toFixed(3)} TND</strong></div>
+          </div>}
           <Alert
             type="info"
             showIcon
@@ -75,4 +89,8 @@ export function StartSessionDrawer({ open, stations, initialStationId, submittin
       )}
     </Drawer>
   )
+}
+
+function pricingSourceLabel(source: string) {
+  return ({ connector: 'Connector-specific', station: 'Station-specific', organization_default: 'Organization default', configuration_fallback: 'Configuration fallback' } as Record<string, string>)[source] ?? source
 }

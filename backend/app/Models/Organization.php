@@ -59,6 +59,11 @@ class Organization extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function tariffs(): HasMany
+    {
+        return $this->hasMany(Tariff::class);
+    }
+
     protected function slug(): Attribute
     {
         return Attribute::make(
