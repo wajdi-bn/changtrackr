@@ -33,6 +33,8 @@ class RolePermissionSeeder extends Seeder
             'connectors.manage',
             'sessions.view',
             'sessions.manage',
+            'sessions.start',
+            'sessions.stop',
             'alerts.view',
             'alerts.manage',
             'alerts.assign',
@@ -56,6 +58,8 @@ class RolePermissionSeeder extends Seeder
             Permission::findOrCreate($permission, 'web');
         }
 
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         $rolePermissions = [
             'super_admin' => $permissions,
             'admin' => [
@@ -76,6 +80,7 @@ class RolePermissionSeeder extends Seeder
                 'stations.view',
                 'stations.create',
                 'stations.update',
+                'stations.delete',
                 'connectors.view',
                 'connectors.manage',
                 'sessions.view',
@@ -99,6 +104,8 @@ class RolePermissionSeeder extends Seeder
             'client' => [
                 'stations.view',
                 'sessions.view',
+                'sessions.start',
+                'sessions.stop',
                 'payments.view',
                 'payments.pay',
                 'vehicles.manage',

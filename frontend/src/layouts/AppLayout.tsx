@@ -5,13 +5,13 @@ import {
   SettingOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { Avatar, Badge, Button, Dropdown, Input, Layout, Menu, Space, Typography } from 'antd'
+import { Avatar, Badge, Button, Dropdown, Input, Layout, Menu, Select, Space } from 'antd'
 import type { MenuProps } from 'antd'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { getRoleConfig } from '../features/auth/roleConfig'
 
-const { Header, Sider, Content } = Layout
+const { Header, Content } = Layout
 
 export function AppLayout() {
   const { user, primaryRole, logout } = useAuth()
@@ -56,9 +56,9 @@ export function AppLayout() {
 
   return (
     <Layout className="app-shell">
-      <Sider width={248} collapsedWidth={76} className="app-sidebar">
+      <aside className="app-sidebar">
         <button className="brand-button" onClick={() => navigate(roleConfig.defaultPath)}>
-          <span className="brand-mark">CT</span>
+          <img className="brand-mark" src="/assets/Logo.png" alt="" />
           <span className="brand-name">ChargeTrackr</span>
         </button>
 
@@ -73,16 +73,20 @@ export function AppLayout() {
             onClick: () => navigate(item.path),
           }))}
         />
-      </Sider>
+      </aside>
 
-      <Layout>
+      <Layout className="app-main-layout">
         <Header className="app-header">
-          <div>
-            <Typography.Title level={4} className="app-title">
-              ChargeTrackr
-            </Typography.Title>
-            <Typography.Text type="secondary">{roleConfig.shortLabel} workspace</Typography.Text>
+          <div className="topbar-brand">
+            <img src="/assets/Logo.png" alt="" />
+            <div><strong>ChargeTrackr</strong><small>{roleConfig.shortLabel} workspace</small></div>
           </div>
+
+          <Select
+            className="network-select"
+            value={user?.organization?.name ?? 'Tunisia network'}
+            options={[{ value: user?.organization?.name ?? 'Tunisia network', label: user?.organization?.name ?? 'Tunisia network' }]}
+          />
 
           <Input.Search
             className="global-search"
@@ -96,7 +100,7 @@ export function AppLayout() {
             </Badge>
             <Dropdown menu={{ items: avatarMenu }} trigger={['click']}>
               <button className="avatar-button">
-                <Avatar src={user?.avatar_url ?? undefined} icon={<UserOutlined />} />
+                <Avatar src={user?.avatar_url ?? '/assets/avatar-vendor-1.jpg'} icon={<UserOutlined />} />
                 <span className="avatar-copy">
                   <strong>{user?.name}</strong>
                   <small>{roleConfig.label}</small>

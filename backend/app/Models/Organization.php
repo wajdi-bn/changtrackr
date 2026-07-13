@@ -31,6 +31,34 @@ class Organization extends Model
         return $this->hasMany(User::class);
     }
 
+    /** @return HasMany<Station, $this> */
+    public function stations(): HasMany
+    {
+        return $this->hasMany(Station::class);
+    }
+
+    /** @return HasMany<Alert, $this> */
+    public function alerts(): HasMany
+    {
+        return $this->hasMany(Alert::class);
+    }
+
+    /** @return HasMany<Intervention, $this> */
+    public function interventions(): HasMany
+    {
+        return $this->hasMany(Intervention::class);
+    }
+
+    public function chargingSessions(): HasMany
+    {
+        return $this->hasMany(ChargingSession::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     protected function slug(): Attribute
     {
         return Attribute::make(

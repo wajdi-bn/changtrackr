@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -26,6 +27,28 @@ class User extends Authenticatable
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /** @return HasMany<Alert, $this> */
+    public function assignedAlerts(): HasMany
+    {
+        return $this->hasMany(Alert::class, 'assigned_technician_id');
+    }
+
+    /** @return HasMany<Intervention, $this> */
+    public function assignedInterventions(): HasMany
+    {
+        return $this->hasMany(Intervention::class, 'assigned_technician_id');
+    }
+
+    public function chargingSessions(): HasMany
+    {
+        return $this->hasMany(ChargingSession::class, 'client_id');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
     }
 
     /**
