@@ -4137,3 +4137,184 @@ html {
     padding: 7px;
   }
 }
+
+/* Global readable typography scale. Keep this after legacy prototype rules. */
+html {
+  font-size: 16px;
+}
+
+body {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.landing-brand {
+  font-size: 15px;
+}
+
+.landing-desktop-nav a,
+.landing-nav-actions .ant-btn {
+  font-size: 14px;
+}
+
+.app-shell {
+  --type-caption: 12px;
+  --type-table: 13px;
+  --type-control: 14px;
+  --type-body: 14px;
+  --type-card-title: 16px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.app-shell :is(p, li, label) {
+  font-size: var(--type-body) !important;
+}
+
+.app-shell :is(small, time) {
+  font-size: var(--type-caption) !important;
+}
+
+.app-shell :is(
+  .ant-btn,
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-input-number-input,
+  .ant-picker-input > input,
+  .ant-select-selection-item,
+  .ant-select-selection-placeholder,
+  .ant-tabs-tab,
+  .ant-segmented-item-label,
+  .ant-dropdown-menu-title-content,
+  .ant-form-item-label > label,
+  .ant-pagination,
+  button
+) {
+  font-size: var(--type-control) !important;
+}
+
+.app-shell :is(.ant-tag, .ant-badge-status-text) {
+  font-size: var(--type-caption) !important;
+}
+
+.app-shell .ant-table,
+.app-shell .prototype-tariff-table {
+  font-size: var(--type-table) !important;
+}
+
+.app-shell :is(.ant-table-thead > tr > th, .prototype-tariff-table th) {
+  font-size: var(--type-caption) !important;
+}
+
+.app-shell :is(.ant-card-head-title, .ant-modal-title, .ant-drawer-title) {
+  font-size: var(--type-card-title) !important;
+}
+
+.app-shell :is(
+  .app-menu .ant-menu-title-content,
+  .topbar-brand strong,
+  .avatar-copy strong,
+  .network-select .ant-select-selection-item
+) {
+  font-size: var(--type-control) !important;
+}
+
+.app-shell :is(
+  .station-card-heading h2,
+  .connector-heading h3,
+  .intervention-detail h2,
+  .intervention-detail h3,
+  .prototype-section-card > header h2,
+  .subscription-section > header h2,
+  .current-subscription-card > header h3,
+  .subscription-plan-card > header h3,
+  .subscription-modal-plan h3,
+  .finder-card-title h2,
+  .outstanding-payments h2
+) {
+  font-size: var(--type-card-title) !important;
+}
+
+.app-shell :is(
+  .station-card-facts strong,
+  .station-live-card strong,
+  .alert-list-item strong,
+  .alert-meta-grid strong,
+  .intervention-summary strong,
+  .intervention-facts strong,
+  .intervention-final strong,
+  .active-session-metrics strong,
+  .no-active-session strong,
+  .payment-reference strong,
+  .start-session-intro strong,
+  .start-station-context strong,
+  .payment-summary-card strong,
+  .effective-pricing-card strong,
+  .invoice-breakdown strong,
+  .tariff-rule-name strong,
+  .tariff-assignment-list strong,
+  .tariff-estimate p strong,
+  .customer-contact strong,
+  .users-list-identity strong,
+  .users-grid article > header strong,
+  .customer-card-metrics strong,
+  .customer-detail-metrics strong,
+  .customer-session-list strong,
+  .current-subscription-benefits strong,
+  .current-subscription-card > footer strong,
+  .subscription-history-list strong,
+  .subscription-renew-option strong,
+  .start-plan-benefit strong,
+  .user-info-panel strong,
+  .finder-card-facts b,
+  .outstanding-payments article strong
+) {
+  font-size: 14px !important;
+}
+
+.app-shell :is(
+  .start-station-context span,
+  .payment-security-note,
+  .effective-pricing-card span,
+  .invoice-breakdown header span,
+  .tariff-editor-modal .ant-modal-title small,
+  .user-drawer-title small,
+  .user-editor-modal .ant-modal-title small,
+  .finder-card-title p,
+  .finder-card-title > strong,
+  .finder-card-facts span,
+  .finder-connectors span,
+  .outstanding-payments header span
+) {
+  font-size: var(--type-caption) !important;
+}
+
+.app-shell :is(
+  .customer-kpi strong,
+  .subscription-kpi strong,
+  .user-metrics strong,
+  .session-kpi strong,
+  .payment-kpis strong
+) {
+  font-size: 16px !important;
+}
+
+.app-shell :is(
+  .current-subscription-card > header > b,
+  .subscription-plan-card > header > b
+) {
+  font-size: 11px !important;
+}
+
+.app-shell .subscription-plan-price {
+  font-size: 22px !important;
+}
+
+.app-shell .tariff-plan-card > strong {
+  font-size: 24px !important;
+}
+
+.app-shell .tariff-estimate > div strong,
+.app-shell .payment-total strong {
+  font-size: 18px !important;
+}

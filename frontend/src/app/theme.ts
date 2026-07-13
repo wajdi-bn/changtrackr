@@ -8,6 +8,10 @@ export const antdTheme: ThemeConfig = {
     colorError: '#ef4444',
     colorInfo: '#6366f1',
     borderRadius: 12,
+    fontSize: 15,
+    fontSizeSM: 13,
+    fontSizeLG: 17,
+    lineHeight: 1.5,
     fontFamily:
       'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
