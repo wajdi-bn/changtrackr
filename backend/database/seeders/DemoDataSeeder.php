@@ -3,10 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Alert;
+use App\Models\ChargingPlan;
 use App\Models\ChargingSession;
 use App\Models\Intervention;
 use App\Models\Organization;
 use App\Models\Payment;
+use App\Models\PlanSubscription;
 use App\Models\Station;
 use App\Models\Tariff;
 use App\Models\TariffAssignment;
@@ -380,6 +382,27 @@ class DemoDataSeeder extends Seeder
                 );
             }
         }
+
+        $memberPlan = ChargingPlan::query()
+            ->where('organization_id', $organization->id)
+            ->where('code', 'MEMBER')
+            ->firstOrFail();
+        PlanSubscription::query()->updateOrCreate(
+            ['user_id' => $client->id, 'organization_id' => $organization->id, 'status' => 'active'],
+            [
+                'charging_plan_id' => $memberPlan->id,
+                'auto_renew' => true,
+                'billing_provider' => 'simulated',
+                'monthly_fee_millimes' => $memberPlan->monthly_fee_millimes,
+                'discount_basis_points' => $memberPlan->discount_basis_points,
+                'starts_at' => now(),
+                'current_period_ends_at' => now()->addMonthNoOverflow(),
+                'cancelled_at' => null,
+            ],
+        );
+        ChargingPlan::query()->each(function (ChargingPlan $plan): void {
+            $plan->update(['member_count' => $plan->subscriptions()->current()->count()]);
+        });
 
         foreach (Station::query()->get() as $station) {
             $station->update(['open_alerts_count' => $station->alerts()->where('status', '!=', 'resolved')->count()]);

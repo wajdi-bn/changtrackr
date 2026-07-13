@@ -21,6 +21,7 @@ const PaymentsPage = lazy(() => import('../pages/PaymentsPage').then((module) =>
 const TariffsPage = lazy(() => import('../pages/TariffsPage').then((module) => ({ default: module.TariffsPage })))
 const UsersPage = lazy(() => import('../pages/UsersPage').then((module) => ({ default: module.UsersPage })))
 const CustomersPage = lazy(() => import('../pages/CustomersPage').then((module) => ({ default: module.CustomersPage })))
+const SubscriptionsPage = lazy(() => import('../pages/SubscriptionsPage').then((module) => ({ default: module.SubscriptionsPage })))
 
 function DefaultRedirect() {
   const { primaryRole } = useAuth()
@@ -63,6 +64,9 @@ export function AppRouter() {
           <Route path="/my-sessions" element={<SessionsPage />} />
           <Route path="/vehicles" element={<WorkspacePage title="My Vehicles" subtitle="Client vehicle profiles and connector compatibility." />} />
           <Route path="/find-station" element={<FindStationPage />} />
+          <Route element={<RoleProtectedRoute allowedRoles={['client']} />}>
+            <Route path="/subscriptions" element={<SubscriptionsPage />} />
+          </Route>
           <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/reports" element={<WorkspacePage title="Reports" subtitle="Exports and operational reporting." />} />
           <Route path="/profile" element={<WorkspacePage title="Profile" subtitle="Personal information, organization and account metadata." />} />

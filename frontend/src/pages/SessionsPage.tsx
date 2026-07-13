@@ -84,7 +84,7 @@ export function SessionsPage() {
     { title: 'Energy', key: 'energy', render: (_: unknown, item) => `${item.energy_kwh.toFixed(3)} kWh` },
     { title: 'Session', dataIndex: 'status', key: 'status', render: (value: ChargingSessionStatus) => <ChargingStatusTag value={value} /> },
     { title: 'Payment', dataIndex: 'payment_status', key: 'payment_status', render: (value) => <ChargingStatusTag value={value} /> },
-    { title: 'Total', key: 'total', align: 'right', render: (_: unknown, item) => <strong>{item.total_amount} {item.currency}</strong> },
+    { title: 'Total', key: 'total', align: 'right', render: (_: unknown, item) => <span className="session-total"><strong>{item.total_amount} {item.currency}</strong>{item.discount_millimes > 0 && <small>-{(item.discount_millimes / 1000).toFixed(3)} TND plan saving</small>}</span> },
     {
       title: '', key: 'actions', align: 'right', render: (_: unknown, item) => item.status === 'charging' ? (
         <Popconfirm title="Stop this charging session?" onConfirm={() => stopMutation.mutate(item.id)} okText="Stop">
@@ -116,7 +116,7 @@ export function SessionsPage() {
         <div className="active-session-main">
           <span>Charging now</span>
           <h2>{activeSession.station.name}</h2>
-          <p>{activeSession.organization?.name ?? 'Charging network'} - Connector {activeSession.connector.external_id} - {activeSession.connector.type} - {activeSession.tariff.name} - started {activeSession.started_relative}</p>
+          <p>{activeSession.organization?.name ?? 'Charging network'} - Connector {activeSession.connector.external_id} - {activeSession.connector.type} - {activeSession.tariff.name}{activeSession.plan ? ` - ${activeSession.plan.name} (${(activeSession.plan.discount_basis_points / 100).toFixed(0)}% off)` : ''} - started {activeSession.started_relative}</p>
         </div>
         <div className="active-session-metrics">
           <div><Clock3 size={15} /><span><small>Elapsed</small><strong>{Math.max(1, dayjs().diff(dayjs(activeSession.started_at), 'minute'))} min</strong></span></div>

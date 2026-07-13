@@ -3681,6 +3681,157 @@ html {
 .customer-session-list strong { color: #27322d; font-size: 10px; font-weight: 600; }
 .customer-session-list small { color: #929c97; font-size: 8px; }
 
+.subscriptions-page {
+  min-height: calc(100vh - 82px);
+  padding: 16px;
+  background: #ffffff;
+}
+
+.subscription-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.subscription-kpi {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #e5ebe8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.subscription-kpi > span {
+  display: grid;
+  width: 33px;
+  height: 33px;
+  flex: 0 0 33px;
+  place-items: center;
+  border-radius: 7px;
+  background: #e7f8ef;
+  color: #108258;
+}
+
+.subscription-kpi > div { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.subscription-kpi small { color: #8b9690; font-size: 9px; }
+.subscription-kpi strong { overflow: hidden; color: #17221c; font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.subscription-kpi--blue > span { background: #eaf5ff; color: #287fb8; }
+.subscription-kpi--purple > span { background: #f0edff; color: #7256d7; }
+.subscription-kpi--orange > span { background: #fff3df; color: #c97818; }
+
+.subscription-section {
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid #e4eae7;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.subscription-section > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 15px;
+  border-bottom: 1px solid #edf1ef;
+  background: #fbfcfb;
+}
+
+.subscription-section > header small { color: #119062; font-size: 8px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.subscription-section > header h2 { margin: 2px 0 0; color: #17221c; font-size: 14px; font-weight: 600; }
+.subscription-section > header p { margin: 2px 0 0; color: #8d9792; font-size: 9px; }
+.subscription-section > .ant-empty { margin: 24px; }
+
+.subscription-current-grid,
+.subscription-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+  padding: 14px;
+}
+
+.current-subscription-card {
+  overflow: hidden;
+  border: 1px solid #cde7da;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.current-subscription-card > header { display: flex; align-items: center; gap: 9px; padding: 12px 13px; border-bottom: 1px solid #e7f1ec; background: #f5fcf8; }
+.current-subscription-card > header > span { display: grid; width: 27px; height: 27px; place-items: center; border-radius: 7px; background: #17a66d; color: #ffffff; }
+.current-subscription-card > header > div { min-width: 0; flex: 1; }
+.current-subscription-card > header small { display: block; color: #638075; font-size: 8px; }
+.current-subscription-card > header h3 { margin: 1px 0 0; color: #17221c; font-size: 13px; font-weight: 600; }
+.current-subscription-card > header > b { padding: 3px 7px; border-radius: 10px; background: #dff8eb; color: #087a50; font-size: 8px; font-weight: 600; }
+
+.current-subscription-benefits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; padding: 12px 13px; }
+.current-subscription-benefits > span { display: flex; min-width: 0; flex-direction: column; gap: 3px; padding: 8px; border-radius: 6px; background: #f7f9f8; }
+.current-subscription-benefits small { color: #909a95; font-size: 8px; }
+.current-subscription-benefits strong { overflow: hidden; color: #26332c; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.current-subscription-card > footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 13px; border-top: 1px solid #edf1ef; }
+.current-subscription-card > footer > label { display: flex; min-width: 0; align-items: center; gap: 9px; }
+.current-subscription-card > footer > label > span { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.current-subscription-card > footer strong { color: #435049; font-size: 9px; font-weight: 600; }
+.current-subscription-card > footer small { color: #939d98; font-size: 8px; }
+
+.subscription-toolbar { display: flex; gap: 9px; padding: 13px 14px 0; }
+.subscription-toolbar .ant-input-affix-wrapper { max-width: 440px; background: #f8faf9; }
+.subscription-toolbar .ant-select { min-width: 190px; }
+.subscription-plan-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.subscription-plan-card { display: flex; min-width: 0; flex-direction: column; padding: 14px; border: 1px solid #e4e9e7; border-radius: 8px; background: #ffffff; }
+.subscription-plan-card.current { border-color: #61c699; box-shadow: 0 0 0 1px rgb(23 166 109 / 10%); }
+.subscription-plan-card > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.subscription-plan-card > header small { color: #7e8a84; font-size: 8px; }
+.subscription-plan-card > header h3 { margin: 2px 0 0; color: #17221c; font-size: 14px; font-weight: 600; }
+.subscription-plan-card > header > b { padding: 3px 7px; border-radius: 10px; background: #dcf7e9; color: #087a50; font-size: 8px; font-weight: 600; }
+.subscription-plan-card > header > b.recommended { background: #f0edff; color: #684bd2; }
+.subscription-plan-card > p { min-height: 31px; margin: 10px 0; color: #7e8984; font-size: 9px; line-height: 1.55; }
+.subscription-plan-price { color: #17221c; font-size: 19px; font-weight: 650; }
+.subscription-plan-price small { margin-left: 3px; color: #929b97; font-size: 8px; font-weight: 400; }
+.subscription-plan-card > ul { display: grid; gap: 7px; margin: 12px 0; padding: 11px 0; border-top: 1px solid #edf1ef; border-bottom: 1px solid #edf1ef; list-style: none; }
+.subscription-plan-card > ul li { display: flex; align-items: center; gap: 7px; color: #66716b; font-size: 9px; }
+.subscription-plan-card > ul svg { flex: 0 0 auto; color: #16a36b; }
+.subscription-plan-card > ul strong { color: #087a50; font-weight: 650; }
+.subscription-plan-card > footer { display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-top: auto; }
+.subscription-plan-card > footer > small { color: #929c97; font-size: 8px; }
+.subscription-plan-card .ant-btn-primary,
+.subscription-modal .ant-btn-primary { border-color: #159a66; background: #159a66; box-shadow: none; }
+
+.subscription-history-list { display: grid; padding: 4px 14px 10px; }
+.subscription-history-list article { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid #edf1ef; }
+.subscription-history-list article:last-child { border-bottom: 0; }
+.subscription-history-list article > span { display: flex; align-items: center; gap: 8px; color: #9a6565; }
+.subscription-history-list article > span > div,
+.subscription-history-list article > div { display: flex; flex-direction: column; gap: 2px; }
+.subscription-history-list article > div { align-items: flex-end; }
+.subscription-history-list strong { color: #4b5650; font-size: 9px; font-weight: 600; text-transform: capitalize; }
+.subscription-history-list small { color: #969f9a; font-size: 8px; }
+
+.subscription-modal-content { display: grid; gap: 13px; }
+.subscription-modal-plan { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; background: #f4fbf7; }
+.subscription-modal-plan > span { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 8px; background: #dff7ea; color: #118459; }
+.subscription-modal-plan small { color: #6c7c73; font-size: 8px; }
+.subscription-modal-plan h3 { margin: 1px 0; color: #17221c; font-size: 14px; }
+.subscription-modal-plan p { margin: 0; color: #77837d; font-size: 9px; }
+.subscription-renew-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px; border: 1px solid #e5eae8; border-radius: 7px; }
+.subscription-renew-option > span { display: flex; align-items: center; gap: 9px; }
+.subscription-renew-option > span > svg { color: #16895e; }
+.subscription-renew-option > span > span { display: flex; flex-direction: column; gap: 2px; }
+.subscription-renew-option strong { color: #35423b; font-size: 10px; }
+.subscription-renew-option small { color: #919b96; font-size: 8px; }
+.subscription-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.start-plan-benefit { display: flex; align-items: center; gap: 8px; margin: 0 0 13px; padding: 9px 10px; border: 1px solid #ccebdc; border-radius: 7px; background: #f2fbf7; color: #11835a; }
+.start-plan-benefit > span { display: flex; flex-direction: column; gap: 2px; }
+.start-plan-benefit strong { font-size: 10px; }
+.start-plan-benefit small { color: #638075; font-size: 8px; }
+.session-total { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.session-total small { color: #119163; font-size: 8px; font-weight: 500; }
+
 .users-pagination { display: flex; justify-content: flex-end; margin-top: 16px; }
 .users-loading { display: grid; gap: 12px; }
 .users-loading .ant-skeleton { padding: 9px 0; border-bottom: 1px solid #f3f4f6; }
@@ -3799,6 +3950,8 @@ html {
   .tariff-simulator-grid { grid-template-columns: 1fr; }
   .users-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .customer-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .subscription-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .subscription-plan-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .users-list article { grid-template-columns: minmax(260px, 1fr) minmax(220px, 1fr) auto; }
   .users-list article > .user-status { display: none; }
 }
@@ -3838,6 +3991,15 @@ html {
   .users-grid { grid-template-columns: 1fr; }
   .customer-kpis { grid-template-columns: 1fr; }
   .customer-detail-metrics { grid-template-columns: 1fr 1fr; }
+  .subscriptions-page { padding: 10px; }
+  .subscription-kpis,
+  .subscription-current-grid,
+  .subscription-plan-grid { grid-template-columns: 1fr; }
+  .subscription-toolbar { flex-direction: column; }
+  .subscription-toolbar .ant-input-affix-wrapper,
+  .subscription-toolbar .ant-select { width: 100%; max-width: none; }
+  .current-subscription-benefits { grid-template-columns: 1fr 1fr; }
+  .current-subscription-card > footer { align-items: flex-start; flex-direction: column; }
   .user-form-grid { grid-template-columns: 1fr; }
   .user-form-grid .ant-form-item:last-child { grid-column: auto; }
 }

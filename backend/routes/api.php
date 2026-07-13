@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ConnectorController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\InterventionController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PlanSubscriptionController;
 use App\Http\Controllers\Api\PricingController;
 use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\TariffAssignmentController;
@@ -44,6 +45,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/charging-sessions/{chargingSession}/stop', [ChargingSessionController::class, 'stop']);
     Route::post('/charging-sessions/{chargingSession}/payments', [PaymentController::class, 'store']);
     Route::get('/payments', [PaymentController::class, 'index']);
+
+    Route::get('/subscription-plans', [PlanSubscriptionController::class, 'catalog']);
+    Route::get('/subscriptions', [PlanSubscriptionController::class, 'index']);
+    Route::post('/subscriptions', [PlanSubscriptionController::class, 'store']);
+    Route::patch('/subscriptions/{subscription}', [PlanSubscriptionController::class, 'update']);
+    Route::delete('/subscriptions/{subscription}', [PlanSubscriptionController::class, 'destroy']);
 
     Route::get('/users/export', [UserController::class, 'export']);
     Route::apiResource('users', UserController::class);

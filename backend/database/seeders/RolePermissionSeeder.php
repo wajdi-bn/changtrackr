@@ -25,6 +25,8 @@ class RolePermissionSeeder extends Seeder
             'users.delete',
             'customers.view',
             'customers.export',
+            'subscriptions.view',
+            'subscriptions.manage',
             'roles.view',
             'roles.manage',
             'stations.view',
@@ -114,6 +116,8 @@ class RolePermissionSeeder extends Seeder
                 'payments.view',
                 'payments.pay',
                 'vehicles.manage',
+                'subscriptions.view',
+                'subscriptions.manage',
             ],
         ];
 

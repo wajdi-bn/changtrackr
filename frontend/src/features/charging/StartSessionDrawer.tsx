@@ -1,5 +1,5 @@
 import { Alert, Button, Drawer, Empty, Form, Select } from 'antd'
-import { BatteryCharging, MapPin, PlugZap, Zap } from 'lucide-react'
+import { BadgePercent, BatteryCharging, MapPin, PlugZap, Zap } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { Station } from '../../types/station'
@@ -71,10 +71,11 @@ export function StartSessionDrawer({ open, stations, initialStationId, submittin
           </Form.Item>
           {pricingQuery.data && <div className="effective-pricing-card">
             <div><small>Applied tariff</small><strong>{pricingQuery.data.name}</strong><span>{pricingSourceLabel(pricingQuery.data.source)}</span></div>
-            <div><small>Energy</small><strong>{(pricingQuery.data.price_per_kwh_millimes / 1000).toFixed(3)} TND/kWh</strong></div>
+            <div><small>{pricingQuery.data.plan ? 'Energy after discount' : 'Energy'}</small><strong>{(pricingQuery.data.effective_price_per_kwh_millimes / 1000).toFixed(3)} TND/kWh</strong>{pricingQuery.data.plan && <span>{(pricingQuery.data.price_per_kwh_millimes / 1000).toFixed(3)} TND standard</span>}</div>
             <div><small>Start fee</small><strong>{(pricingQuery.data.session_fee_millimes / 1000).toFixed(3)} TND</strong></div>
             <div><small>Minimum</small><strong>{(pricingQuery.data.minimum_charge_millimes / 1000).toFixed(3)} TND</strong></div>
           </div>}
+          {pricingQuery.data?.plan && <div className="start-plan-benefit"><BadgePercent size={15} /><span><strong>{pricingQuery.data.plan.name}</strong><small>{(pricingQuery.data.plan.discount_basis_points / 100).toFixed(0)}% subscription discount applied automatically</small></span></div>}
           <Alert
             type="info"
             showIcon

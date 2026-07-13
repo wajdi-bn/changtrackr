@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ChargingPlan;
 use App\Models\Connector;
+use App\Models\PlanSubscription;
 use App\Models\Station;
+use App\Models\User;
 use App\Services\TariffResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,6 +27,12 @@ class PricingController extends Controller
         }
 
         $tariff = $resolver->resolve($station, $connector);
+        /** @var User $user */
+        $user = $request->user();
+        $subscription = $user->hasRole('client')
+            ? $this->currentSubscription($user->id, $station->organization_id)
+            : null;
+        $discountBasisPoints = $subscription?->discount_basis_points ?? 0;
 
         return response()->json(['data' => [
             'id' => $tariff->id,
@@ -35,6 +43,12 @@ class PricingController extends Controller
             'session_fee_millimes' => $tariff->sessionFeeMillimes,
             'idle_fee_per_minute_millimes' => $tariff->idleFeePerMinuteMillimes,
             'minimum_charge_millimes' => $tariff->minimumChargeMillimes,
+            'effective_price_per_kwh_millimes' => (int) round($tariff->pricePerKwhMillimes * (10000 - $discountBasisPoints) / 10000),
+            'plan' => $subscription ? [
+                'id' => $subscription->charging_plan_id,
+                'name' => $subscription->chargingPlan?->name,
+                'discount_basis_points' => $discountBasisPoints,
+            ] : null,
         ]]);
     }
 
@@ -55,9 +69,17 @@ class PricingController extends Controller
             throw ValidationException::withMessages(['connector_id' => ['The connector does not belong to this station.']]);
         }
 
-        $plan = isset($attributes['charging_plan_id'])
-            ? ChargingPlan::query()->findOrFail($attributes['charging_plan_id'])
+        /** @var User $user */
+        $user = $request->user();
+        $subscription = $user->hasRole('client')
+            ? $this->currentSubscription($user->id, $station->organization_id)
             : null;
+        if ($user->hasRole('client') && isset($attributes['charging_plan_id']) && $subscription?->charging_plan_id !== $attributes['charging_plan_id']) {
+            throw ValidationException::withMessages(['charging_plan_id' => ['You are not subscribed to this charging plan.']]);
+        }
+        $plan = $user->hasRole('client')
+            ? $subscription?->chargingPlan
+            : (isset($attributes['charging_plan_id']) ? ChargingPlan::query()->findOrFail($attributes['charging_plan_id']) : null);
         if ($plan && ($plan->organization_id !== $station->organization_id || $plan->status !== 'active')) {
             throw ValidationException::withMessages(['charging_plan_id' => ['The charging plan is not active for this organization.']]);
         }
@@ -99,5 +121,17 @@ class PricingController extends Controller
                 'total_millimes' => $total,
             ],
         ]]);
+    }
+
+    private function currentSubscription(int $userId, int $organizationId): ?PlanSubscription
+    {
+        return PlanSubscription::query()
+            ->where('user_id', $userId)
+            ->where('organization_id', $organizationId)
+            ->current()
+            ->whereHas('chargingPlan', fn ($query) => $query->where('status', 'active'))
+            ->with('chargingPlan')
+            ->latest('id')
+            ->first();
     }
 }

@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  BadgePercent,
   BarChart3,
   Building2,
   ClipboardList,
@@ -95,6 +96,7 @@ export const roleConfigs: Record<UserRole, RoleConfig> = {
     navItems: [
       { icon: <LayoutDashboard size={iconSize} />, path: '/overview', label: 'Overview' },
       { icon: <Search size={iconSize} />, path: '/find-station', label: 'Find Station' },
+      { icon: <BadgePercent size={iconSize} />, path: '/subscriptions', label: 'Plans & Subscriptions' },
       { icon: <ReceiptText size={iconSize} />, path: '/my-sessions', label: 'My Sessions' },
       { icon: <ListChecks size={iconSize} />, path: '/vehicles', label: 'My Vehicles' },
       { icon: <CreditCard size={iconSize} />, path: '/payments', label: 'Payments & Invoices' },

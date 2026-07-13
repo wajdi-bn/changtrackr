@@ -56,6 +56,8 @@ export interface EffectivePricing {
   session_fee_millimes: number
   idle_fee_per_minute_millimes: number
   minimum_charge_millimes: number
+  effective_price_per_kwh_millimes: number
+  plan: { id: number; name: string; discount_basis_points: number } | null
 }
 
 export interface ChargingPlan {

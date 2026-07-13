@@ -49,10 +49,13 @@ export interface ChargingSession {
   meter_stop_kwh: number | null
   energy_kwh: number
   tariff: { id: number | null; name: string }
+  plan: { id: number; name: string; discount_basis_points: number } | null
   price_per_kwh_millimes: number
   session_fee_millimes: number
   idle_fee_per_minute_millimes: number
   minimum_charge_millimes: number
+  energy_gross_millimes: number
+  discount_millimes: number
   energy_cost_millimes: number
   minimum_adjustment_millimes: number
   total_millimes: number

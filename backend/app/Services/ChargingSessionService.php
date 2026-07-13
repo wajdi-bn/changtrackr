@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ChargingSession;
 use App\Models\Connector;
+use App\Models\PlanSubscription;
 use App\Models\Station;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -43,6 +44,14 @@ class ChargingSessionService
             }
 
             $tariff = $this->tariffResolver->resolve($station, $connector);
+            $subscription = PlanSubscription::query()
+                ->where('user_id', $client->id)
+                ->where('organization_id', $station->organization_id)
+                ->current()
+                ->whereHas('chargingPlan', fn ($query) => $query->where('status', 'active'))
+                ->with('chargingPlan')
+                ->latest('id')
+                ->first();
 
             $session = ChargingSession::query()->create([
                 'organization_id' => $station->organization_id,
@@ -50,6 +59,7 @@ class ChargingSessionService
                 'station_id' => $station->id,
                 'connector_id' => $connector->id,
                 'tariff_id' => $tariff->id,
+                'charging_plan_id' => $subscription?->charging_plan_id,
                 'reference' => 'SES-'.Str::upper(Str::random(10)),
                 'client_name' => $client->name,
                 'station_name' => $station->name,
@@ -57,6 +67,8 @@ class ChargingSessionService
                 'status' => 'charging',
                 'payment_status' => 'unpaid',
                 'tariff_name' => $tariff->name,
+                'charging_plan_name' => $subscription?->chargingPlan?->name,
+                'discount_basis_points' => $subscription?->discount_basis_points ?? 0,
                 'started_at' => now(),
                 'meter_start_kwh' => 1000 + ($connector->id * 10),
                 'price_per_kwh_millimes' => $tariff->pricePerKwhMillimes,
@@ -90,7 +102,9 @@ class ChargingSessionService
             $durationSeconds = max(60, (int) round($session->started_at->diffInSeconds($endedAt)));
             $powerKw = min((float) ($connector?->max_power_kw ?? 60), 60);
             $energyKwh = max(0.5, round(($durationSeconds / 3600) * $powerKw, 3));
-            $energyCost = (int) round($energyKwh * $session->price_per_kwh_millimes);
+            $energyGross = (int) round($energyKwh * $session->price_per_kwh_millimes);
+            $discount = (int) round($energyGross * $session->discount_basis_points / 10000);
+            $energyCost = $energyGross - $discount;
             $totalMillimes = max(
                 $energyCost + $session->session_fee_millimes,
                 $session->minimum_charge_millimes,
@@ -102,6 +116,7 @@ class ChargingSessionService
                 'duration_seconds' => $durationSeconds,
                 'meter_stop_kwh' => $session->meter_start_kwh + $energyKwh,
                 'energy_kwh' => $energyKwh,
+                'discount_millimes' => $discount,
                 'total_millimes' => $totalMillimes,
             ]);
 
