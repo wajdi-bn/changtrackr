@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Spin } from 'antd'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from '../features/auth/ProtectedRoute'
+import { RoleProtectedRoute } from '../features/auth/RoleProtectedRoute'
 import { getRoleConfig } from '../features/auth/roleConfig'
 import { useAuth } from '../features/auth/useAuth'
 import { AppLayout } from '../layouts/AppLayout'
@@ -19,6 +20,7 @@ const FindStationPage = lazy(() => import('../pages/FindStationPage').then((modu
 const PaymentsPage = lazy(() => import('../pages/PaymentsPage').then((module) => ({ default: module.PaymentsPage })))
 const TariffsPage = lazy(() => import('../pages/TariffsPage').then((module) => ({ default: module.TariffsPage })))
 const UsersPage = lazy(() => import('../pages/UsersPage').then((module) => ({ default: module.UsersPage })))
+const CustomersPage = lazy(() => import('../pages/CustomersPage').then((module) => ({ default: module.CustomersPage })))
 
 function DefaultRedirect() {
   const { primaryRole } = useAuth()
@@ -43,7 +45,11 @@ export function AppRouter() {
           <Route path="/audit-logs" element={<WorkspacePage title="Audit Logs" subtitle="Security-sensitive actions and traceability." />} />
           <Route path="/integrations" element={<WorkspacePage title="Integrations" subtitle="OAuth, email, payment and OCPP integration status." />} />
           <Route path="/system-settings" element={<WorkspacePage title="System Settings" subtitle="Platform-level settings and environment diagnostics." />} />
-          <Route path="/users" element={<UsersPage />} />
+          <Route element={<RoleProtectedRoute allowedRoles={['admin']} />}>
+            <Route path="/users" element={<Navigate to="/users/employees" replace />} />
+            <Route path="/users/employees" element={<UsersPage />} />
+            <Route path="/users/customers" element={<CustomersPage />} />
+          </Route>
           <Route path="/tariffs" element={<TariffsPage />} />
           <Route path="/analytics-reports" element={<WorkspacePage title="Analytics & Reports" subtitle="Organization KPIs, trends and report generation." />} />
           <Route path="/stations" element={<StationsPage />} />

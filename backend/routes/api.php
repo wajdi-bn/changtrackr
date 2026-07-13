@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChargingPlanController;
 use App\Http\Controllers\Api\ChargingSessionController;
 use App\Http\Controllers\Api\ConnectorController;
+use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\InterventionController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PricingController;
@@ -46,6 +47,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::get('/users/export', [UserController::class, 'export']);
     Route::apiResource('users', UserController::class);
+    Route::get('/customers/export', [CustomerController::class, 'export']);
+    Route::get('/customers', [CustomerController::class, 'index']);
+    Route::get('/customers/{customer}', [CustomerController::class, 'show']);
 
     Route::apiResource('tariffs', TariffController::class);
     Route::apiResource('charging-plans', ChargingPlanController::class);

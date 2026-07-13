@@ -35,6 +35,7 @@ import {
   UserRound,
 } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
+import { UserDirectoryTabs } from '../components/UserDirectoryTabs'
 import { useAuth } from '../features/auth/useAuth'
 import {
   createManagedUser,
@@ -146,12 +147,14 @@ export function UsersPage() {
     <div className="users-banner-wrap">
       <MountainBanner
         color="cyan"
-        breadcrumb={['Administrator', 'Users']}
-        title="Users"
+        breadcrumb={['Administrator', 'Users', 'Employees']}
+        title="Employees"
         count={count}
-        subtitle="Manage organization administrators, operators, technicians, and internal access."
+        subtitle="Manage administrators, operators, technicians, and internal access for your organization."
       />
     </div>
+
+    <UserDirectoryTabs />
 
     <div className="users-toolbar">
       <Input
@@ -279,7 +282,7 @@ function UserActions({ managedUser, currentUserId, canUpdate, canDeactivate, onS
 }
 
 function UserDetailDrawer({ user, canEdit, onClose, onEdit }: { user: ManagedUser | null; canEdit: boolean; onClose: () => void; onEdit: (user: ManagedUser) => void }) {
-  return <Drawer className="user-detail-drawer" width={510} open={Boolean(user)} onClose={onClose} title={user ? <div className="user-drawer-title"><UserAvatar user={user} size={48} /><span><strong>{user.name}</strong><small>{roleLabel(user.roles[0])} - {user.team ?? 'No team'}</small></span></div> : null}>
+  return <Drawer className="user-detail-drawer" size={510} open={Boolean(user)} onClose={onClose} title={user ? <div className="user-drawer-title"><UserAvatar user={user} size={48} /><span><strong>{user.name}</strong><small>{roleLabel(user.roles[0])} - {user.team ?? 'No team'}</small></span></div> : null}>
     {user && <div className="user-drawer-content">
       <div className="user-contact-grid">
         <InfoPanel icon={<Mail size={14} />} label="Email" value={user.email} />

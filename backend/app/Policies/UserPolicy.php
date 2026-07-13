@@ -26,6 +26,30 @@ class UserPolicy
             && ($user->hasRole('super_admin') || $user->organization_id !== null);
     }
 
+    public function viewCustomers(User $user): bool
+    {
+        return $user->can('customers.view')
+            && ($user->hasRole('super_admin') || $user->organization_id !== null);
+    }
+
+    public function viewCustomer(User $user, User $customer): bool
+    {
+        if (! $this->viewCustomers($user) || ! $customer->hasRole('client')) {
+            return false;
+        }
+
+        return $user->hasRole('super_admin')
+            || $customer->chargingSessions()
+                ->where('organization_id', $user->organization_id)
+                ->exists();
+    }
+
+    public function exportCustomers(User $user): bool
+    {
+        return $user->can('customers.export')
+            && ($user->hasRole('super_admin') || $user->organization_id !== null);
+    }
+
     public function update(User $user, User $managedUser): bool
     {
         return $user->can('users.update')
