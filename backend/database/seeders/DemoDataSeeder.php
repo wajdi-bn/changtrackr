@@ -134,6 +134,8 @@ class DemoDataSeeder extends Seeder
             ],
         );
 
+        $this->call(ChargingPlanSeeder::class);
+
         $fastStation = Station::query()->where('reference', 'CT-TUN-014')->firstOrFail();
         TariffAssignment::query()->updateOrCreate(
             ['station_id' => $fastStation->id],

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AlertController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ChargingPlanController;
 use App\Http\Controllers\Api\ChargingSessionController;
 use App\Http\Controllers\Api\ConnectorController;
 use App\Http\Controllers\Api\InterventionController;
@@ -43,9 +44,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/payments', [PaymentController::class, 'index']);
 
     Route::apiResource('tariffs', TariffController::class);
+    Route::apiResource('charging-plans', ChargingPlanController::class);
     Route::post('/tariffs/{tariff}/assignments', [TariffAssignmentController::class, 'store']);
     Route::delete('/tariff-assignments/{tariffAssignment}', [TariffAssignmentController::class, 'destroy']);
     Route::get('/stations/{station}/pricing', [PricingController::class, 'effective']);
+    Route::post('/pricing/simulate', [PricingController::class, 'simulate']);
 });
 
 Route::get('/user', function (Request $request) {

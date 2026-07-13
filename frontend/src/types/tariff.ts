@@ -57,3 +57,55 @@ export interface EffectivePricing {
   idle_fee_per_minute_millimes: number
   minimum_charge_millimes: number
 }
+
+export interface ChargingPlan {
+  id: number
+  organization_id: number
+  name: string
+  code: string
+  description: string | null
+  monthly_fee_millimes: number
+  discount_basis_points: number
+  audience: string
+  status: TariffStatus
+  member_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ChargingPlanPayload {
+  name: string
+  code: string
+  description?: string | null
+  monthly_fee_millimes: number
+  discount_basis_points: number
+  audience: string
+  status: TariffStatus
+  member_count: number
+}
+
+export interface PricingSimulationPayload {
+  station_id: number
+  connector_id?: number
+  charging_plan_id?: number
+  energy_kwh: number
+  duration_minutes: number
+  idle_minutes: number
+}
+
+export interface PricingSimulation {
+  tariff: { id: number | null; name: string; source: EffectivePricing['source']; currency: 'TND' }
+  plan: { id: number; name: string; discount_basis_points: number } | null
+  inputs: { energy_kwh: number; duration_minutes: number; idle_minutes: number }
+  breakdown: {
+    energy_gross_millimes: number
+    discount_millimes: number
+    energy_net_millimes: number
+    time_cost_millimes: number
+    session_fee_millimes: number
+    idle_fee_millimes: number
+    minimum_charge_millimes: number
+    subtotal_millimes: number
+    total_millimes: number
+  }
+}

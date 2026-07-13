@@ -1,5 +1,5 @@
 import { httpClient } from '../../api/httpClient'
-import type { EffectivePricing, Tariff, TariffPayload, TariffsResponse, TariffStatus } from '../../types/tariff'
+import type { ChargingPlan, ChargingPlanPayload, EffectivePricing, PricingSimulation, PricingSimulationPayload, Tariff, TariffPayload, TariffsResponse, TariffStatus } from '../../types/tariff'
 
 export async function getTariffs(filters: { search?: string; status?: TariffStatus } = {}): Promise<TariffsResponse> {
   const response = await httpClient.get<TariffsResponse>('/tariffs', { params: filters })
@@ -31,5 +31,29 @@ export async function removeTariffAssignment(assignmentId: number): Promise<void
 
 export async function getEffectivePricing(stationId: number, connectorId?: number): Promise<EffectivePricing> {
   const response = await httpClient.get<{ data: EffectivePricing }>(`/stations/${stationId}/pricing`, { params: { connector_id: connectorId } })
+  return response.data.data
+}
+
+export async function getChargingPlans(): Promise<ChargingPlan[]> {
+  const response = await httpClient.get<{ data: ChargingPlan[] }>('/charging-plans')
+  return response.data.data
+}
+
+export async function createChargingPlan(payload: ChargingPlanPayload): Promise<ChargingPlan> {
+  const response = await httpClient.post<{ data: ChargingPlan }>('/charging-plans', payload)
+  return response.data.data
+}
+
+export async function updateChargingPlan(planId: number, payload: Partial<ChargingPlanPayload>): Promise<ChargingPlan> {
+  const response = await httpClient.patch<{ data: ChargingPlan }>(`/charging-plans/${planId}`, payload)
+  return response.data.data
+}
+
+export async function deleteChargingPlan(planId: number): Promise<void> {
+  await httpClient.delete(`/charging-plans/${planId}`)
+}
+
+export async function simulatePricing(payload: PricingSimulationPayload): Promise<PricingSimulation> {
+  const response = await httpClient.post<{ data: PricingSimulation }>('/pricing/simulate', payload)
   return response.data.data
 }
