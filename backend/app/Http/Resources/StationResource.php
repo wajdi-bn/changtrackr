@@ -15,6 +15,7 @@ class StationResource extends JsonResource
         return [
             'id' => $this->id,
             'organization_id' => $this->organization_id,
+            'organization' => OrganizationSummaryResource::make($this->whenLoaded('organization')),
             'name' => $this->name,
             'reference' => $this->reference,
             'location_name' => $this->location_name,

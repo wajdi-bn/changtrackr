@@ -23,6 +23,7 @@ class PaymentResource extends JsonResource
             'paid_at' => $this->paid_at?->toISOString(),
             'failed_at' => $this->failed_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),
+            'organization' => OrganizationSummaryResource::make($this->whenLoaded('organization')),
             'client' => $this->whenLoaded('user', fn () => $this->user ? [
                 'id' => $this->user->id,
                 'name' => $this->user->name,

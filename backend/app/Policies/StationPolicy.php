@@ -34,6 +34,14 @@ class StationPolicy
 
     private function belongsToUserScope(User $user, Station $station): bool
     {
-        return $user->hasRole('super_admin') || $user->organization_id === $station->organization_id;
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        if ($user->hasRole('client')) {
+            return $station->organization()->where('status', 'active')->exists();
+        }
+
+        return $user->organization_id !== null && $user->organization_id === $station->organization_id;
     }
 }

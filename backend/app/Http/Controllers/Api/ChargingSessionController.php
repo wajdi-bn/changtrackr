@@ -16,7 +16,7 @@ use Illuminate\Validation\Rule;
 
 class ChargingSessionController extends Controller
 {
-    private const RELATIONS = ['station', 'connector', 'client', 'payment'];
+    private const RELATIONS = ['organization', 'station', 'connector', 'client', 'payment'];
 
     public function index(Request $request): JsonResponse
     {

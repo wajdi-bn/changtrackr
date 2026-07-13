@@ -79,7 +79,7 @@ export function SessionsPage() {
   const columns: ColumnsType<ChargingSession> = [
     { title: 'Session', dataIndex: 'reference', key: 'reference', render: (value: string, item) => <span className="session-reference"><strong>{value}</strong><small>{dayjs(item.started_at).format('DD MMM YYYY, HH:mm')}</small></span> },
     ...(!clientMode ? [{ title: 'Client', key: 'client', render: (_: unknown, item: ChargingSession) => item.client.name }] : []),
-    { title: 'Station', key: 'station', render: (_: unknown, item) => <span className="session-station"><strong>{item.station.name}</strong><small>Connector {item.connector.external_id}</small></span> },
+    { title: 'Station', key: 'station', render: (_: unknown, item) => <span className="session-station"><strong>{item.station.name}</strong><small>{clientMode && item.organization ? `${item.organization.name} - ` : ''}Connector {item.connector.external_id}</small></span> },
     { title: 'Duration', key: 'duration', render: (_: unknown, item) => item.status === 'charging' ? 'In progress' : `${item.duration_minutes} min` },
     { title: 'Energy', key: 'energy', render: (_: unknown, item) => `${item.energy_kwh.toFixed(3)} kWh` },
     { title: 'Session', dataIndex: 'status', key: 'status', render: (value: ChargingSessionStatus) => <ChargingStatusTag value={value} /> },
@@ -116,7 +116,7 @@ export function SessionsPage() {
         <div className="active-session-main">
           <span>Charging now</span>
           <h2>{activeSession.station.name}</h2>
-          <p>Connector {activeSession.connector.external_id} · {activeSession.connector.type} · {activeSession.tariff.name} · started {activeSession.started_relative}</p>
+          <p>{activeSession.organization?.name ?? 'Charging network'} - Connector {activeSession.connector.external_id} - {activeSession.connector.type} - {activeSession.tariff.name} - started {activeSession.started_relative}</p>
         </div>
         <div className="active-session-metrics">
           <div><Clock3 size={15} /><span><small>Elapsed</small><strong>{Math.max(1, dayjs().diff(dayjs(activeSession.started_at), 'minute'))} min</strong></span></div>

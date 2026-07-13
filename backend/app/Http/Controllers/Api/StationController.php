@@ -29,14 +29,19 @@ class StationController extends Controller
 
         /** @var User $user */
         $user = $request->user();
-        $scope = Station::query()->when(
-            ! $user->hasRole('super_admin'),
-            fn (Builder $query) => $query->where('organization_id', $user->organization_id),
-        );
+        $scope = Station::query()
+            ->when(
+                $user->hasRole('client'),
+                fn (Builder $query) => $query->whereHas('organization', fn (Builder $query) => $query->where('status', 'active')),
+            )
+            ->when(
+                ! $user->hasAnyRole(['super_admin', 'client']),
+                fn (Builder $query) => $query->where('organization_id', $user->organization_id),
+            );
 
         $summaryQuery = clone $scope;
         $query = $scope
-            ->with(['connectors' => fn ($query) => $query->orderBy('external_id')])
+            ->with(['organization', 'connectors' => fn ($query) => $query->orderBy('external_id')])
             ->withCount('connectors')
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['search'] ?? null, function (Builder $query, string $search): void {
@@ -82,7 +87,7 @@ class StationController extends Controller
 
         $station = Station::query()->create($attributes);
 
-        return (new StationResource($station->load('connectors')->loadCount('connectors')))
+        return (new StationResource($station->load(['organization', 'connectors'])->loadCount('connectors')))
             ->response()
             ->setStatusCode(201);
     }
@@ -91,7 +96,7 @@ class StationController extends Controller
     {
         Gate::authorize('view', $station);
 
-        return new StationResource($station->load('connectors')->loadCount('connectors'));
+        return new StationResource($station->load(['organization', 'connectors'])->loadCount('connectors'));
     }
 
     public function update(UpdateStationRequest $request, Station $station): StationResource
@@ -99,7 +104,7 @@ class StationController extends Controller
         Gate::authorize('update', $station);
         $station->update($request->validated());
 
-        return new StationResource($station->fresh()->load('connectors')->loadCount('connectors'));
+        return new StationResource($station->fresh()->load(['organization', 'connectors'])->loadCount('connectors'));
     }
 
     public function destroy(Station $station): JsonResponse

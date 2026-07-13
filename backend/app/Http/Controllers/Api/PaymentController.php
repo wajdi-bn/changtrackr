@@ -35,7 +35,7 @@ class PaymentController extends Controller
             });
         $summary = clone $scope;
         $payments = $scope
-            ->with(['chargingSession', 'user'])
+            ->with(['organization', 'chargingSession', 'user'])
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['search'] ?? null, function (Builder $query, string $search): void {
                 $query->where(function (Builder $query) use ($search): void {

@@ -27,6 +27,7 @@ class UserManagementApiTest extends TestCase
         $this->user($organization, 'operator', ['name' => 'Tunis Operator', 'team' => 'Network Operations']);
         $this->user($organization, 'technician', ['name' => 'Field Technician', 'team' => 'Field Maintenance']);
         $this->user($otherOrganization, 'operator', ['name' => 'Hidden Operator']);
+        $this->user(null, 'client', ['name' => 'Global Client']);
         Sanctum::actingAs($administrator);
 
         $this->getJson('/api/users?role=operator&search=tunis')
@@ -96,6 +97,14 @@ class UserManagementApiTest extends TestCase
             'role' => 'super_admin',
             'password' => 'password123',
         ])->assertUnprocessable()->assertJsonValidationErrors('role');
+
+        $this->postJson('/api/users', [
+            'name' => 'Client Account',
+            'email' => 'client.account@example.com',
+            'status' => 'active',
+            'role' => 'client',
+            'password' => 'password123',
+        ])->assertUnprocessable()->assertJsonValidationErrors('role');
     }
 
     public function test_operator_cannot_access_user_management(): void
@@ -109,7 +118,7 @@ class UserManagementApiTest extends TestCase
             'name' => 'Denied User',
             'email' => 'denied@example.com',
             'status' => 'active',
-            'role' => 'client',
+            'role' => 'technician',
             'password' => 'password123',
         ])->assertForbidden();
     }
@@ -136,14 +145,15 @@ class UserManagementApiTest extends TestCase
         $organization = $this->organization('export-network');
         $otherOrganization = $this->organization('hidden-export-network');
         $administrator = $this->user($organization, 'admin', ['name' => 'Export Admin']);
-        $this->user($organization, 'client', ['name' => 'Export Client']);
-        $this->user($otherOrganization, 'client', ['name' => 'Hidden Client']);
+        $this->user($organization, 'technician', ['name' => 'Export Technician']);
+        $this->user($otherOrganization, 'technician', ['name' => 'Hidden Technician']);
+        $this->user(null, 'client', ['name' => 'Global Client']);
         Sanctum::actingAs($administrator);
 
-        $this->getJson('/api/users/export?format=json&role=client')
+        $this->getJson('/api/users/export?format=json&role=technician')
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.name', 'Export Client');
+            ->assertJsonPath('data.0.name', 'Export Technician');
     }
 
     private function organization(string $slug): Organization
@@ -156,10 +166,10 @@ class UserManagementApiTest extends TestCase
     }
 
     /** @param array<string, mixed> $attributes */
-    private function user(Organization $organization, string $role, array $attributes = []): User
+    private function user(?Organization $organization, string $role, array $attributes = []): User
     {
         $user = User::factory()->create([
-            'organization_id' => $organization->id,
+            'organization_id' => $organization?->id,
             'status' => 'active',
             ...$attributes,
         ]);

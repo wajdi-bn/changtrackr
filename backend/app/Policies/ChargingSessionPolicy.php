@@ -25,7 +25,7 @@ class ChargingSessionPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasRole('client') && $user->can('sessions.start') && $user->organization_id !== null;
+        return $user->hasRole('client') && $user->can('sessions.start');
     }
 
     public function stop(User $user, ChargingSession $session): bool

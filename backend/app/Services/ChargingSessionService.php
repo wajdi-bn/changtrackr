@@ -21,8 +21,12 @@ class ChargingSessionService
             $station = Station::query()->lockForUpdate()->findOrFail($attributes['station_id']);
             $connector = Connector::query()->lockForUpdate()->findOrFail($attributes['connector_id']);
 
-            if ($station->organization_id !== $client->organization_id || $connector->station_id !== $station->id) {
-                throw ValidationException::withMessages(['connector_id' => ['The connector is not available in your organization.']]);
+            if ($connector->station_id !== $station->id) {
+                throw ValidationException::withMessages(['connector_id' => ['The connector does not belong to the selected station.']]);
+            }
+
+            if (! $station->organization()->where('status', 'active')->exists()) {
+                throw ValidationException::withMessages(['station_id' => ['The station organization is not active.']]);
             }
 
             if (! in_array($station->status, ['available', 'charging'], true) || $connector->status !== 'available') {
@@ -67,7 +71,7 @@ class ChargingSessionService
                 $station->update(['status' => 'charging']);
             }
 
-            return $session->load(['station', 'connector', 'client', 'payment']);
+            return $session->load(['organization', 'station', 'connector', 'client', 'payment']);
         });
     }
 
@@ -119,7 +123,7 @@ class ChargingSessionService
                 ]);
             }
 
-            return $session->fresh()->load(['station', 'connector', 'client', 'payment']);
+            return $session->fresh()->load(['organization', 'station', 'connector', 'client', 'payment']);
         });
     }
 }

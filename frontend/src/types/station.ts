@@ -1,3 +1,5 @@
+import type { OrganizationSummary } from './auth'
+
 export type StationStatus = 'available' | 'charging' | 'faulted' | 'offline' | 'maintenance'
 export type ConnectorType = 'CCS2' | 'Type 2' | 'CHAdeMO'
 
@@ -16,6 +18,7 @@ export interface Connector {
 export interface Station {
   id: number
   organization_id: number
+  organization: OrganizationSummary | null
   name: string
   reference: string
   location_name: string

@@ -17,6 +17,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserController extends Controller
 {
+    private const EMPLOYEE_ROLES = ['super_admin', 'admin', 'operator', 'technician'];
+
     private const RELATIONS = ['organization', 'roles.permissions', 'permissions'];
 
     private const COUNTS = ['assignedAlerts', 'assignedInterventions', 'chargingSessions', 'payments'];
@@ -160,7 +162,7 @@ class UserController extends Controller
                 fputcsv($output, array_values($this->exportRow($user)));
             }
             fclose($output);
-        }, 'organization-users.csv', ['Content-Type' => 'text/csv']);
+        }, 'organization-employees.csv', ['Content-Type' => 'text/csv']);
     }
 
     /** @return array<string, mixed> */
@@ -168,7 +170,7 @@ class UserController extends Controller
     {
         return $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
-            'role' => ['nullable', Rule::in(['super_admin', 'admin', 'operator', 'technician', 'client'])],
+            'role' => ['nullable', Rule::in(self::EMPLOYEE_ROLES)],
             'status' => ['nullable', Rule::in(['active', 'inactive', 'pending'])],
             'team' => ['nullable', 'string', 'max:120'],
             'last_login' => ['nullable', Rule::in(['today', 'week', 'month'])],
@@ -178,10 +180,12 @@ class UserController extends Controller
 
     private function scopedQuery(User $actor): Builder
     {
-        return User::query()->when(
-            ! $actor->hasRole('super_admin'),
-            fn (Builder $query) => $query->where('organization_id', $actor->organization_id),
-        );
+        return User::query()
+            ->whereHas('roles', fn (Builder $query) => $query->whereIn('name', self::EMPLOYEE_ROLES))
+            ->when(
+                ! $actor->hasRole('super_admin'),
+                fn (Builder $query) => $query->where('organization_id', $actor->organization_id),
+            );
     }
 
     /** @param array<string, mixed> $filters */
@@ -211,7 +215,7 @@ class UserController extends Controller
     /** @return array<string, int> */
     private function roleSummary(Builder $query): array
     {
-        return collect(['admin', 'operator', 'technician', 'client'])
+        return collect(['admin', 'operator', 'technician'])
             ->mapWithKeys(fn (string $role) => [$role => (clone $query)->whereHas('roles', fn (Builder $query) => $query->where('name', $role))->count()])
             ->all();
     }
@@ -249,7 +253,6 @@ class UserController extends Controller
             'admin' => 'Management',
             'operator' => 'Network Operations',
             'technician' => 'Field Maintenance',
-            'client' => 'Driver Accounts',
             default => 'Platform Administration',
         };
     }

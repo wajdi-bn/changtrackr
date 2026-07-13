@@ -1,6 +1,7 @@
 import type { AuthUser, UserRole } from './auth'
 
-export type ManagedUser = AuthUser
+export type EmployeeRole = Exclude<UserRole, 'client'>
+export type ManagedUser = Omit<AuthUser, 'roles'> & { roles: EmployeeRole[] }
 export type ManagedUserStatus = 'active' | 'inactive' | 'pending'
 export type LastLoginFilter = 'today' | 'week' | 'month'
 
@@ -12,13 +13,13 @@ export interface ManagedUserPayload {
   team?: string | null
   address?: string | null
   status: ManagedUserStatus
-  role: UserRole
+  role: EmployeeRole
   password?: string
 }
 
 export interface ManagedUserFilters {
   search?: string
-  role?: UserRole
+  role?: EmployeeRole
   status?: ManagedUserStatus
   team?: string
   last_login?: LastLoginFilter
@@ -33,7 +34,7 @@ export interface ManagedUsersResponse {
     active: number
     inactive: number
     pending: number
-    by_role: Record<Exclude<UserRole, 'super_admin'>, number>
+    by_role: Record<Exclude<EmployeeRole, 'super_admin'>, number>
   }
   meta: {
     current_page: number

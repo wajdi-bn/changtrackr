@@ -1,3 +1,5 @@
+import type { OrganizationSummary } from './auth'
+
 export type ChargingSessionStatus = 'charging' | 'completed' | 'cancelled'
 export type SessionPaymentStatus = 'unpaid' | 'paid' | 'failed'
 export type PaymentStatus = 'pending' | 'paid' | 'failed'
@@ -17,6 +19,7 @@ export interface Payment {
   paid_at: string | null
   failed_at: string | null
   created_at: string
+  organization: OrganizationSummary | null
   client?: { id: number; name: string } | null
   session?: {
     id: number
@@ -31,6 +34,7 @@ export interface ChargingSession {
   id: number
   reference: string
   organization_id: number
+  organization: OrganizationSummary | null
   client: { id: number | null; name: string }
   station: { id: number; name: string; city: string | null }
   connector: { id: number | null; external_id: string; type: string | null; max_power_kw: number | null }

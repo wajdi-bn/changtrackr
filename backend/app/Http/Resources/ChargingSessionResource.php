@@ -13,6 +13,7 @@ class ChargingSessionResource extends JsonResource
             'id' => $this->id,
             'reference' => $this->reference,
             'organization_id' => $this->organization_id,
+            'organization' => OrganizationSummaryResource::make($this->whenLoaded('organization')),
             'client' => [
                 'id' => $this->client_id,
                 'name' => $this->client_name,

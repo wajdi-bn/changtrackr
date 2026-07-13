@@ -1,9 +1,12 @@
 export type UserRole = 'super_admin' | 'admin' | 'operator' | 'technician' | 'client'
 
-export interface Organization {
+export interface OrganizationSummary {
   id: number
   name: string
   slug: string
+}
+
+export interface Organization extends OrganizationSummary {
   contact_email: string | null
   contact_phone: string | null
   status: string

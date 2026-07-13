@@ -58,7 +58,7 @@ class PaymentService
         });
 
         if ($payment->status === 'paid') {
-            return $payment->load(['chargingSession', 'user']);
+            return $payment->load(['organization', 'chargingSession', 'user']);
         }
 
         $result = $this->gateway->charge(new PaymentCharge(
@@ -96,7 +96,7 @@ class PaymentService
                 $session->update(['payment_status' => 'failed']);
             }
 
-            return $payment->fresh()->load(['chargingSession', 'user']);
+            return $payment->fresh()->load(['organization', 'chargingSession', 'user']);
         });
     }
 }

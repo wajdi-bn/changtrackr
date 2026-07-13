@@ -97,6 +97,32 @@ class StationApiTest extends TestCase
             ->assertJsonPath('data.external_id', 'A1');
     }
 
+    public function test_global_client_sees_stations_from_all_active_organizations(): void
+    {
+        $firstOrganization = Organization::query()->create(['name' => 'First Network', 'slug' => 'first-network', 'status' => 'active']);
+        $secondOrganization = Organization::query()->create(['name' => 'Second Network', 'slug' => 'second-network', 'status' => 'active']);
+        $inactiveOrganization = Organization::query()->create(['name' => 'Inactive Network', 'slug' => 'inactive-network', 'status' => 'inactive']);
+        $firstStation = $this->station($firstOrganization, 'CT-CLIENT-001');
+        $secondStation = $this->station($secondOrganization, 'CT-CLIENT-002');
+        $hiddenStation = $this->station($inactiveOrganization, 'CT-CLIENT-003');
+        $client = User::factory()->create(['organization_id' => null, 'status' => 'active']);
+        $client->assignRole('client');
+        Sanctum::actingAs($client);
+
+        $this->getJson('/api/stations')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('summary.stations', 2)
+            ->assertJsonFragment(['id' => $firstStation->id, 'organization_id' => $firstOrganization->id])
+            ->assertJsonFragment(['id' => $secondStation->id, 'organization_id' => $secondOrganization->id])
+            ->assertJsonMissingPath('data.0.organization.settings')
+            ->assertJsonMissingPath('data.0.organization.contact_email')
+            ->assertJsonMissing(['id' => $hiddenStation->id]);
+
+        $this->getJson("/api/stations/{$secondStation->id}")->assertOk();
+        $this->getJson("/api/stations/{$hiddenStation->id}")->assertForbidden();
+    }
+
     /** @return array{User, Organization} */
     private function userWithRole(string $role): array
     {

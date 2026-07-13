@@ -3611,6 +3611,7 @@ html {
 .finder-card-body { padding: 13px; }
 .finder-card-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .finder-card-title h2 { margin: 0 0 5px; font-size: 14px; }
+.finder-card-title > div > small { display: block; margin: -2px 0 5px; color: #16865b; font-size: 9px; font-weight: 600; }
 .finder-card-title p { display: flex; align-items: center; gap: 4px; margin: 0; color: #7c8781; font-size: 10px; }
 .finder-card-title > strong { flex: 0 0 auto; padding: 4px 7px; border-radius: 11px; background: #ddf8ea; color: #087a50; font-size: 9px; }
 

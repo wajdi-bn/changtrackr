@@ -68,7 +68,7 @@ class TariffApiTest extends TestCase
     public function test_client_session_keeps_a_tariff_snapshot(): void
     {
         $organization = $this->organization('snapshot-network');
-        $client = $this->user($organization, 'client');
+        $client = $this->user(null, 'client');
         [$station, $connector] = $this->stationWithConnector($organization, 'CT-SNAPSHOT');
         $tariff = $this->tariff($organization, 'SNAPSHOT', 975, true);
         Sanctum::actingAs($client);
@@ -112,9 +112,9 @@ class TariffApiTest extends TestCase
         return Organization::query()->create(['name' => ucfirst($slug), 'slug' => $slug, 'status' => 'active']);
     }
 
-    private function user(Organization $organization, string $role): User
+    private function user(?Organization $organization, string $role): User
     {
-        $user = User::factory()->create(['organization_id' => $organization->id, 'status' => 'active']);
+        $user = User::factory()->create(['organization_id' => $organization?->id, 'status' => 'active']);
         $user->assignRole($role);
 
         return $user;

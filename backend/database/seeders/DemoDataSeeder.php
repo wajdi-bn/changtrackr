@@ -31,6 +31,15 @@ class DemoDataSeeder extends Seeder
                 'status' => 'active',
             ],
         );
+        $sahelOrganization = Organization::firstOrCreate(
+            ['slug' => 'sahel-charge-network'],
+            [
+                'name' => 'Sahel Charge Network',
+                'contact_email' => 'operations@sahelcharge.local',
+                'contact_phone' => '+216 73 000 000',
+                'status' => 'active',
+            ],
+        );
 
         $users = [
             ['name' => 'Meriem Haddad', 'email' => 'superadmin@chargetrackr.local', 'role' => 'super_admin', 'organization_id' => null, 'phone' => '+216 20 100 100', 'team' => 'Platform Administration', 'address' => 'Tunis, Tunisia'],
@@ -38,7 +47,9 @@ class DemoDataSeeder extends Seeder
             ['name' => 'Meriem Haddad', 'email' => 'operator@chargetrackr.local', 'role' => 'operator', 'organization_id' => $organization->id, 'phone' => '+216 20 300 300', 'team' => 'Network Operations', 'address' => 'La Marsa, Tunis'],
             ['name' => 'Nour Trabelsi', 'email' => 'technician@chargetrackr.local', 'role' => 'technician', 'organization_id' => $organization->id, 'phone' => '+216 20 400 400', 'team' => 'Field Maintenance', 'address' => 'Ariana, Tunisia'],
             ['name' => 'Karim Ben Salem', 'email' => 'technician2@chargetrackr.local', 'role' => 'technician', 'organization_id' => $organization->id, 'phone' => '+216 20 500 500', 'team' => 'Field Maintenance', 'address' => 'Sfax, Tunisia'],
-            ['name' => 'Yasmine B.', 'email' => 'client@chargetrackr.local', 'role' => 'client', 'organization_id' => $organization->id, 'phone' => '+216 20 600 600', 'team' => 'Driver Accounts', 'address' => 'Nabeul, Tunisia'],
+            ['name' => 'Yasmine B.', 'email' => 'client@chargetrackr.local', 'role' => 'client', 'organization_id' => null, 'phone' => '+216 20 600 600', 'team' => null, 'address' => 'Nabeul, Tunisia'],
+            ['name' => 'Leila Gharbi', 'email' => 'admin@sahelcharge.local', 'role' => 'admin', 'organization_id' => $sahelOrganization->id, 'phone' => '+216 21 700 700', 'team' => 'Management', 'address' => 'Hammamet, Tunisia'],
+            ['name' => 'Hatem Mansour', 'email' => 'operator@sahelcharge.local', 'role' => 'operator', 'organization_id' => $sahelOrganization->id, 'phone' => '+216 21 800 800', 'team' => 'Network Operations', 'address' => 'Sousse, Tunisia'],
         ];
 
         foreach ($users as $userData) {
@@ -67,15 +78,18 @@ class DemoDataSeeder extends Seeder
             ['name' => 'Bizerte Port Charger', 'reference' => 'CT-BIZ-009', 'location_name' => 'Port de Bizerte', 'city' => 'Bizerte', 'address' => "Avenue de l'Environnement, Bizerte", 'latitude' => 37.2744, 'longitude' => 9.8739, 'status' => 'maintenance', 'max_power_kw' => 50, 'model' => 'Tritium RTM50', 'manufacturer' => 'Tritium', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-tritium-rtm50.png', 'uptime_percent' => 96.8, 'energy_today_kwh' => 42, 'sessions_today' => 3, 'utilization_percent' => 18, 'revenue_today' => 64, 'open_alerts_count' => 1],
             ['name' => 'Nabeul City Center', 'reference' => 'CT-NAB-004', 'location_name' => 'Centre-ville', 'city' => 'Nabeul', 'address' => 'Avenue Habib Thameur, Nabeul', 'latitude' => 36.4513, 'longitude' => 10.7352, 'status' => 'available', 'max_power_kw' => 80, 'model' => 'SICHARGE D', 'manufacturer' => 'Siemens', 'ocpp_version' => 'OCPP 2.0.1', 'model_image' => '/assets/charger-sicharge-d.png', 'uptime_percent' => 98.2, 'energy_today_kwh' => 214, 'sessions_today' => 16, 'utilization_percent' => 58, 'revenue_today' => 301, 'open_alerts_count' => 0],
             ['name' => 'Monastir Airport EV', 'reference' => 'CT-MON-012', 'location_name' => 'Monastir Habib Bourguiba Airport', 'city' => 'Monastir', 'address' => 'Airport parking, Monastir', 'latitude' => 35.7581, 'longitude' => 10.7547, 'status' => 'charging', 'max_power_kw' => 120, 'model' => 'PowerDot DC 120', 'manufacturer' => 'PowerDot', 'ocpp_version' => 'OCPP 2.0.1', 'model_image' => '/assets/charger-powerdot-dc-120.png', 'uptime_percent' => 98.9, 'energy_today_kwh' => 344, 'sessions_today' => 27, 'utilization_percent' => 76, 'revenue_today' => 492, 'open_alerts_count' => 1],
+            ['name' => 'Hammamet Seafront Hub', 'reference' => 'CT-HAM-031', 'organization_id' => $sahelOrganization->id, 'location_name' => 'Yasmine Hammamet', 'city' => 'Hammamet', 'address' => 'Marina promenade, Yasmine Hammamet', 'latitude' => 36.3740, 'longitude' => 10.5460, 'status' => 'available', 'max_power_kw' => 120, 'model' => 'Terra HP 150', 'manufacturer' => 'ABB', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-terra-hp-150.png', 'uptime_percent' => 99.2, 'energy_today_kwh' => 238, 'sessions_today' => 17, 'utilization_percent' => 61, 'revenue_today' => 337, 'open_alerts_count' => 0],
         ];
 
         foreach ($stations as $index => $stationData) {
+            $stationOrganizationId = $stationData['organization_id'] ?? $organization->id;
+            unset($stationData['organization_id']);
             $station = Station::updateOrCreate(
                 ['reference' => $stationData['reference']],
-                [...$stationData, 'organization_id' => $organization->id, 'last_heartbeat_at' => now()->subSeconds(($index + 1) * 12)],
+                [...$stationData, 'organization_id' => $stationOrganizationId, 'last_heartbeat_at' => now()->subSeconds(($index + 1) * 12)],
             );
 
-            $connectorCount = [6, 4, 3, 5, 4, 2, 4, 5][$index];
+            $connectorCount = [6, 4, 3, 5, 4, 2, 4, 5, 4][$index];
             for ($connectorIndex = 1; $connectorIndex <= $connectorCount; $connectorIndex++) {
                 $status = $station->status === 'available' && $connectorIndex > 1 ? 'available' : $station->status;
                 $station->connectors()->updateOrCreate(
@@ -100,6 +114,20 @@ class DemoDataSeeder extends Seeder
                 'currency' => 'TND',
                 'price_per_kwh_millimes' => 850,
                 'session_fee_millimes' => 500,
+                'idle_fee_per_minute_millimes' => 100,
+                'minimum_charge_millimes' => 1000,
+                'is_default' => true,
+            ],
+        );
+        Tariff::updateOrCreate(
+            ['organization_id' => $sahelOrganization->id, 'code' => 'SAHEL-STANDARD'],
+            [
+                'name' => 'Sahel public charging',
+                'description' => 'Default pay-as-you-go tariff for Sahel Charge Network.',
+                'status' => 'active',
+                'currency' => 'TND',
+                'price_per_kwh_millimes' => 920,
+                'session_fee_millimes' => 400,
                 'idle_fee_per_minute_millimes' => 100,
                 'minimum_charge_millimes' => 1000,
                 'is_default' => true,
@@ -213,7 +241,7 @@ class DemoDataSeeder extends Seeder
                 ['reference' => $seed['reference']],
                 [
                     ...$seed,
-                    'organization_id' => $organization->id,
+                    'organization_id' => $station->organization_id,
                     'station_id' => $station->id,
                     'connector_id' => $connector?->id,
                     'assigned_technician_id' => $technicianId,
@@ -289,6 +317,11 @@ class DemoDataSeeder extends Seeder
                 'status' => 'completed', 'payment_status' => 'unpaid', 'started_at' => now()->subHours(5),
                 'ended_at' => now()->subHours(4)->subMinutes(22), 'duration_seconds' => 2280, 'energy_kwh' => 21.600, 'total_millimes' => 18860,
             ],
+            [
+                'reference' => 'SES-DEMO-SAHEL', 'station_reference' => 'CT-HAM-031',
+                'status' => 'completed', 'payment_status' => 'unpaid', 'started_at' => now()->subDays(3)->subMinutes(29),
+                'ended_at' => now()->subDays(3), 'duration_seconds' => 1740, 'energy_kwh' => 16.800, 'total_millimes' => 15856,
+            ],
         ];
 
         foreach ($sessionSeeds as $index => $seed) {
@@ -298,7 +331,7 @@ class DemoDataSeeder extends Seeder
             $session = ChargingSession::updateOrCreate(
                 ['reference' => $seed['reference']],
                 [
-                    'organization_id' => $organization->id,
+                    'organization_id' => $station->organization_id,
                     'client_id' => $client->id,
                     'station_id' => $station->id,
                     'connector_id' => $connector->id,
@@ -329,7 +362,7 @@ class DemoDataSeeder extends Seeder
                 Payment::updateOrCreate(
                     ['charging_session_id' => $session->id],
                     [
-                        'organization_id' => $organization->id,
+                        'organization_id' => $station->organization_id,
                         'user_id' => $client->id,
                         'reference' => $paid ? 'PAY-DEMO-PAID' : 'PAY-DEMO-FAILED',
                         'provider' => 'simulated',

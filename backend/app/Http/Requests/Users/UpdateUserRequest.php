@@ -23,7 +23,7 @@ class UpdateUserRequest extends FormRequest
             'team' => ['nullable', 'string', 'max:120'],
             'address' => ['nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'required', Rule::in(['active', 'inactive', 'pending'])],
-            'role' => ['sometimes', 'required', Rule::in(['super_admin', 'admin', 'operator', 'technician', 'client'])],
+            'role' => ['sometimes', 'required', Rule::in(['super_admin', 'admin', 'operator', 'technician'])],
             'password' => ['nullable', 'string', Password::min(8)],
         ];
     }

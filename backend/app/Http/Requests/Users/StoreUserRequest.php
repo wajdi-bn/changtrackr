@@ -29,7 +29,7 @@ class StoreUserRequest extends FormRequest
             'team' => ['nullable', 'string', 'max:120'],
             'address' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive', 'pending'])],
-            'role' => ['required', Rule::in(['super_admin', 'admin', 'operator', 'technician', 'client'])],
+            'role' => ['required', Rule::in(['super_admin', 'admin', 'operator', 'technician'])],
             'password' => ['required', 'string', Password::min(8)],
         ];
     }

@@ -48,17 +48,54 @@ class ChargingSessionPaymentApiTest extends TestCase
         $this->assertDatabaseHas('connectors', ['id' => $connector->id, 'status' => 'available']);
     }
 
-    public function test_client_cannot_start_a_session_outside_their_organization(): void
+    public function test_global_client_can_charge_with_two_different_organizations(): void
+    {
+        [$client, $firstOrganization] = $this->userWithRole('client');
+        $secondOrganization = $this->organization('second-network');
+        [$firstStation, $firstConnector] = $this->stationWithConnector($firstOrganization, 'CT-FIRST-SESSION');
+        [$secondStation, $secondConnector] = $this->stationWithConnector($secondOrganization, 'CT-SECOND-SESSION');
+        Sanctum::actingAs($client);
+
+        $firstSessionId = $this->postJson('/api/charging-sessions', [
+            'station_id' => $firstStation->id,
+            'connector_id' => $firstConnector->id,
+        ])->assertCreated()
+            ->assertJsonPath('data.organization.id', $firstOrganization->id)
+            ->assertJsonPath('data.organization.name', $firstOrganization->name)
+            ->json('data.id');
+        $this->postJson("/api/charging-sessions/{$firstSessionId}/stop")->assertOk();
+
+        $secondSessionId = $this->postJson('/api/charging-sessions', [
+            'station_id' => $secondStation->id,
+            'connector_id' => $secondConnector->id,
+        ])->assertCreated()
+            ->assertJsonPath('data.organization.id', $secondOrganization->id)
+            ->assertJsonPath('data.organization.name', $secondOrganization->name)
+            ->json('data.id');
+        $this->postJson("/api/charging-sessions/{$secondSessionId}/stop")->assertOk();
+
+        $this->getJson('/api/charging-sessions')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['id' => $firstOrganization->id, 'name' => $firstOrganization->name])
+            ->assertJsonFragment(['id' => $secondOrganization->id, 'name' => $secondOrganization->name]);
+    }
+
+    public function test_global_client_cannot_start_a_session_for_an_inactive_organization(): void
     {
         [$client] = $this->userWithRole('client');
-        $other = $this->organization('other-network');
-        [$station, $connector] = $this->stationWithConnector($other, 'CT-OTHER-SESSION');
+        $inactiveOrganization = Organization::query()->create([
+            'name' => 'Suspended Network',
+            'slug' => 'suspended-network',
+            'status' => 'inactive',
+        ]);
+        [$station, $connector] = $this->stationWithConnector($inactiveOrganization, 'CT-INACTIVE-SESSION');
         Sanctum::actingAs($client);
 
         $this->postJson('/api/charging-sessions', [
             'station_id' => $station->id,
             'connector_id' => $connector->id,
-        ])->assertUnprocessable();
+        ])->assertUnprocessable()->assertJsonValidationErrors('station_id');
     }
 
     public function test_completed_session_can_be_paid_through_the_simulated_adapter(): void
@@ -104,8 +141,8 @@ class ChargingSessionPaymentApiTest extends TestCase
     public function test_client_only_sees_their_sessions_while_operator_sees_the_organization(): void
     {
         $organization = $this->organization('scope-network');
-        $client = $this->user($organization, 'client');
-        $otherClient = $this->user($organization, 'client');
+        $client = $this->user(null, 'client');
+        $otherClient = $this->user(null, 'client');
         $operator = $this->user($organization, 'operator');
         [$station, $connector] = $this->stationWithConnector($organization, 'CT-SCOPE-001');
         $this->completedSession($client, $station, $connector, 'SES-SCOPE-ONE');
@@ -123,7 +160,7 @@ class ChargingSessionPaymentApiTest extends TestCase
     {
         $organization = $this->organization($role.'-'.uniqid());
 
-        return [$this->user($organization, $role), $organization];
+        return [$this->user($role === 'client' ? null : $organization, $role), $organization];
     }
 
     private function organization(string $slug): Organization
@@ -131,9 +168,9 @@ class ChargingSessionPaymentApiTest extends TestCase
         return Organization::query()->create(['name' => ucfirst($slug), 'slug' => $slug, 'status' => 'active']);
     }
 
-    private function user(Organization $organization, string $role): User
+    private function user(?Organization $organization, string $role): User
     {
-        $user = User::factory()->create(['organization_id' => $organization->id, 'status' => 'active']);
+        $user = User::factory()->create(['organization_id' => $organization?->id, 'status' => 'active']);
         $user->assignRole($role);
 
         return $user;

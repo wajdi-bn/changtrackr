@@ -45,6 +45,7 @@ import {
 } from '../features/users/userApi'
 import type { UserRole } from '../types/auth'
 import type {
+  EmployeeRole,
   LastLoginFilter,
   ManagedUser,
   ManagedUserFilters,
@@ -55,19 +56,18 @@ import type {
 type UserView = 'table' | 'list' | 'grid'
 type UserEditor = ManagedUser | null | undefined
 
-const roleOptions: Array<{ value: Exclude<UserRole, 'super_admin'>; label: string }> = [
+const roleOptions: Array<{ value: Exclude<EmployeeRole, 'super_admin'>; label: string }> = [
   { value: 'admin', label: 'Administrator' },
   { value: 'operator', label: 'Operator' },
   { value: 'technician', label: 'Technician' },
-  { value: 'client', label: 'Client' },
 ]
 
-const teamOptions = ['Management', 'Network Operations', 'Field Maintenance', 'Driver Accounts']
+const teamOptions = ['Management', 'Network Operations', 'Field Maintenance']
 
 export function UsersPage() {
   const { user: currentUser } = useAuth()
   const [search, setSearch] = useState('')
-  const [role, setRole] = useState<UserRole | undefined>()
+  const [role, setRole] = useState<EmployeeRole | undefined>()
   const [status, setStatus] = useState<ManagedUserStatus | undefined>()
   const [team, setTeam] = useState<string | undefined>()
   const [lastLogin, setLastLogin] = useState<LastLoginFilter | undefined>()
@@ -106,7 +106,7 @@ export function UsersPage() {
       await refreshUsers()
       if (selectedUser?.id === savedUser.id) setSelectedUser(savedUser)
       setEditor(undefined)
-      void message.success(variables.managedUser ? 'User updated successfully.' : 'User created successfully.')
+      void message.success(variables.managedUser ? 'Employee updated successfully.' : 'Employee created successfully.')
     },
     onError: () => void message.error('The user could not be saved. Check the email, role, and password.'),
   })
@@ -115,7 +115,7 @@ export function UsersPage() {
     onSuccess: async (managedUser) => {
       await refreshUsers()
       if (selectedUser?.id === managedUser.id) setSelectedUser(managedUser)
-      void message.success('User account deactivated and active sessions revoked.')
+      void message.success('Employee account deactivated and active sessions revoked.')
     },
     onError: () => void message.error('This user cannot be deactivated. Keep at least one active administrator.'),
   })
@@ -125,7 +125,7 @@ export function UsersPage() {
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       anchor.href = url
-      anchor.download = `organization-users.${format}`
+      anchor.download = `organization-employees.${format}`
       anchor.click()
       URL.revokeObjectURL(url)
       void message.success(`User export generated as ${format.toUpperCase()}.`)
@@ -149,7 +149,7 @@ export function UsersPage() {
         breadcrumb={['Administrator', 'Users']}
         title="Users"
         count={count}
-        subtitle="Manage organization users, internal accounts, technicians, operators, and client records."
+        subtitle="Manage organization administrators, operators, technicians, and internal access."
       />
     </div>
 
@@ -180,12 +180,12 @@ export function UsersPage() {
       }}>
         <Button className="users-export-button" loading={exportUsers.isPending}><Download size={14} />Export<ChevronDown size={13} /></Button>
       </Dropdown>
-      {canCreate && <Button className="users-add-button" type="primary" onClick={() => setEditor(null)}><Plus size={15} />Add user</Button>}
+      {canCreate && <Button className="users-add-button" type="primary" onClick={() => setEditor(null)}><Plus size={15} />Add employee</Button>}
     </div>
 
     {usersQuery.isError && <Alert className="users-api-error" type="error" showIcon message="Unable to load users" description="Make sure the Laravel API is running, then retry." action={<Button size="small" onClick={() => void usersQuery.refetch()}>Retry</Button>} />}
 
-    <SectionCard title="User management" subtitle="Internal accounts are created by an authorized administrator.">
+    <SectionCard title="Employee management" subtitle="Internal employee accounts are created by an authorized administrator.">
       {usersQuery.isLoading ? <UsersLoading /> : users.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No user matches the current filters" /> : <>
         {view === 'table' && <UsersTable users={users} currentUserId={currentUser?.id} canUpdate={canUpdate} canDeactivate={canDeactivate} onSelect={setSelectedUser} onEdit={setEditor} onDeactivate={(managedUser) => deactivateUser.mutate(managedUser.id)} />}
         {view === 'list' && <UsersList users={users} currentUserId={currentUser?.id} canUpdate={canUpdate} canDeactivate={canDeactivate} onSelect={setSelectedUser} onEdit={setEditor} onDeactivate={(managedUser) => deactivateUser.mutate(managedUser.id)} />}
@@ -325,7 +325,7 @@ function UserEditorModal({ user, submitting, onClose, onSubmit }: { user: Manage
     onSubmit(payload)
   }
 
-  return <Modal className="user-editor-modal" width={680} open title={<div><strong>{user ? `Edit ${user.name}` : 'Add user'}</strong><small>Internal accounts are created by an authorized administrator.</small></div>} footer={null} onCancel={onClose} destroyOnHidden>
+  return <Modal className="user-editor-modal" width={680} open title={<div><strong>{user ? `Edit ${user.name}` : 'Add employee'}</strong><small>Internal employee accounts are created by an authorized administrator.</small></div>} footer={null} onCancel={onClose} destroyOnHidden>
     <Form form={form} layout="vertical" initialValues={initialValues} onFinish={submit}>
       <div className="user-form-grid">
         <Form.Item name="name" label="Full name" rules={[{ required: true, message: 'Enter the full name.' }]}><Input placeholder="New Organization User" /></Form.Item>
@@ -338,7 +338,7 @@ function UserEditorModal({ user, submitting, onClose, onSubmit }: { user: Manage
         <Form.Item name="avatar_url" label="Avatar URL"><Input placeholder="/assets/avatar-vendor-1.jpg" /></Form.Item>
         <Form.Item name="password" label={user ? 'New password' : 'Temporary password'} rules={user ? [{ min: 8 }] : [{ required: true }, { min: 8 }]}><Input.Password placeholder={user ? 'Leave empty to keep current password' : 'Minimum 8 characters'} /></Form.Item>
       </div>
-      <div className="user-modal-actions"><Button onClick={onClose}>Cancel</Button><Button className="users-save-button" type="primary" htmlType="submit" loading={submitting}>{user ? 'Save changes' : 'Create user'}</Button></div>
+      <div className="user-modal-actions"><Button onClick={onClose}>Cancel</Button><Button className="users-save-button" type="primary" htmlType="submit" loading={submitting}>{user ? 'Save changes' : 'Create employee'}</Button></div>
     </Form>
   </Modal>
 }
@@ -390,14 +390,12 @@ function formatDate(value: string | null): string {
 
 function activitySummary(user: ManagedUser): string {
   const role = user.roles[0]
-  if (role === 'client') return `${user.activity.charging_sessions} charging sessions and ${user.activity.payments} payment records.`
   if (role === 'technician') return `${user.activity.assigned_interventions} assigned interventions and ${user.activity.assigned_alerts} alerts.`
   if (role === 'operator') return 'Station supervision, alert coordination, and charging operations.'
   return 'Organization users, tariff configuration, and reporting administration.'
 }
 
 function roleDetailSubtitle(role?: UserRole): string {
-  if (role === 'client') return 'Personal information, charging sessions, payments, and account activity.'
   if (role === 'technician') return 'Assigned alerts, interventions, and field activity.'
   if (role === 'operator') return 'Station supervision, alerts, sessions, and operational activity.'
   return 'Organization user administration, tariff access, and reporting.'
@@ -405,7 +403,6 @@ function roleDetailSubtitle(role?: UserRole): string {
 
 function roleMetrics(user: ManagedUser): Array<{ label: string; value: string | number }> {
   const role = user.roles[0]
-  if (role === 'client') return [{ label: 'Charging sessions', value: user.activity.charging_sessions }, { label: 'Payment records', value: user.activity.payments }]
   if (role === 'technician') return [{ label: 'Assigned alerts', value: user.activity.assigned_alerts }, { label: 'Interventions', value: user.activity.assigned_interventions }]
   if (role === 'operator') return [{ label: 'Account status', value: user.status }, { label: 'Team', value: user.team ?? 'Not assigned' }]
   return [{ label: 'Organization', value: user.organization?.name ?? 'Platform' }, { label: 'Account status', value: user.status }]
