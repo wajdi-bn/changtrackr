@@ -14,6 +14,35 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function session(Request $request): JsonResponse
+    {
+        /** @var User|null $user */
+        $user = Auth::guard('web')->user();
+
+        if (! $user) {
+            return response()->json([
+                'authenticated' => false,
+                'user' => null,
+            ]);
+        }
+
+        if ($user->status !== 'active' || ! $user->hasValidOrganizationAssignment()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return response()->json([
+                'authenticated' => false,
+                'user' => null,
+            ]);
+        }
+
+        return response()->json([
+            'authenticated' => true,
+            'user' => new UserResource($user->load('organization')),
+        ]);
+    }
+
     public function login(LoginRequest $request): JsonResponse
     {
         $credentials = $request->validated();

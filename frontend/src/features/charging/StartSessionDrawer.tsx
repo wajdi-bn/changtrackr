@@ -80,7 +80,7 @@ export function StartSessionDrawer({ open, stations, initialStationId, submittin
             type="info"
             showIcon
             icon={<PlugZap size={16} />}
-            message="MVP simulation"
+            title="MVP simulation"
             description="No physical charger command is sent yet. The same service boundary can later call the OCPP backend."
           />
           <Button className="start-session-submit" type="primary" htmlType="submit" icon={<Zap size={16} />} loading={submitting} block>

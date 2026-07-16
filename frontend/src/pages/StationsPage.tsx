@@ -131,7 +131,7 @@ export function StationsPage() {
       </div>
 
       {stationsQuery.isError && (
-        <Alert className="stations-feedback" type="error" showIcon message="Unable to load stations" description="Make sure the Laravel API is running, then retry." action={<Button size="small" onClick={() => void stationsQuery.refetch()}>Retry</Button>} />
+        <Alert className="stations-feedback" type="error" showIcon title="Unable to load stations" description="Make sure the Laravel API is running, then retry." action={<Button size="small" onClick={() => void stationsQuery.refetch()}>Retry</Button>} />
       )}
 
       {stationsQuery.isLoading ? (

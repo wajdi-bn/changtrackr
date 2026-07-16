@@ -191,7 +191,7 @@ export function UsersPage() {
       {canCreate && <Button className="users-add-button" type="primary" onClick={() => setEditor(null)}><Plus size={15} />Add employee</Button>}
     </div>
 
-    {usersQuery.isError && <Alert className="users-api-error" type="error" showIcon message="Unable to load users" description="Make sure the Laravel API is running, then retry." action={<Button size="small" onClick={() => void usersQuery.refetch()}>Retry</Button>} />}
+    {usersQuery.isError && <Alert className="users-api-error" type="error" showIcon title="Unable to load users" description="Make sure the Laravel API is running, then retry." action={<Button size="small" onClick={() => void usersQuery.refetch()}>Retry</Button>} />}
 
     <SectionCard title="Employee management" subtitle="Administrators are read-only here; operators and technicians are managed by the organization administrator.">
       {usersQuery.isLoading ? <UsersLoading /> : users.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No user matches the current filters" /> : <>

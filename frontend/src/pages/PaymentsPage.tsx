@@ -62,7 +62,7 @@ export function PaymentsPage() {
       <PaymentKpi icon={<CreditCard size={18} />} label={clientMode ? 'Total paid' : 'Revenue'} value={`${((paymentsQuery.data?.summary.revenue_millimes ?? 0) / 1000).toFixed(3)} TND`} />
     </div>
 
-    {paymentsQuery.isError && <Alert className="payments-api-error" type="error" showIcon message="Unable to load payments" description={axios.isAxiosError(paymentsQuery.error) ? `The API returned status ${paymentsQuery.error.response?.status ?? 'unknown'}.` : 'Check the API connection and retry.'} action={<Button size="small" onClick={() => void paymentsQuery.refetch()}>Retry</Button>} />}
+    {paymentsQuery.isError && <Alert className="payments-api-error" type="error" showIcon title="Unable to load payments" description={axios.isAxiosError(paymentsQuery.error) ? `The API returned status ${paymentsQuery.error.response?.status ?? 'unknown'}.` : 'Check the API connection and retry.'} action={<Button size="small" onClick={() => void paymentsQuery.refetch()}>Retry</Button>} />}
 
     {clientMode && payableSessions.length > 0 && <section className="outstanding-payments">
       <header><div><span>Action required</span><h2>Outstanding sessions</h2></div><strong>{payableSessions.length}</strong></header>

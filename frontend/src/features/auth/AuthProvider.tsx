@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { AuthUser } from '../../types/auth'
-import { csrfCookieRequest, currentUserRequest, loginRequest, logoutRequest } from './authApi'
+import { loginRequest, logoutRequest, sessionRequest } from './authApi'
 import { AuthContext } from './authContext'
 import type { AuthContextValue } from './authContext'
 
@@ -21,12 +21,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function loadCurrentUser() {
       try {
-        await csrfCookieRequest()
-        const currentUser = await currentUserRequest()
+        const session = await sessionRequest()
         if (!mounted) {
           return
         }
-        setUser(currentUser)
+        setUser(session.authenticated ? session.user : null)
       } catch {
         if (mounted) {
           clearSession()

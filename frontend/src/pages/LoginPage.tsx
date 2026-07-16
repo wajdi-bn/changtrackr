@@ -1,23 +1,16 @@
-import { Alert, Button, Card, Divider, Form, Input, Space, Tag, Typography } from 'antd'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Alert, Button, Card, Form, Input } from 'antd'
+import { motion } from 'framer-motion'
+import { LockKeyhole, Mail } from 'lucide-react'
 import { useState } from 'react'
-import { Zap } from 'lucide-react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { backendUrl } from '../api/httpClient'
-import { useAuth } from '../features/auth/useAuth'
 import { getRoleConfig } from '../features/auth/roleConfig'
+import { useAuth } from '../features/auth/useAuth'
 
 interface LoginFormValues {
   email: string
   password: string
 }
-
-const demoAccounts = [
-  { label: 'Super Admin', email: 'superadmin@chargetrackr.local' },
-  { label: 'Admin', email: 'admin@chargetrackr.local' },
-  { label: 'Operator', email: 'operator@chargetrackr.local' },
-  { label: 'Technician', email: 'technician@chargetrackr.local' },
-  { label: 'Client', email: 'client@chargetrackr.local' },
-]
 
 const oauthErrors: Record<string, string> = {
   account_conflict: 'This email is already linked to another Google account.',
@@ -33,7 +26,6 @@ export function LoginPage() {
   const { isAuthenticated, login, primaryRole } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [form] = Form.useForm<LoginFormValues>()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const oauthErrorCode = new URLSearchParams(location.search).get('oauth_error')
@@ -65,95 +57,137 @@ export function LoginPage() {
     }
   }
 
-  function fillDemoAccount(email: string) {
-    form.setFieldsValue({ email, password: 'password' })
-  }
-
   function handleGoogleLogin() {
     setErrorMessage(null)
     window.location.assign(`${backendUrl}/auth/oauth/google/redirect`)
   }
 
+  function handleForgotPassword() {
+    setErrorMessage('Password recovery is not available yet. Contact your administrator.')
+  }
+
   return (
-    <main className="login-page">
-      <section className="login-hero">
-        <div className="brand-lockup">
-          <div className="brand-symbol">
-            <Zap size={26} />
-          </div>
-          <div>
-            <Typography.Title level={3}>ChargeTrackr</Typography.Title>
-            <Typography.Text>EV charging availability supervision</Typography.Text>
+    <main className="prototype-login-page">
+      <section className="prototype-login-visual" aria-label="Electric vehicle charging">
+        <img
+          src="/assets/charge-hero.png"
+          alt="Electric vehicle connected to a charging station"
+          className="prototype-login-hero-image"
+        />
+        <div className="prototype-login-overlay" />
+        <div className="prototype-login-visual-content">
+          <Link to="/" className="prototype-login-brand prototype-login-brand-light">
+            <img src="/assets/Logo.png" alt="ChargeTrackr logo" />
+            <span>ChargeTrackr</span>
+          </Link>
+
+          <div className="prototype-login-copy">
+            <p className="prototype-login-badge">EV network supervision</p>
+            <h1>Operate your EV charging network with clear availability data.</h1>
+            <p>
+              Monitor station availability, charging sessions and operational activity from one
+              secure workspace.
+            </p>
           </div>
         </div>
-
-        <Typography.Title level={1}>Monitor. Manage. Power the future.</Typography.Title>
-        <Typography.Paragraph>
-          Connect operators, technicians, administrators and clients around the same charging
-          network workspace.
-        </Typography.Paragraph>
       </section>
 
-      <Card className="login-card">
-        <Typography.Title level={3}>Sign in</Typography.Title>
-        <Typography.Paragraph type="secondary">
-          Access your ChargeTrackr workspace securely.
-        </Typography.Paragraph>
+      <section className="prototype-login-panel">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          className="prototype-login-card-shell"
+        >
+          <Card className="prototype-login-card">
+            <Link to="/" className="prototype-login-brand prototype-login-mobile-brand">
+              <img src="/assets/Logo.png" alt="ChargeTrackr logo" />
+              <span>ChargeTrackr</span>
+            </Link>
 
-        {(errorMessage || oauthErrorMessage) && (
-          <Alert
-            className="login-alert"
-            type="error"
-            message={errorMessage ?? oauthErrorMessage}
-            showIcon
-          />
-        )}
+            <header className="prototype-login-card-heading">
+              <h1>Sign in</h1>
+              <p>Sign in with your account or continue with Google.</p>
+            </header>
 
-        <Button className="google-sign-in-button" block onClick={handleGoogleLogin}>
-          <span className="google-logo-frame" aria-hidden="true">
-            <img src="/assets/google.png" alt="" />
-          </span>
-          Continue with Google
-        </Button>
+            <Button className="prototype-google-button" block onClick={handleGoogleLogin}>
+              <img src="/assets/google.png" alt="Google" />
+              Continue with Google
+            </Button>
 
-        <Divider plain>or use your email</Divider>
+            <div className="prototype-login-divider" aria-hidden="true">
+              <span />
+              <small>or continue with email</small>
+              <span />
+            </div>
 
-        <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ password: 'password' }}>
-          <Form.Item
-            label="Email"
-            name="email"
-            rules={[{ required: true, message: 'Email is required' }, { type: 'email' }]}
-          >
-            <Input placeholder="operator@chargetrackr.local" autoComplete="email" />
-          </Form.Item>
-
-          <Form.Item
-            label="Password"
-            name="password"
-            rules={[{ required: true, message: 'Password is required' }]}
-          >
-            <Input.Password placeholder="password" autoComplete="current-password" />
-          </Form.Item>
-
-          <Button type="primary" htmlType="submit" loading={isSubmitting} block>
-            Sign in
-          </Button>
-        </Form>
-
-        <Divider>Demo accounts</Divider>
-
-        <Space wrap>
-          {demoAccounts.map((account) => (
-            <Tag.CheckableTag
-              key={account.email}
-              checked={form.getFieldValue('email') === account.email}
-              onChange={() => fillDemoAccount(account.email)}
+            <Form<LoginFormValues>
+              className="prototype-login-form"
+              layout="vertical"
+              requiredMark={false}
+              onFinish={handleSubmit}
             >
-              {account.label}
-            </Tag.CheckableTag>
-          ))}
-        </Space>
-      </Card>
+              <Form.Item
+                label="Email"
+                name="email"
+                rules={[
+                  { required: true, message: 'Email is required' },
+                  { type: 'email', message: 'Enter a valid email address' },
+                ]}
+              >
+                <Input
+                  prefix={<Mail size={16} aria-hidden="true" />}
+                  placeholder="operator@chargetrackr.local"
+                  autoComplete="email"
+                />
+              </Form.Item>
+
+              <Form.Item
+                label={
+                  <span className="prototype-password-label">
+                    <span>Password</span>
+                    <button type="button" onClick={handleForgotPassword}>
+                      I forgot my password
+                    </button>
+                  </span>
+                }
+                name="password"
+                rules={[{ required: true, message: 'Password is required' }]}
+              >
+                <Input
+                  prefix={<LockKeyhole size={16} aria-hidden="true" />}
+                  placeholder="Password"
+                  type="password"
+                  autoComplete="current-password"
+                />
+              </Form.Item>
+
+              {(errorMessage || oauthErrorMessage) && (
+                <Alert
+                  className="prototype-login-alert"
+                  type="error"
+                  title={errorMessage ?? oauthErrorMessage}
+                  showIcon
+                />
+              )}
+
+              <Button
+                className="prototype-login-submit"
+                type="primary"
+                htmlType="submit"
+                loading={isSubmitting}
+                block
+              >
+                Sign in to dashboard
+              </Button>
+            </Form>
+
+            <p className="prototype-login-security-note">
+              Secure authentication managed by the ChargeTrackr server.
+            </p>
+          </Card>
+        </motion.div>
+      </section>
     </main>
   )
 }

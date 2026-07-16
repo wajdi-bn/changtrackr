@@ -91,7 +91,7 @@ export function StationDetailPage() {
   }
 
   if (stationQuery.isError || !stationQuery.data) {
-    return <Alert type="error" showIcon message="Unable to load this station" action={<Button onClick={() => navigate('/stations')}>Back to stations</Button>} />
+    return <Alert type="error" showIcon title="Unable to load this station" action={<Button onClick={() => navigate('/stations')}>Back to stations</Button>} />
   }
 
   const station = stationQuery.data

@@ -195,7 +195,7 @@ export function TariffsPage() {
       </article>)}
       {!plansQuery.isLoading && plans.length === 0 && <div className="tariff-empty-grid"><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No charging plans" /></div>}
       {plansQuery.isLoading && <div className="tariff-loading tariff-empty-grid">Loading charging plans...</div>}
-      {plansQuery.isError && <Alert className="tariff-empty-grid" type="error" showIcon message="Charging plans could not be loaded." />}
+      {plansQuery.isError && <Alert className="tariff-empty-grid" type="error" showIcon title="Charging plans could not be loaded." />}
     </div>}
 
     {activeTab === 'assignments' && <SectionCard title="Station assignment" subtitle="Assign, replace, or remove the effective tariff for a station or connector.">

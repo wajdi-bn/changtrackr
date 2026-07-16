@@ -12,6 +12,9 @@ Route::get('/', function () {
 Route::post('/api/auth/login', [AuthController::class, 'login'])
     ->middleware('throttle:5,1');
 
+Route::get('/api/auth/session', [AuthController::class, 'session'])
+    ->middleware('throttle:60,1');
+
 Route::middleware('auth:sanctum')->prefix('api/auth')->group(function (): void {
     Route::get('/me', [AuthController::class, 'me'])
         ->middleware(EnsureUserOrganizationScope::class);

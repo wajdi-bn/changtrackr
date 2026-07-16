@@ -12,6 +12,16 @@ class AuthApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_can_check_session_status_without_an_authentication_error(): void
+    {
+        $this->getJson('/api/auth/session')
+            ->assertOk()
+            ->assertJson([
+                'authenticated' => false,
+                'user' => null,
+            ]);
+    }
+
     public function test_active_user_can_login_and_fetch_current_profile(): void
     {
         $organization = Organization::query()->create([
@@ -46,6 +56,11 @@ class AuthApiTest extends TestCase
         $this->getJson('/api/auth/me')
             ->assertOk()
             ->assertJsonPath('data.email', $user->email);
+
+        $this->getJson('/api/auth/session')
+            ->assertOk()
+            ->assertJsonPath('authenticated', true)
+            ->assertJsonPath('user.email', $user->email);
     }
 
     public function test_inactive_user_cannot_login(): void

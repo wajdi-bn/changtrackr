@@ -57,7 +57,7 @@ export function PaymentDrawer({ open, session, submitting, onClose, onSubmit }: 
             type="warning"
             showIcon
             icon={<FlaskConical size={16} />}
-            message="Simulation only"
+            title="Simulation only"
             description="No card number, D17 identifier, credential, or real money is requested or transmitted."
           />
           <Button className="payment-submit" type="primary" htmlType="submit" icon={<CreditCard size={16} />} loading={submitting} block>
