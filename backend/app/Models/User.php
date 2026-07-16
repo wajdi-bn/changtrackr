@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\ResetAccountPassword;
+use App\Notifications\VerifyClientEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +18,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['organization_id', 'name', 'email', 'email_verified_at', 'phone', 'avatar_url', 'team', 'address', 'status', 'password', 'last_login_at'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     public const ORGANIZATION_ROLES = ['admin', 'operator', 'technician'];
 
@@ -101,6 +103,21 @@ class User extends Authenticatable
         $this->load('organization');
 
         return $this->organization_id !== null && $this->organization?->status === 'active';
+    }
+
+    public function requiresClientEmailVerification(): bool
+    {
+        return $this->hasRole('client') && ! $this->hasVerifiedEmail();
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyClientEmail);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetAccountPassword($token));
     }
 
     /**

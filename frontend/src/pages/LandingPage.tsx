@@ -176,6 +176,7 @@ export function LandingPage() {
 
           <div className="landing-nav-actions">
             <Button type="text" className="landing-sign-in" onClick={() => navigate('/login')}>Sign in</Button>
+            <Button className="landing-register" onClick={() => navigate('/register')}>Create account</Button>
             <Button type="primary" shape="round" onClick={() => document.querySelector('#demo')?.scrollIntoView({ behavior: 'smooth' })}>
               Request a demo <ArrowUpRight size={14} />
             </Button>
@@ -201,7 +202,8 @@ export function LandingPage() {
           {navLinks.map((item) => (
             <a key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)}>{item.label}</a>
           ))}
-          <Button type="primary" onClick={openDashboard}>Open dashboard</Button>
+          <Button onClick={() => navigate('/login')}>Sign in</Button>
+          <Button type="primary" onClick={() => navigate('/register')}>Create client account</Button>
         </nav>
       </Drawer>
 

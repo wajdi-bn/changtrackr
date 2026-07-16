@@ -1,7 +1,7 @@
 [
   {
     "id": "US-01",
-    "user_story": "En tant que visiteur, je veux créer un compte client ou me connecter de manière sécurisée par email, Google ou Microsoft.",
+    "user_story": "En tant que visiteur, je veux créer un compte client ou me connecter de manière sécurisée par email ou Google.",
     "priorite": "Haute",
     "points": 8
   },

@@ -83,6 +83,17 @@ For local development after migrations:
 php artisan db:seed
 ```
 
+Run the backend and its asynchronous email worker in separate terminals:
+
+```bash
+pnpm dev:backend
+pnpm dev:queue
+```
+
+Account verification and password reset notifications are queued. When Mailpit is running,
+open `http://localhost:8025` to inspect them. With `MAIL_MAILER=log`, the messages are written
+to `backend/storage/logs/laravel.log` instead.
+
 Seeded demo accounts all use the password `password`:
 
 | Role | Email |

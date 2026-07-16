@@ -36,6 +36,8 @@ Les critères ci-dessous supposent que les valeurs suivantes seront configurable
 - **CA-01.2** - Étant donné un compte actif et valide, lorsque l'utilisateur saisit ses identifiants, alors une session sécurisée par cookie HTTP-only est créée et le profil, le rôle et les permissions sont retournés.
 - **CA-01.3** - Étant donné une identité Google vérifiée, lorsque l'utilisateur autorise la connexion, alors elle est associée au bon compte sans créer de doublon d'email. L'intégration Microsoft est reportée.
 - **CA-01.4** - Étant donné des identifiants invalides, un compte inactif ou une affectation organisationnelle incohérente, lorsque la connexion est tentée, alors l'accès est refusé sans révéler d'information sensible.
+- **CA-01.5** - Étant donné une inscription locale client, lorsque le compte est créé, alors un email de vérification signé et limité dans le temps est mis en file et la connexion locale reste interdite jusqu'à sa validation.
+- **CA-01.6** - Étant donné une demande de récupération, lorsque l'email est soumis, alors la réponse ne révèle pas l'existence du compte et un lien de réinitialisation à usage unique est mis en file pour les comptes correspondants.
 
 ## US-02 - Profil et sécurité du compte
 

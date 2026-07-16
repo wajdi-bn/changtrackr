@@ -4,7 +4,7 @@
 
 | ID | User Story | Priorité | Points |
 |---|---|---:|---:|
-| US-01 | En tant que visiteur, je veux créer un compte client ou me connecter de manière sécurisée par email, Google ou Microsoft. | Haute | 8 |
+| US-01 | En tant que visiteur, je veux créer un compte client ou me connecter de manière sécurisée par email ou Google. | Haute | 8 |
 | US-02 | En tant qu'utilisateur authentifié, je veux consulter et mettre à jour mon profil ainsi que les paramètres de sécurité de mon compte. | Moyenne | 3 |
 | US-03 | En tant que super administrateur, je veux gérer les organisations, leurs administrateurs et les accès globaux de la plateforme. | Haute | 8 |
 | US-04 | En tant qu'administrateur, je veux créer, modifier et désactiver les comptes des opérateurs et techniciens de mon organisation. | Haute | 5 |

@@ -26,7 +26,11 @@ class AuthController extends Controller
             ]);
         }
 
-        if ($user->status !== 'active' || ! $user->hasValidOrganizationAssignment()) {
+        if (
+            $user->status !== 'active'
+            || ! $user->hasValidOrganizationAssignment()
+            || $user->requiresClientEmailVerification()
+        ) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -68,6 +72,13 @@ class AuthController extends Controller
         if (! $user->hasValidOrganizationAssignment()) {
             return response()->json([
                 'message' => 'This account does not have a valid organization assignment.',
+            ], 403);
+        }
+
+        if ($user->requiresClientEmailVerification()) {
+            return response()->json([
+                'message' => 'Please verify your email address before signing in.',
+                'code' => 'email_unverified',
             ], 403);
         }
 

@@ -1,9 +1,10 @@
-import { Alert, Button, Card, Form, Input } from 'antd'
-import { motion } from 'framer-motion'
+import { Alert, Button, Form, Input } from 'antd'
 import { LockKeyhole, Mail } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { backendUrl } from '../api/httpClient'
+import { AuthPageShell } from '../features/auth/AuthPageShell'
+import { getAuthErrorCode } from '../features/auth/authApi'
 import { getRoleConfig } from '../features/auth/roleConfig'
 import { useAuth } from '../features/auth/useAuth'
 
@@ -37,9 +38,10 @@ export function LoginPage() {
     return <Navigate to={getRoleConfig(primaryRole).defaultPath} replace />
   }
 
-  const from =
+  const requestedPath =
     (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ??
-    getRoleConfig(primaryRole).defaultPath
+    new URLSearchParams(location.search).get('redirect')
+  const from = safeRedirectPath(requestedPath) ?? getRoleConfig(primaryRole).defaultPath
 
   async function handleSubmit(values: LoginFormValues) {
     setErrorMessage(null)
@@ -50,7 +52,11 @@ export function LoginPage() {
       navigate(from === '/login' ? getRoleConfig(user.roles[0] ?? null).defaultPath : from, {
         replace: true,
       })
-    } catch {
+    } catch (error) {
+      if (getAuthErrorCode(error) === 'email_unverified') {
+        navigate(`/verify-email?status=sent&email=${encodeURIComponent(values.email)}`)
+        return
+      }
       setErrorMessage('Email or password is incorrect, or the account is inactive.')
     } finally {
       setIsSubmitting(false)
@@ -62,49 +68,8 @@ export function LoginPage() {
     window.location.assign(`${backendUrl}/auth/oauth/google/redirect`)
   }
 
-  function handleForgotPassword() {
-    setErrorMessage('Password recovery is not available yet. Contact your administrator.')
-  }
-
   return (
-    <main className="prototype-login-page">
-      <section className="prototype-login-visual" aria-label="Electric vehicle charging">
-        <img
-          src="/assets/charge-hero.png"
-          alt="Electric vehicle connected to a charging station"
-          className="prototype-login-hero-image"
-        />
-        <div className="prototype-login-overlay" />
-        <div className="prototype-login-visual-content">
-          <Link to="/" className="prototype-login-brand prototype-login-brand-light">
-            <img src="/assets/Logo.png" alt="ChargeTrackr logo" />
-            <span>ChargeTrackr</span>
-          </Link>
-
-          <div className="prototype-login-copy">
-            <p className="prototype-login-badge">EV network supervision</p>
-            <h1>Operate your EV charging network with clear availability data.</h1>
-            <p>
-              Monitor station availability, charging sessions and operational activity from one
-              secure workspace.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="prototype-login-panel">
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="prototype-login-card-shell"
-        >
-          <Card className="prototype-login-card">
-            <Link to="/" className="prototype-login-brand prototype-login-mobile-brand">
-              <img src="/assets/Logo.png" alt="ChargeTrackr logo" />
-              <span>ChargeTrackr</span>
-            </Link>
-
+    <AuthPageShell>
             <header className="prototype-login-card-heading">
               <h1>Sign in</h1>
               <p>Sign in with your account or continue with Google.</p>
@@ -146,9 +111,9 @@ export function LoginPage() {
                 label={
                   <span className="prototype-password-label">
                     <span>Password</span>
-                    <button type="button" onClick={handleForgotPassword}>
+                    <Link to="/forgot-password">
                       I forgot my password
-                    </button>
+                    </Link>
                   </span>
                 }
                 name="password"
@@ -183,11 +148,13 @@ export function LoginPage() {
             </Form>
 
             <p className="prototype-login-security-note">
-              Secure authentication managed by the ChargeTrackr server.
+              New to ChargeTrackr?{' '}
+              <Link to={`/register?redirect=${encodeURIComponent(from)}`}>Create a client account</Link>
             </p>
-          </Card>
-        </motion.div>
-      </section>
-    </main>
+    </AuthPageShell>
   )
+}
+
+function safeRedirectPath(value: string | null | undefined): string | null {
+  return value?.startsWith('/') && !value.startsWith('//') ? value : null
 }

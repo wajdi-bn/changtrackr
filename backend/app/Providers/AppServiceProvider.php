@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Contracts\PaymentGateway;
+use App\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 
@@ -35,6 +37,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        ResetPassword::createUrlUsing(function (User $user, string $token): string {
+            $frontendUrl = rtrim((string) config('frontend.url'), '/');
+
+            return $frontendUrl.'/reset-password?'.http_build_query([
+                'token' => $token,
+                'email' => $user->getEmailForPasswordReset(),
+            ]);
+        });
     }
 }

@@ -2260,7 +2260,8 @@ html {
   gap: 12px;
 }
 
-.prototype-password-label button {
+.prototype-password-label button,
+.prototype-password-label a {
   padding: 0;
   border: 0;
   background: transparent;
@@ -2268,9 +2269,11 @@ html {
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
+  text-decoration: none;
 }
 
-.prototype-password-label button:hover {
+.prototype-password-label button:hover,
+.prototype-password-label a:hover {
   color: #065f46;
 }
 
@@ -2299,6 +2302,77 @@ html {
   font-size: 12px;
   line-height: 18px;
   text-align: center;
+}
+
+.prototype-login-security-note a {
+  color: #047857;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.prototype-login-security-note a:hover {
+  color: #065f46;
+}
+
+.prototype-login-form .ant-form-item-extra {
+  margin-top: 5px;
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.prototype-terms-item .ant-checkbox-wrapper {
+  align-items: flex-start;
+  color: #4b5563;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.prototype-terms-item .ant-checkbox {
+  margin-top: 2px;
+}
+
+.prototype-auth-state {
+  display: grid;
+  gap: 18px;
+}
+
+.prototype-auth-state .ant-alert,
+.prototype-login-card .ant-alert {
+  border-radius: 6px;
+}
+
+.prototype-auth-primary-link {
+  display: grid;
+  min-height: 42px;
+  place-items: center;
+  border-radius: 6px;
+  background: #059669;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.prototype-auth-primary-link:hover {
+  background: #047857;
+  color: #ffffff;
+}
+
+.prototype-auth-back-link {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  margin: 18px auto 0;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.prototype-auth-back-link:hover {
+  color: #047857;
 }
 
 .score-panel {

@@ -25,7 +25,7 @@ La part des points n'est pas un pourcentage d'achèvement linéaire : une User S
 
 | ID | Pts | Statut | Preuves actuelles | Écart principal |
 |---|---:|---|---|---|
-| US-01 | 8 | Partielle | Session Sanctum/CSRF, login local, OAuth2 Google, liaison `social_accounts`, création client et tests de sécurité | Inscription locale publique absente ; Microsoft reporté |
+| US-01 | 8 | Réalisée | Session Sanctum/CSRF, inscription client, vérification email en file, récupération de mot de passe, OAuth2 Google, liaison `social_accounts` et tests de sécurité | Microsoft est hors périmètre du MVP actuel |
 | US-02 | 3 | Partielle | Profil retourné par `UserResource`, champs présents dans `users` | Page profil statique, aucune API de mise à jour ou changement de mot de passe |
 | US-03 | 8 | Partielle | Le super administrateur peut créer/transférer un administrateur ; isolation des rôles validée | Aucun CRUD des organisations ni véritable interface Super Admin |
 | US-04 | 5 | Réalisée | `UserController`, `UserPolicy`, `UsersPage`, `UserManagementApiTest` | Le futur workflow d'invitation pourra remplacer le mot de passe initial |

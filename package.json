@@ -8,6 +8,7 @@
     "lint:frontend": "pnpm --dir frontend lint",
     "preview:frontend": "pnpm --dir frontend preview",
     "dev:backend": "cd backend && C:/php/php.exe artisan serve --host=127.0.0.1 --port=8000",
+    "dev:queue": "cd backend && C:/php/php.exe artisan queue:work --sleep=1 --tries=3 --timeout=90",
     "migrate:backend": "cd backend && C:/php/php.exe artisan migrate",
     "test:backend": "cd backend && C:/php/php.exe artisan test"
   },

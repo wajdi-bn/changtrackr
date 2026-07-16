@@ -10,6 +10,9 @@
 - Never place OAuth access tokens in callback URLs or browser storage.
 - Revoke legacy SPA personal access tokens when switching to cookie sessions.
 - Only verified Google emails can be linked. New identities create a global `client`; existing employees keep their role and organization.
+- Public registration always creates one unverified global `client` with no organization assignment.
+- Require signed email verification before a locally registered client can sign in.
+- Queue verification and password reset notifications, use short-lived links and return generic recovery responses to prevent account enumeration.
 
 ## Authorization
 

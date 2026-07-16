@@ -9,7 +9,11 @@ import { useAuth } from '../features/auth/useAuth'
 import { AppLayout } from '../layouts/AppLayout'
 import { HomePage } from '../pages/HomePage'
 import { GoogleOAuthCallbackPage } from '../pages/GoogleOAuthCallbackPage'
+import { ForgotPasswordPage } from '../pages/ForgotPasswordPage'
 import { LoginPage } from '../pages/LoginPage'
+import { RegisterPage } from '../pages/RegisterPage'
+import { ResetPasswordPage } from '../pages/ResetPasswordPage'
+import { VerifyEmailPage } from '../pages/VerifyEmailPage'
 import { WorkspacePage } from '../pages/WorkspacePage'
 
 const LandingPage = lazy(() => import('../pages/LandingPage').then((module) => ({ default: module.LandingPage })))
@@ -36,6 +40,10 @@ export function AppRouter() {
       <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/auth/google/callback" element={<GoogleOAuthCallbackPage />} />
 
       <Route element={<ProtectedRoute />}>
