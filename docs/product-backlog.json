@@ -1,0 +1,242 @@
+[
+  {
+    "id": "US-01",
+    "user_story": "En tant que visiteur, je veux créer un compte client ou me connecter de manière sécurisée par email, Google ou Microsoft.",
+    "priorite": "Haute",
+    "points": 8
+  },
+  {
+    "id": "US-02",
+    "user_story": "En tant qu'utilisateur authentifié, je veux consulter et mettre à jour mon profil ainsi que les paramètres de sécurité de mon compte.",
+    "priorite": "Moyenne",
+    "points": 3
+  },
+  {
+    "id": "US-03",
+    "user_story": "En tant que super administrateur, je veux gérer les organisations, leurs administrateurs et les accès globaux de la plateforme.",
+    "priorite": "Haute",
+    "points": 8
+  },
+  {
+    "id": "US-04",
+    "user_story": "En tant qu'administrateur, je veux créer, modifier et désactiver les comptes des opérateurs et techniciens de mon organisation.",
+    "priorite": "Haute",
+    "points": 5
+  },
+  {
+    "id": "US-05",
+    "user_story": "En tant que super administrateur, je veux consulter l'audit global, l'état des intégrations et les statistiques d'utilisation de la plateforme.",
+    "priorite": "Moyenne",
+    "points": 5
+  },
+  {
+    "id": "US-06",
+    "user_story": "En tant qu'administrateur, je veux consulter les clients ayant utilisé les bornes de mon organisation avec leurs sessions et statistiques associées.",
+    "priorite": "Moyenne",
+    "points": 5
+  },
+  {
+    "id": "US-07",
+    "user_story": "En tant qu'opérateur, je veux ajouter, modifier et désactiver les bornes appartenant à mon organisation avec leurs informations techniques et géographiques.",
+    "priorite": "Haute",
+    "points": 8
+  },
+  {
+    "id": "US-08",
+    "user_story": "En tant qu'opérateur, je veux gérer les connecteurs associés aux bornes de mon organisation avec leur type, puissance et état.",
+    "priorite": "Haute",
+    "points": 5
+  },
+  {
+    "id": "US-09",
+    "user_story": "En tant qu'opérateur, je veux consulter la liste des bornes avec leur disponibilité calculée, leur état de connexion et leur dernière activité.",
+    "priorite": "Haute",
+    "points": 8
+  },
+  {
+    "id": "US-10",
+    "user_story": "En tant qu'opérateur, je veux visualiser les bornes sur une carte interactive et ajouter une borne en sélectionnant son emplacement.",
+    "priorite": "Haute",
+    "points": 8
+  },
+  {
+    "id": "US-11",
+    "user_story": "En tant que technicien, je veux consulter sans modification les bornes et leur emplacement sur la carte de mon organisation.",
+    "priorite": "Haute",
+    "points": 5
+  },
+  {
+    "id": "US-12",
+    "user_story": "En tant que client, je veux rechercher et filtrer sur une carte les bornes publiques des organisations actives selon leur disponibilité, connecteur et tarif.",
+    "priorite": "Haute",
+    "points": 8
+  },
+  {
+    "id": "US-13",
+    "user_story": "En tant qu'opérateur, je veux consulter la fiche détaillée d'une borne avec ses connecteurs, sessions, historique et alertes.",
+    "priorite": "Haute",
+    "points": 8
+  },
+  {
+    "id": "US-14",
+    "user_story": "En tant que plateforme, je veux recevoir et valider automatiquement les messages OCPP 1.6 JSON envoyés par les bornes physiques ou simulées.",
+    "priorite": "Haute",
+    "points": 13
+  },
+  {
+    "id": "US-15",
+    "user_story": "En tant que plateforme, je veux calculer et mettre à jour l'état des bornes à partir des événements OCPP, des transactions, des Heartbeat et des délais de non-réponse.",
+    "priorite": "Haute",
+    "points": 13
+  },
+  {
+    "id": "US-16",
+    "user_story": "En tant qu'opérateur, je veux superviser en temps réel les états des bornes : disponible, occupée, non disponible, maintenance, déconnectée ou en défaut.",
+    "priorite": "Haute",
+    "points": 13
+  },
+  {
+    "id": "US-17",
+    "user_story": "En tant qu'opérateur, je veux consulter un tableau de bord avec les indicateurs de disponibilité, énergie, sessions actives et taux d'indisponibilité.",
+    "priorite": "Haute",
+    "points": 8
+  },
+  {
+    "id": "US-18",
+    "user_story": "En tant qu'administrateur, je veux consulter un tableau de bord de mon organisation avec les utilisateurs, clients, revenus, régions et bornes les plus utilisées.",
+    "priorite": "Haute",
+    "points": 8
+  },
+  {
+    "id": "US-19",
+    "user_story": "En tant qu'opérateur, je veux recevoir des alertes lorsqu'une borne est déconnectée, en panne, en surchauffe ou en erreur de communication.",
+    "priorite": "Haute",
+    "points": 8
+  },
+  {
+    "id": "US-20",
+    "user_story": "En tant qu'opérateur, je veux filtrer, suivre et assigner les alertes selon leur gravité, statut et borne concernée.",
+    "priorite": "Moyenne",
+    "points": 5
+  },
+  {
+    "id": "US-21",
+    "user_story": "En tant que technicien, je veux consulter les alertes et interventions qui me sont assignées.",
+    "priorite": "Haute",
+    "points": 5
+  },
+  {
+    "id": "US-22",
+    "user_story": "En tant que technicien, je veux créer un rapport d'intervention avec diagnostic, actions réalisées, pièces utilisées et photos.",
+    "priorite": "Moyenne",
+    "points": 8
+  },
+  {
+    "id": "US-23",
+    "user_story": "En tant qu'opérateur, je veux planifier et suivre les maintenances préventives et correctives des bornes de mon organisation.",
+    "priorite": "Moyenne",
+    "points": 8
+  },
+  {
+    "id": "US-24",
+    "user_story": "En tant que client, je veux démarrer une session de recharge sur une borne disponible, quelle que soit l'organisation qui la possède.",
+    "priorite": "Haute",
+    "points": 8
+  },
+  {
+    "id": "US-25",
+    "user_story": "En tant que client, je veux arrêter une session de recharge et consulter le résumé de durée, d'énergie et de coût.",
+    "priorite": "Haute",
+    "points": 5
+  },
+  {
+    "id": "US-26",
+    "user_story": "En tant qu'utilisateur autorisé, je veux consulter l'historique des sessions relevant de mon périmètre avec durée, énergie, coût et borne utilisée.",
+    "priorite": "Moyenne",
+    "points": 5
+  },
+  {
+    "id": "US-27",
+    "user_story": "En tant que client, je veux gérer mes véhicules électriques et leurs informations de compatibilité avec les connecteurs.",
+    "priorite": "Moyenne",
+    "points": 5
+  },
+  {
+    "id": "US-28",
+    "user_story": "En tant que client, je veux utiliser une carte RFID ou un QR code pour m'identifier et lancer une recharge.",
+    "priorite": "Moyenne",
+    "points": 8
+  },
+  {
+    "id": "US-29",
+    "user_story": "En tant que client, je veux payer mes sessions, suivre l'état du paiement et télécharger mes factures.",
+    "priorite": "Moyenne",
+    "points": 8
+  },
+  {
+    "id": "US-30",
+    "user_story": "En tant que plateforme, je veux traiter les paiements au moyen d'un adaptateur simulé et remplaçable afin de pouvoir intégrer un prestataire réel.",
+    "priorite": "Moyenne",
+    "points": 8
+  },
+  {
+    "id": "US-31",
+    "user_story": "En tant qu'administrateur, je veux configurer les tarifs selon le kWh, la durée ou les plages horaires et les affecter aux bornes ou connecteurs.",
+    "priorite": "Moyenne",
+    "points": 8
+  },
+  {
+    "id": "US-32",
+    "user_story": "En tant que client, je veux choisir les plans proposés par les organisations et gérer simultanément mes abonnements auprès de plusieurs organisations.",
+    "priorite": "Moyenne",
+    "points": 8
+  },
+  {
+    "id": "US-33",
+    "user_story": "En tant qu'opérateur, je veux générer des rapports sur la disponibilité, l'utilisation, les revenus, l'énergie et les bornes les plus utilisées.",
+    "priorite": "Moyenne",
+    "points": 8
+  },
+  {
+    "id": "US-34",
+    "user_story": "En tant qu'utilisateur autorisé, je veux exporter les données et rapports relevant de mon périmètre en PDF, Excel ou CSV.",
+    "priorite": "Faible",
+    "points": 5
+  },
+  {
+    "id": "US-35",
+    "user_story": "En tant qu'administrateur, je veux gérer les paramètres locaux de mon organisation : TVA, logo, langue, fuseau horaire et notifications.",
+    "priorite": "Faible",
+    "points": 5
+  },
+  {
+    "id": "US-36",
+    "user_story": "En tant que super administrateur, je veux configurer les intégrations globales : paiement, notifications, cartographie, OAuth2, OCPP et sécurité.",
+    "priorite": "Faible",
+    "points": 8
+  },
+  {
+    "id": "US-37",
+    "user_story": "En tant qu'administrateur, je veux gérer les documents liés aux bornes : contrats, garanties, notices et plans techniques.",
+    "priorite": "Faible",
+    "points": 5
+  },
+  {
+    "id": "US-38",
+    "user_story": "En tant qu'administrateur, je veux gérer les mises à jour firmware des bornes à distance.",
+    "priorite": "Faible",
+    "points": 13
+  },
+  {
+    "id": "US-39",
+    "user_story": "En tant que visiteur, je veux consulter la présentation de la plateforme, la contacter et envoyer une demande de démonstration.",
+    "priorite": "Moyenne",
+    "points": 3
+  },
+  {
+    "id": "US-40",
+    "user_story": "En tant qu'utilisateur authentifié, je veux recevoir des notifications in-app et par email et gérer mes préférences de notification.",
+    "priorite": "Moyenne",
+    "points": 5
+  }
+]
