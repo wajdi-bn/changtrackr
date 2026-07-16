@@ -2,6 +2,7 @@ import { Alert, Button, Card, Divider, Form, Input, Space, Tag, Typography } fro
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { Zap } from 'lucide-react'
+import { backendUrl } from '../api/httpClient'
 import { useAuth } from '../features/auth/useAuth'
 import { getRoleConfig } from '../features/auth/roleConfig'
 
@@ -18,6 +19,16 @@ const demoAccounts = [
   { label: 'Client', email: 'client@chargetrackr.local' },
 ]
 
+const oauthErrors: Record<string, string> = {
+  account_conflict: 'This email is already linked to another Google account.',
+  account_inactive: 'This account is inactive. Contact your administrator.',
+  email_not_verified: 'Google did not provide a verified email address.',
+  invalid_organization: 'This employee account is not linked to an active organization.',
+  missing_identity: 'Google did not provide the information required to sign in.',
+  provider_error: 'Google sign in could not be completed. Please try again.',
+  session_not_created: 'The sign-in session could not be created. Please try again.',
+}
+
 export function LoginPage() {
   const { isAuthenticated, login, primaryRole } = useAuth()
   const navigate = useNavigate()
@@ -25,6 +36,10 @@ export function LoginPage() {
   const [form] = Form.useForm<LoginFormValues>()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const oauthErrorCode = new URLSearchParams(location.search).get('oauth_error')
+  const oauthErrorMessage = oauthErrorCode
+    ? (oauthErrors[oauthErrorCode] ?? oauthErrors.provider_error)
+    : null
 
   if (isAuthenticated) {
     return <Navigate to={getRoleConfig(primaryRole).defaultPath} replace />
@@ -54,6 +69,11 @@ export function LoginPage() {
     form.setFieldsValue({ email, password: 'password' })
   }
 
+  function handleGoogleLogin() {
+    setErrorMessage(null)
+    window.location.assign(`${backendUrl}/auth/oauth/google/redirect`)
+  }
+
   return (
     <main className="login-page">
       <section className="login-hero">
@@ -77,12 +97,26 @@ export function LoginPage() {
       <Card className="login-card">
         <Typography.Title level={3}>Sign in</Typography.Title>
         <Typography.Paragraph type="secondary">
-          Use one of the seeded local accounts while the real OAuth flow is prepared.
+          Access your ChargeTrackr workspace securely.
         </Typography.Paragraph>
 
-        {errorMessage && (
-          <Alert className="login-alert" type="error" message={errorMessage} showIcon />
+        {(errorMessage || oauthErrorMessage) && (
+          <Alert
+            className="login-alert"
+            type="error"
+            message={errorMessage ?? oauthErrorMessage}
+            showIcon
+          />
         )}
+
+        <Button className="google-sign-in-button" block onClick={handleGoogleLogin}>
+          <span className="google-logo-frame" aria-hidden="true">
+            <img src="/assets/google.png" alt="" />
+          </span>
+          Continue with Google
+        </Button>
+
+        <Divider plain>or use your email</Divider>
 
         <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ password: 'password' }}>
           <Form.Item

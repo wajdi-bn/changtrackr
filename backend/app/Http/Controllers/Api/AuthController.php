@@ -8,6 +8,7 @@ use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -41,11 +42,11 @@ class AuthController extends Controller
             ], 403);
         }
 
+        Auth::guard('web')->login($user);
+        $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->save();
 
         return response()->json([
-            'token_type' => 'Bearer',
-            'access_token' => $user->createToken('web')->plainTextToken,
             'user' => new UserResource($user->fresh('organization')),
         ]);
     }
@@ -57,7 +58,9 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()?->delete();
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return response()->json([
             'message' => 'Logged out successfully.',

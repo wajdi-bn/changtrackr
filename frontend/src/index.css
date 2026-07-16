@@ -2067,6 +2067,36 @@ html {
   margin-bottom: 16px;
 }
 
+.google-sign-in-button {
+  height: 42px;
+  border-color: #d7dde5;
+  color: #162033;
+  font-weight: 600;
+}
+
+.google-sign-in-button:hover,
+.google-sign-in-button:focus-visible {
+  border-color: #4285f4 !important;
+  color: #162033 !important;
+}
+
+.google-logo-frame {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  overflow: hidden;
+}
+
+.google-logo-frame img {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 40px;
+  height: 20px;
+  object-fit: contain;
+  transform: translateX(-50%);
+}
+
 .score-panel {
   display: grid;
   min-height: 260px;

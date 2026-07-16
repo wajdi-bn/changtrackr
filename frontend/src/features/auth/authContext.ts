@@ -3,7 +3,6 @@ import type { AuthUser, UserRole } from '../../types/auth'
 
 export interface AuthContextValue {
   user: AuthUser | null
-  token: string | null
   isAuthenticated: boolean
   isLoading: boolean
   primaryRole: UserRole | null

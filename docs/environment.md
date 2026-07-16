@@ -46,8 +46,29 @@ Required local PHP extensions enabled during setup:
 Local frontend example:
 
 ```env
-VITE_API_URL=http://127.0.0.1:8000/api
+VITE_API_URL=http://localhost:8000/api
+VITE_BACKEND_URL=http://localhost:8000
 VITE_APP_NAME=ChargeTrackr
 ```
 
 Only public frontend values should use the `VITE_` prefix.
+
+## Google OAuth
+
+Register this exact authorized redirect URI in Google Cloud:
+
+```text
+http://localhost:8000/auth/oauth/google/callback
+```
+
+Configure only the variable names in the committed example. Real values stay in `backend/.env`:
+
+```env
+APP_URL=http://localhost:8000
+FRONTEND_URL=http://localhost:5173
+SANCTUM_STATEFUL_DOMAINS=localhost:5173
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI="${APP_URL}/auth/oauth/google/callback"
+```

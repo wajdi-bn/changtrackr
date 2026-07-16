@@ -25,7 +25,7 @@ La part des points n'est pas un pourcentage d'achèvement linéaire : une User S
 
 | ID | Pts | Statut | Preuves actuelles | Écart principal |
 |---|---:|---|---|---|
-| US-01 | 8 | Partielle | `AuthController`, Sanctum, `LoginPage`, tests de connexion et d'affectation | Inscription client et OAuth2 Google/Microsoft absents |
+| US-01 | 8 | Partielle | Session Sanctum/CSRF, login local, OAuth2 Google, liaison `social_accounts`, création client et tests de sécurité | Inscription locale publique absente ; Microsoft reporté |
 | US-02 | 3 | Partielle | Profil retourné par `UserResource`, champs présents dans `users` | Page profil statique, aucune API de mise à jour ou changement de mot de passe |
 | US-03 | 8 | Partielle | Le super administrateur peut créer/transférer un administrateur ; isolation des rôles validée | Aucun CRUD des organisations ni véritable interface Super Admin |
 | US-04 | 5 | Réalisée | `UserController`, `UserPolicy`, `UsersPage`, `UserManagementApiTest` | Le futur workflow d'invitation pourra remplacer le mot de passe initial |
@@ -99,7 +99,7 @@ La part des points n'est pas un pourcentage d'achèvement linéaire : une User S
 
 - validation de la matrice de disponibilité, des seuils Heartbeat et de la priorité des états ;
 - choix du fournisseur cartographique et obtention éventuelle d'une clé ;
-- identifiants OAuth2 Google et Microsoft pour les environnements de test ;
+- identifiants OAuth2 Microsoft uniquement si cette intégration sort du report ;
 - adresses et paramètres du service email de production ;
 - règles de TVA, facturation et numérotation des factures ;
 - prestataire de paiement réel et accès sandbox, seulement au moment de son intégration ;

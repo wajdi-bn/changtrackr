@@ -33,8 +33,8 @@ Les critères ci-dessous supposent que les valeurs suivantes seront configurable
 ## US-01 - Inscription et authentification
 
 - **CA-01.1** - Étant donné un visiteur avec un email non utilisé, lorsqu'il s'inscrit, alors un compte ayant uniquement le rôle client est créé sans organisation fixe.
-- **CA-01.2** - Étant donné un compte actif et valide, lorsque l'utilisateur saisit ses identifiants, alors un jeton sécurisé est émis et le profil, le rôle et les permissions sont retournés.
-- **CA-01.3** - Étant donné une identité Google ou Microsoft vérifiée, lorsque l'utilisateur autorise la connexion, alors elle est associée au bon compte sans créer de doublon d'email.
+- **CA-01.2** - Étant donné un compte actif et valide, lorsque l'utilisateur saisit ses identifiants, alors une session sécurisée par cookie HTTP-only est créée et le profil, le rôle et les permissions sont retournés.
+- **CA-01.3** - Étant donné une identité Google vérifiée, lorsque l'utilisateur autorise la connexion, alors elle est associée au bon compte sans créer de doublon d'email. L'intégration Microsoft est reportée.
 - **CA-01.4** - Étant donné des identifiants invalides, un compte inactif ou une affectation organisationnelle incohérente, lorsque la connexion est tentée, alors l'accès est refusé sans révéler d'information sensible.
 
 ## US-02 - Profil et sécurité du compte

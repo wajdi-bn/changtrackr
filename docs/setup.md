@@ -93,6 +93,18 @@ Seeded demo accounts all use the password `password`:
 | Technician | `technician@chargetrackr.local` |
 | Client | `client@chargetrackr.local` |
 
+### Google sign-in
+
+The SPA uses Laravel Sanctum cookies for both password and Google sign-in. Use `localhost` consistently for the frontend and backend URLs; mixing it with `127.0.0.1` prevents the browser from treating the requests as the same site.
+
+Create a Google OAuth web client and register this exact callback:
+
+```text
+http://localhost:8000/auth/oauth/google/callback
+```
+
+Then set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` only in `backend/.env`. The frontend never receives the client secret or provider access tokens.
+
 Note: `maatwebsite/excel` was intentionally not used in the current setup because its spreadsheet dependency is not compatible with PHP 8.5. `openspout/openspout` is installed instead for CSV/XLSX-style exports.
 
 Expected backend modules:

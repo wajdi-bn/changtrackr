@@ -36,14 +36,14 @@ class AuthApiTest extends TestCase
 
         $loginResponse
             ->assertOk()
-            ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('user.email', $user->email)
-            ->assertJsonPath('user.roles.0', 'operator');
+            ->assertJsonPath('user.roles.0', 'operator')
+            ->assertJsonMissingPath('access_token');
 
-        $token = $loginResponse->json('access_token');
+        $this->assertAuthenticatedAs($user);
+        $this->assertDatabaseCount('personal_access_tokens', 0);
 
-        $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/auth/me')
+        $this->getJson('/api/auth/me')
             ->assertOk()
             ->assertJsonPath('data.email', $user->email);
     }
@@ -111,7 +111,7 @@ class AuthApiTest extends TestCase
         ])->assertForbidden();
     }
 
-    public function test_existing_token_is_rejected_after_the_employee_organization_is_deactivated(): void
+    public function test_existing_session_is_rejected_after_the_employee_organization_is_deactivated(): void
     {
         $organization = Organization::query()->create([
             'name' => 'Deactivated Network',
@@ -126,17 +126,39 @@ class AuthApiTest extends TestCase
         ]);
         $operator->assignRole($role);
 
-        $token = $this->postJson('/api/auth/login', [
+        $this->postJson('/api/auth/login', [
             'email' => $operator->email,
             'password' => 'password',
-        ])->assertOk()->json('access_token');
+        ])->assertOk();
 
         $organization->update(['status' => 'inactive']);
 
-        $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/auth/me')
+        $this->getJson('/api/auth/me')
             ->assertForbidden()
             ->assertJsonPath('message', 'This account does not have a valid organization assignment.');
+    }
+
+    public function test_authenticated_user_can_logout_and_invalidate_the_session(): void
+    {
+        $role = Role::findOrCreate('client', 'web');
+        $client = User::factory()->create([
+            'organization_id' => null,
+            'status' => 'active',
+        ]);
+        $client->assignRole($role);
+
+        $this->postJson('/api/auth/login', [
+            'email' => $client->email,
+            'password' => 'password',
+        ])->assertOk();
+
+        $this->postJson('/api/auth/logout')
+            ->assertOk()
+            ->assertJsonPath('message', 'Logged out successfully.');
+
+        $this->app['auth']->forgetGuards();
+        $this->assertGuest();
+        $this->getJson('/api/auth/me')->assertUnauthorized();
     }
 
     public function test_current_profile_requires_authentication(): void

@@ -14,7 +14,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['organization_id', 'name', 'email', 'phone', 'avatar_url', 'team', 'address', 'status', 'password', 'last_login_at'])]
+#[Fillable(['organization_id', 'name', 'email', 'email_verified_at', 'phone', 'avatar_url', 'team', 'address', 'status', 'password', 'last_login_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -62,6 +62,11 @@ class User extends Authenticatable
         return $this->hasMany(PlanSubscription::class);
     }
 
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
     public function primaryRoleName(): ?string
     {
         $roleNames = $this->getRoleNames();
@@ -77,6 +82,7 @@ class User extends Authenticatable
 
     public function hasValidOrganizationAssignment(): bool
     {
+        $this->unsetRelation('roles');
         $roleNames = $this->getRoleNames();
         if ($roleNames->count() !== 1) {
             return false;
@@ -91,7 +97,8 @@ class User extends Authenticatable
             return false;
         }
 
-        $this->loadMissing('organization');
+        $this->unsetRelation('organization');
+        $this->load('organization');
 
         return $this->organization_id !== null && $this->organization?->status === 'active';
     }

@@ -8,6 +8,7 @@ import { getRoleConfig } from '../features/auth/roleConfig'
 import { useAuth } from '../features/auth/useAuth'
 import { AppLayout } from '../layouts/AppLayout'
 import { HomePage } from '../pages/HomePage'
+import { GoogleOAuthCallbackPage } from '../pages/GoogleOAuthCallbackPage'
 import { LoginPage } from '../pages/LoginPage'
 import { WorkspacePage } from '../pages/WorkspacePage'
 
@@ -35,6 +36,7 @@ export function AppRouter() {
       <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/auth/google/callback" element={<GoogleOAuthCallbackPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>

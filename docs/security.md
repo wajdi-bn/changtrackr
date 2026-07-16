@@ -2,10 +2,14 @@
 
 ## Authentication
 
-- Use Laravel Sanctum for API authentication.
-- Keep OAuth2 login through Google and Microsoft as a backend-managed integration.
+- Use Laravel Sanctum stateful session cookies for the first-party SPA.
+- Fetch the CSRF cookie before password login and send credentials on API requests.
+- Keep Google OAuth2 as a backend-managed integration. Microsoft is deferred.
 - Do not expose OAuth client secrets to the frontend.
-- Store roles and permissions locally, even when the identity comes from Google or Microsoft.
+- Store roles and permissions locally, even when the identity comes from Google.
+- Never place OAuth access tokens in callback URLs or browser storage.
+- Revoke legacy SPA personal access tokens when switching to cookie sessions.
+- Only verified Google emails can be linked. New identities create a global `client`; existing employees keep their role and organization.
 
 ## Authorization
 

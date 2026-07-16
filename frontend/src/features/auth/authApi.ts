@@ -1,4 +1,4 @@
-import { httpClient } from '../../api/httpClient'
+import { backendClient, httpClient } from '../../api/httpClient'
 import type { AuthUser, LoginResponse } from '../../types/auth'
 
 export interface LoginPayload {
@@ -6,7 +6,12 @@ export interface LoginPayload {
   password: string
 }
 
+export async function csrfCookieRequest(): Promise<void> {
+  await backendClient.get('/sanctum/csrf-cookie')
+}
+
 export async function loginRequest(payload: LoginPayload): Promise<LoginResponse> {
+  await csrfCookieRequest()
   const { data } = await httpClient.post<LoginResponse>('/auth/login', payload)
   return data
 }

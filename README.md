@@ -5,7 +5,7 @@ ChargeTrackr is a web platform for visualizing, supervising, and monitoring the 
 ## Planned Stack
 
 - Frontend: React, TypeScript, Ant Design, React Router, TanStack Query, Axios, Recharts, Leaflet, Framer Motion, GSAP
-- Backend: Laravel, REST API, Sanctum/JWT, OAuth2 Google/Microsoft, Laravel Reverb, Queue, Scheduler
+- Backend: Laravel, REST API, Sanctum session cookies, OAuth2 Google, Laravel Reverb, Queue, Scheduler
 - Data: PostgreSQL
 - Infrastructure services: Redis, Mailpit for local email testing
 - EV communication: OCPP server integration
@@ -16,6 +16,7 @@ ChargeTrackr is a web platform for visualizing, supervising, and monitoring the 
 - `frontend/` is scaffolded and ready to run.
 - `backend/` is scaffolded with Laravel and the core backend dependencies.
 - `backend/` is configured locally to use PostgreSQL.
+- Password and Google sign-in use the same server-side Sanctum session flow.
 - `infra/` contains optional local service configuration.
 
 ## Quick Start

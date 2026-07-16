@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\AlertController;
-use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChargingPlanController;
 use App\Http\Controllers\Api\ChargingSessionController;
 use App\Http\Controllers\Api\ConnectorController;
@@ -17,15 +16,6 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Middleware\EnsureUserOrganizationScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
-Route::prefix('auth')->group(function (): void {
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
-
-    Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(function (): void {
-        Route::get('/me', [AuthController::class, 'me']);
-        Route::post('/logout', [AuthController::class, 'logout']);
-    });
-});
 
 Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(function (): void {
     Route::apiResource('stations', StationController::class);

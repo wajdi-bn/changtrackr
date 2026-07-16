@@ -37,7 +37,5 @@ export interface AuthUser {
 }
 
 export interface LoginResponse {
-  token_type: 'Bearer'
-  access_token: string
   user: AuthUser
 }
