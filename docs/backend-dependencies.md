@@ -9,6 +9,7 @@ Planned Laravel dependencies:
 | `spatie/laravel-permission` | Roles and permissions |
 | `laravel/reverb` | WebSocket realtime events |
 | `predis/predis` | Redis client |
+| `resend/resend-php` | Resend email transport for real transactional email |
 | `barryvdh/laravel-dompdf` | PDF invoice/report generation |
 | `openspout/openspout` | CSV/XLSX export |
 

@@ -94,6 +94,19 @@ Account verification and password reset notifications are queued. When Mailpit i
 open `http://localhost:8025` to inspect them. With `MAIL_MAILER=log`, the messages are written
 to `backend/storage/logs/laravel.log` instead.
 
+To send real email through Resend, override the mail values in `backend/.env`:
+
+```dotenv
+MAIL_MAILER=resend
+MAIL_FROM_ADDRESS=onboarding@resend.dev
+MAIL_FROM_NAME="${APP_NAME}"
+RESEND_API_KEY=
+```
+
+The `onboarding@resend.dev` sandbox sender can only send to the email address associated with
+the Resend account. Verify a domain in Resend and replace `MAIL_FROM_ADDRESS` before sending to
+arbitrary recipients. Never commit the API key.
+
 Seeded demo accounts all use the password `password`:
 
 | Role | Email |
