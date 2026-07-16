@@ -16,7 +16,12 @@ class StoreAlertRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
+            'organization_id' => [
+                Rule::prohibitedIf(! $this->user()?->hasRole('super_admin')),
+                'nullable',
+                'integer',
+                Rule::exists('organizations', 'id')->where('status', 'active'),
+            ],
             'station_id' => ['required', 'integer', 'exists:stations,id'],
             'connector_id' => ['nullable', 'integer', 'exists:connectors,id'],
             'assigned_technician_id' => ['nullable', 'integer', 'exists:users,id'],

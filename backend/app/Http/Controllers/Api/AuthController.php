@@ -35,6 +35,12 @@ class AuthController extends Controller
             ], 403);
         }
 
+        if (! $user->hasValidOrganizationAssignment()) {
+            return response()->json([
+                'message' => 'This account does not have a valid organization assignment.',
+            ], 403);
+        }
+
         $user->forceFill(['last_login_at' => now()])->save();
 
         return response()->json([

@@ -99,6 +99,23 @@ class UserManagementApiTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('role');
 
         $this->postJson('/api/users', [
+            'name' => 'Forbidden Administrator',
+            'email' => 'forbidden.admin@example.com',
+            'status' => 'active',
+            'role' => 'admin',
+            'password' => 'password123',
+        ])->assertUnprocessable()->assertJsonValidationErrors('role');
+
+        $this->postJson('/api/users', [
+            'organization_id' => $otherOrganization->id,
+            'name' => 'Injected Operator',
+            'email' => 'injected.operator@example.com',
+            'status' => 'active',
+            'role' => 'operator',
+            'password' => 'password123',
+        ])->assertUnprocessable()->assertJsonValidationErrors('organization_id');
+
+        $this->postJson('/api/users', [
             'name' => 'Client Account',
             'email' => 'client.account@example.com',
             'status' => 'active',
@@ -130,14 +147,40 @@ class UserManagementApiTest extends TestCase
         Sanctum::actingAs($administrator);
 
         $this->patchJson("/api/users/{$administrator->id}", ['status' => 'inactive'])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('user');
+            ->assertForbidden();
         $this->patchJson("/api/users/{$administrator->id}", ['role' => 'operator'])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('user');
+            ->assertForbidden();
         $this->deleteJson("/api/users/{$administrator->id}")
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('user');
+            ->assertForbidden();
+    }
+
+    public function test_super_administrator_can_create_and_transfer_an_organization_administrator(): void
+    {
+        $firstOrganization = $this->organization('first-admin-network');
+        $secondOrganization = $this->organization('second-admin-network');
+        $superAdministrator = $this->user(null, 'super_admin');
+        Sanctum::actingAs($superAdministrator);
+
+        $administratorId = $this->postJson('/api/users', [
+            'organization_id' => $firstOrganization->id,
+            'name' => 'New Administrator',
+            'email' => 'new.organization.admin@example.com',
+            'status' => 'active',
+            'role' => 'admin',
+            'password' => 'password123',
+        ])->assertCreated()
+            ->assertJsonPath('data.organization.id', $firstOrganization->id)
+            ->json('data.id');
+
+        $this->patchJson("/api/users/{$administratorId}", [
+            'organization_id' => $secondOrganization->id,
+        ])->assertOk()
+            ->assertJsonPath('data.organization.id', $secondOrganization->id);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $administratorId,
+            'organization_id' => $secondOrganization->id,
+        ]);
     }
 
     public function test_administrator_can_export_only_its_filtered_organization_users(): void

@@ -97,6 +97,39 @@ class StationApiTest extends TestCase
             ->assertJsonPath('data.external_id', 'A1');
     }
 
+    public function test_operator_cannot_inject_an_organization_or_use_a_connector_from_another_station(): void
+    {
+        [$user, $organization] = $this->userWithRole('operator');
+        $otherOrganization = Organization::query()->create(['name' => 'External', 'slug' => 'external-'.uniqid(), 'status' => 'active']);
+        $ownStation = $this->station($organization, 'CT-OWN-001');
+        $externalStation = $this->station($otherOrganization, 'CT-EXTERNAL-001');
+        $externalConnector = Connector::query()->create([
+            'station_id' => $externalStation->id,
+            'external_id' => 'X1',
+            'type' => 'CCS2',
+            'current_type' => 'DC',
+            'max_power_kw' => 120,
+            'status' => 'available',
+        ]);
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/stations', [
+            ...$this->stationPayload('CT-INJECTED-001'),
+            'organization_id' => $otherOrganization->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('organization_id');
+
+        $this->putJson("/api/stations/{$ownStation->id}/connectors/{$externalConnector->id}", [
+            'external_id' => 'X1',
+            'type' => 'CCS2',
+            'current_type' => 'DC',
+            'max_power_kw' => 120,
+            'status' => 'available',
+        ])->assertNotFound();
+
+        $this->deleteJson("/api/stations/{$ownStation->id}/connectors/{$externalConnector->id}")
+            ->assertNotFound();
+    }
+
     public function test_global_client_sees_stations_from_all_active_organizations(): void
     {
         $firstOrganization = Organization::query()->create(['name' => 'First Network', 'slug' => 'first-network', 'status' => 'active']);

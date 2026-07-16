@@ -155,6 +155,31 @@ class ChargingSessionPaymentApiTest extends TestCase
         $this->getJson('/api/charging-sessions')->assertOk()->assertJsonCount(2, 'data');
     }
 
+    public function test_sessions_and_payments_cannot_be_accessed_across_clients_or_organizations(): void
+    {
+        $firstOrganization = $this->organization('first-isolation-network');
+        $secondOrganization = $this->organization('second-isolation-network');
+        $client = $this->user(null, 'client');
+        $otherClient = $this->user(null, 'client');
+        $operator = $this->user($firstOrganization, 'operator');
+        [$station, $connector] = $this->stationWithConnector($secondOrganization, 'CT-ISOLATED-SESSION');
+        $session = $this->completedSession($otherClient, $station, $connector, 'SES-ISOLATED');
+
+        Sanctum::actingAs($client);
+        $this->getJson("/api/charging-sessions/{$session->id}")->assertForbidden();
+        $this->postJson("/api/charging-sessions/{$session->id}/stop")->assertForbidden();
+        $this->postJson("/api/charging-sessions/{$session->id}/payments", [
+            'method' => 'simulated_card',
+            'simulation_outcome' => 'success',
+            'idempotency_key' => '30000000-0000-4000-8000-000000000001',
+        ])->assertForbidden();
+
+        Sanctum::actingAs($operator);
+        $this->getJson("/api/charging-sessions/{$session->id}")->assertForbidden();
+        $this->getJson('/api/charging-sessions')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson('/api/payments')->assertOk()->assertJsonCount(0, 'data');
+    }
+
     /** @return array{User, Organization} */
     private function userWithRole(string $role): array
     {

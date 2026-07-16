@@ -99,6 +99,26 @@ class TariffApiTest extends TestCase
         $this->postJson('/api/tariffs', $this->payload('DENIED'))->assertForbidden();
     }
 
+    public function test_administrator_cannot_access_or_assign_tariffs_across_organizations(): void
+    {
+        [$administrator, $organization] = $this->userWithRole('admin');
+        $otherOrganization = $this->organization('other-tariff-network');
+        [$otherStation, $otherConnector] = $this->stationWithConnector($otherOrganization, 'CT-OTHER-TARIFF');
+        $ownTariff = $this->tariff($organization, 'OWN', 850, true);
+        $otherTariff = $this->tariff($otherOrganization, 'OTHER', 900, true);
+        Sanctum::actingAs($administrator);
+
+        $this->getJson("/api/tariffs/{$otherTariff->id}")->assertForbidden();
+        $this->patchJson("/api/tariffs/{$otherTariff->id}", ['name' => 'Forbidden'])->assertForbidden();
+
+        $this->postJson("/api/tariffs/{$ownTariff->id}/assignments", [
+            'station_id' => $otherStation->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('assignment');
+        $this->postJson("/api/tariffs/{$ownTariff->id}/assignments", [
+            'connector_id' => $otherConnector->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('assignment');
+    }
+
     /** @return array{User, Organization} */
     private function userWithRole(string $role): array
     {

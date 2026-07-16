@@ -15,7 +15,16 @@ class UpdateUserRequest extends FormRequest
 
     public function rules(): array
     {
+        $isSuperAdministrator = $this->user()?->hasRole('super_admin') ?? false;
+
         return [
+            'organization_id' => [
+                Rule::prohibitedIf(! $isSuperAdministrator),
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('organizations', 'id')->where('status', 'active'),
+            ],
             'name' => ['sometimes', 'required', 'string', 'max:120'],
             'email' => ['sometimes', 'required', 'string', 'email:rfc', 'max:255', Rule::unique('users')->ignore($this->route('user'))],
             'phone' => ['nullable', 'string', 'max:40'],
@@ -23,7 +32,9 @@ class UpdateUserRequest extends FormRequest
             'team' => ['nullable', 'string', 'max:120'],
             'address' => ['nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'required', Rule::in(['active', 'inactive', 'pending'])],
-            'role' => ['sometimes', 'required', Rule::in(['super_admin', 'admin', 'operator', 'technician'])],
+            'role' => ['sometimes', 'required', Rule::in($isSuperAdministrator
+                ? ['super_admin', 'admin', 'operator', 'technician']
+                : ['operator', 'technician'])],
             'password' => ['nullable', 'string', Password::min(8)],
         ];
     }

@@ -34,6 +34,6 @@ class InterventionPolicy
 
     private function belongsToUserScope(User $user, Intervention $intervention): bool
     {
-        return $user->hasRole('super_admin') || $user->organization_id === $intervention->organization_id;
+        return $user->canAccessOrganization($intervention->organization_id);
     }
 }

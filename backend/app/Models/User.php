@@ -18,6 +18,12 @@ use Spatie\Permission\Traits\HasRoles;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
+    public const ORGANIZATION_ROLES = ['admin', 'operator', 'technician'];
+
+    public const GLOBAL_ROLES = ['super_admin', 'client'];
+
+    public const EMPLOYEE_ROLES = ['super_admin', ...self::ORGANIZATION_ROLES];
+
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
@@ -54,6 +60,40 @@ class User extends Authenticatable
     public function planSubscriptions(): HasMany
     {
         return $this->hasMany(PlanSubscription::class);
+    }
+
+    public function primaryRoleName(): ?string
+    {
+        $roleNames = $this->getRoleNames();
+
+        return $roleNames->count() === 1 ? $roleNames->first() : null;
+    }
+
+    public function canAccessOrganization(?int $organizationId): bool
+    {
+        return $this->hasRole('super_admin')
+            || ($organizationId !== null && $this->organization_id === $organizationId);
+    }
+
+    public function hasValidOrganizationAssignment(): bool
+    {
+        $roleNames = $this->getRoleNames();
+        if ($roleNames->count() !== 1) {
+            return false;
+        }
+
+        $role = $roleNames->first();
+        if (in_array($role, self::GLOBAL_ROLES, true)) {
+            return $this->organization_id === null;
+        }
+
+        if (! in_array($role, self::ORGANIZATION_ROLES, true)) {
+            return false;
+        }
+
+        $this->loadMissing('organization');
+
+        return $this->organization_id !== null && $this->organization?->status === 'active';
     }
 
     /**

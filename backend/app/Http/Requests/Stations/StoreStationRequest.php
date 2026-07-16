@@ -16,7 +16,13 @@ class StoreStationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
+            'organization_id' => [
+                Rule::prohibitedIf(! $this->user()?->hasRole('super_admin')),
+                Rule::requiredIf($this->user()?->hasRole('super_admin')),
+                'nullable',
+                'integer',
+                Rule::exists('organizations', 'id')->where('status', 'active'),
+            ],
             'name' => ['required', 'string', 'max:160'],
             'reference' => ['required', 'string', 'max:80', 'unique:stations,reference'],
             'location_name' => ['required', 'string', 'max:160'],

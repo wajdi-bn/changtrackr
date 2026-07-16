@@ -18,7 +18,7 @@ class PaymentPolicy
         return $user->can('payments.view') && (
             $user->hasRole('super_admin')
             || ($user->hasRole('client') && $payment->user_id === $user->id)
-            || (! $user->hasRole('client') && $payment->organization_id === $user->organization_id)
+            || (! $user->hasRole('client') && $user->canAccessOrganization($payment->organization_id))
         );
     }
 

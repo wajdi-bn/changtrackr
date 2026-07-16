@@ -42,6 +42,6 @@ class StationPolicy
             return $station->organization()->where('status', 'active')->exists();
         }
 
-        return $user->organization_id !== null && $user->organization_id === $station->organization_id;
+        return $user->canAccessOrganization($station->organization_id);
     }
 }

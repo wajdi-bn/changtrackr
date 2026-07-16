@@ -17,8 +17,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserController extends Controller
 {
-    private const EMPLOYEE_ROLES = ['super_admin', 'admin', 'operator', 'technician'];
-
     private const RELATIONS = ['organization', 'roles.permissions', 'permissions'];
 
     private const COUNTS = ['assignedAlerts', 'assignedInterventions', 'chargingSessions', 'payments'];
@@ -65,9 +63,10 @@ class UserController extends Controller
         $this->assertRoleCanBeAssigned($actor, $attributes['role']);
         $role = $attributes['role'];
         unset($attributes['role']);
-        $attributes['organization_id'] = $actor->hasRole('super_admin')
-            ? $attributes['organization_id']
-            : $actor->organization_id;
+        $attributes['organization_id'] = $role === 'super_admin'
+            ? null
+            : ($actor->hasRole('super_admin') ? ($attributes['organization_id'] ?? null) : $actor->organization_id);
+        $this->assertOrganizationAssignment($role, $attributes['organization_id']);
         $attributes['team'] ??= $this->defaultTeam($role);
 
         $user = User::query()->create($attributes);
@@ -91,7 +90,7 @@ class UserController extends Controller
         /** @var User $actor */
         $actor = $request->user();
         $attributes = $request->validated();
-        $currentRole = $user->getRoleNames()->first();
+        $currentRole = $user->primaryRoleName();
         if ($actor->is($user) && (
             (isset($attributes['status']) && $attributes['status'] !== 'active')
             || (isset($attributes['role']) && $attributes['role'] !== $currentRole)
@@ -106,6 +105,15 @@ class UserController extends Controller
         }
         $role = $attributes['role'] ?? null;
         unset($attributes['role']);
+        $nextRole = $role ?? $currentRole;
+        $organizationId = $nextRole === 'super_admin'
+            ? null
+            : ($actor->hasRole('super_admin')
+                ? (array_key_exists('organization_id', $attributes) ? $attributes['organization_id'] : $user->organization_id)
+                : $user->organization_id);
+        unset($attributes['organization_id']);
+        $this->assertOrganizationAssignment($nextRole, $organizationId);
+        $attributes['organization_id'] = $organizationId;
         if (($attributes['status'] ?? null) === 'inactive') {
             $this->assertCanDeactivate($user);
         }
@@ -170,7 +178,7 @@ class UserController extends Controller
     {
         return $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
-            'role' => ['nullable', Rule::in(self::EMPLOYEE_ROLES)],
+            'role' => ['nullable', Rule::in(User::EMPLOYEE_ROLES)],
             'status' => ['nullable', Rule::in(['active', 'inactive', 'pending'])],
             'team' => ['nullable', 'string', 'max:120'],
             'last_login' => ['nullable', Rule::in(['today', 'week', 'month'])],
@@ -181,7 +189,7 @@ class UserController extends Controller
     private function scopedQuery(User $actor): Builder
     {
         return User::query()
-            ->whereHas('roles', fn (Builder $query) => $query->whereIn('name', self::EMPLOYEE_ROLES))
+            ->whereHas('roles', fn (Builder $query) => $query->whereIn('name', User::EMPLOYEE_ROLES))
             ->when(
                 ! $actor->hasRole('super_admin'),
                 fn (Builder $query) => $query->where('organization_id', $actor->organization_id),
@@ -227,8 +235,27 @@ class UserController extends Controller
 
     private function assertRoleCanBeAssigned(User $actor, string $role): void
     {
-        if (! $actor->hasRole('super_admin') && $role === 'super_admin') {
-            throw ValidationException::withMessages(['role' => ['Organization administrators cannot assign the super administrator role.']]);
+        $allowedRoles = $actor->hasRole('super_admin')
+            ? User::EMPLOYEE_ROLES
+            : ['operator', 'technician'];
+
+        if (! in_array($role, $allowedRoles, true)) {
+            throw ValidationException::withMessages(['role' => ['You cannot assign this role.']]);
+        }
+    }
+
+    private function assertOrganizationAssignment(?string $role, ?int $organizationId): void
+    {
+        if ($role === null) {
+            throw ValidationException::withMessages(['role' => ['The employee must have exactly one role.']]);
+        }
+
+        if ($role === 'super_admin' && $organizationId !== null) {
+            throw ValidationException::withMessages(['organization_id' => ['Super administrators cannot belong to an organization.']]);
+        }
+
+        if (in_array($role, User::ORGANIZATION_ROLES, true) && $organizationId === null) {
+            throw ValidationException::withMessages(['organization_id' => ['Organization employees must belong to exactly one organization.']]);
         }
     }
 

@@ -15,12 +15,16 @@ class StoreUserRequest extends FormRequest
 
     public function rules(): array
     {
+        $isSuperAdministrator = $this->user()?->hasRole('super_admin') ?? false;
+        $role = $this->string('role')->toString();
+
         return [
             'organization_id' => [
-                Rule::requiredIf(fn () => $this->user()?->hasRole('super_admin') && $this->input('role') !== 'super_admin'),
+                Rule::prohibitedIf(! $isSuperAdministrator || $role === 'super_admin'),
+                Rule::requiredIf($isSuperAdministrator && in_array($role, ['admin', 'operator', 'technician'], true)),
                 'nullable',
                 'integer',
-                'exists:organizations,id',
+                Rule::exists('organizations', 'id')->where('status', 'active'),
             ],
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'string', 'email:rfc', 'max:255', 'unique:users,email'],
@@ -29,7 +33,9 @@ class StoreUserRequest extends FormRequest
             'team' => ['nullable', 'string', 'max:120'],
             'address' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive', 'pending'])],
-            'role' => ['required', Rule::in(['super_admin', 'admin', 'operator', 'technician'])],
+            'role' => ['required', Rule::in($isSuperAdministrator
+                ? ['super_admin', 'admin', 'operator', 'technician']
+                : ['operator', 'technician'])],
             'password' => ['required', 'string', Password::min(8)],
         ];
     }

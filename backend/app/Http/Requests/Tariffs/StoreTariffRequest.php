@@ -15,7 +15,13 @@ class StoreTariffRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'organization_id' => [Rule::requiredIf(fn () => $this->user()?->hasRole('super_admin')), 'nullable', 'integer', 'exists:organizations,id'],
+            'organization_id' => [
+                Rule::prohibitedIf(! $this->user()?->hasRole('super_admin')),
+                Rule::requiredIf($this->user()?->hasRole('super_admin')),
+                'nullable',
+                'integer',
+                Rule::exists('organizations', 'id')->where('status', 'active'),
+            ],
             'name' => ['required', 'string', 'max:120'],
             'code' => ['required', 'string', 'max:40'],
             'description' => ['nullable', 'string', 'max:1000'],

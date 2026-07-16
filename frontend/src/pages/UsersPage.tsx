@@ -57,8 +57,13 @@ import type {
 type UserView = 'table' | 'list' | 'grid'
 type UserEditor = ManagedUser | null | undefined
 
-const roleOptions: Array<{ value: Exclude<EmployeeRole, 'super_admin'>; label: string }> = [
+const roleFilterOptions: Array<{ value: Exclude<EmployeeRole, 'super_admin'>; label: string }> = [
   { value: 'admin', label: 'Administrator' },
+  { value: 'operator', label: 'Operator' },
+  { value: 'technician', label: 'Technician' },
+]
+
+const manageableRoleOptions: Array<{ value: Extract<EmployeeRole, 'operator' | 'technician'>; label: string }> = [
   { value: 'operator', label: 'Operator' },
   { value: 'technician', label: 'Technician' },
 ]
@@ -150,7 +155,7 @@ export function UsersPage() {
         breadcrumb={['Administrator', 'Users', 'Employees']}
         title="Employees"
         count={count}
-        subtitle="Manage administrators, operators, technicians, and internal access for your organization."
+        subtitle="Review administrators and manage operators and technicians in your organization."
       />
     </div>
 
@@ -164,7 +169,7 @@ export function UsersPage() {
         placeholder="Search users"
         allowClear
       />
-      <FilterSelect value={role} placeholder="Role: All" options={roleOptions} onChange={(value) => updateFilter(setRole, value)} />
+      <FilterSelect value={role} placeholder="Role: All" options={roleFilterOptions} onChange={(value) => updateFilter(setRole, value)} />
       <FilterSelect value={status} placeholder="Status: All" options={[
         { value: 'active', label: 'Active' },
         { value: 'inactive', label: 'Inactive' },
@@ -188,7 +193,7 @@ export function UsersPage() {
 
     {usersQuery.isError && <Alert className="users-api-error" type="error" showIcon message="Unable to load users" description="Make sure the Laravel API is running, then retry." action={<Button size="small" onClick={() => void usersQuery.refetch()}>Retry</Button>} />}
 
-    <SectionCard title="Employee management" subtitle="Internal employee accounts are created by an authorized administrator.">
+    <SectionCard title="Employee management" subtitle="Administrators are read-only here; operators and technicians are managed by the organization administrator.">
       {usersQuery.isLoading ? <UsersLoading /> : users.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No user matches the current filters" /> : <>
         {view === 'table' && <UsersTable users={users} currentUserId={currentUser?.id} canUpdate={canUpdate} canDeactivate={canDeactivate} onSelect={setSelectedUser} onEdit={setEditor} onDeactivate={(managedUser) => deactivateUser.mutate(managedUser.id)} />}
         {view === 'list' && <UsersList users={users} currentUserId={currentUser?.id} canUpdate={canUpdate} canDeactivate={canDeactivate} onSelect={setSelectedUser} onEdit={setEditor} onDeactivate={(managedUser) => deactivateUser.mutate(managedUser.id)} />}
@@ -199,7 +204,7 @@ export function UsersPage() {
 
     <UserDetailDrawer
       user={selectedUser}
-      canEdit={canUpdate}
+      canEdit={Boolean(canUpdate && selectedUser && isOrganizationManagedRole(selectedUser.roles[0]))}
       onClose={() => setSelectedUser(null)}
       onEdit={(managedUser) => setEditor(managedUser)}
     />
@@ -272,11 +277,12 @@ interface UsersViewProps {
 
 function UserActions({ managedUser, currentUserId, canUpdate, canDeactivate, onSelect, onEdit, onDeactivate }: Omit<UsersViewProps, 'users'> & { managedUser: ManagedUser }) {
   const self = managedUser.id === currentUserId
-  const deactivationAvailable = canDeactivate && !self && managedUser.status !== 'inactive'
+  const manageable = isOrganizationManagedRole(managedUser.roles[0])
+  const deactivationAvailable = canDeactivate && manageable && !self && managedUser.status !== 'inactive'
 
   return <div className="user-row-actions">
     <Tooltip title="View user"><button type="button" className="view" aria-label={`View ${managedUser.name}`} onClick={() => onSelect(managedUser)}><Eye size={15} /></button></Tooltip>
-    {canUpdate && <Tooltip title="Edit user"><button type="button" aria-label={`Edit ${managedUser.name}`} onClick={() => onEdit(managedUser)}><PencilLine size={15} /></button></Tooltip>}
+    {canUpdate && manageable && <Tooltip title="Edit user"><button type="button" aria-label={`Edit ${managedUser.name}`} onClick={() => onEdit(managedUser)}><PencilLine size={15} /></button></Tooltip>}
     {deactivationAvailable && <Popconfirm title="Deactivate this account?" description="All active API sessions will be revoked." okText="Deactivate" okButtonProps={{ danger: true }} onConfirm={() => onDeactivate(managedUser)}><Tooltip title="Deactivate user"><button type="button" className="danger" aria-label={`Deactivate ${managedUser.name}`}><Trash2 size={15} /></button></Tooltip></Popconfirm>}
   </div>
 }
@@ -328,12 +334,12 @@ function UserEditorModal({ user, submitting, onClose, onSubmit }: { user: Manage
     onSubmit(payload)
   }
 
-  return <Modal className="user-editor-modal" width={680} open title={<div><strong>{user ? `Edit ${user.name}` : 'Add employee'}</strong><small>Internal employee accounts are created by an authorized administrator.</small></div>} footer={null} onCancel={onClose} destroyOnHidden>
+  return <Modal className="user-editor-modal" width={680} open title={<div><strong>{user ? `Edit ${user.name}` : 'Add employee'}</strong><small>Organization administrators create operators and technicians only.</small></div>} footer={null} onCancel={onClose} destroyOnHidden>
     <Form form={form} layout="vertical" initialValues={initialValues} onFinish={submit}>
       <div className="user-form-grid">
         <Form.Item name="name" label="Full name" rules={[{ required: true, message: 'Enter the full name.' }]}><Input placeholder="New Organization User" /></Form.Item>
         <Form.Item name="email" label="Email" rules={[{ required: true }, { type: 'email' }]}><Input placeholder="new.user@chargetrackr.tn" /></Form.Item>
-        <Form.Item name="role" label="Role" rules={[{ required: true }]}><Select options={roleOptions} /></Form.Item>
+        <Form.Item name="role" label="Role" rules={[{ required: true }]}><Select options={manageableRoleOptions} /></Form.Item>
         <Form.Item name="team" label="Team or department"><Select options={teamOptions.map((value) => ({ value, label: value }))} /></Form.Item>
         <Form.Item name="phone" label="Phone"><Input placeholder="+216 00 000 000" /></Form.Item>
         <Form.Item name="address" label="Address"><Input placeholder="Tunis, Tunisia" /></Form.Item>
@@ -371,7 +377,11 @@ function initials(name: string): string {
 }
 
 function roleLabel(role?: UserRole): string {
-  return roleOptions.find((option) => option.value === role)?.label ?? (role === 'super_admin' ? 'Super Administrator' : 'User')
+  return roleFilterOptions.find((option) => option.value === role)?.label ?? (role === 'super_admin' ? 'Super Administrator' : 'User')
+}
+
+function isOrganizationManagedRole(role?: UserRole): role is 'operator' | 'technician' {
+  return role === 'operator' || role === 'technician'
 }
 
 function formatLastLogin(value: string | null): string {

@@ -15,7 +15,7 @@ class TariffPolicy
     public function view(User $user, Tariff $tariff): bool
     {
         return $user->can('tariffs.view')
-            && ($user->hasRole('super_admin') || $tariff->organization_id === $user->organization_id);
+            && $user->canAccessOrganization($tariff->organization_id);
     }
 
     public function create(User $user): bool
@@ -27,7 +27,7 @@ class TariffPolicy
     public function update(User $user, Tariff $tariff): bool
     {
         return $user->can('tariffs.manage')
-            && ($user->hasRole('super_admin') || $tariff->organization_id === $user->organization_id);
+            && $user->canAccessOrganization($tariff->organization_id);
     }
 
     public function delete(User $user, Tariff $tariff): bool

@@ -20,7 +20,7 @@ class ChargingSessionPolicy
 
         return $user->hasRole('super_admin')
             || ($user->hasRole('client') && $session->client_id === $user->id)
-            || (! $user->hasRole('client') && $session->organization_id === $user->organization_id);
+            || (! $user->hasRole('client') && $user->canAccessOrganization($session->organization_id));
     }
 
     public function create(User $user): bool
@@ -35,6 +35,6 @@ class ChargingSessionPolicy
         }
 
         return $user->can('sessions.manage')
-            && ($user->hasRole('super_admin') || $session->organization_id === $user->organization_id);
+            && $user->canAccessOrganization($session->organization_id);
     }
 }

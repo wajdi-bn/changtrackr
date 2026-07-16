@@ -15,7 +15,7 @@ class ChargingPlanPolicy
     public function view(User $user, ChargingPlan $chargingPlan): bool
     {
         return $user->can('tariffs.view')
-            && ($user->hasRole('super_admin') || $chargingPlan->organization_id === $user->organization_id);
+            && $user->canAccessOrganization($chargingPlan->organization_id);
     }
 
     public function create(User $user): bool
@@ -27,7 +27,7 @@ class ChargingPlanPolicy
     public function update(User $user, ChargingPlan $chargingPlan): bool
     {
         return $user->can('tariffs.manage')
-            && ($user->hasRole('super_admin') || $chargingPlan->organization_id === $user->organization_id);
+            && $user->canAccessOrganization($chargingPlan->organization_id);
     }
 
     public function delete(User $user, ChargingPlan $chargingPlan): bool

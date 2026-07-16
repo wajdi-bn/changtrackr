@@ -28,13 +28,16 @@ class AlertInterventionApiTest extends TestCase
         $operator = $this->user($organization, 'operator');
         $visible = $this->alert($this->station($organization, 'CT-ALERT-001'), 'ALT-TEST-001');
         $otherOrganization = $this->organization('other-network');
-        $this->alert($this->station($otherOrganization, 'CT-ALERT-002'), 'ALT-TEST-002');
+        $hidden = $this->alert($this->station($otherOrganization, 'CT-ALERT-002'), 'ALT-TEST-002');
         Sanctum::actingAs($operator);
 
         $this->getJson('/api/alerts')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $visible->id);
+
+        $this->getJson("/api/alerts/{$hidden->id}")->assertForbidden();
+        $this->patchJson("/api/alerts/{$hidden->id}", ['status' => 'resolved'])->assertForbidden();
     }
 
     public function test_technician_only_sees_alerts_assigned_to_them(): void

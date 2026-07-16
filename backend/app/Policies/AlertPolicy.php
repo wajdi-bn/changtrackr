@@ -43,6 +43,6 @@ class AlertPolicy
 
     private function belongsToUserScope(User $user, Alert $alert): bool
     {
-        return $user->hasRole('super_admin') || $user->organization_id === $alert->organization_id;
+        return $user->canAccessOrganization($alert->organization_id);
     }
 }
