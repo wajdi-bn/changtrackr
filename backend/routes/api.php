@@ -37,6 +37,7 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(f
     Route::post('/demo-requests/{demoRequest}/invitation/issue', [DemoRequestController::class, 'issueInvitation']);
     Route::post('/demo-requests/{demoRequest}/invitation/revoke', [DemoRequestController::class, 'revokeInvitation']);
 
+    Route::get('/stations/map', [StationController::class, 'map']);
     Route::apiResource('stations', StationController::class);
     Route::post('/stations/{station}/connectors', [ConnectorController::class, 'store']);
     Route::put('/stations/{station}/connectors/{connector}', [ConnectorController::class, 'update']);

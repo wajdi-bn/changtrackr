@@ -1,11 +1,15 @@
 import { Button, Drawer, Form, Input, InputNumber, Select, Space } from 'antd'
-import { useEffect } from 'react'
+import { Crosshair, Keyboard } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import type { Station, StationPayload } from '../../types/station'
+import { LocationPickerMap } from '../maps/LocationPickerMap'
+import { formatCoordinates } from '../maps/mapUtils'
 
 interface StationFormDrawerProps {
   open: boolean
   station?: Station | null
   submitting: boolean
+  initialCoordinates?: { latitude: number; longitude: number } | null
   onClose: () => void
   onSubmit: (values: StationPayload) => void
 }
@@ -15,11 +19,16 @@ const statusOptions = ['available', 'charging', 'faulted', 'offline', 'maintenan
   label: value.charAt(0).toUpperCase() + value.slice(1),
 }))
 
-export function StationFormDrawer({ open, station, submitting, onClose, onSubmit }: StationFormDrawerProps) {
+export function StationFormDrawer({ open, station, submitting, initialCoordinates, onClose, onSubmit }: StationFormDrawerProps) {
   const [form] = Form.useForm<StationPayload>()
+  const [manualCoordinates, setManualCoordinates] = useState(false)
+  const latitude = Form.useWatch('latitude', form) ?? 36.8065
+  const longitude = Form.useWatch('longitude', form) ?? 10.1815
 
   useEffect(() => {
     if (!open) return
+    form.resetFields()
+    setManualCoordinates(false)
     form.setFieldsValue(station ? {
       name: station.name,
       reference: station.reference,
@@ -37,11 +46,11 @@ export function StationFormDrawer({ open, station, submitting, onClose, onSubmit
     } : {
       status: 'offline',
       ocpp_version: 'OCPP 1.6J',
-      latitude: 36.8065,
-      longitude: 10.1815,
+      latitude: initialCoordinates?.latitude ?? 36.8065,
+      longitude: initialCoordinates?.longitude ?? 10.1815,
       model_image: '/assets/charger-terra-hp-150.png',
     })
-  }, [form, open, station])
+  }, [form, initialCoordinates, open, station])
 
   return (
     <Drawer
@@ -58,8 +67,18 @@ export function StationFormDrawer({ open, station, submitting, onClose, onSubmit
           <Form.Item label="Location" name="location_name" rules={[{ required: true }]}><Input placeholder="Lac 1" /></Form.Item>
           <Form.Item label="City" name="city" rules={[{ required: true }]}><Input placeholder="Tunis" /></Form.Item>
           <Form.Item className="station-form-wide" label="Address" name="address" rules={[{ required: true }]}><Input placeholder="Street and district" /></Form.Item>
-          <Form.Item label="Latitude" name="latitude" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} precision={7} /></Form.Item>
-          <Form.Item label="Longitude" name="longitude" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} precision={7} /></Form.Item>
+          <section className="station-location-picker station-form-wide">
+            <header><div><span><Crosshair size={17} /></span><div><h3>Station position</h3><p>Click the map or drag the marker to set the coordinates.</p></div></div><Button type="text" icon={<Keyboard size={15} />} onClick={() => setManualCoordinates((value) => !value)}>{manualCoordinates ? 'Hide manual input' : 'Enter manually'}</Button></header>
+            <LocationPickerMap
+              value={{ latitude: Number(latitude), longitude: Number(longitude) }}
+              onChange={(coordinates) => form.setFieldsValue(coordinates)}
+            />
+            <div className="station-location-value"><Crosshair size={14} />{formatCoordinates(Number(latitude), Number(longitude))}</div>
+            <div className={`station-coordinate-fields ${manualCoordinates ? 'is-visible' : ''}`}>
+              <Form.Item label="Latitude" name="latitude" rules={[{ required: true }, { type: 'number', min: -90, max: 90 }]}><InputNumber style={{ width: '100%' }} precision={7} /></Form.Item>
+              <Form.Item label="Longitude" name="longitude" rules={[{ required: true }, { type: 'number', min: -180, max: 180 }]}><InputNumber style={{ width: '100%' }} precision={7} /></Form.Item>
+            </div>
+          </section>
           <Form.Item label="Status" name="status" rules={[{ required: true }]}><Select options={statusOptions} /></Form.Item>
           <Form.Item label="Maximum power (kW)" name="max_power_kw" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} min={1} max={1000} /></Form.Item>
           <Form.Item label="Manufacturer" name="manufacturer" rules={[{ required: true }]}><Input placeholder="ABB" /></Form.Item>

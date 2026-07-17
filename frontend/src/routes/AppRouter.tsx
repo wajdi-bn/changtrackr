@@ -7,7 +7,6 @@ import { RoleProtectedRoute } from '../features/auth/RoleProtectedRoute'
 import { getRoleConfig } from '../features/auth/roleConfig'
 import { useAuth } from '../features/auth/useAuth'
 import { AppLayout } from '../layouts/AppLayout'
-import { HomePage } from '../pages/HomePage'
 import { GoogleOAuthCallbackPage } from '../pages/GoogleOAuthCallbackPage'
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage'
 import { LoginPage } from '../pages/LoginPage'
@@ -18,6 +17,7 @@ import { ActivateInvitationPage } from '../pages/ActivateInvitationPage'
 import { WorkspacePage } from '../pages/WorkspacePage'
 
 const LandingPage = lazy(() => import('../pages/LandingPage').then((module) => ({ default: module.LandingPage })))
+const HomePage = lazy(() => import('../pages/HomePage').then((module) => ({ default: module.HomePage })))
 const StationsPage = lazy(() => import('../pages/StationsPage').then((module) => ({ default: module.StationsPage })))
 const StationDetailPage = lazy(() => import('../pages/StationDetailPage').then((module) => ({ default: module.StationDetailPage })))
 const AlertsPage = lazy(() => import('../pages/AlertsPage').then((module) => ({ default: module.AlertsPage })))
@@ -30,6 +30,7 @@ const UsersPage = lazy(() => import('../pages/UsersPage').then((module) => ({ de
 const CustomersPage = lazy(() => import('../pages/CustomersPage').then((module) => ({ default: module.CustomersPage })))
 const SubscriptionsPage = lazy(() => import('../pages/SubscriptionsPage').then((module) => ({ default: module.SubscriptionsPage })))
 const DemoRequestsPage = lazy(() => import('../pages/DemoRequestsPage').then((module) => ({ default: module.DemoRequestsPage })))
+const MapPage = lazy(() => import('../pages/MapPage').then((module) => ({ default: module.MapPage })))
 
 function DefaultRedirect() {
   const { primaryRole } = useAuth()
@@ -75,7 +76,7 @@ export function AppRouter() {
           <Route element={<PermissionProtectedRoute permission="stations.view" />}>
             <Route path="/stations" element={<StationsPage />} />
             <Route path="/stations/:stationId" element={<StationDetailPage />} />
-            <Route path="/map" element={<WorkspacePage title="Map" subtitle="Geographic station monitoring and operator station creation." />} />
+            <Route path="/map" element={<MapPage />} />
           </Route>
           <Route element={<PermissionProtectedRoute permission="alerts.view" />}>
             <Route path="/alerts" element={<AlertsPage />} />

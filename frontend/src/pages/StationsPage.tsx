@@ -117,7 +117,7 @@ export function StationsPage() {
           placeholder="Search stations"
           allowClear
         />
-        <Tooltip title="Advanced filters will be added with the map slice"><Button icon={<Filter size={16} />} /></Tooltip>
+        <Tooltip title="Open geographic filters"><Button icon={<Filter size={16} />} onClick={() => navigate('/map')} /></Tooltip>
         <Segmented
           value={view}
           onChange={(value) => setView(value as 'grid' | 'list')}

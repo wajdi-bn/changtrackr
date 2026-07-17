@@ -139,6 +139,18 @@ Then set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` only in `backend/.env`. T
 
 Note: `maatwebsite/excel` was intentionally not used in the current setup because its spreadsheet dependency is not compatible with PHP 8.5. `openspout/openspout` is installed instead for CSV/XLSX-style exports.
 
+### Maps
+
+The development map uses React Leaflet with OpenStreetMap tiles and does not require an API key.
+`GET /api/stations/map` returns role-scoped markers and supports station status, city, connector,
+minimum power, availability and bounding-box filters. Operators can place a station by clicking the
+map, while technicians have read-only access. Latitude and longitude remain editable manually.
+
+Clients can copy station coordinates or open a universal Google Maps directions URL. The optional
+`Near me` action uses the browser Geolocation API only to display the position and sort stations by
+distance; ChargeTrackr does not send or persist that position. Use a dedicated tile provider before
+production traffic instead of relying on the public OpenStreetMap tile service.
+
 Expected backend modules:
 
 - Authentication and roles

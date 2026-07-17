@@ -62,6 +62,50 @@ export interface StationPayload {
   model_image?: string | null
 }
 
+export interface StationMapMarker {
+  id: number
+  organization_id: number
+  organization: OrganizationSummary | null
+  name: string
+  reference: string
+  location_name: string
+  city: string
+  address: string
+  latitude: number
+  longitude: number
+  status: StationStatus
+  max_power_kw: number
+  model_image: string | null
+  connectors_count: number
+  available_connectors_count: number
+  connectors: Connector[]
+}
+
+export interface StationMapFilters {
+  search?: string
+  status?: StationStatus
+  city?: string
+  connector_type?: ConnectorType
+  min_power_kw?: number
+  available_only?: boolean
+  north?: number
+  south?: number
+  east?: number
+  west?: number
+}
+
+export interface StationMapResponse {
+  data: StationMapMarker[]
+  summary: {
+    stations: number
+    available_connectors: number
+    by_status: Partial<Record<StationStatus, number>>
+  }
+  facets: {
+    cities: string[]
+  }
+}
+
 export interface ConnectorPayload {
   external_id: string
   type: ConnectorType

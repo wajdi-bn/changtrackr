@@ -1,4 +1,5 @@
-import { Card, Col, Progress, Row, Statistic, Table, Tag, Typography } from 'antd'
+import { useQuery } from '@tanstack/react-query'
+import { App, Button, Card, Col, Progress, Row, Statistic, Table, Tag, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { ReactNode } from 'react'
 import {
@@ -9,8 +10,12 @@ import {
   MapPinned,
   Users,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { getRoleConfig } from '../features/auth/roleConfig'
+import { copyCoordinates } from '../features/maps/mapUtils'
+import { StationMap, StationPopupDetailButton } from '../features/maps/StationMap'
+import { getStationMap } from '../features/stations/stationApi'
 import type { UserRole } from '../types/auth'
 
 interface DashboardStat {
@@ -81,8 +86,25 @@ const columns: ColumnsType<EventRow> = [
 
 export function HomePage() {
   const { user, primaryRole } = useAuth()
+  const { message } = App.useApp()
+  const navigate = useNavigate()
   const roleConfig = getRoleConfig(primaryRole)
   const stats = statsByRole[primaryRole ?? 'operator']
+  const showNetworkMap = primaryRole === 'admin' || primaryRole === 'operator'
+  const mapQuery = useQuery({
+    queryKey: ['stations', 'dashboard-map'],
+    queryFn: () => getStationMap({}),
+    enabled: showNetworkMap,
+  })
+
+  async function handleCopy(latitude: number, longitude: number) {
+    try {
+      await copyCoordinates(latitude, longitude)
+      void message.success('Coordinates copied.')
+    } catch {
+      void message.error('The coordinates could not be copied.')
+    }
+  }
 
   return (
     <div className="page-stack">
@@ -105,6 +127,15 @@ export function HomePage() {
           </Col>
         ))}
       </Row>
+
+      {showNetworkMap && <Card className="dashboard-map-card" title="Network map" extra={<Button type="link" onClick={() => navigate('/map')}>Open full map</Button>}>
+        {mapQuery.isLoading ? <div className="dashboard-map-loading" /> : <StationMap
+          className="dashboard-station-map"
+          stations={mapQuery.data?.data ?? []}
+          onCopyCoordinates={(station) => void handleCopy(station.latitude, station.longitude)}
+          popupExtra={(station) => <StationPopupDetailButton onClick={() => navigate(`/stations/${station.id}`)} />}
+        />}
+      </Card>}
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={15}>

@@ -54,6 +54,13 @@ Important rules:
 - Enforce invitation revocation or expiration before issuing a replacement one-time token.
 - Add audit logs for sensitive actions: user changes, role changes, tariff changes, station edits, payment status changes.
 
+## Location Privacy
+
+- Request browser geolocation only after an explicit user action such as `Near me`.
+- Keep the client's current position in transient frontend state; do not store it or send it to the backend.
+- Open external directions in a new tab and disclose that Google Maps then applies its own privacy policy.
+- Scope map marker APIs with the same backend policies and organization rules as station list/detail APIs.
+
 ## Payments
 
 The MVP uses a simulated payment provider.

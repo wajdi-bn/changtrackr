@@ -3,6 +3,8 @@ import type {
   Connector,
   ConnectorPayload,
   Station,
+  StationMapFilters,
+  StationMapResponse,
   StationPayload,
   StationStatus,
   StationsResponse,
@@ -10,6 +12,11 @@ import type {
 
 export async function getStations(filters: { search?: string; status?: StationStatus }): Promise<StationsResponse> {
   const response = await httpClient.get<StationsResponse>('/stations', { params: filters })
+  return response.data
+}
+
+export async function getStationMap(filters: StationMapFilters): Promise<StationMapResponse> {
+  const response = await httpClient.get<StationMapResponse>('/stations/map', { params: filters })
   return response.data
 }
 

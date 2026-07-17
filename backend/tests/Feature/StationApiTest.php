@@ -156,6 +156,63 @@ class StationApiTest extends TestCase
         $this->getJson("/api/stations/{$hiddenStation->id}")->assertForbidden();
     }
 
+    public function test_map_endpoint_scopes_stations_to_the_operator_organization(): void
+    {
+        [$operator, $organization] = $this->userWithRole('operator');
+        $visible = $this->station($organization, 'CT-MAP-001');
+        $otherOrganization = Organization::query()->create(['name' => 'Hidden Network', 'slug' => 'hidden-network', 'status' => 'active']);
+        $this->station($otherOrganization, 'CT-MAP-002');
+        Connector::query()->create([
+            'station_id' => $visible->id,
+            'external_id' => 'A1',
+            'type' => 'CCS2',
+            'current_type' => 'DC',
+            'max_power_kw' => 120,
+            'status' => 'available',
+        ]);
+        Sanctum::actingAs($operator);
+
+        $this->getJson('/api/stations/map')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $visible->id)
+            ->assertJsonPath('data.0.available_connectors_count', 1)
+            ->assertJsonPath('summary.stations', 1)
+            ->assertJsonPath('summary.available_connectors', 1)
+            ->assertJsonPath('facets.cities.0', 'Tunis');
+    }
+
+    public function test_map_endpoint_filters_by_connector_power_availability_and_bounds(): void
+    {
+        [$client, $organization] = $this->userWithRole('client');
+        $client->update(['organization_id' => null]);
+        $matching = $this->station($organization, 'CT-MAP-FILTER-001');
+        $outside = $this->station($organization, 'CT-MAP-FILTER-002');
+        $outside->update(['latitude' => 34.7, 'longitude' => 10.7, 'max_power_kw' => 50]);
+        Connector::query()->create([
+            'station_id' => $matching->id,
+            'external_id' => 'A1',
+            'type' => 'CCS2',
+            'current_type' => 'DC',
+            'max_power_kw' => 120,
+            'status' => 'available',
+        ]);
+        Connector::query()->create([
+            'station_id' => $outside->id,
+            'external_id' => 'B1',
+            'type' => 'Type 2',
+            'current_type' => 'AC',
+            'max_power_kw' => 22,
+            'status' => 'faulted',
+        ]);
+        Sanctum::actingAs($client);
+
+        $this->getJson('/api/stations/map?connector_type=CCS2&min_power_kw=100&available_only=1&north=37&south=36&east=11&west=10')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $matching->id);
+    }
+
     /** @return array{User, Organization} */
     private function userWithRole(string $role): array
     {
