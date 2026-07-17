@@ -1,4 +1,4 @@
-import { httpClient } from '../../api/httpClient'
+import { csrfCookieRequest, httpClient } from '../../api/httpClient'
 import type {
   DemoRequest,
   DemoRequestFilters,
@@ -8,6 +8,7 @@ import type {
 } from '../../types/demoRequest'
 
 export async function submitDemoRequest(payload: PublicDemoRequestPayload): Promise<{ message: string; reference: string }> {
+  await csrfCookieRequest()
   const response = await httpClient.post<{ message: string; reference: string }>('/demo-requests', payload)
   return response.data
 }

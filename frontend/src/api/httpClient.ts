@@ -25,3 +25,7 @@ export const backendClient = axios.create({
     Accept: 'application/json',
   },
 })
+
+export async function csrfCookieRequest(): Promise<void> {
+  await backendClient.get('/sanctum/csrf-cookie')
+}

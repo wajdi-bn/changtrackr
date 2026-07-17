@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { backendClient, httpClient } from '../../api/httpClient'
+import { csrfCookieRequest, httpClient } from '../../api/httpClient'
 import type { AuthUser, LoginResponse } from '../../types/auth'
 
 export interface LoginPayload {
@@ -44,10 +44,6 @@ interface SessionResponse {
 
 let sessionRequestPromise: Promise<SessionResponse> | null = null
 let sessionRequestExpiresAt = 0
-
-export async function csrfCookieRequest(): Promise<void> {
-  await backendClient.get('/sanctum/csrf-cookie')
-}
 
 export async function loginRequest(payload: LoginPayload): Promise<LoginResponse> {
   await csrfCookieRequest()
