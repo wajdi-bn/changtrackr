@@ -19,6 +19,8 @@ class RolePermissionSeeder extends Seeder
         $permissions = [
             'organizations.view',
             'organizations.manage',
+            'demo_requests.view',
+            'demo_requests.manage',
             'users.view',
             'users.create',
             'users.update',

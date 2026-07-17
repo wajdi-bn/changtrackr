@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { App, Button, Card, Drawer, Form, Input, Select } from 'antd'
+import { App, Button, Card, Checkbox, Drawer, Form, Input, InputNumber, Select } from 'antd'
 import {
   Activity,
   ArrowUpRight,
@@ -12,6 +12,8 @@ import {
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Link, useNavigate } from 'react-router-dom'
+import { submitDemoRequest } from '../features/demoRequests/demoRequestApi'
+import type { PublicDemoRequestPayload } from '../types/demoRequest'
 
 const navLinks = [
   { label: 'Network', href: '#network' },
@@ -68,20 +70,13 @@ const updates = [
 
 const footerLinks = ['Overview', 'Stations', 'Map', 'Alerts', 'Sessions', 'Reports']
 
-interface DemoFormValues {
-  name: string
-  email: string
-  company: string
-  phone?: string
-  topic: string
-  message: string
-}
-
 export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null)
   const [compactNav, setCompactNav] = useState(false)
   const [pastHero, setPastHero] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [demoSubmitting, setDemoSubmitting] = useState(false)
+  const [demoForm] = Form.useForm<PublicDemoRequestPayload>()
   const navigate = useNavigate()
   const { message } = App.useApp()
 
@@ -151,8 +146,17 @@ export function LandingPage() {
     return () => context.revert()
   }, [])
 
-  function submitDemo(values: DemoFormValues) {
-    void message.success(`Thank you ${values.name}. Your demo request has been recorded.`)
+  async function submitDemo(values: PublicDemoRequestPayload) {
+    setDemoSubmitting(true)
+    try {
+      const result = await submitDemoRequest(values)
+      demoForm.resetFields()
+      void message.success(`Request ${result.reference} was recorded. Our platform team will contact you shortly.`)
+    } catch {
+      void message.error('The demo request could not be submitted. Check the form or try again later.')
+    } finally {
+      setDemoSubmitting(false)
+    }
   }
 
   function openDashboard() {
@@ -347,19 +351,28 @@ export function LandingPage() {
             </div>
 
             <Card className="landing-demo-card">
-              <Form<DemoFormValues> layout="vertical" onFinish={submitDemo} requiredMark={false}>
+              <Form<PublicDemoRequestPayload>
+                form={demoForm}
+                layout="vertical"
+                onFinish={submitDemo}
+                requiredMark={false}
+                initialValues={{ topic: 'platform', consent_accepted: false }}
+              >
                 <div className="landing-form-grid">
-                  <Form.Item label="Full name" name="name" rules={[{ required: true, message: 'Please enter your name' }]}>
+                  <Form.Item label="Full name" name="full_name" rules={[{ required: true, message: 'Please enter your name' }]}>
                     <Input placeholder="Your name" />
                   </Form.Item>
                   <Form.Item label="Work email" name="email" rules={[{ required: true, type: 'email', message: 'Enter a valid work email' }]}>
                     <Input placeholder="name@company.com" />
                   </Form.Item>
-                  <Form.Item label="Company" name="company" rules={[{ required: true, message: 'Please enter your company' }]}>
+                  <Form.Item label="Company" name="company_name" rules={[{ required: true, message: 'Please enter your company' }]}>
                     <Input placeholder="Charging operator or fleet" />
                   </Form.Item>
                   <Form.Item label="Phone" name="phone"><Input placeholder="+216 ..." /></Form.Item>
-                  <Form.Item className="landing-form-wide" label="What do you want to demo?" name="topic" initialValue="platform">
+                  <Form.Item label="Estimated stations" name="estimated_stations">
+                    <InputNumber min={1} max={100000} placeholder="24" />
+                  </Form.Item>
+                  <Form.Item label="What do you want to demo?" name="topic">
                     <Select options={[
                       { value: 'platform', label: 'Full ChargeTrackr platform' },
                       { value: 'operator', label: 'Operator supervision' },
@@ -371,8 +384,12 @@ export function LandingPage() {
                   <Form.Item className="landing-form-wide" label="Message" name="message" rules={[{ required: true, message: 'Tell us what you would like to see' }]}>
                     <Input.TextArea rows={4} placeholder="Tell us about your stations, users, or demo goals." />
                   </Form.Item>
+                  <Form.Item className="landing-form-wide landing-demo-consent" name="consent_accepted" valuePropName="checked" rules={[{ validator: (_, value) => value ? Promise.resolve() : Promise.reject(new Error('Consent is required')) }]}>
+                    <Checkbox>I agree to be contacted about this demo request.</Checkbox>
+                  </Form.Item>
+                  <Form.Item className="landing-honeypot" name="website"><Input tabIndex={-1} autoComplete="off" /></Form.Item>
                 </div>
-                <Button type="primary" htmlType="submit">Send demo request <ArrowUpRight size={15} /></Button>
+                <Button type="primary" htmlType="submit" loading={demoSubmitting}>Send demo request <ArrowUpRight size={15} /></Button>
               </Form>
             </Card>
           </div>

@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\Api\AccountInvitationController;
 use App\Http\Controllers\Api\AlertController;
 use App\Http\Controllers\Api\ChargingPlanController;
 use App\Http\Controllers\Api\ChargingSessionController;
 use App\Http\Controllers\Api\ConnectorController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\DemoRequestController;
 use App\Http\Controllers\Api\InterventionController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PlanSubscriptionController;
@@ -17,7 +19,21 @@ use App\Http\Middleware\EnsureUserOrganizationScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+Route::post('/demo-requests', [DemoRequestController::class, 'store'])
+    ->middleware('throttle:3,60');
+Route::post('/account-invitations/inspect', [AccountInvitationController::class, 'inspect'])
+    ->middleware('throttle:10,1');
+Route::post('/account-invitations/accept', [AccountInvitationController::class, 'accept'])
+    ->middleware('throttle:5,1');
+
 Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(function (): void {
+    Route::get('/demo-requests', [DemoRequestController::class, 'index']);
+    Route::get('/demo-requests/{demoRequest}', [DemoRequestController::class, 'show']);
+    Route::patch('/demo-requests/{demoRequest}', [DemoRequestController::class, 'update']);
+    Route::post('/demo-requests/{demoRequest}/provision', [DemoRequestController::class, 'provision']);
+    Route::post('/demo-requests/{demoRequest}/invitation/resend', [DemoRequestController::class, 'resendInvitation']);
+    Route::post('/demo-requests/{demoRequest}/invitation/revoke', [DemoRequestController::class, 'revokeInvitation']);
+
     Route::apiResource('stations', StationController::class);
     Route::post('/stations/{station}/connectors', [ConnectorController::class, 'store']);
     Route::put('/stations/{station}/connectors/{connector}', [ConnectorController::class, 'update']);

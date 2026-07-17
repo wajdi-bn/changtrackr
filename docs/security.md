@@ -13,6 +13,8 @@
 - Public registration always creates one unverified global `client` with no organization assignment.
 - Require signed email verification before a locally registered client can sign in.
 - Queue verification and password reset notifications, use short-lived links and return generic recovery responses to prevent account enumeration.
+- Provision organization accounts as `pending` and activate them through a single-use invitation instead of emailing temporary passwords.
+- Store only the SHA-256 hash of each invitation token, enforce its expiry and invalidate it after acceptance, revocation or reissue.
 
 ## Authorization
 
@@ -46,6 +48,7 @@ Important rules:
 - Validate every write request with Laravel Form Requests.
 - Use API Resources to shape responses.
 - Add rate limits for login, password reset, payment and public contact endpoints.
+- Protect public demo requests with server-side validation, consent capture, a honeypot, per-IP throttling and recent-request deduplication.
 - Add audit logs for sensitive actions: user changes, role changes, tariff changes, station edits, payment status changes.
 
 ## Payments

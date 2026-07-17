@@ -6,6 +6,7 @@ import {
   ClipboardList,
   CreditCard,
   Gauge,
+  Inbox,
   LayoutDashboard,
   ListChecks,
   Map,
@@ -44,6 +45,7 @@ export const roleConfigs: Record<UserRole, RoleConfig> = {
     navItems: [
       { icon: <LayoutDashboard size={iconSize} />, path: '/admin-home', label: 'Admin Home' },
       { icon: <Building2 size={iconSize} />, path: '/organizations', label: 'Organizations' },
+      { icon: <Inbox size={iconSize} />, path: '/demo-requests', label: 'Demo Requests' },
       { icon: <Users size={iconSize} />, path: '/admin-users', label: 'Users' },
       { icon: <ShieldCheck size={iconSize} />, path: '/roles-permissions', label: 'Roles & Permissions' },
       { icon: <ClipboardList size={iconSize} />, path: '/audit-logs', label: 'Audit Logs' },

@@ -107,6 +107,12 @@ The `onboarding@resend.dev` sandbox sender can only send to the email address as
 the Resend account. Verify a domain in Resend and replace `MAIL_FROM_ADDRESS` before sending to
 arbitrary recipients. Never commit the API key.
 
+Public demo requests are available from the landing page. New requests are reviewed at
+`/demo-requests` by the Super Admin. Set `DEMO_REQUEST_NOTIFICATION_EMAIL` to receive the internal
+queued notification. Approved requests provision an organization and send a one-time account
+activation link to its administrator. The Super Admin can revoke a pending invitation or issue a
+replacement link without creating another user account.
+
 Seeded demo accounts all use the password `password`:
 
 | Role | Email |

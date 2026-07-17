@@ -72,3 +72,16 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI="${APP_URL}/auth/oauth/google/callback"
 ```
+
+## Demo requests and invitations
+
+```dotenv
+DEMO_REQUEST_NOTIFICATION_EMAIL=
+ACCOUNT_INVITATION_EXPIRATION_HOURS=48
+DEMO_TRIAL_DAYS=30
+```
+
+`DEMO_REQUEST_NOTIFICATION_EMAIL` receives the internal queued notification for new public
+requests. Account invitation tokens are stored only as SHA-256 hashes, expire after the configured
+period, and can be accepted once. The Resend sandbox can deliver these messages only to the email
+associated with the Resend account until a sending domain is verified.

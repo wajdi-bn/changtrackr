@@ -14,6 +14,7 @@ import { LoginPage } from '../pages/LoginPage'
 import { RegisterPage } from '../pages/RegisterPage'
 import { ResetPasswordPage } from '../pages/ResetPasswordPage'
 import { VerifyEmailPage } from '../pages/VerifyEmailPage'
+import { ActivateInvitationPage } from '../pages/ActivateInvitationPage'
 import { WorkspacePage } from '../pages/WorkspacePage'
 
 const LandingPage = lazy(() => import('../pages/LandingPage').then((module) => ({ default: module.LandingPage })))
@@ -28,6 +29,7 @@ const TariffsPage = lazy(() => import('../pages/TariffsPage').then((module) => (
 const UsersPage = lazy(() => import('../pages/UsersPage').then((module) => ({ default: module.UsersPage })))
 const CustomersPage = lazy(() => import('../pages/CustomersPage').then((module) => ({ default: module.CustomersPage })))
 const SubscriptionsPage = lazy(() => import('../pages/SubscriptionsPage').then((module) => ({ default: module.SubscriptionsPage })))
+const DemoRequestsPage = lazy(() => import('../pages/DemoRequestsPage').then((module) => ({ default: module.DemoRequestsPage })))
 
 function DefaultRedirect() {
   const { primaryRole } = useAuth()
@@ -45,6 +47,7 @@ export function AppRouter() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/auth/google/callback" element={<GoogleOAuthCallbackPage />} />
+      <Route path="/activate-invitation" element={<ActivateInvitationPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
@@ -53,6 +56,7 @@ export function AppRouter() {
           <Route element={<RoleProtectedRoute allowedRoles={['super_admin']} />}>
             <Route path="/admin-home" element={<HomePage />} />
             <Route path="/organizations" element={<WorkspacePage title="Organizations" subtitle="Global tenant management for the super administrator." />} />
+            <Route path="/demo-requests" element={<DemoRequestsPage />} />
             <Route path="/admin-users" element={<WorkspacePage title="Platform users" subtitle="Global users, administrators and role assignments." />} />
             <Route path="/roles-permissions" element={<WorkspacePage title="Roles & Permissions" subtitle="Permission matrix inspired by admin panel content." />} />
             <Route path="/audit-logs" element={<WorkspacePage title="Audit Logs" subtitle="Security-sensitive actions and traceability." />} />

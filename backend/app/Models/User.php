@@ -69,6 +69,16 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(SocialAccount::class);
     }
 
+    public function accountInvitations(): HasMany
+    {
+        return $this->hasMany(AccountInvitation::class);
+    }
+
+    public function sentAccountInvitations(): HasMany
+    {
+        return $this->hasMany(AccountInvitation::class, 'invited_by_id');
+    }
+
     public function primaryRoleName(): ?string
     {
         $roleNames = $this->getRoleNames();

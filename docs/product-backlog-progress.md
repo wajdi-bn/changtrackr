@@ -1,6 +1,6 @@
 # Avancement et traçabilité du backlog produit
 
-État établi le 16 juillet 2026 à partir du code, des routes, des interfaces et des tests présents dans le dépôt. Une page statique ou des données fictives ne suffisent pas pour classer une User Story comme réalisée.
+État établi le 17 juillet 2026 à partir du code, des routes, des interfaces et des tests présents dans le dépôt. Une page statique ou des données fictives ne suffisent pas pour classer une User Story comme réalisée.
 
 ## Légende
 
@@ -13,9 +13,9 @@
 
 | Statut | User Stories | Points | Part des points |
 |---|---:|---:|---:|
-| Réalisée | 11 | 67 | 23,3 % |
-| Partielle | 17 | 125 | 43,4 % |
-| À faire | 11 | 83 | 28,8 % |
+| Réalisée | 12 | 70 | 24,3 % |
+| Partielle | 17 | 127 | 44,1 % |
+| À faire | 10 | 78 | 27,1 % |
 | Reportée | 1 | 13 | 4,5 % |
 | **Total** | **40** | **288** | **100 %** |
 
@@ -27,8 +27,8 @@ La part des points n'est pas un pourcentage d'achèvement linéaire : une User S
 |---|---:|---|---|---|
 | US-01 | 8 | Réalisée | Session Sanctum/CSRF, inscription client, vérification email en file, récupération de mot de passe, OAuth2 Google, liaison `social_accounts` et tests de sécurité | Microsoft est hors périmètre du MVP actuel |
 | US-02 | 3 | Partielle | Profil retourné par `UserResource`, champs présents dans `users` | Page profil statique, aucune API de mise à jour ou changement de mot de passe |
-| US-03 | 8 | Partielle | Le super administrateur peut créer/transférer un administrateur ; isolation des rôles validée | Aucun CRUD des organisations ni véritable interface Super Admin |
-| US-04 | 5 | Réalisée | `UserController`, `UserPolicy`, `UsersPage`, `UserManagementApiTest` | Le futur workflow d'invitation pourra remplacer le mot de passe initial |
+| US-03 | 8 | Partielle | Une demande approuvée provisionne atomiquement une organisation d'essai, un administrateur en attente et une invitation sécurisée révocable/renouvelable ; isolation des rôles validée | Le CRUD général des organisations et la gestion de leur cycle de vie restent absents |
+| US-04 | 5 | Réalisée | `UserController`, `UserPolicy`, `UsersPage`, `UserManagementApiTest` ; service d'invitation générique disponible | La création d'employés utilise encore un mot de passe initial et doit être raccordée au service d'invitation |
 | US-05 | 5 | À faire | Routes frontend réservées au super administrateur | Dashboard, audit, statistiques et état réel des intégrations absents |
 | US-06 | 5 | Réalisée | `CustomerController`, `CustomersPage`, `CustomerManagementApiTest` | Les exports avancés restent couverts par US-34 |
 | US-07 | 8 | Réalisée | `StationController`, `StationsPage`, formulaire Ant Design, `StationApiTest` | La désactivation pourra être distinguée d'une suppression logique |
@@ -63,8 +63,8 @@ La part des points n'est pas un pourcentage d'achèvement linéaire : une User S
 | US-36 | 8 | À faire | Page intégrations placeholder et configuration serveur dispersée | Console globale, tests de santé et audit absents |
 | US-37 | 5 | À faire | Onglet documents statique dans la fiche borne | Stockage, métadonnées, versions et autorisations absents |
 | US-38 | 13 | Reportée | Version OCPP déclarative dans les bornes uniquement | Déploiement firmware à traiter après stabilisation OCPP et test matériel |
-| US-39 | 3 | Partielle | Landing page responsive, formulaire et animation GSAP | Soumission uniquement locale : aucune persistance, notification ou protection anti-spam |
-| US-40 | 5 | À faire | Alertes consultables dans l'application, mais pas de service de notification | Notifications persistées, email, préférences, queues et retries absents |
+| US-39 | 3 | Réalisée | Formulaire public persisté, validation, consentement, honeypot, limitation de débit, console Super Admin, workflow de qualification et provisionnement testés | La conversion est volontairement réservée au Super Admin |
+| US-40 | 5 | Partielle | Vérification email, récupération de mot de passe, notification interne de demande de démo et invitation administrateur utilisent les files et Resend/Mailpit | Notifications in-app persistées, préférences utilisateur et canaux d'alertes métier absents |
 
 ## Dépendances fonctionnelles
 
@@ -83,7 +83,7 @@ La part des points n'est pas un pourcentage d'achèvement linéaire : une User S
 
 ## Ordre d'implémentation recommandé
 
-1. **Entrée et identité** - finaliser US-01, US-02, US-03 et US-39, puis poser la base de US-40.
+1. **Entrée et identité** - US-01 et US-39 sont réalisées ; finaliser plus tard US-02 et US-03, puis compléter les canaux de US-40.
 2. **Cartographie** - implémenter US-10, puis compléter US-11 et US-12 avec le même composant cartographique.
 3. **Communication OCPP** - implémenter US-14 avec le simulateur et un scénario connexion-Heartbeat-StatusNotification.
 4. **Disponibilité calculée** - définir la matrice métier puis implémenter US-15 avant de terminer US-09 et US-16.
