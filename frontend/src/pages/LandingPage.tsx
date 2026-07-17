@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import axios from 'axios'
 import { Link, useNavigate } from 'react-router-dom'
 import { submitDemoRequest } from '../features/demoRequests/demoRequestApi'
 import { demoObjectiveOptions } from '../features/demoRequests/demoRequestOptions'
@@ -70,6 +71,22 @@ const updates = [
 ]
 
 const footerLinks = ['Overview', 'Stations', 'Map', 'Alerts', 'Sessions', 'Reports']
+
+interface DemoRequestErrorResponse {
+  message?: string
+  errors?: Record<string, string[]>
+}
+
+const demoRequestFieldNames = new Set<keyof PublicDemoRequestPayload>([
+  'full_name',
+  'email',
+  'company_name',
+  'phone',
+  'objectives',
+  'estimated_stations',
+  'message',
+  'consent_accepted',
+])
 
 export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null)
@@ -156,8 +173,24 @@ export function LandingPage() {
       const result = await submitDemoRequest(values)
       demoForm.resetFields()
       void message.success(`Request ${result.reference} was recorded. Our platform team will contact you shortly.`)
-    } catch {
-      void message.error('The demo request could not be submitted. Check the form or try again later.')
+    } catch (error) {
+      if (axios.isAxiosError<DemoRequestErrorResponse>(error) && error.response?.status === 422) {
+        const errors = error.response.data.errors ?? {}
+        const fields = Object.entries(errors).flatMap(([path, messages]) => {
+          const name = path.split('.')[0] as keyof PublicDemoRequestPayload
+          return demoRequestFieldNames.has(name) ? [{ name, errors: messages }] : []
+        })
+
+        demoForm.setFields(fields)
+        void message.error(fields[0]?.errors[0] ?? error.response.data.message ?? 'Check the highlighted fields and try again.')
+      } else if (axios.isAxiosError(error) && error.response?.status === 429) {
+        const retryAfter = error.response.headers['retry-after']
+        void message.error(retryAfter
+          ? `Too many requests. Try again in ${retryAfter} seconds.`
+          : 'Too many requests. Please wait before trying again.')
+      } else {
+        void message.error('The demo request could not be submitted. Please try again later.')
+      }
     } finally {
       demoSubmittingRef.current = false
       setDemoSubmitting(false)
@@ -364,24 +397,24 @@ export function LandingPage() {
                 initialValues={{ objectives: ['availability_monitoring'], consent_accepted: false }}
               >
                 <div className="landing-form-grid">
-                  <Form.Item label="Full name" name="full_name" rules={[{ required: true, message: 'Please enter your name' }]}>
-                    <Input placeholder="Your name" />
+                  <Form.Item label="Full name" name="full_name" rules={[{ required: true, message: 'Please enter your name' }, { min: 2, message: 'Enter at least 2 characters' }, { max: 120, message: 'Use no more than 120 characters' }]}>
+                    <Input maxLength={120} placeholder="Your name" />
                   </Form.Item>
-                  <Form.Item label="Work email" name="email" rules={[{ required: true, type: 'email', message: 'Enter a valid work email' }]}>
-                    <Input placeholder="name@company.com" />
+                  <Form.Item label="Work email" name="email" rules={[{ required: true, type: 'email', message: 'Enter a valid work email' }, { max: 255, message: 'Use no more than 255 characters' }]}>
+                    <Input maxLength={255} placeholder="name@company.com" />
                   </Form.Item>
-                  <Form.Item label="Company" name="company_name" rules={[{ required: true, message: 'Please enter your company' }]}>
-                    <Input placeholder="Charging operator or fleet" />
+                  <Form.Item label="Company" name="company_name" rules={[{ required: true, message: 'Please enter your company' }, { min: 2, message: 'Enter at least 2 characters' }, { max: 160, message: 'Use no more than 160 characters' }]}>
+                    <Input maxLength={160} placeholder="Charging operator or fleet" />
                   </Form.Item>
-                  <Form.Item label="Phone" name="phone"><Input placeholder="+216 ..." /></Form.Item>
+                  <Form.Item label="Phone" name="phone" rules={[{ max: 40, message: 'Use no more than 40 characters' }]}><Input maxLength={40} placeholder="+216 ..." /></Form.Item>
                   <Form.Item label="Estimated stations" name="estimated_stations">
                     <InputNumber min={1} max={100000} placeholder="24" />
                   </Form.Item>
                   <Form.Item className="landing-form-wide" label="Main objectives (up to 3)" name="objectives" rules={[{ required: true, type: 'array', min: 1, max: 3, message: 'Select between one and three objectives' }]}>
                     <Select mode="multiple" maxCount={3} showSearch optionFilterProp="label" placeholder="Select the problems you want to solve" options={demoObjectiveOptions} />
                   </Form.Item>
-                  <Form.Item className="landing-form-wide" label="Message" name="message" rules={[{ required: true, message: 'Tell us what you would like to see' }]}>
-                    <Input.TextArea rows={4} placeholder="Tell us about your stations, users, or demo goals." />
+                  <Form.Item className="landing-form-wide" label="Message" name="message" rules={[{ required: true, message: 'Tell us what you would like to see' }, { min: 20, message: 'Describe your needs in at least 20 characters' }, { max: 5000, message: 'Use no more than 5,000 characters' }]}>
+                    <Input.TextArea rows={4} maxLength={5000} showCount placeholder="Tell us about your stations, users, or demo goals." />
                   </Form.Item>
                   <Form.Item className="landing-form-wide landing-demo-consent" name="consent_accepted" valuePropName="checked" rules={[{ validator: (_, value) => value ? Promise.resolve() : Promise.reject(new Error('Consent is required')) }]}>
                     <Checkbox>I agree to be contacted about this demo request.</Checkbox>
