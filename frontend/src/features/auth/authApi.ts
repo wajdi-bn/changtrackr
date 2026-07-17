@@ -85,6 +85,13 @@ export function getAuthErrorMessage(error: unknown, fallback: string): string {
     return fallback
   }
 
+  if (error.response?.status === 429) {
+    const retryAfter = error.response.headers['retry-after']
+    return retryAfter
+      ? `Too many attempts. Try again in ${retryAfter} seconds.`
+      : 'Too many attempts. Wait one minute before trying again.'
+  }
+
   const fieldError = Object.values(error.response?.data?.errors ?? {}).flat()[0]
   return fieldError ?? error.response?.data?.message ?? fallback
 }

@@ -5,6 +5,7 @@ import type {
   DemoRequestsResponse,
   ProvisionDemoRequestPayload,
   PublicDemoRequestPayload,
+  RejectDemoRequestPayload,
 } from '../../types/demoRequest'
 
 export async function submitDemoRequest(payload: PublicDemoRequestPayload): Promise<{ message: string; reference: string }> {
@@ -18,11 +19,26 @@ export async function getDemoRequests(filters: DemoRequestFilters): Promise<Demo
   return response.data
 }
 
-export async function updateDemoRequest(
+export async function updateDemoRequestNotes(
   requestId: number,
-  payload: Partial<Pick<DemoRequest, 'status' | 'scheduled_at' | 'internal_notes'>>,
+  internal_notes: string | null,
 ): Promise<DemoRequest> {
-  const response = await httpClient.patch<{ data: DemoRequest }>(`/demo-requests/${requestId}`, payload)
+  const response = await httpClient.patch<{ data: DemoRequest }>(`/demo-requests/${requestId}`, { internal_notes })
+  return response.data.data
+}
+
+export async function startDemoRequestReview(requestId: number): Promise<DemoRequest> {
+  const response = await httpClient.post<{ data: DemoRequest }>(`/demo-requests/${requestId}/start-review`)
+  return response.data.data
+}
+
+export async function rejectDemoRequest(requestId: number, payload: RejectDemoRequestPayload): Promise<DemoRequest> {
+  const response = await httpClient.post<{ data: DemoRequest }>(`/demo-requests/${requestId}/reject`, payload)
+  return response.data.data
+}
+
+export async function reopenDemoRequest(requestId: number): Promise<DemoRequest> {
+  const response = await httpClient.post<{ data: DemoRequest }>(`/demo-requests/${requestId}/reopen`)
   return response.data.data
 }
 
@@ -31,8 +47,8 @@ export async function provisionDemoRequest(requestId: number, payload: Provision
   return response.data.data
 }
 
-export async function resendDemoInvitation(requestId: number): Promise<DemoRequest> {
-  const response = await httpClient.post<{ data: DemoRequest }>(`/demo-requests/${requestId}/invitation/resend`)
+export async function issueDemoInvitation(requestId: number): Promise<DemoRequest> {
+  const response = await httpClient.post<{ data: DemoRequest }>(`/demo-requests/${requestId}/invitation/issue`)
   return response.data.data
 }
 

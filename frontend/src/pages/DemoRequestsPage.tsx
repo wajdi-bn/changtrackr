@@ -1,10 +1,9 @@
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useMemo, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Alert,
   App,
   Button,
-  DatePicker,
   Descriptions,
   Drawer,
   Empty,
@@ -16,71 +15,73 @@ import {
   Popconfirm,
   Select,
   Skeleton,
+  Steps,
   Table,
   Tag,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import dayjs, { type Dayjs } from 'dayjs'
-import { Building2, CalendarClock, CheckCircle2, Inbox, Search, UserPlus, XCircle } from 'lucide-react'
+import dayjs from 'dayjs'
+import {
+  Building2,
+  CheckCircle2,
+  ClipboardCheck,
+  Inbox,
+  PencilLine,
+  RotateCcw,
+  Search,
+  Send,
+  ShieldCheck,
+  UserPlus,
+  XCircle,
+} from 'lucide-react'
+import { MountainBanner } from '../components/MountainBanner'
 import {
   getDemoRequests,
+  issueDemoInvitation,
   provisionDemoRequest,
-  resendDemoInvitation,
+  rejectDemoRequest,
+  reopenDemoRequest,
   revokeDemoInvitation,
-  updateDemoRequest,
+  startDemoRequestReview,
+  updateDemoRequestNotes,
 } from '../features/demoRequests/demoRequestApi'
+import { demoObjectiveLabels, demoObjectiveOptions } from '../features/demoRequests/demoRequestOptions'
 import type {
+  DemoObjective,
   DemoRequest,
   DemoRequestFilters,
   DemoRequestStatus,
-  DemoTopic,
   ProvisionDemoRequestPayload,
+  RejectDemoRequestPayload,
 } from '../types/demoRequest'
 
-interface ReviewValues {
-  status: DemoRequestStatus
-  scheduled_at?: Dayjs | null
-  internal_notes?: string
-}
-
 const statusLabels: Record<DemoRequestStatus, string> = {
-  new: 'New',
+  submitted: 'Submitted',
   under_review: 'Under review',
-  contacted: 'Contacted',
-  demo_scheduled: 'Demo scheduled',
-  qualified: 'Qualified',
-  approved: 'Approved',
   provisioned: 'Provisioned',
   rejected: 'Rejected',
 }
 
 const statusColors: Record<DemoRequestStatus, string> = {
-  new: 'blue',
+  submitted: 'blue',
   under_review: 'gold',
-  contacted: 'cyan',
-  demo_scheduled: 'purple',
-  qualified: 'geekblue',
-  approved: 'green',
   provisioned: 'success',
   rejected: 'error',
 }
 
-const topicOptions: Array<{ value: DemoTopic; label: string }> = [
-  { value: 'platform', label: 'Full platform' },
-  { value: 'operator', label: 'Operator supervision' },
-  { value: 'technician', label: 'Technician workflows' },
-  { value: 'client', label: 'Client experience' },
-  { value: 'admin', label: 'Administrator controls' },
-]
+interface NotesValues {
+  internal_notes?: string
+}
 
 export function DemoRequestsPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<DemoRequestStatus>()
-  const [topic, setTopic] = useState<DemoTopic>()
+  const [objective, setObjective] = useState<DemoObjective>()
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<DemoRequest | null>(null)
-  const [reviewing, setReviewing] = useState<DemoRequest | null>(null)
   const [provisioning, setProvisioning] = useState<DemoRequest | null>(null)
+  const [rejecting, setRejecting] = useState<DemoRequest | null>(null)
+  const [editingNotes, setEditingNotes] = useState<DemoRequest | null>(null)
   const deferredSearch = useDeferredValue(search)
   const queryClient = useQueryClient()
   const { message } = App.useApp()
@@ -88,10 +89,10 @@ export function DemoRequestsPage() {
   const filters = useMemo<DemoRequestFilters>(() => ({
     search: deferredSearch.trim() || undefined,
     status,
-    topic,
+    objective,
     page,
     per_page: 20,
-  }), [deferredSearch, page, status, topic])
+  }), [deferredSearch, objective, page, status])
 
   const requestsQuery = useQuery({
     queryKey: ['demo-requests', filters],
@@ -99,89 +100,124 @@ export function DemoRequestsPage() {
   })
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['demo-requests'] })
-  const reviewMutation = useMutation({
-    mutationFn: ({ requestId, values }: { requestId: number; values: ReviewValues }) => updateDemoRequest(requestId, {
-      status: values.status,
-      scheduled_at: values.scheduled_at?.toISOString() ?? null,
-      internal_notes: values.internal_notes?.trim() || null,
-    }),
+  const syncSaved = async (saved: DemoRequest) => {
+    await refresh()
+    setSelected(saved)
+  }
+
+  const startReviewMutation = useMutation({
+    mutationFn: startDemoRequestReview,
     onSuccess: async (saved) => {
-      await refresh()
-      setSelected(saved)
-      setReviewing(null)
-      void message.success('Demo request updated.')
+      await syncSaved(saved)
+      void message.success('Review started and assigned to you.')
     },
-    onError: () => void message.error('The status transition could not be saved.'),
+    onError: () => void message.error('This request can no longer enter review.'),
+  })
+  const notesMutation = useMutation({
+    mutationFn: ({ requestId, notes }: { requestId: number; notes: string | null }) => updateDemoRequestNotes(requestId, notes),
+    onSuccess: async (saved) => {
+      await syncSaved(saved)
+      setEditingNotes(null)
+      void message.success('Internal note saved.')
+    },
+    onError: () => void message.error('The internal note could not be saved.'),
+  })
+  const rejectMutation = useMutation({
+    mutationFn: ({ requestId, values }: { requestId: number; values: RejectDemoRequestPayload }) => rejectDemoRequest(requestId, values),
+    onSuccess: async (saved) => {
+      await syncSaved(saved)
+      setRejecting(null)
+      void message.success('Demo request rejected.')
+    },
+    onError: () => void message.error('The request could not be rejected.'),
+  })
+  const reopenMutation = useMutation({
+    mutationFn: reopenDemoRequest,
+    onSuccess: async (saved) => {
+      await syncSaved(saved)
+      void message.success('Request reopened and returned to review.')
+    },
+    onError: () => void message.error('The request could not be reopened.'),
   })
   const provisionMutation = useMutation({
     mutationFn: ({ requestId, values }: { requestId: number; values: ProvisionDemoRequestPayload }) => provisionDemoRequest(requestId, values),
     onSuccess: async (saved) => {
-      await refresh()
-      setSelected(saved)
+      await syncSaved(saved)
       setProvisioning(null)
-      void message.success('Organization created and administrator invitation queued.')
+      void message.success('Workspace created and administrator invitation queued.')
     },
-    onError: () => void message.error('Provisioning failed. Check the request status and administrator email.'),
+    onError: () => void message.error('Provisioning failed. Check the administrator email and request state.'),
   })
-  const resendMutation = useMutation({
-    mutationFn: resendDemoInvitation,
+  const issueMutation = useMutation({
+    mutationFn: issueDemoInvitation,
     onSuccess: async (saved) => {
-      await refresh()
-      setSelected(saved)
-      void message.success('A new activation invitation was queued. The previous link is invalid.')
+      await syncSaved(saved)
+      void message.success('A new one-time invitation was queued.')
     },
-    onError: () => void message.error('The administrator invitation could not be reissued.'),
+    onError: () => void message.error('Revoke or let the current invitation expire before issuing a new one.'),
   })
   const revokeMutation = useMutation({
     mutationFn: revokeDemoInvitation,
     onSuccess: async (saved) => {
-      await refresh()
-      setSelected(saved)
-      void message.success('The pending administrator invitation was revoked.')
+      await syncSaved(saved)
+      void message.success('The pending invitation was revoked.')
     },
-    onError: () => void message.error('The administrator invitation could not be revoked.'),
+    onError: () => void message.error('Only a pending invitation can be revoked.'),
   })
 
   const data = requestsQuery.data?.data ?? []
   const summary = requestsQuery.data?.summary
   const meta = requestsQuery.data?.meta
+  const actionLoading = startReviewMutation.isPending
+    || rejectMutation.isPending
+    || reopenMutation.isPending
+    || provisionMutation.isPending
+    || issueMutation.isPending
+    || revokeMutation.isPending
+
   const columns: ColumnsType<DemoRequest> = [
     {
-      title: 'Request',
+      title: 'Organization request',
       key: 'request',
       render: (_, request) => <div className="demo-request-primary"><strong>{request.company_name}</strong><small>{request.reference}</small></div>,
     },
     {
-      title: 'Contact',
+      title: 'Applicant',
       key: 'contact',
       render: (_, request) => <div className="demo-request-primary"><span>{request.full_name}</span><small>{request.email}</small></div>,
     },
-    { title: 'Topic', dataIndex: 'topic', render: (value: DemoTopic) => topicOptions.find((option) => option.value === value)?.label ?? value },
+    {
+      title: 'Main objectives',
+      key: 'objectives',
+      render: (_, request) => <ObjectiveTags objectives={request.objectives} compact />,
+    },
     { title: 'Network', dataIndex: 'estimated_stations', align: 'right', render: (value: number | null) => value ? `${value} stations` : 'Not specified' },
     { title: 'Status', dataIndex: 'status', render: (value: DemoRequestStatus) => <DemoStatus status={value} /> },
     { title: 'Submitted', dataIndex: 'created_at', render: (value: string) => dayjs(value).format('DD MMM YYYY, HH:mm') },
-    { title: '', key: 'actions', width: 90, render: (_, request) => <Button size="small" onClick={(event) => { event.stopPropagation(); setSelected(request) }}>Review</Button> },
+    { title: '', key: 'actions', width: 84, render: (_, request) => <Button size="small" onClick={(event) => { event.stopPropagation(); setSelected(request) }}>Open</Button> },
   ]
 
   return <div className="demo-requests-page">
-    <header className="admin-page-heading">
-      <div><p>Platform administration</p><h1>Demo requests</h1><span>Review companies, schedule demonstrations and provision isolated organization workspaces.</span></div>
-      <Tag color="green">Super Admin only</Tag>
-    </header>
+    <MountainBanner
+      color="purple"
+      breadcrumb={['Platform', 'Demo requests']}
+      title="Demo requests"
+      count={summary?.total ?? 0}
+      subtitle="Review organization access requests and create isolated trial workspaces for approved administrators."
+    />
 
     <section className="demo-summary-grid">
-      <SummaryTile icon={<Inbox size={18} />} label="Total requests" value={summary?.total ?? 0} />
-      <SummaryTile icon={<CalendarClock size={18} />} label="New" value={summary?.new ?? 0} tone="blue" />
-      <SummaryTile icon={<Building2 size={18} />} label="In progress" value={summary?.in_progress ?? 0} tone="gold" />
+      <SummaryTile icon={<Inbox size={18} />} label="Submitted" value={summary?.submitted ?? 0} tone="blue" />
+      <SummaryTile icon={<ClipboardCheck size={18} />} label="Under review" value={summary?.under_review ?? 0} tone="gold" />
       <SummaryTile icon={<CheckCircle2 size={18} />} label="Provisioned" value={summary?.provisioned ?? 0} tone="green" />
       <SummaryTile icon={<XCircle size={18} />} label="Rejected" value={summary?.rejected ?? 0} tone="red" />
     </section>
 
     <section className="admin-list-panel">
       <div className="admin-list-toolbar">
-        <Input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} prefix={<Search size={15} />} placeholder="Search reference, company, contact or email" allowClear />
+        <Input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} prefix={<Search size={15} />} placeholder="Search reference, company, applicant or email" allowClear />
         <Select value={status} onChange={(value) => { setStatus(value); setPage(1) }} allowClear placeholder="All statuses" options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} />
-        <Select value={topic} onChange={(value) => { setTopic(value); setPage(1) }} allowClear placeholder="All topics" options={topicOptions} />
+        <Select value={objective} onChange={(value) => { setObjective(value); setPage(1) }} allowClear showSearch optionFilterProp="label" placeholder="All objectives" options={demoObjectiveOptions} />
       </div>
 
       {requestsQuery.isError && <Alert type="error" showIcon title="Unable to load demo requests" action={<Button size="small" onClick={() => void requestsQuery.refetch()}>Retry</Button>} />}
@@ -191,19 +227,23 @@ export function DemoRequestsPage() {
 
     <DemoRequestDrawer
       request={selected}
-      invitationLoading={resendMutation.isPending || revokeMutation.isPending}
+      actionLoading={actionLoading}
       onClose={() => setSelected(null)}
-      onReview={setReviewing}
+      onStartReview={(request) => startReviewMutation.mutate(request.id)}
+      onEditNotes={setEditingNotes}
+      onReject={setRejecting}
       onProvision={setProvisioning}
-      onResend={(request) => resendMutation.mutate(request.id)}
+      onReopen={(request) => reopenMutation.mutate(request.id)}
+      onIssue={(request) => issueMutation.mutate(request.id)}
       onRevoke={(request) => revokeMutation.mutate(request.id)}
     />
-    <ReviewModal request={reviewing} loading={reviewMutation.isPending} onClose={() => setReviewing(null)} onSubmit={(values) => reviewing && reviewMutation.mutate({ requestId: reviewing.id, values })} />
+    <NotesModal request={editingNotes} loading={notesMutation.isPending} onClose={() => setEditingNotes(null)} onSubmit={(values) => editingNotes && notesMutation.mutate({ requestId: editingNotes.id, notes: values.internal_notes?.trim() || null })} />
+    <RejectModal request={rejecting} loading={rejectMutation.isPending} onClose={() => setRejecting(null)} onSubmit={(values) => rejecting && rejectMutation.mutate({ requestId: rejecting.id, values })} />
     <ProvisionModal request={provisioning} loading={provisionMutation.isPending} onClose={() => setProvisioning(null)} onSubmit={(values) => provisioning && provisionMutation.mutate({ requestId: provisioning.id, values })} />
   </div>
 }
 
-function SummaryTile({ icon, label, value, tone = 'neutral' }: { icon: React.ReactNode; label: string; value: number; tone?: string }) {
+function SummaryTile({ icon, label, value, tone }: { icon: ReactNode; label: string; value: number; tone: string }) {
   return <article className={`demo-summary-tile demo-summary-tile--${tone}`}><span>{icon}</span><div><strong>{value}</strong><small>{label}</small></div></article>
 }
 
@@ -211,50 +251,105 @@ function DemoStatus({ status }: { status: DemoRequestStatus }) {
   return <Tag color={statusColors[status]}>{statusLabels[status]}</Tag>
 }
 
-function DemoRequestDrawer({ request, invitationLoading, onClose, onReview, onProvision, onResend, onRevoke }: { request: DemoRequest | null; invitationLoading: boolean; onClose: () => void; onReview: (request: DemoRequest) => void; onProvision: (request: DemoRequest) => void; onResend: (request: DemoRequest) => void; onRevoke: (request: DemoRequest) => void }) {
-  return <Drawer size="large" open={Boolean(request)} onClose={onClose} title={request ? `${request.company_name} · ${request.reference}` : 'Demo request'} extra={request && <DemoStatus status={request.status} />}>
+function ObjectiveTags({ objectives, compact = false }: { objectives: DemoObjective[]; compact?: boolean }) {
+  const visible = compact ? objectives.slice(0, 2) : objectives
+  return <div className="demo-objective-tags">
+    {visible.map((objective) => <Tag key={objective}>{demoObjectiveLabels[objective]}</Tag>)}
+    {compact && objectives.length > 2 && <Tag>+{objectives.length - 2}</Tag>}
+  </div>
+}
+
+interface DrawerProps {
+  request: DemoRequest | null
+  actionLoading: boolean
+  onClose: () => void
+  onStartReview: (request: DemoRequest) => void
+  onEditNotes: (request: DemoRequest) => void
+  onReject: (request: DemoRequest) => void
+  onProvision: (request: DemoRequest) => void
+  onReopen: (request: DemoRequest) => void
+  onIssue: (request: DemoRequest) => void
+  onRevoke: (request: DemoRequest) => void
+}
+
+function DemoRequestDrawer({ request, actionLoading, onClose, onStartReview, onEditNotes, onReject, onProvision, onReopen, onIssue, onRevoke }: DrawerProps) {
+  return <Drawer size="large" open={Boolean(request)} onClose={onClose} title={request ? `${request.company_name} / ${request.reference}` : 'Demo request'} extra={request && <DemoStatus status={request.status} />}>
     {request && <div className="demo-request-drawer">
+      <WorkflowProgress status={request.status} />
       <Descriptions column={1} size="small" bordered items={[
-        { key: 'contact', label: 'Contact', children: `${request.full_name} · ${request.email}` },
+        { key: 'contact', label: 'Applicant', children: `${request.full_name} / ${request.email}` },
         { key: 'phone', label: 'Phone', children: request.phone ?? 'Not provided' },
-        { key: 'topic', label: 'Topic', children: topicOptions.find((option) => option.value === request.topic)?.label },
         { key: 'network', label: 'Estimated network', children: request.estimated_stations ? `${request.estimated_stations} stations` : 'Not specified' },
         { key: 'submitted', label: 'Submitted', children: dayjs(request.created_at).format('DD MMM YYYY, HH:mm') },
-        { key: 'handled', label: 'Handled by', children: request.handled_by?.name ?? 'Unassigned' },
-        { key: 'scheduled', label: 'Demo date', children: request.scheduled_at ? dayjs(request.scheduled_at).format('DD MMM YYYY, HH:mm') : 'Not scheduled' },
+        { key: 'handled', label: 'Reviewer', children: request.handled_by?.name ?? 'Not assigned' },
       ]} />
-      <section><h3>Request message</h3><p>{request.message}</p></section>
-      <section><h3>Internal notes</h3><p>{request.internal_notes || 'No internal note yet.'}</p></section>
-      {request.organization && <Alert type="success" showIcon title={`Organization provisioned: ${request.organization.name}`} description={`Invitation status: ${request.invitation?.status ?? 'unknown'}`} />}
+      <section><h3>Main objectives</h3><ObjectiveTags objectives={request.objectives} /></section>
+      <section><h3>Applicant message</h3><p>{request.message}</p></section>
+      <section className="demo-note-section"><div><h3>Internal note</h3><Button type="text" size="small" icon={<PencilLine size={14} />} onClick={() => onEditNotes(request)}>Edit</Button></div><p>{request.internal_notes || 'No internal note yet.'}</p></section>
+      {request.status === 'rejected' && <Alert type="error" showIcon title="Request rejected" description={request.rejection_reason} />}
+      {request.organization && <InvitationPanel request={request} loading={actionLoading} onIssue={onIssue} onRevoke={onRevoke} />}
       <div className="demo-drawer-actions">
-        {request.status !== 'provisioned' && <Button onClick={() => onReview(request)}>Update review</Button>}
-        {request.status === 'approved' && <Button type="primary" icon={<UserPlus size={15} />} onClick={() => onProvision(request)}>Provision organization</Button>}
-        {request.status === 'provisioned' && request.invitation?.status !== 'accepted' && <Popconfirm title="Send a new invitation?" description="The previous activation link will become invalid." onConfirm={() => onResend(request)}><Button loading={invitationLoading}>Resend invitation</Button></Popconfirm>}
-        {request.status === 'provisioned' && request.invitation?.status === 'pending' && <Popconfirm title="Revoke this invitation?" description="The administrator will not be able to activate with the current link." onConfirm={() => onRevoke(request)}><Button danger loading={invitationLoading}>Revoke invitation</Button></Popconfirm>}
+        {request.status === 'submitted' && <Button type="primary" icon={<ClipboardCheck size={15} />} loading={actionLoading} onClick={() => onStartReview(request)}>Start review</Button>}
+        {request.status === 'submitted' && <Button danger loading={actionLoading} onClick={() => onReject(request)}>Reject</Button>}
+        {request.status === 'under_review' && <Button type="primary" icon={<UserPlus size={15} />} loading={actionLoading} onClick={() => onProvision(request)}>Approve & create workspace</Button>}
+        {request.status === 'under_review' && <Button danger loading={actionLoading} onClick={() => onReject(request)}>Reject</Button>}
+        {request.status === 'rejected' && <Popconfirm title="Reopen this request?" description="The request will return to review and the previous rejection reason will be cleared." onConfirm={() => onReopen(request)}><Button icon={<RotateCcw size={15} />} loading={actionLoading}>Reopen request</Button></Popconfirm>}
       </div>
     </div>}
   </Drawer>
 }
 
-function ReviewModal({ request, loading, onClose, onSubmit }: { request: DemoRequest | null; loading: boolean; onClose: () => void; onSubmit: (values: ReviewValues) => void }) {
-  return <Modal open={Boolean(request)} title="Update demo request" footer={null} onCancel={onClose} destroyOnHidden>
-    {request && <Form<ReviewValues> layout="vertical" initialValues={{ status: request.status, scheduled_at: request.scheduled_at ? dayjs(request.scheduled_at) : null, internal_notes: request.internal_notes ?? '' }} onFinish={onSubmit}>
-      <Form.Item name="status" label="Status" rules={[{ required: true }]}><Select options={[request.status, ...request.allowed_transitions].map((value) => ({ value, label: statusLabels[value] }))} /></Form.Item>
-      <Form.Item noStyle shouldUpdate={(previous, current) => previous.status !== current.status}>{({ getFieldValue }) => getFieldValue('status') === 'demo_scheduled' && <Form.Item name="scheduled_at" label="Demo date" rules={[{ required: true, message: 'Choose the planned demo date' }]}><DatePicker showTime format="DD MMM YYYY HH:mm" /></Form.Item>}</Form.Item>
-      <Form.Item name="internal_notes" label="Internal notes"><Input.TextArea rows={5} maxLength={5000} showCount placeholder="Qualification, follow-up and decision notes" /></Form.Item>
-      <div className="modal-form-actions"><Button onClick={onClose}>Cancel</Button><Button type="primary" htmlType="submit" loading={loading}>Save review</Button></div>
+function WorkflowProgress({ status }: { status: DemoRequestStatus }) {
+  const current = status === 'submitted' ? 0 : status === 'under_review' || status === 'rejected' ? 1 : 2
+  return <section className="demo-workflow-progress">
+    <Steps current={current} status={status === 'rejected' ? 'error' : 'process'} responsive={false} items={[
+      { title: 'Submitted' },
+      { title: status === 'rejected' ? 'Rejected' : 'Under review' },
+      { title: 'Workspace created' },
+    ]} />
+  </section>
+}
+
+function InvitationPanel({ request, loading, onIssue, onRevoke }: { request: DemoRequest; loading: boolean; onIssue: (request: DemoRequest) => void; onRevoke: (request: DemoRequest) => void }) {
+  const invitation = request.invitation
+  if (!invitation) return null
+
+  return <section className="demo-invitation-panel">
+    <div><span><ShieldCheck size={18} /></span><div><h3>Administrator invitation</h3><p>Status: <Tag color={invitation.status === 'accepted' ? 'success' : invitation.status === 'pending' ? 'processing' : 'default'}>{invitation.status}</Tag></p></div></div>
+    {invitation.status === 'pending' && <Popconfirm title="Revoke this invitation?" description="The current activation link will stop working." onConfirm={() => onRevoke(request)}><Button danger loading={loading}>Revoke invitation</Button></Popconfirm>}
+    {(invitation.status === 'revoked' || invitation.status === 'expired') && <Popconfirm title="Issue a new invitation?" description="A new one-time activation link will be emailed to the administrator." onConfirm={() => onIssue(request)}><Button icon={<Send size={15} />} loading={loading}>Issue new invitation</Button></Popconfirm>}
+    {invitation.status === 'accepted' && <Tag color="success" icon={<CheckCircle2 size={12} />}>Administrator account active</Tag>}
+  </section>
+}
+
+function NotesModal({ request, loading, onClose, onSubmit }: { request: DemoRequest | null; loading: boolean; onClose: () => void; onSubmit: (values: NotesValues) => void }) {
+  return <Modal open={Boolean(request)} title="Internal review note" footer={null} onCancel={onClose} destroyOnHidden>
+    {request && <Form<NotesValues> layout="vertical" initialValues={{ internal_notes: request.internal_notes ?? '' }} onFinish={onSubmit}>
+      <Form.Item name="internal_notes" label="Visible only to platform administrators"><Input.TextArea rows={6} maxLength={5000} showCount placeholder="Verification details, context, or decision notes" /></Form.Item>
+      <div className="modal-form-actions"><Button onClick={onClose}>Cancel</Button><Button type="primary" htmlType="submit" loading={loading}>Save note</Button></div>
+    </Form>}
+  </Modal>
+}
+
+function RejectModal({ request, loading, onClose, onSubmit }: { request: DemoRequest | null; loading: boolean; onClose: () => void; onSubmit: (values: RejectDemoRequestPayload) => void }) {
+  return <Modal open={Boolean(request)} title="Reject demo request" footer={null} onCancel={onClose} destroyOnHidden>
+    {request && <Form<RejectDemoRequestPayload> layout="vertical" onFinish={onSubmit}>
+      <Alert className="provision-alert" type="warning" showIcon title="A rejection reason is required" description="The reason is retained for audit and is not emailed automatically." />
+      <Form.Item name="rejection_reason" label="Reason" rules={[{ required: true, min: 10, message: 'Provide a clear reason of at least 10 characters' }]}><Input.TextArea rows={4} maxLength={2000} showCount /></Form.Item>
+      <Form.Item name="internal_notes" label="Additional internal note"><Input.TextArea rows={3} maxLength={5000} /></Form.Item>
+      <div className="modal-form-actions"><Button onClick={onClose}>Cancel</Button><Button danger type="primary" htmlType="submit" loading={loading}>Reject request</Button></div>
     </Form>}
   </Modal>
 }
 
 function ProvisionModal({ request, loading, onClose, onSubmit }: { request: DemoRequest | null; loading: boolean; onClose: () => void; onSubmit: (values: ProvisionDemoRequestPayload) => void }) {
-  return <Modal open={Boolean(request)} title="Provision organization" footer={null} onCancel={onClose} destroyOnHidden>
+  return <Modal open={Boolean(request)} title="Approve and create workspace" footer={null} onCancel={onClose} destroyOnHidden>
     {request && <Form<ProvisionDemoRequestPayload> layout="vertical" initialValues={{ organization_name: request.company_name, admin_name: request.full_name, trial_days: 30 }} onFinish={onSubmit}>
-      <Alert className="provision-alert" type="info" showIcon title="A pending administrator account will be created" description={`The one-time activation link will be sent to ${request.email}.`} />
+      <Alert className="provision-alert" type="info" showIcon title="One approval, one transaction" description={`An isolated trial organization and pending administrator account will be created. The activation link will be sent to ${request.email}.`} />
       <Form.Item name="organization_name" label="Organization name" rules={[{ required: true }]}><Input /></Form.Item>
       <Form.Item name="admin_name" label="Administrator name" rules={[{ required: true }]}><Input /></Form.Item>
       <Form.Item name="trial_days" label="Trial period" rules={[{ required: true }]}><InputNumber min={7} max={90} addonAfter="days" /></Form.Item>
-      <div className="modal-form-actions"><Button onClick={onClose}>Cancel</Button><Button type="primary" htmlType="submit" loading={loading}>Create and invite</Button></div>
+      <div className="modal-form-actions"><Button onClick={onClose}>Cancel</Button><Button type="primary" htmlType="submit" loading={loading} icon={<Building2 size={15} />}>Create workspace & invite</Button></div>
     </Form>}
   </Modal>
 }

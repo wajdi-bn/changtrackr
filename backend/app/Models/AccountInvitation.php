@@ -40,6 +40,13 @@ class AccountInvitation extends Model
             && $this->expires_at->isFuture();
     }
 
+    public function effectiveStatus(): string
+    {
+        return $this->status === 'pending' && $this->expires_at->isPast()
+            ? 'expired'
+            : $this->status;
+    }
+
     protected function casts(): array
     {
         return [

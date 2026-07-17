@@ -49,6 +49,9 @@ Important rules:
 - Use API Resources to shape responses.
 - Add rate limits for login, password reset, payment and public contact endpoints.
 - Protect public demo requests with server-side validation, consent capture, a honeypot, per-IP throttling and recent-request deduplication.
+- Use independent named rate-limit buckets for demo submission, invitation inspection and invitation acceptance so one public workflow cannot exhaust another endpoint's allowance.
+- Keep applicant acknowledgements separate from internal review notifications; only the configured platform mailbox receives the administrative review link.
+- Enforce invitation revocation or expiration before issuing a replacement one-time token.
 - Add audit logs for sensitive actions: user changes, role changes, tariff changes, station edits, payment status changes.
 
 ## Payments

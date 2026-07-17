@@ -19,10 +19,10 @@ class DemoRequestFactory extends Factory
             'email' => fake()->unique()->companyEmail(),
             'company_name' => fake()->company(),
             'phone' => fake()->phoneNumber(),
-            'topic' => fake()->randomElement(DemoRequest::TOPICS),
+            'objectives' => fake()->randomElements(DemoRequest::OBJECTIVES, 2),
             'estimated_stations' => fake()->numberBetween(1, 250),
             'message' => fake()->sentence(14),
-            'status' => 'new',
+            'status' => 'submitted',
             'consent_at' => now(),
         ];
     }

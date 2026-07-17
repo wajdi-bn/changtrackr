@@ -1,4 +1,4 @@
-import { httpClient } from '../../api/httpClient'
+import { csrfCookieRequest, httpClient } from '../../api/httpClient'
 
 export interface InvitationDetails {
   name: string
@@ -9,6 +9,7 @@ export interface InvitationDetails {
 }
 
 export async function inspectInvitation(email: string, token: string): Promise<{ valid: boolean; invitation?: InvitationDetails }> {
+  await csrfCookieRequest()
   const response = await httpClient.post<{ valid: boolean; invitation?: InvitationDetails }>('/account-invitations/inspect', { email, token })
   return response.data
 }
@@ -19,6 +20,7 @@ export async function acceptInvitation(payload: {
   password: string
   password_confirmation: string
 }): Promise<{ message: string }> {
+  await csrfCookieRequest()
   const response = await httpClient.post<{ message: string }>('/account-invitations/accept', payload)
   return response.data
 }

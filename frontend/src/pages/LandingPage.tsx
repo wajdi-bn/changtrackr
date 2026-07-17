@@ -13,6 +13,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Link, useNavigate } from 'react-router-dom'
 import { submitDemoRequest } from '../features/demoRequests/demoRequestApi'
+import { demoObjectiveOptions } from '../features/demoRequests/demoRequestOptions'
 import type { PublicDemoRequestPayload } from '../types/demoRequest'
 
 const navLinks = [
@@ -76,6 +77,7 @@ export function LandingPage() {
   const [pastHero, setPastHero] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [demoSubmitting, setDemoSubmitting] = useState(false)
+  const demoSubmittingRef = useRef(false)
   const [demoForm] = Form.useForm<PublicDemoRequestPayload>()
   const navigate = useNavigate()
   const { message } = App.useApp()
@@ -147,6 +149,8 @@ export function LandingPage() {
   }, [])
 
   async function submitDemo(values: PublicDemoRequestPayload) {
+    if (demoSubmittingRef.current) return
+    demoSubmittingRef.current = true
     setDemoSubmitting(true)
     try {
       const result = await submitDemoRequest(values)
@@ -155,6 +159,7 @@ export function LandingPage() {
     } catch {
       void message.error('The demo request could not be submitted. Check the form or try again later.')
     } finally {
+      demoSubmittingRef.current = false
       setDemoSubmitting(false)
     }
   }
@@ -344,8 +349,8 @@ export function LandingPage() {
           <div className="landing-section landing-demo-grid" data-reveal>
             <div>
               <p className="landing-section-label">Contact</p>
-              <h2>Request a ChargeTrackr demo</h2>
-              <p>Tell us about your charging network and we will prepare a guided walkthrough of the operator, technician, administrator, and client workflows.</p>
+              <h2>Request an organization demo workspace</h2>
+              <p>Tell us what your charging network needs. After review, the organization administrator receives a secure invitation and can later create operator and technician accounts.</p>
               <Card size="small" title="Sales contact">demo@chargetrackr.tn</Card>
               <Card size="small" title="Typical response">One business day for prototype demo requests.</Card>
             </div>
@@ -356,7 +361,7 @@ export function LandingPage() {
                 layout="vertical"
                 onFinish={submitDemo}
                 requiredMark={false}
-                initialValues={{ topic: 'platform', consent_accepted: false }}
+                initialValues={{ objectives: ['availability_monitoring'], consent_accepted: false }}
               >
                 <div className="landing-form-grid">
                   <Form.Item label="Full name" name="full_name" rules={[{ required: true, message: 'Please enter your name' }]}>
@@ -372,14 +377,8 @@ export function LandingPage() {
                   <Form.Item label="Estimated stations" name="estimated_stations">
                     <InputNumber min={1} max={100000} placeholder="24" />
                   </Form.Item>
-                  <Form.Item label="What do you want to demo?" name="topic">
-                    <Select options={[
-                      { value: 'platform', label: 'Full ChargeTrackr platform' },
-                      { value: 'operator', label: 'Operator supervision' },
-                      { value: 'technician', label: 'Technician workflows' },
-                      { value: 'client', label: 'Client charging experience' },
-                      { value: 'admin', label: 'Administrator controls' },
-                    ]} />
+                  <Form.Item className="landing-form-wide" label="Main objectives (up to 3)" name="objectives" rules={[{ required: true, type: 'array', min: 1, max: 3, message: 'Select between one and three objectives' }]}>
+                    <Select mode="multiple" maxCount={3} showSearch optionFilterProp="label" placeholder="Select the problems you want to solve" options={demoObjectiveOptions} />
                   </Form.Item>
                   <Form.Item className="landing-form-wide" label="Message" name="message" rules={[{ required: true, message: 'Tell us what you would like to see' }]}>
                     <Input.TextArea rows={4} placeholder="Tell us about your stations, users, or demo goals." />

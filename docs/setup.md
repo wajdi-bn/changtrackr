@@ -109,9 +109,11 @@ arbitrary recipients. Never commit the API key.
 
 Public demo requests are available from the landing page. New requests are reviewed at
 `/demo-requests` by the Super Admin. Set `DEMO_REQUEST_NOTIFICATION_EMAIL` to receive the internal
-queued notification. Approved requests provision an organization and send a one-time account
-activation link to its administrator. The Super Admin can revoke a pending invitation or issue a
-replacement link without creating another user account.
+queued notification. Applicants receive a separate acknowledgement without an administrative
+link. The workflow is action-driven: submitted requests enter review, then they are either rejected
+or provisioned directly into an organization trial workspace. Provisioning sends a one-time account
+activation link to the administrator. A pending invitation must be revoked or expire before the
+Super Admin can issue a replacement link.
 
 Seeded demo accounts all use the password `password`:
 

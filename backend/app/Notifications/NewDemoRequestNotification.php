@@ -27,12 +27,15 @@ class NewDemoRequestNotification extends Notification implements ShouldQueue
         $url = rtrim((string) config('frontend.url'), '/').'/demo-requests';
 
         return (new MailMessage)
-            ->subject('New ChargeTrackr demo request - '.$this->demoRequest->reference)
-            ->greeting('A new demo request was submitted')
+            ->subject('[Internal] New ChargeTrackr demo request - '.$this->demoRequest->reference)
+            ->greeting('A new organization demo request needs review')
             ->line($this->demoRequest->full_name.' from '.$this->demoRequest->company_name.' requested a ChargeTrackr demo.')
-            ->line('Topic: '.str_replace('_', ' ', $this->demoRequest->topic))
+            ->line('Main objectives: '.implode(', ', array_map(
+                fn (string $objective): string => DemoRequest::OBJECTIVE_LABELS[$objective] ?? $objective,
+                $this->demoRequest->objectives ?? [],
+            )))
             ->line('Email: '.$this->demoRequest->email)
             ->action('Review demo request', $url)
-            ->line('Review the request before contacting or provisioning the organization.');
+            ->line('This link is for platform administrators only.');
     }
 }

@@ -20,18 +20,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/demo-requests', [DemoRequestController::class, 'store'])
-    ->middleware('throttle:3,60');
+    ->middleware('throttle:demo-request-submit');
 Route::post('/account-invitations/inspect', [AccountInvitationController::class, 'inspect'])
-    ->middleware('throttle:10,1');
+    ->middleware('throttle:invitation-inspect');
 Route::post('/account-invitations/accept', [AccountInvitationController::class, 'accept'])
-    ->middleware('throttle:5,1');
+    ->middleware('throttle:invitation-accept');
 
 Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(function (): void {
     Route::get('/demo-requests', [DemoRequestController::class, 'index']);
     Route::get('/demo-requests/{demoRequest}', [DemoRequestController::class, 'show']);
     Route::patch('/demo-requests/{demoRequest}', [DemoRequestController::class, 'update']);
+    Route::post('/demo-requests/{demoRequest}/start-review', [DemoRequestController::class, 'startReview']);
+    Route::post('/demo-requests/{demoRequest}/reject', [DemoRequestController::class, 'reject']);
+    Route::post('/demo-requests/{demoRequest}/reopen', [DemoRequestController::class, 'reopen']);
     Route::post('/demo-requests/{demoRequest}/provision', [DemoRequestController::class, 'provision']);
-    Route::post('/demo-requests/{demoRequest}/invitation/resend', [DemoRequestController::class, 'resendInvitation']);
+    Route::post('/demo-requests/{demoRequest}/invitation/issue', [DemoRequestController::class, 'issueInvitation']);
     Route::post('/demo-requests/{demoRequest}/invitation/revoke', [DemoRequestController::class, 'revokeInvitation']);
 
     Route::apiResource('stations', StationController::class);

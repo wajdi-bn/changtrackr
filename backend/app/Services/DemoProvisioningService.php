@@ -22,15 +22,15 @@ class DemoProvisioningService
         string $administratorName,
         int $trialDays,
     ): array {
-        if ($demoRequest->status !== 'approved' || $demoRequest->organization_id !== null) {
+        if ($demoRequest->status !== 'under_review' || $demoRequest->organization_id !== null) {
             throw ValidationException::withMessages([
-                'status' => ['Only an approved, unprovisioned demo request can create an organization.'],
+                'status' => ['Only a request under review can create an organization.'],
             ]);
         }
 
         return DB::transaction(function () use ($demoRequest, $actor, $organizationName, $administratorName, $trialDays): array {
             $lockedRequest = DemoRequest::query()->lockForUpdate()->findOrFail($demoRequest->id);
-            if ($lockedRequest->status !== 'approved' || $lockedRequest->organization_id !== null) {
+            if ($lockedRequest->status !== 'under_review' || $lockedRequest->organization_id !== null) {
                 throw ValidationException::withMessages([
                     'status' => ['This demo request has already been processed.'],
                 ]);
@@ -62,6 +62,7 @@ class DemoProvisioningService
                 'status' => 'provisioned',
                 'organization_id' => $organization->id,
                 'handled_by_id' => $actor->id,
+                'decided_at' => now(),
                 'provisioned_at' => now(),
             ]);
 

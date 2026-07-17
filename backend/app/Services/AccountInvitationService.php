@@ -86,20 +86,20 @@ class AccountInvitationService
                 ->lockForUpdate()
                 ->first();
 
+            if ($previous?->status === 'pending' && $previous->expires_at->isPast()) {
+                $previous->update(['status' => 'expired']);
+            }
+
             if (
                 ! $previous
                 || $demoRequest->status !== 'provisioned'
                 || $previous->user->status !== 'pending'
                 || $previous->organization->status !== 'active'
-                || $previous->status === 'accepted'
+                || ! in_array($previous->status, ['revoked', 'expired'], true)
             ) {
                 throw ValidationException::withMessages([
                     'invitation' => ['This administrator invitation cannot be reissued.'],
                 ]);
-            }
-
-            if ($previous->status !== 'revoked') {
-                $previous->update(['status' => 'revoked', 'revoked_at' => now()]);
             }
 
             $token = Str::random(80);

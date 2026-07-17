@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DemoRequests\ProvisionDemoRequestRequest;
+use App\Http\Requests\DemoRequests\RejectDemoRequestRequest;
 use App\Http\Requests\DemoRequests\StoreDemoRequestRequest;
 use App\Http\Requests\DemoRequests\UpdateDemoRequestRequest;
 use App\Http\Resources\DemoRequestResource;
 use App\Models\DemoRequest;
 use App\Models\User;
 use App\Notifications\AccountInvitationNotification;
+use App\Notifications\DemoRequestReceivedNotification;
 use App\Notifications\NewDemoRequestNotification;
 use App\Services\AccountInvitationService;
 use App\Services\DemoProvisioningService;
@@ -45,12 +47,15 @@ class DemoRequestController extends Controller
         $demoRequest = DemoRequest::query()->create([
             ...$attributes,
             'reference' => $this->uniqueReference(),
-            'status' => 'new',
+            'status' => 'submitted',
             'consent_at' => now(),
             'submitted_ip_hash' => $request->ip()
                 ? hash_hmac('sha256', $request->ip(), (string) config('app.key'))
                 : null,
         ]);
+
+        Notification::route('mail', $demoRequest->email)
+            ->notify(new DemoRequestReceivedNotification($demoRequest));
 
         $notificationEmail = config('demo.notification_email');
         if (is_string($notificationEmail) && $notificationEmail !== '') {
@@ -70,7 +75,7 @@ class DemoRequestController extends Controller
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
             'status' => ['nullable', Rule::in(DemoRequest::STATUSES)],
-            'topic' => ['nullable', Rule::in(DemoRequest::TOPICS)],
+            'objective' => ['nullable', Rule::in(DemoRequest::OBJECTIVES)],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
         $baseQuery = DemoRequest::query();
@@ -84,8 +89,8 @@ class DemoRequestController extends Controller
             'data' => DemoRequestResource::collection($requests->items()),
             'summary' => [
                 'total' => (clone $baseQuery)->count(),
-                'new' => (clone $baseQuery)->where('status', 'new')->count(),
-                'in_progress' => (clone $baseQuery)->whereIn('status', ['under_review', 'contacted', 'demo_scheduled', 'qualified', 'approved'])->count(),
+                'submitted' => (clone $baseQuery)->where('status', 'submitted')->count(),
+                'under_review' => (clone $baseQuery)->where('status', 'under_review')->count(),
                 'provisioned' => (clone $baseQuery)->where('status', 'provisioned')->count(),
                 'rejected' => (clone $baseQuery)->where('status', 'rejected')->count(),
             ],
@@ -108,29 +113,55 @@ class DemoRequestController extends Controller
     public function update(UpdateDemoRequestRequest $request, DemoRequest $demoRequest): DemoRequestResource
     {
         Gate::authorize('update', $demoRequest);
-        $attributes = $request->validated();
-        $nextStatus = $attributes['status'] ?? $demoRequest->status;
-
-        if ($nextStatus !== $demoRequest->status && ! in_array($nextStatus, $demoRequest->allowedTransitions(), true)) {
-            throw ValidationException::withMessages([
-                'status' => ['This status transition is not allowed.'],
-            ]);
-        }
-
-        if ($demoRequest->status === 'provisioned') {
-            throw ValidationException::withMessages([
-                'status' => ['A provisioned request is read-only.'],
-            ]);
-        }
-
-        /** @var User $actor */
-        $actor = $request->user();
-        $demoRequest->update([
-            ...$attributes,
-            'handled_by_id' => $nextStatus === 'new' ? null : $actor->id,
-        ]);
+        $demoRequest->update($request->validated());
 
         return new DemoRequestResource($demoRequest->fresh(self::RELATIONS));
+    }
+
+    public function startReview(Request $request, DemoRequest $demoRequest): DemoRequestResource
+    {
+        Gate::authorize('update', $demoRequest);
+        /** @var User $actor */
+        $actor = $request->user();
+        $demoRequest = $this->transition($demoRequest, ['submitted'], [
+            'status' => 'under_review',
+            'handled_by_id' => $actor->id,
+            'review_started_at' => now(),
+        ], 'Only a submitted request can enter review.');
+
+        return new DemoRequestResource($demoRequest);
+    }
+
+    public function reject(RejectDemoRequestRequest $request, DemoRequest $demoRequest): DemoRequestResource
+    {
+        Gate::authorize('update', $demoRequest);
+        /** @var User $actor */
+        $actor = $request->user();
+        $attributes = $request->validated();
+        $demoRequest = $this->transition($demoRequest, ['submitted', 'under_review'], [
+            ...$attributes,
+            'status' => 'rejected',
+            'handled_by_id' => $actor->id,
+            'decided_at' => now(),
+        ], 'Only a submitted or reviewed request can be rejected.');
+
+        return new DemoRequestResource($demoRequest);
+    }
+
+    public function reopen(Request $request, DemoRequest $demoRequest): DemoRequestResource
+    {
+        Gate::authorize('update', $demoRequest);
+        /** @var User $actor */
+        $actor = $request->user();
+        $demoRequest = $this->transition($demoRequest, ['rejected'], [
+            'status' => 'under_review',
+            'handled_by_id' => $actor->id,
+            'review_started_at' => now(),
+            'decided_at' => null,
+            'rejection_reason' => null,
+        ], 'Only a rejected request can be reopened.');
+
+        return new DemoRequestResource($demoRequest);
     }
 
     public function provision(
@@ -155,7 +186,7 @@ class DemoRequestController extends Controller
         return new DemoRequestResource($result['demo_request']);
     }
 
-    public function resendInvitation(
+    public function issueInvitation(
         Request $request,
         DemoRequest $demoRequest,
         AccountInvitationService $invitations,
@@ -192,7 +223,7 @@ class DemoRequestController extends Controller
                     ->orWhereRaw('LOWER(company_name) LIKE ?', [$needle]));
             })
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
-            ->when($filters['topic'] ?? null, fn (Builder $query, string $topic) => $query->where('topic', $topic));
+            ->when($filters['objective'] ?? null, fn (Builder $query, string $objective) => $query->whereJsonContains('objectives', $objective));
     }
 
     private function uniqueReference(): string
@@ -202,5 +233,20 @@ class DemoRequestController extends Controller
         } while (DemoRequest::query()->where('reference', $reference)->exists());
 
         return $reference;
+    }
+
+    /** @param list<string> $allowedStatuses */
+    private function transition(DemoRequest $demoRequest, array $allowedStatuses, array $attributes, string $error): DemoRequest
+    {
+        $updated = DemoRequest::query()
+            ->whereKey($demoRequest->id)
+            ->whereIn('status', $allowedStatuses)
+            ->update($attributes);
+
+        if ($updated !== 1) {
+            throw ValidationException::withMessages(['status' => [$error]]);
+        }
+
+        return DemoRequest::query()->with(self::RELATIONS)->findOrFail($demoRequest->id);
     }
 }

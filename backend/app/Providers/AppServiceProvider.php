@@ -5,6 +5,9 @@ namespace App\Providers;
 use App\Contracts\PaymentGateway;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 
@@ -37,6 +40,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('demo-request-submit', fn (Request $request) => Limit::perHour(3)
+            ->by('demo-submit:'.$request->ip()));
+        RateLimiter::for('invitation-inspect', fn (Request $request) => Limit::perMinute(10)
+            ->by('invitation-inspect:'.$request->ip()));
+        RateLimiter::for('invitation-accept', fn (Request $request) => Limit::perMinute(5)
+            ->by('invitation-accept:'.$request->ip().':'.sha1(mb_strtolower((string) $request->input('email')))));
+
         ResetPassword::createUrlUsing(function (User $user, string $token): string {
             $frontendUrl = rtrim((string) config('frontend.url'), '/');
 

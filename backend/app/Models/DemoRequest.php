@@ -10,9 +10,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'reference', 'full_name', 'email', 'company_name', 'phone', 'topic',
-    'estimated_stations', 'message', 'status', 'scheduled_at', 'internal_notes',
-    'handled_by_id', 'organization_id', 'consent_at', 'submitted_ip_hash', 'provisioned_at',
+    'reference', 'full_name', 'email', 'company_name', 'phone', 'objectives',
+    'estimated_stations', 'message', 'status', 'internal_notes', 'rejection_reason',
+    'handled_by_id', 'organization_id', 'consent_at', 'submitted_ip_hash',
+    'review_started_at', 'decided_at', 'provisioned_at',
 ])]
 class DemoRequest extends Model
 {
@@ -20,27 +21,30 @@ class DemoRequest extends Model
     use HasFactory;
 
     public const STATUSES = [
-        'new',
+        'submitted',
         'under_review',
-        'contacted',
-        'demo_scheduled',
-        'qualified',
-        'approved',
         'provisioned',
         'rejected',
     ];
 
-    public const TOPICS = ['platform', 'operator', 'technician', 'client', 'admin'];
+    public const OBJECTIVES = [
+        'availability_monitoring',
+        'remote_supervision',
+        'maintenance_coordination',
+        'charging_activity',
+        'team_access',
+        'ocpp_onboarding',
+        'performance_uptime',
+    ];
 
-    private const TRANSITIONS = [
-        'new' => ['under_review', 'contacted', 'rejected'],
-        'under_review' => ['contacted', 'rejected'],
-        'contacted' => ['demo_scheduled', 'qualified', 'rejected'],
-        'demo_scheduled' => ['contacted', 'qualified', 'rejected'],
-        'qualified' => ['contacted', 'approved', 'rejected'],
-        'approved' => ['rejected'],
-        'provisioned' => [],
-        'rejected' => ['under_review'],
+    public const OBJECTIVE_LABELS = [
+        'availability_monitoring' => 'Monitor station availability and detect outages',
+        'remote_supervision' => 'Supervise stations and connectors remotely',
+        'maintenance_coordination' => 'Coordinate incidents, interventions and maintenance',
+        'charging_activity' => 'Track charging activity and energy consumption',
+        'team_access' => 'Manage operators, technicians and customer access',
+        'ocpp_onboarding' => 'Integrate and onboard OCPP-compatible stations',
+        'performance_uptime' => 'Analyze network performance and improve uptime',
     ];
 
     public function handledBy(): BelongsTo
@@ -58,18 +62,14 @@ class DemoRequest extends Model
         return $this->hasMany(AccountInvitation::class);
     }
 
-    /** @return list<string> */
-    public function allowedTransitions(): array
-    {
-        return self::TRANSITIONS[$this->status] ?? [];
-    }
-
     protected function casts(): array
     {
         return [
+            'objectives' => 'array',
             'estimated_stations' => 'integer',
-            'scheduled_at' => 'datetime',
             'consent_at' => 'datetime',
+            'review_started_at' => 'datetime',
+            'decided_at' => 'datetime',
             'provisioned_at' => 'datetime',
         ];
     }

@@ -7,6 +7,7 @@ use App\Models\DemoRequest;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\AccountInvitationNotification;
+use App\Notifications\DemoRequestReceivedNotification;
 use App\Notifications\NewDemoRequestNotification;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,7 +27,7 @@ class DemoRequestWorkflowTest extends TestCase
         config(['demo.notification_email' => 'platform@example.com']);
     }
 
-    public function test_visitor_can_submit_a_valid_demo_request_and_internal_notification_is_queued(): void
+    public function test_visitor_can_submit_a_valid_demo_request_and_both_notifications_are_queued(): void
     {
         Notification::fake();
 
@@ -35,16 +36,25 @@ class DemoRequestWorkflowTest extends TestCase
             ->assertJsonStructure(['message', 'reference']);
 
         $request = DemoRequest::query()->sole();
-        $this->assertSame('new', $request->status);
+        $this->assertSame('submitted', $request->status);
         $this->assertSame('contact@northcharge.tn', $request->email);
+        $this->assertSame(['availability_monitoring', 'maintenance_coordination'], $request->objectives);
         $this->assertNotNull($request->consent_at);
         $this->assertNotNull($request->submitted_ip_hash);
         $this->assertNotSame('127.0.0.1', $request->submitted_ip_hash);
+        Notification::assertSentOnDemand(DemoRequestReceivedNotification::class);
         Notification::assertSentOnDemand(NewDemoRequestNotification::class);
+
+        $applicantMail = (new DemoRequestReceivedNotification($request))->toMail(new \stdClass);
+        $internalMail = (new NewDemoRequestNotification($request))->toMail(new \stdClass);
+        $this->assertNull($applicantMail->actionUrl);
+        $this->assertStringContainsString('/demo-requests', $internalMail->actionUrl);
+        $this->assertStringStartsWith('[Internal]', $internalMail->subject);
     }
 
     public function test_public_request_rejects_spam_and_recent_duplicates(): void
     {
+        Notification::fake();
         $payload = $this->publicPayload();
         $this->postJson('/api/demo-requests', [...$payload, 'website' => 'https://spam.example'])
             ->assertUnprocessable()
@@ -78,7 +88,7 @@ class DemoRequestWorkflowTest extends TestCase
             ->assertJsonPath('summary.total', 1);
     }
 
-    public function test_super_administrator_follows_status_transitions_and_provisions_an_invited_admin(): void
+    public function test_super_administrator_reviews_and_provisions_an_invited_admin(): void
     {
         Notification::fake();
         $superAdministrator = $this->user(null, 'super_admin');
@@ -86,13 +96,18 @@ class DemoRequestWorkflowTest extends TestCase
             'full_name' => 'Leila Mansour',
             'email' => 'leila@futurecharge.tn',
             'company_name' => 'Future Charge',
-            'status' => 'qualified',
+            'status' => 'submitted',
         ]);
         Sanctum::actingAs($superAdministrator);
 
-        $this->patchJson("/api/demo-requests/{$demoRequest->id}", ['status' => 'approved'])
+        $this->postJson("/api/demo-requests/{$demoRequest->id}/start-review")
             ->assertOk()
-            ->assertJsonPath('data.status', 'approved');
+            ->assertJsonPath('data.status', 'under_review')
+            ->assertJsonPath('data.handled_by.id', $superAdministrator->id);
+
+        $this->patchJson("/api/demo-requests/{$demoRequest->id}", ['internal_notes' => 'Company and network scope verified.'])
+            ->assertOk()
+            ->assertJsonPath('data.internal_notes', 'Company and network scope verified.');
 
         $this->postJson("/api/demo-requests/{$demoRequest->id}/provision", [
             'organization_name' => 'Future Charge Tunisia',
@@ -116,11 +131,14 @@ class DemoRequestWorkflowTest extends TestCase
         ]);
         Notification::assertSentTo($administrator, AccountInvitationNotification::class);
 
+        $this->postJson("/api/demo-requests/{$demoRequest->id}/invitation/issue")
+            ->assertUnprocessable();
+
         $this->postJson("/api/demo-requests/{$demoRequest->id}/invitation/revoke")
             ->assertOk()
             ->assertJsonPath('data.invitation.status', 'revoked');
 
-        $this->postJson("/api/demo-requests/{$demoRequest->id}/invitation/resend")
+        $this->postJson("/api/demo-requests/{$demoRequest->id}/invitation/issue")
             ->assertOk()
             ->assertJsonPath('data.invitation.status', 'pending');
 
@@ -133,6 +151,27 @@ class DemoRequestWorkflowTest extends TestCase
             'admin_name' => 'Duplicate',
             'trial_days' => 30,
         ])->assertUnprocessable();
+    }
+
+    public function test_rejection_and_reopening_are_explicit_actions(): void
+    {
+        $superAdministrator = $this->user(null, 'super_admin');
+        $demoRequest = DemoRequest::factory()->create(['status' => 'submitted']);
+        Sanctum::actingAs($superAdministrator);
+
+        $this->postJson("/api/demo-requests/{$demoRequest->id}/reject", [
+            'rejection_reason' => 'The submitted organization details cannot be verified.',
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'rejected')
+            ->assertJsonPath('data.rejection_reason', 'The submitted organization details cannot be verified.');
+
+        $this->postJson("/api/demo-requests/{$demoRequest->id}/reopen")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'under_review')
+            ->assertJsonPath('data.rejection_reason', null);
+
+        $this->postJson("/api/demo-requests/{$demoRequest->id}/start-review")
+            ->assertUnprocessable();
     }
 
     public function test_invited_administrator_can_activate_once_with_the_exact_token(): void
@@ -224,6 +263,48 @@ class DemoRequestWorkflowTest extends TestCase
         $this->assertSame('pending', $administrator->fresh()->status);
     }
 
+    public function test_demo_submission_limit_does_not_consume_invitation_activation_attempts(): void
+    {
+        Notification::fake();
+        foreach (range(1, 3) as $index) {
+            $this->postJson('/api/demo-requests', [
+                ...$this->publicPayload(),
+                'email' => "network-{$index}@example.com",
+            ])->assertCreated();
+        }
+
+        $organization = Organization::query()->create([
+            'name' => 'Independent Limits',
+            'slug' => 'independent-limits',
+            'status' => 'active',
+        ]);
+        $superAdministrator = $this->user(null, 'super_admin');
+        $administrator = $this->user($organization, 'admin', [
+            'email' => 'limited@example.com',
+            'status' => 'pending',
+            'email_verified_at' => null,
+        ]);
+        $token = str_repeat('c', 80);
+        AccountInvitation::query()->create([
+            'organization_id' => $organization->id,
+            'user_id' => $administrator->id,
+            'invited_by_id' => $superAdministrator->id,
+            'name' => $administrator->name,
+            'email' => $administrator->email,
+            'role' => 'admin',
+            'token_hash' => hash('sha256', $token),
+            'status' => 'pending',
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $this->postJson('/api/account-invitations/accept', [
+            'email' => $administrator->email,
+            'token' => $token,
+            'password' => 'SecurePass123',
+            'password_confirmation' => 'SecurePass123',
+        ])->assertOk();
+    }
+
     /** @return array<string, mixed> */
     private function publicPayload(): array
     {
@@ -232,7 +313,7 @@ class DemoRequestWorkflowTest extends TestCase
             'email' => 'Contact@NorthCharge.tn',
             'company_name' => 'North Charge',
             'phone' => '+216 20 123 456',
-            'topic' => 'platform',
+            'objectives' => ['availability_monitoring', 'maintenance_coordination'],
             'estimated_stations' => 24,
             'message' => 'We want to supervise availability across our charging network.',
             'consent_accepted' => true,
