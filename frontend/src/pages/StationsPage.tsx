@@ -1,26 +1,31 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Button, Card, Empty, Input, Popconfirm, Segmented, Skeleton, Tabs, Tooltip } from 'antd'
+import { Alert, App, Button, Card, Empty, Input, Popconfirm, Segmented, Skeleton, Table, Tabs, Tooltip, type TableColumnsType } from 'antd'
 import {
   ChevronRight,
   Clock3,
-  Filter,
   Gauge,
   Grid2X2,
   List,
+  Map as MapIcon,
   MapPin,
   PencilLine,
   Plus,
   Search,
+  Table2,
   Trash2,
   Zap,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { createStation, deleteStation, getStations, updateStation } from '../features/stations/stationApi'
 import { StationFormDrawer } from '../features/stations/StationFormDrawer'
 import { StationStatusTag } from '../features/stations/StationStatusTag'
+import { availabilityReasonLabel } from '../features/stations/availabilityLabels'
 import { useAuth } from '../features/auth/useAuth'
+import { StationMapView } from '../features/maps/StationMapView'
 import type { Station, StationPayload, StationStatus } from '../types/station'
+
+type StationView = 'grid' | 'list' | 'table' | 'map'
 
 const statusTabs: Array<{ key: 'all' | StationStatus; label: string }> = [
   { key: 'all', label: 'All stations' },
@@ -29,15 +34,18 @@ const statusTabs: Array<{ key: 'all' | StationStatus; label: string }> = [
   { key: 'faulted', label: 'Faulted' },
   { key: 'offline', label: 'Offline' },
   { key: 'maintenance', label: 'Maintenance' },
+  { key: 'reserved', label: 'Reserved' },
+  { key: 'unavailable', label: 'Unavailable' },
 ]
 
 export function StationsPage() {
   const [status, setStatus] = useState<'all' | StationStatus>('all')
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
-  const [view, setView] = useState<'grid' | 'list'>('grid')
+  const [searchParams, setSearchParams] = useSearchParams()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedStation, setSelectedStation] = useState<Station | null>(null)
+  const [initialCoordinates, setInitialCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { message } = App.useApp()
@@ -45,6 +53,10 @@ export function StationsPage() {
   const canCreate = user?.permissions.includes('stations.create') ?? false
   const canUpdate = user?.permissions.includes('stations.update') ?? false
   const canDelete = user?.permissions.includes('stations.delete') ?? false
+  const requestedView = searchParams.get('view')
+  const view: StationView = requestedView && ['grid', 'list', 'table', 'map'].includes(requestedView)
+    ? requestedView as StationView
+    : 'grid'
 
   const filters = useMemo(() => ({
     search: deferredSearch.trim() || undefined,
@@ -64,6 +76,7 @@ export function StationsPage() {
       await queryClient.invalidateQueries({ queryKey: ['stations'] })
       setDrawerOpen(false)
       setSelectedStation(null)
+      setInitialCoordinates(null)
       void message.success(selectedStation ? 'Station updated successfully.' : 'Station added successfully.')
     },
     onError: () => void message.error('The station could not be saved. Check the form and try again.'),
@@ -81,10 +94,45 @@ export function StationsPage() {
   const summary = stationsQuery.data?.summary
   const stations = stationsQuery.data?.data ?? []
 
-  function openDrawer(station?: Station) {
+  function openDrawer(station?: Station, coordinates?: { latitude: number; longitude: number }) {
     setSelectedStation(station ?? null)
+    setInitialCoordinates(coordinates ?? null)
     setDrawerOpen(true)
   }
+
+  function changeView(nextView: StationView) {
+    const nextParams = new URLSearchParams(searchParams)
+    if (nextView === 'grid') nextParams.delete('view')
+    else nextParams.set('view', nextView)
+    setSearchParams(nextParams, { replace: true })
+  }
+
+  const tableColumns: TableColumnsType<Station> = [
+    {
+      title: 'Station',
+      key: 'station',
+      render: (_, station) => <button type="button" className="station-table-name" onClick={() => navigate(`/stations/${station.id}`)}><img src={station.model_image ?? '/assets/charger-terra-hp-150.png'} alt="" /><span><strong>{station.name}</strong><small>{station.reference}</small></span></button>,
+    },
+    { title: 'Location', dataIndex: 'location', key: 'location' },
+    { title: 'Status', dataIndex: 'status', key: 'status', render: (value: StationStatus) => <StationStatusTag status={value} /> },
+    { title: 'Connectors', dataIndex: 'connectors_count', key: 'connectors_count', align: 'center' },
+    { title: 'Power', dataIndex: 'max_power_kw', key: 'max_power_kw', render: (value: number) => `${value} kW` },
+    { title: 'Uptime', dataIndex: 'uptime_percent', key: 'uptime_percent', render: (value: number) => `${value}%` },
+    {
+      title: 'Actions',
+      key: 'actions',
+      align: 'right',
+      render: (_, station) => <StationActions
+        station={station}
+        canUpdate={canUpdate}
+        canDelete={canDelete}
+        deleting={removeStation.isPending}
+        onView={() => navigate(`/stations/${station.id}`)}
+        onEdit={() => openDrawer(station)}
+        onDelete={() => removeStation.mutate(station.id)}
+      />,
+    },
+  ]
 
   return (
     <div className="stations-page">
@@ -117,13 +165,14 @@ export function StationsPage() {
           placeholder="Search stations"
           allowClear
         />
-        <Tooltip title="Open geographic filters"><Button icon={<Filter size={16} />} onClick={() => navigate('/map')} /></Tooltip>
         <Segmented
           value={view}
-          onChange={(value) => setView(value as 'grid' | 'list')}
+          onChange={(value) => changeView(value as StationView)}
           options={[
-            { value: 'grid', icon: <Grid2X2 size={16} />, label: '' },
-            { value: 'list', icon: <List size={16} />, label: '' },
+            { value: 'grid', icon: <Grid2X2 size={15} />, label: 'Grid' },
+            { value: 'list', icon: <List size={15} />, label: 'List' },
+            { value: 'table', icon: <Table2 size={15} />, label: 'Table' },
+            { value: 'map', icon: <MapIcon size={15} />, label: 'Map' },
           ]}
         />
         <span className="stations-toolbar-spacer" />
@@ -134,7 +183,14 @@ export function StationsPage() {
         <Alert className="stations-feedback" type="error" showIcon title="Unable to load stations" description="Make sure the Laravel API is running, then retry." action={<Button size="small" onClick={() => void stationsQuery.refetch()}>Retry</Button>} />
       )}
 
-      {stationsQuery.isLoading ? (
+      {view === 'map' ? (
+        <StationMapView
+          search={filters.search}
+          status={filters.status}
+          canCreate={canCreate}
+          onCreateAt={(coordinates) => openDrawer(undefined, coordinates)}
+        />
+      ) : stationsQuery.isLoading ? (
         <div className="stations-grid">{Array.from({ length: 8 }, (_, index) => <Card key={index}><Skeleton active /></Card>)}</div>
       ) : stations.length === 0 ? (
         <Empty className="stations-empty" description="No station matches the current filters" />
@@ -146,6 +202,7 @@ export function StationsPage() {
                 <div><h2>{station.name}</h2><p><MapPin size={12} />{station.location}</p></div>
                 <StationStatusTag status={station.status} />
               </div>
+              {station.ocpp_managed && <div className="station-availability-note"><Clock3 size={13} />Live rule: {availabilityReasonLabel(station.availability_reason)}</div>}
               <div className="station-card-facts">
                 <StationFact icon={<Zap size={13} />} label="Connectors" value={`${station.connectors_count}`} />
                 <StationFact icon={<Gauge size={13} />} label="Power" value={`${station.max_power_kw} kW`} />
@@ -171,7 +228,7 @@ export function StationsPage() {
             </Card>
           ))}
         </div>
-      ) : (
+      ) : view === 'list' ? (
         <div className="station-list-table">
           {stations.map((station) => (
             <div className="station-list-row" key={station.id}>
@@ -202,13 +259,18 @@ export function StationsPage() {
             </div>
           ))}
         </div>
+      ) : (
+        <div className="station-data-table">
+          <Table<Station> rowKey="id" columns={tableColumns} dataSource={stations} pagination={false} scroll={{ x: 920 }} />
+        </div>
       )}
 
       <StationFormDrawer
         open={drawerOpen}
         station={selectedStation}
         submitting={saveStation.isPending}
-        onClose={() => { setDrawerOpen(false); setSelectedStation(null) }}
+        initialCoordinates={initialCoordinates}
+        onClose={() => { setDrawerOpen(false); setSelectedStation(null); setInitialCoordinates(null) }}
         onSubmit={(values) => saveStation.mutate(values)}
       />
     </div>
@@ -221,4 +283,12 @@ function HeroMetric({ value, label }: { value: string | number; label: string })
 
 function StationFact({ icon, label, value }: { icon?: React.ReactNode; label: string; value: string }) {
   return <div><span>{icon}{label}</span><strong>{value}</strong></div>
+}
+
+function StationActions({ station, canUpdate, canDelete, deleting, onView, onEdit, onDelete }: { station: Station; canUpdate: boolean; canDelete: boolean; deleting: boolean; onView: () => void; onEdit: () => void; onDelete: () => void }) {
+  return <div className="station-table-actions">
+    <Button size="small" onClick={onView}>Details</Button>
+    {canUpdate && <Tooltip title={`Edit ${station.name}`}><Button size="small" type="text" icon={<PencilLine size={15} />} onClick={onEdit} /></Tooltip>}
+    {canDelete && <Popconfirm title="Delete this station?" description="The station will be removed from the active inventory." okText="Delete" okButtonProps={{ danger: true, loading: deleting }} cancelText="Cancel" onConfirm={onDelete}><Tooltip title={`Delete ${station.name}`}><Button size="small" type="text" danger icon={<Trash2 size={15} />} /></Tooltip></Popconfirm>}
+  </div>
 }

@@ -30,7 +30,6 @@ const UsersPage = lazy(() => import('../pages/UsersPage').then((module) => ({ de
 const CustomersPage = lazy(() => import('../pages/CustomersPage').then((module) => ({ default: module.CustomersPage })))
 const SubscriptionsPage = lazy(() => import('../pages/SubscriptionsPage').then((module) => ({ default: module.SubscriptionsPage })))
 const DemoRequestsPage = lazy(() => import('../pages/DemoRequestsPage').then((module) => ({ default: module.DemoRequestsPage })))
-const MapPage = lazy(() => import('../pages/MapPage').then((module) => ({ default: module.MapPage })))
 
 function DefaultRedirect() {
   const { primaryRole } = useAuth()
@@ -76,7 +75,7 @@ export function AppRouter() {
           <Route element={<PermissionProtectedRoute permission="stations.view" />}>
             <Route path="/stations" element={<StationsPage />} />
             <Route path="/stations/:stationId" element={<StationDetailPage />} />
-            <Route path="/map" element={<MapPage />} />
+            <Route path="/map" element={<Navigate to="/stations?view=map" replace />} />
           </Route>
           <Route element={<PermissionProtectedRoute permission="alerts.view" />}>
             <Route path="/alerts" element={<AlertsPage />} />
@@ -95,6 +94,7 @@ export function AppRouter() {
           </Route>
           <Route element={<RoleProtectedRoute allowedRoles={['client']} />}>
             <Route path="/find-station" element={<FindStationPage />} />
+            <Route path="/charge/:stationId/:connectorId" element={<FindStationPage />} />
           </Route>
           <Route element={<RoleProtectedRoute allowedRoles={['client']} />}>
             <Route path="/subscriptions" element={<SubscriptionsPage />} />

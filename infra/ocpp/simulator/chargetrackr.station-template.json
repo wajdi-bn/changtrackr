@@ -1,0 +1,75 @@
+{
+  "$schemaVersion": 1,
+  "idTagsFile": "chargetrackr-idtags.json",
+  "baseName": "__OCPP_SIMULATOR_STATION_IDENTITY__",
+  "fixedName": true,
+  "chargePointModel": "ChargeTrackr-Sim",
+  "chargePointVendor": "SAP E-Mobility",
+  "supervisionUser": "__OCPP_SIMULATOR_STATION_IDENTITY__",
+  "supervisionPassword": "__OCPP_SIMULATOR_STATION_SECRET__",
+  "power": 150000,
+  "powerUnit": "W",
+  "powerSharedByConnectors": true,
+  "currentOutType": "DC",
+  "numberOfConnectors": 2,
+  "randomConnectors": false,
+  "autoRegister": false,
+  "ocppStrictCompliance": true,
+  "Configuration": {
+    "configurationKey": [
+      {
+        "key": "HeartbeatInterval",
+        "readonly": false,
+        "value": "30"
+      },
+      {
+        "key": "MeterValuesSampledData",
+        "readonly": false,
+        "value": "Energy.Active.Import.Register,Power.Active.Import"
+      },
+      {
+        "key": "MeterValueSampleInterval",
+        "readonly": false,
+        "value": "30"
+      },
+      {
+        "key": "SupportedFeatureProfiles",
+        "readonly": true,
+        "value": "Core,RemoteTrigger"
+      }
+    ]
+  },
+  "AutomaticTransactionGenerator": {
+    "enable": false,
+    "minDuration": 60,
+    "maxDuration": 90,
+    "minDelayBetweenTwoTransactions": 20,
+    "maxDelayBetweenTwoTransactions": 40,
+    "probabilityOfStart": 1,
+    "requireAuthorize": false,
+    "stopAfterHours": 0.3
+  },
+  "Connectors": {
+    "0": {},
+    "1": {
+      "bootStatus": "Available",
+      "maximumPower": 150000,
+      "MeterValues": [
+        {
+          "unit": "Wh",
+          "context": "Sample.Periodic"
+        }
+      ]
+    },
+    "2": {
+      "bootStatus": "Available",
+      "maximumPower": 150000,
+      "MeterValues": [
+        {
+          "unit": "Wh",
+          "context": "Sample.Periodic"
+        }
+      ]
+    }
+  }
+}

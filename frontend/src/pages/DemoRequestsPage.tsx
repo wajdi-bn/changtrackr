@@ -9,7 +9,6 @@ import {
   Empty,
   Form,
   Input,
-  InputNumber,
   Modal,
   Pagination,
   Popconfirm,
@@ -35,6 +34,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
+import { CompactInputNumber } from '../components/CompactInputNumber'
 import {
   getDemoRequests,
   issueDemoInvitation,
@@ -348,7 +348,7 @@ function ProvisionModal({ request, loading, onClose, onSubmit }: { request: Demo
       <Alert className="provision-alert" type="info" showIcon title="One approval, one transaction" description={`An isolated trial organization and pending administrator account will be created. The activation link will be sent to ${request.email}.`} />
       <Form.Item name="organization_name" label="Organization name" rules={[{ required: true }]}><Input /></Form.Item>
       <Form.Item name="admin_name" label="Administrator name" rules={[{ required: true }]}><Input /></Form.Item>
-      <Form.Item name="trial_days" label="Trial period" rules={[{ required: true }]}><InputNumber min={7} max={90} addonAfter="days" /></Form.Item>
+      <Form.Item name="trial_days" label="Trial period" rules={[{ required: true }]}><CompactInputNumber min={7} max={90} addon="days" /></Form.Item>
       <div className="modal-form-actions"><Button onClick={onClose}>Cancel</Button><Button type="primary" htmlType="submit" loading={loading} icon={<Building2 size={15} />}>Create workspace & invite</Button></div>
     </Form>}
   </Modal>

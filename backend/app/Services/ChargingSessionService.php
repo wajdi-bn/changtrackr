@@ -2,11 +2,16 @@
 
 namespace App\Services;
 
+use App\Events\ChargingAttemptChanged;
+use App\Events\ChargingSessionChanged;
+use App\Models\ChargingAttempt;
 use App\Models\ChargingSession;
 use App\Models\Connector;
+use App\Models\OcppTransaction;
 use App\Models\PlanSubscription;
 use App\Models\Station;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -30,12 +35,18 @@ class ChargingSessionService
                 throw ValidationException::withMessages(['station_id' => ['The station organization is not active.']]);
             }
 
+            if ($station->isOcppManaged()) {
+                throw ValidationException::withMessages([
+                    'station_id' => ['This station requires an OCPP-confirmed start. Use its authorized idTag until remote start is enabled.'],
+                ]);
+            }
+
             if (! in_array($station->status, ['available', 'charging'], true) || $connector->status !== 'available') {
                 throw ValidationException::withMessages(['connector_id' => ['The selected connector is no longer available.']]);
             }
 
             $hasActiveSession = ChargingSession::query()
-                ->where('status', 'charging')
+                ->whereIn('status', ['pending', 'charging', 'stopping'])
                 ->where(fn ($query) => $query->where('client_id', $client->id)->orWhere('connector_id', $connector->id))
                 ->exists();
 
@@ -61,6 +72,7 @@ class ChargingSessionService
                 'tariff_id' => $tariff->id,
                 'charging_plan_id' => $subscription?->charging_plan_id,
                 'reference' => 'SES-'.Str::upper(Str::random(10)),
+                'source' => 'simulated',
                 'client_name' => $client->name,
                 'station_name' => $station->name,
                 'connector_external_id' => $connector->external_id,
@@ -78,9 +90,11 @@ class ChargingSessionService
                 'currency' => $tariff->currency,
             ]);
 
-            $connector->update(['status' => 'charging', 'last_status_at' => now(), 'error_code' => null]);
-            if ($station->status === 'available') {
-                $station->update(['status' => 'charging']);
+            if (! $station->isOcppManaged()) {
+                $connector->update(['status' => 'charging', 'last_status_at' => now(), 'error_code' => null]);
+                if ($station->status === 'available') {
+                    $station->update(['status' => 'charging']);
+                }
             }
 
             return $session->load(['organization', 'station', 'connector', 'client', 'payment']);
@@ -91,10 +105,16 @@ class ChargingSessionService
     {
         return DB::transaction(function () use ($session): ChargingSession {
             $session = ChargingSession::query()->lockForUpdate()->findOrFail($session->id);
+            if ($session->source === 'ocpp') {
+                throw ValidationException::withMessages([
+                    'session' => ['This OCPP session must be stopped through a confirmed remote command or by the station.'],
+                ]);
+            }
             if ($session->status !== 'charging') {
                 throw ValidationException::withMessages(['session' => ['Only an active charging session can be stopped.']]);
             }
 
+            $station = Station::query()->lockForUpdate()->find($session->station_id);
             $connector = $session->connector_id
                 ? Connector::query()->lockForUpdate()->find($session->connector_id)
                 : null;
@@ -120,11 +140,10 @@ class ChargingSessionService
                 'total_millimes' => $totalMillimes,
             ]);
 
-            if ($connector) {
+            if ($connector && ! $station?->isOcppManaged()) {
                 $connector->update(['status' => 'available', 'last_status_at' => now()]);
             }
 
-            $station = Station::query()->lockForUpdate()->find($session->station_id);
             if ($station) {
                 $hasOtherActiveSessions = ChargingSession::query()
                     ->where('station_id', $station->id)
@@ -132,7 +151,9 @@ class ChargingSessionService
                     ->whereKeyNot($session->id)
                     ->exists();
                 $station->update([
-                    'status' => $hasOtherActiveSessions ? 'charging' : 'available',
+                    ...($station->isOcppManaged() ? [] : [
+                        'status' => $hasOtherActiveSessions ? 'charging' : 'available',
+                    ]),
                     'energy_today_kwh' => $station->energy_today_kwh + $energyKwh,
                     'sessions_today' => $station->sessions_today + 1,
                 ]);
@@ -140,5 +161,255 @@ class ChargingSessionService
 
             return $session->fresh()->load(['organization', 'station', 'connector', 'client', 'payment']);
         });
+    }
+
+    public function startFromOcpp(
+        User $client,
+        Station $station,
+        Connector $connector,
+        OcppTransaction $transaction,
+    ): ChargingSession {
+        return DB::transaction(function () use ($client, $station, $connector, $transaction): ChargingSession {
+            $hasActiveSession = ChargingSession::query()
+                ->whereIn('status', ['pending', 'charging', 'stopping'])
+                ->where(fn ($query) => $query->where('client_id', $client->id)->orWhere('connector_id', $connector->id))
+                ->exists();
+
+            if ($hasActiveSession) {
+                throw ValidationException::withMessages(['session' => ['The client or connector already has an active session.']]);
+            }
+
+            $tariff = $this->tariffResolver->resolve($station, $connector);
+            $subscription = $this->currentSubscription($client, $station);
+            $meterStartKwh = $transaction->meter_start_wh / 1000;
+            $attempt = ChargingAttempt::query()
+                ->where('user_id', $client->id)
+                ->where('connector_id', $connector->id)
+                ->where('ocpp_id_tag_id', $transaction->ocpp_id_tag_id)
+                ->whereIn('status', ['authorized', 'command_queued', 'command_sent', 'awaiting_station'])
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
+
+            $session = ChargingSession::query()->create([
+                'organization_id' => $station->organization_id,
+                'client_id' => $client->id,
+                'station_id' => $station->id,
+                'connector_id' => $connector->id,
+                'tariff_id' => $tariff->id,
+                'charging_plan_id' => $subscription?->charging_plan_id,
+                'ocpp_transaction_id' => $transaction->id,
+                'reference' => 'SES-'.Str::upper(Str::random(10)),
+                'source' => 'ocpp',
+                'client_name' => $client->name,
+                'station_name' => $station->name,
+                'connector_external_id' => $connector->external_id,
+                'status' => 'charging',
+                'lifecycle_reason' => 'start_transaction_confirmed',
+                'payment_status' => $attempt?->payment_status === 'authorized' ? 'authorized' : 'unpaid',
+                'tariff_name' => $tariff->name,
+                'charging_plan_name' => $subscription?->chargingPlan?->name,
+                'discount_basis_points' => $subscription?->discount_basis_points ?? 0,
+                'started_at' => $transaction->started_at,
+                'meter_start_kwh' => $meterStartKwh,
+                'meter_stop_kwh' => null,
+                'energy_kwh' => 0,
+                'limit_energy_kwh' => $attempt?->limit_energy_kwh,
+                'limit_amount_millimes' => $attempt?->limit_amount_millimes ?? $attempt?->preauthorized_amount_millimes,
+                'limit_duration_minutes' => $attempt?->limit_duration_minutes,
+                'price_per_kwh_millimes' => $tariff->pricePerKwhMillimes,
+                'session_fee_millimes' => $tariff->sessionFeeMillimes,
+                'idle_fee_per_minute_millimes' => $tariff->idleFeePerMinuteMillimes,
+                'minimum_charge_millimes' => $tariff->minimumChargeMillimes,
+                'currency' => $tariff->currency,
+            ])->load(['organization', 'station', 'connector', 'client', 'payment']);
+
+            if ($attempt !== null) {
+                $attempt->update([
+                    'charging_session_id' => $session->id,
+                    'status' => 'charging',
+                    'started_at' => $transaction->started_at,
+                ]);
+                event(ChargingAttemptChanged::fromAttempt($attempt->fresh()));
+            }
+
+            event(ChargingSessionChanged::fromSession($session));
+
+            return $session;
+        });
+    }
+
+    public function updateFromOcppMeter(
+        OcppTransaction $transaction,
+        int $meterWh,
+        CarbonInterface $sampledAt,
+        ?float $powerKw = null,
+        ?float $stateOfChargePercent = null,
+    ): ?ChargingSession {
+        return DB::transaction(function () use ($transaction, $meterWh, $sampledAt, $powerKw, $stateOfChargePercent): ?ChargingSession {
+            $session = ChargingSession::query()
+                ->where('ocpp_transaction_id', $transaction->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($session === null) {
+                return $session;
+            }
+
+            if ($session->status === 'interrupted'
+                && $session->lifecycle_reason === 'ocpp_connection_lost_awaiting_reconciliation') {
+                $session->update([
+                    'status' => 'charging',
+                    'lifecycle_reason' => 'ocpp_telemetry_recovered',
+                    'ended_at' => null,
+                ]);
+            }
+
+            if (! in_array($session->status, ['charging', 'stopping'], true)) {
+                return $session;
+            }
+
+            $energyKwh = max(0, ($meterWh - $transaction->meter_start_wh) / 1000);
+            $pricing = $this->calculatePricing($session, $energyKwh);
+            $session->update([
+                'duration_seconds' => max(0, (int) round($session->started_at->diffInSeconds($sampledAt))),
+                'energy_kwh' => round($energyKwh, 3),
+                'discount_millimes' => $pricing['discount_millimes'],
+                'total_millimes' => $pricing['total_millimes'],
+                'last_meter_value_at' => $sampledAt,
+                ...($powerKw !== null ? ['current_power_kw' => round(max(0, $powerKw), 3)] : []),
+                ...($stateOfChargePercent !== null ? ['state_of_charge_percent' => min(100, max(0, $stateOfChargePercent))] : []),
+            ]);
+
+            $session = $session->fresh()->load(['organization', 'station', 'connector', 'client', 'payment']);
+            event(ChargingSessionChanged::fromSession($session));
+
+            return $session;
+        });
+    }
+
+    public function finishFromOcpp(
+        OcppTransaction $transaction,
+        string $terminalStatus,
+        string $reason,
+    ): ChargingSession {
+        return DB::transaction(function () use ($transaction, $terminalStatus, $reason): ChargingSession {
+            $session = ChargingSession::query()
+                ->where('ocpp_transaction_id', $transaction->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $awaitingReconciliation = $session->status === 'interrupted'
+                && $session->lifecycle_reason === 'ocpp_connection_lost_awaiting_reconciliation';
+
+            if (! $awaitingReconciliation
+                && in_array($session->status, ['completed', 'interrupted', 'failed', 'cancelled'], true)) {
+                return $session->load(['organization', 'station', 'connector', 'client', 'payment']);
+            }
+
+            $meterStopWh = max($transaction->meter_start_wh, (int) $transaction->meter_stop_wh);
+            $energyKwh = max(0, ($meterStopWh - $transaction->meter_start_wh) / 1000);
+            $pricing = $this->calculatePricing($session, $energyKwh);
+            $endedAt = $transaction->stopped_at ?? now();
+            $session->update([
+                'status' => $terminalStatus,
+                'lifecycle_reason' => 'stop_transaction_'.$this->normalizeOcppReason($reason),
+                'ended_at' => $endedAt,
+                'duration_seconds' => max(0, (int) round($session->started_at->diffInSeconds($endedAt))),
+                'meter_stop_kwh' => $meterStopWh / 1000,
+                'last_meter_value_at' => $transaction->last_meter_value_at,
+                'energy_kwh' => round($energyKwh, 3),
+                'discount_millimes' => $pricing['discount_millimes'],
+                'total_millimes' => $pricing['total_millimes'],
+                'current_power_kw' => 0,
+            ]);
+
+            $station = Station::query()->lockForUpdate()->find($session->station_id);
+            if ($station !== null) {
+                $station->update([
+                    'energy_today_kwh' => $station->energy_today_kwh + $energyKwh,
+                    'sessions_today' => $station->sessions_today + 1,
+                ]);
+            }
+
+            $session = $session->fresh()->load(['organization', 'station', 'connector', 'client', 'payment']);
+            event(ChargingSessionChanged::fromSession($session));
+
+            return $session;
+        });
+    }
+
+    public function interruptOcppForConnectivity(Station $station, string $reason): void
+    {
+        OcppTransaction::query()
+            ->where('station_id', $station->id)
+            ->where('status', 'active')
+            ->lockForUpdate()
+            ->get()
+            ->each(function (OcppTransaction $transaction) use ($reason): void {
+                $transaction->update([
+                    'status' => 'awaiting_reconciliation',
+                    'stop_reason' => $reason,
+                ]);
+
+                $session = ChargingSession::query()
+                    ->where('ocpp_transaction_id', $transaction->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($session === null || ! in_array($session->status, ['charging', 'stopping'], true)) {
+                    return;
+                }
+
+                $endedAt = now()->utc();
+                $session->update([
+                    'status' => 'interrupted',
+                    'lifecycle_reason' => 'ocpp_connection_lost_awaiting_reconciliation',
+                    'ended_at' => $endedAt,
+                    'duration_seconds' => max(0, (int) round($session->started_at->diffInSeconds($endedAt))),
+                ]);
+                event(ChargingSessionChanged::fromSession($session->fresh()));
+            });
+    }
+
+    private function currentSubscription(User $client, Station $station): ?PlanSubscription
+    {
+        return PlanSubscription::query()
+            ->where('user_id', $client->id)
+            ->where('organization_id', $station->organization_id)
+            ->current()
+            ->whereHas('chargingPlan', fn ($query) => $query->where('status', 'active'))
+            ->with('chargingPlan')
+            ->latest('id')
+            ->first();
+    }
+
+    /** @return array{discount_millimes: int, total_millimes: int} */
+    private function calculatePricing(ChargingSession $session, float $energyKwh): array
+    {
+        $energyGross = (int) round($energyKwh * $session->price_per_kwh_millimes);
+        $discount = (int) round($energyGross * $session->discount_basis_points / 10000);
+
+        return [
+            'discount_millimes' => $discount,
+            'total_millimes' => max(
+                $energyGross - $discount + $session->session_fee_millimes,
+                $session->minimum_charge_millimes,
+            ),
+        ];
+    }
+
+    private function normalizeOcppReason(string $reason): string
+    {
+        return match ($reason) {
+            'EVDisconnected' => 'ev_disconnected',
+            'EmergencyStop' => 'emergency_stop',
+            'HardReset' => 'hard_reset',
+            'PowerLoss' => 'power_loss',
+            'SoftReset' => 'soft_reset',
+            'UnlockCommand' => 'unlock_command',
+            'DeAuthorized' => 'deauthorized',
+            default => Str::snake($reason),
+        };
     }
 }

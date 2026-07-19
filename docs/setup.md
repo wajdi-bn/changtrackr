@@ -168,17 +168,54 @@ Expected backend modules:
 - Settings
 - OCPP integration layer
 
+### OCPP gateway and simulator
+
+The OCPP integration runs in Docker while Laravel and PostgreSQL continue to run on Windows.
+Laravel must listen on `0.0.0.0:8000` so the gateway container can reach it through
+`host.docker.internal`:
+
+```bash
+npm run dev:backend:ocpp
+npm run ocpp:configure
+cd backend && C:\php\php.exe artisan migrate
+npm run ocpp:provision-fleet
+npm run ocpp:up
+npm run ocpp:scenario -- CT-ARI-006
+npm run ocpp:transaction-scenario -- CT-HAM-031
+npm run ocpp:status -- CT-TUN-001
+npm run ocpp:fleet-status
+```
+
+For live availability updates, keep these processes running in separate terminals:
+
+```bash
+npm run dev:queue
+npm run dev:scheduler
+npm run dev:reverb
+```
+
+The local SAP fleet contains nine independently connected stations with two connectors each. Use
+`npm run ocpp:plug -- <station> <connector>`, `ocpp:unplug`, `ocpp:disconnect` and `ocpp:connect`
+to target one station without changing the others.
+
+The scheduler recalculates provisioned OCPP station availability every 30 seconds. Reverb uses
+`localhost:8080`; the SAP simulator UI uses `localhost:8082`.
+
+Use `npm run ocpp:down` to stop the OCPP containers. The generated gateway, station and simulator
+UI credentials exist only in ignored `.env` files. See [ocpp.md](ocpp.md) for the component
+boundaries and security contract.
+
 ## 4. Local Services
 
 The current PostgreSQL database is local and managed outside this repository.
 
-If Docker is installed later, `infra/docker-compose.yml` can provide:
+`infra/docker-compose.yml` can optionally provide:
 
 - PostgreSQL
 - Redis
 - Mailpit
 
-These services are optional for the frontend-only phase.
+The OCPP-specific services are defined separately in `infra/ocpp/compose.yaml`.
 
 ## 5. Environment Files
 

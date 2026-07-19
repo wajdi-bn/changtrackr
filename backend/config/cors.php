@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'paths' => ['api/*', 'sanctum/csrf-cookie', 'auth/oauth/*'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'auth/oauth/*', 'broadcasting/auth'],
     'allowed_methods' => ['*'],
     'allowed_origins' => array_values(array_filter(array_map(
         'trim',

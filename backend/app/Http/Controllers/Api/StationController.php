@@ -10,6 +10,7 @@ use App\Http\Resources\StationResource;
 use App\Models\Connector;
 use App\Models\Station;
 use App\Models\User;
+use App\Services\Availability\AvailabilityProjectionService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,9 @@ use Illuminate\Validation\Rule;
 
 class StationController extends Controller
 {
-    private const STATUSES = ['available', 'charging', 'faulted', 'offline', 'maintenance'];
+    private const STATUSES = ['available', 'charging', 'faulted', 'offline', 'maintenance', 'reserved', 'unavailable'];
+
+    public function __construct(private readonly AvailabilityProjectionService $availabilityProjector) {}
 
     private const CONNECTOR_TYPES = ['CCS2', 'Type 2', 'CHAdeMO'];
 
@@ -75,6 +78,11 @@ class StationController extends Controller
     {
         Gate::authorize('viewAny', Station::class);
 
+        $availableOnly = $request->query('available_only');
+        if (is_string($availableOnly) && in_array(strtolower($availableOnly), ['true', 'false'], true)) {
+            $request->merge(['available_only' => filter_var($availableOnly, FILTER_VALIDATE_BOOLEAN)]);
+        }
+
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
             'status' => ['nullable', Rule::in(self::STATUSES)],
@@ -128,6 +136,7 @@ class StationController extends Controller
         $attributes['organization_id'] = $user->hasRole('super_admin')
             ? $attributes['organization_id']
             : $user->organization_id;
+        $attributes['ocpp_identity'] = $attributes['reference'];
 
         $station = Station::query()->create($attributes);
 
@@ -147,6 +156,10 @@ class StationController extends Controller
     {
         Gate::authorize('update', $station);
         $station->update($request->validated());
+
+        if ($station->isOcppManaged()) {
+            $station = $this->availabilityProjector->project($station->id)['station'];
+        }
 
         return new StationResource($station->fresh()->load(['organization', 'connectors'])->loadCount('connectors'));
     }

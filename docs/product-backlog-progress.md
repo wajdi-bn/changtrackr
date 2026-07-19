@@ -1,6 +1,6 @@
 # Avancement et traçabilité du backlog produit
 
-État établi le 17 juillet 2026 à partir du code, des routes, des interfaces et des tests présents dans le dépôt. Une page statique ou des données fictives ne suffisent pas pour classer une User Story comme réalisée.
+État mis à jour le 20 juillet 2026 à partir du code, des routes, des interfaces et des tests présents dans le dépôt. Une page statique ou des données fictives ne suffisent pas pour classer une User Story comme réalisée.
 
 ## Légende
 
@@ -13,9 +13,9 @@
 
 | Statut | User Stories | Points | Part des points |
 |---|---:|---:|---:|
-| Réalisée | 12 | 70 | 24,3 % |
-| Partielle | 17 | 127 | 44,1 % |
-| À faire | 10 | 78 | 27,1 % |
+| Réalisée | 18 | 125 | 43,4 % |
+| Partielle | 15 | 114 | 39,6 % |
+| À faire | 6 | 36 | 12,5 % |
 | Reportée | 1 | 13 | 4,5 % |
 | **Total** | **40** | **288** | **100 %** |
 
@@ -32,29 +32,29 @@ La part des points n'est pas un pourcentage d'achèvement linéaire : une User S
 | US-05 | 5 | À faire | Routes frontend réservées au super administrateur | Dashboard, audit, statistiques et état réel des intégrations absents |
 | US-06 | 5 | Réalisée | `CustomerController`, `CustomersPage`, `CustomerManagementApiTest` | Les exports avancés restent couverts par US-34 |
 | US-07 | 8 | Réalisée | `StationController`, `StationsPage`, formulaire Ant Design, `StationApiTest` | La désactivation pourra être distinguée d'une suppression logique |
-| US-08 | 5 | Réalisée | `ConnectorController`, gestion dans `StationDetailPage`, tests d'appartenance borne-connecteur | Les états seront ultérieurement alimentés par OCPP |
-| US-09 | 8 | Partielle | Liste, recherche, filtres et métriques dans `StationController` et `StationsPage` | Disponibilité encore stockée/manuelle, pas calculée depuis les événements |
-| US-10 | 8 | À faire | Route `/map` et permissions existantes | Carte réelle et création géographique absentes |
-| US-11 | 5 | Partielle | Le technicien peut consulter les bornes sans les modifier | Carte technicien encore placeholder |
-| US-12 | 8 | Partielle | `FindStationPage` liste/recherche les bornes disponibles de réseaux actifs | Pas de carte, géolocalisation ni filtres connecteur/tarif complets |
+| US-08 | 5 | Réalisée | `ConnectorController`, gestion dans `StationDetailPage`, tests d'appartenance borne-connecteur et 18 connecteurs alimentés par OCPP | La compatibilité physique devra être validée sur du matériel réel |
+| US-09 | 8 | Réalisée | Liste, recherche, filtres, métriques et disponibilité calculée dans `StationController`, `StationsPage` et le moteur de projection OCPP | Les KPI historiques avancés restent rattachés aux dashboards et rapports |
+| US-10 | 8 | Réalisée | Carte React Leaflet réelle, marqueurs filtrables, sélection géographique et saisie manuelle de secours | Un fournisseur de tuiles dédié sera requis avant une charge de production |
+| US-11 | 5 | Réalisée | Le technicien consulte les bornes et la carte de son organisation en lecture seule | Les actions techniques distantes relèvent de la suite d'US-14 |
+| US-12 | 8 | Réalisée | Recherche des bornes disponibles, vues cartes/carte, géolocalisation, tri par distance, disponibilité des connecteurs, copie des coordonnées, itinéraire Google Maps et démarrage guidé | Les filtres tarifaires avancés pourront enrichir la recherche sans bloquer le workflow principal |
 | US-13 | 8 | Partielle | Fiche borne, aperçu et CRUD connecteurs alimentés par API | Onglets sessions, alertes, maintenance et documents encore statiques |
-| US-14 | 13 | À faire | Champs OCPP dans les modèles et données de démonstration uniquement | Aucun serveur/gateway OCPP ni simulateur connecté |
-| US-15 | 13 | À faire | Aucun moteur de projection métier | Matrice d'états, Heartbeat, délais et traitement idempotent à construire |
-| US-16 | 13 | Partielle | États affichés par les listes et tags de l'interface | Pas de source OCPP, calcul métier ou diffusion temps réel |
+| US-14 | 13 | Partielle | Gateway Python OCPP 1.6 JSON, flotte SAP de 9 bornes et 18 connecteurs, authentification, ingestion HMAC idempotente, projections, transactions, mesures, `RemoteStartTransaction` et `RemoteStopTransaction` | `Reset` et `UnlockConnector`, la validation sur borne physique et OCPP 2.0.1 restent à traiter |
+| US-15 | 13 | Réalisée | Matrice centralisée, priorité des overrides, projection par connecteur, contrôle 30/90 secondes, historique des transitions et protection contre les événements tardifs couverts par tests | Les seuils devront être recalibrés avec une borne physique si elle devient disponible |
+| US-16 | 13 | Réalisée | États calculés exposés par REST et actualisés via Reverb dans les listes, cartes, détails et alertes ; statuts OCPP non éditables manuellement | La validation de charge Reverb appartient à la phase de tests non fonctionnels |
 | US-17 | 8 | Partielle | Dashboard opérateur présent visuellement | KPI et événements sont fictifs, aucune API analytique |
 | US-18 | 8 | Partielle | Dashboard administrateur présent visuellement | Utilisateurs, revenus, régions et classements sont fictifs |
-| US-19 | 8 | Partielle | Modèle d'alerte, CRUD, contexte OCPP et interface disponibles | Les alertes sont créées manuellement, sans règles automatiques ni déduplication |
+| US-19 | 8 | Partielle | Alertes automatiques de perte de communication et de panne connecteur, clés de déduplication, réouverture/résolution automatique, historique et interface | Les règles métier complémentaires, notifications et SLA détaillés restent à compléter |
 | US-20 | 5 | Réalisée | Filtres, statuts, affectation, chronologie, policies et tests inter-organisations | SLA métier détaillé encore à paramétrer |
 | US-21 | 5 | Réalisée | Alertes/interventions assignées, transitions contrôlées, vues technicien et tests | Notifications d'assignation couvertes ultérieurement par US-40 |
 | US-22 | 8 | Partielle | Diagnostic, résolution, commentaires, pièces et chronologie persistés | Téléversement de photos et rapport final immuable absents |
 | US-23 | 8 | Partielle | Interventions correctives planifiables avec technicien et durée | Maintenance préventive, récurrence et calendrier dédiés absents |
-| US-24 | 8 | Réalisée | `ChargingSessionService`, verrouillage, client global, UI et tests multi-organisations | Le démarrage est simulé ; l'acquittement OCPP viendra avec US-14 |
-| US-25 | 5 | Réalisée | Arrêt, calcul énergie/coût, remise du connecteur et tests | Les index réels de compteur viendront d'OCPP |
+| US-24 | 8 | Réalisée | Assistant client en cinq étapes, préautorisation, idTag virtuel, `RemoteStartTransaction`, création de session uniquement après `StartTransaction`, QR par connecteur, progression temps réel et tests | Les vidéos physiques seront ajoutées après validation de leur contenu |
+| US-25 | 5 | Réalisée | Arrêt client distant, arrêt automatique par limite énergie/montant/durée, `RemoteStopTransaction`, mesures provisoires puis finales, interruption et réconciliation tardive | Les seuils devront être validés avec le prestataire de paiement et une borne physique |
 | US-26 | 5 | Réalisée | `ChargingSessionController`, `SessionsPage`, scoping client/organisation et tests | Les filtres temporels avancés pourront être ajoutés avec les rapports |
 | US-27 | 5 | À faire | Route et page placeholder uniquement | Modèle, API, formulaire et compatibilité connecteurs absents |
-| US-28 | 8 | À faire | Aucune implémentation | Jetons RFID/QR, sécurité et autorisation OCPP à concevoir |
-| US-29 | 8 | Partielle | Paiement simulé, statuts, retry, idempotence, UI et tests | Génération et téléchargement de facture absents |
-| US-30 | 8 | Réalisée | `PaymentGateway`, `SimulatedPaymentAdapter`, binding configurable et tests succès/refus | Webhooks et premier adaptateur réel restent futurs |
+| US-28 | 8 | Partielle | Modèle de jeton OCPP rattaché au client, stockage du hash uniquement, idTag virtuel généré pour le démarrage distant, QR d'entrée sans secret et réponse `Authorize` couverts par tests | Gestion RFID physique, rotation/révocation dans l'interface et lecture matérielle absentes |
+| US-29 | 8 | Partielle | Préautorisation simulée de 30 TND, capture automatique du montant mesuré, libération en cas d'échec, statuts, idempotence, UI et tests | Génération et téléchargement de facture absents |
+| US-30 | 8 | Réalisée | Contrat `PaymentGateway` extensible, autorisation/capture/libération, `SimulatedPaymentAdapter`, méthodes carte/e-DINAR/D17 simulées et tests succès/refus | Webhooks et premier adaptateur réel restent futurs |
 | US-31 | 8 | Partielle | CRUD tarifs/plans, affectation connecteur-borne, résolution, snapshot et simulation | Plages horaires et coût temporel effectif non implémentés |
 | US-32 | 8 | Réalisée | Catalogue multi-organisations, changement/annulation, remise et tests | Paiement récurrent réel hors MVP actuel |
 | US-33 | 8 | À faire | Page placeholder uniquement | API d'agrégation et génération de rapports absentes |
@@ -84,11 +84,11 @@ La part des points n'est pas un pourcentage d'achèvement linéaire : une User S
 ## Ordre d'implémentation recommandé
 
 1. **Entrée et identité** - US-01 et US-39 sont réalisées ; finaliser plus tard US-02 et US-03, puis compléter les canaux de US-40.
-2. **Cartographie** - implémenter US-10, puis compléter US-11 et US-12 avec le même composant cartographique.
-3. **Communication OCPP** - implémenter US-14 avec le simulateur et un scénario connexion-Heartbeat-StatusNotification.
+2. **Cartographie** - US-10 à US-12 partagent désormais la même carte, la géolocalisation et les actions d'itinéraire ; le fournisseur de tuiles de production reste à choisir.
+3. **Communication OCPP** - neuf bornes simulées, disponibilité, autorisation, transactions, mesures et démarrage/arrêt distants sont intégrés ; compléter ensuite `Reset` et `UnlockConnector`.
 4. **Disponibilité calculée** - définir la matrice métier puis implémenter US-15 avant de terminer US-09 et US-16.
 5. **Alertes automatiques et temps réel** - terminer US-19, relier les projections à l'interface et aux notifications US-40.
-6. **Sessions réelles** - relier US-24 et US-25 aux commandes et mesures OCPP sans casser le simulateur actuel.
+6. **Sessions réelles** - US-24 et US-25 couvrent le parcours client, la préautorisation, le démarrage/arrêt distants, les limites et la capture finale ; valider ensuite le scénario Docker puis matériel.
 7. **Maintenance** - compléter US-22 et US-23 avec photos, préventif, calendrier et SLA.
 8. **Tarification et facturation** - terminer US-31 et US-29, puis ajouter le premier adaptateur de paiement externe si le périmètre le permet.
 9. **Dashboards et rapports** - remplacer les mocks de US-17 et US-18, implémenter US-33 puis généraliser US-34.

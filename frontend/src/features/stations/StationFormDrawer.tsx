@@ -1,9 +1,10 @@
-import { Button, Drawer, Form, Input, InputNumber, Select, Space } from 'antd'
+import { Alert, Button, Drawer, Form, Input, InputNumber, Select, Space } from 'antd'
 import { Crosshair, Keyboard } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Station, StationPayload } from '../../types/station'
 import { LocationPickerMap } from '../maps/LocationPickerMap'
 import { formatCoordinates } from '../maps/mapUtils'
+import { availabilityReasonLabel } from './availabilityLabels'
 
 interface StationFormDrawerProps {
   open: boolean
@@ -14,7 +15,7 @@ interface StationFormDrawerProps {
   onSubmit: (values: StationPayload) => void
 }
 
-const statusOptions = ['available', 'charging', 'faulted', 'offline', 'maintenance'].map((value) => ({
+const statusOptions = ['available', 'charging', 'faulted', 'offline', 'maintenance', 'reserved', 'unavailable'].map((value) => ({
   value,
   label: value.charAt(0).toUpperCase() + value.slice(1),
 }))
@@ -38,6 +39,7 @@ export function StationFormDrawer({ open, station, submitting, initialCoordinate
       latitude: station.latitude,
       longitude: station.longitude,
       status: station.status,
+      availability_override: station.availability_override,
       max_power_kw: station.max_power_kw,
       model: station.model,
       manufacturer: station.manufacturer,
@@ -52,6 +54,17 @@ export function StationFormDrawer({ open, station, submitting, initialCoordinate
     })
   }, [form, initialCoordinates, open, station])
 
+  function submit(values: StationPayload) {
+    if (!station?.ocpp_managed) {
+      onSubmit(values)
+      return
+    }
+
+    const payload = { ...values, availability_override: values.availability_override ?? null }
+    delete payload.status
+    onSubmit(payload)
+  }
+
   return (
     <Drawer
       title={station ? 'Edit charging station' : 'Add charging station'}
@@ -60,7 +73,7 @@ export function StationFormDrawer({ open, station, submitting, initialCoordinate
       size={560}
       extra={<Button type="primary" loading={submitting} onClick={() => form.submit()}>{station ? 'Save changes' : 'Add station'}</Button>}
     >
-      <Form form={form} layout="vertical" onFinish={onSubmit} requiredMark="optional">
+      <Form form={form} layout="vertical" onFinish={submit} requiredMark="optional">
         <div className="station-form-grid">
           <Form.Item label="Station name" name="name" rules={[{ required: true }]}><Input placeholder="Lac 1 Fast Hub" /></Form.Item>
           <Form.Item label="Reference" name="reference" rules={[{ required: true }]}><Input placeholder="CT-TUN-001" /></Form.Item>
@@ -79,7 +92,18 @@ export function StationFormDrawer({ open, station, submitting, initialCoordinate
               <Form.Item label="Longitude" name="longitude" rules={[{ required: true }, { type: 'number', min: -180, max: 180 }]}><InputNumber style={{ width: '100%' }} precision={7} /></Form.Item>
             </div>
           </section>
-          <Form.Item label="Status" name="status" rules={[{ required: true }]}><Select options={statusOptions} /></Form.Item>
+          {station?.ocpp_managed ? <>
+            <Form.Item label="Operational status">
+              <Input value={`${station.status.charAt(0).toUpperCase() + station.status.slice(1)} - ${availabilityReasonLabel(station.availability_reason)}`} disabled />
+            </Form.Item>
+            <Form.Item label="Operational override" name="availability_override">
+              <Select allowClear placeholder="Automatic (OCPP)" options={[
+                { value: 'maintenance', label: 'Planned maintenance' },
+                { value: 'disabled', label: 'Manually disabled' },
+              ]} />
+            </Form.Item>
+            <Alert className="station-form-wide" type="info" showIcon title="Status managed by OCPP" description="Clear the override to calculate availability from connectivity and connector events." />
+          </> : <Form.Item label="Status" name="status" rules={[{ required: true }]}><Select options={statusOptions} /></Form.Item>}
           <Form.Item label="Maximum power (kW)" name="max_power_kw" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} min={1} max={1000} /></Form.Item>
           <Form.Item label="Manufacturer" name="manufacturer" rules={[{ required: true }]}><Input placeholder="ABB" /></Form.Item>
           <Form.Item label="Model" name="model" rules={[{ required: true }]}><Input placeholder="Terra HP 150" /></Form.Item>

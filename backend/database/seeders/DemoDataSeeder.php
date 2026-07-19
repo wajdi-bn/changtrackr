@@ -6,6 +6,7 @@ use App\Models\Alert;
 use App\Models\ChargingPlan;
 use App\Models\ChargingSession;
 use App\Models\Intervention;
+use App\Models\OcppIdTag;
 use App\Models\Organization;
 use App\Models\Payment;
 use App\Models\PlanSubscription;
@@ -13,6 +14,7 @@ use App\Models\Station;
 use App\Models\Tariff;
 use App\Models\TariffAssignment;
 use App\Models\User;
+use App\Services\Ocpp\OcppAuthorizationService;
 use App\Services\TariffResolver;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -50,6 +52,7 @@ class DemoDataSeeder extends Seeder
             ['name' => 'Nour Trabelsi', 'email' => 'technician@chargetrackr.local', 'role' => 'technician', 'organization_id' => $organization->id, 'phone' => '+216 20 400 400', 'team' => 'Field Maintenance', 'address' => 'Ariana, Tunisia'],
             ['name' => 'Karim Ben Salem', 'email' => 'technician2@chargetrackr.local', 'role' => 'technician', 'organization_id' => $organization->id, 'phone' => '+216 20 500 500', 'team' => 'Field Maintenance', 'address' => 'Sfax, Tunisia'],
             ['name' => 'Yasmine B.', 'email' => 'client@chargetrackr.local', 'role' => 'client', 'organization_id' => null, 'phone' => '+216 20 600 600', 'team' => null, 'address' => 'Nabeul, Tunisia'],
+            ['name' => 'OCPP Simulator Driver', 'email' => 'ocpp-client@chargetrackr.local', 'role' => 'client', 'organization_id' => null, 'phone' => null, 'team' => null, 'address' => 'Tunis, Tunisia'],
             ['name' => 'Leila Gharbi', 'email' => 'admin@sahelcharge.local', 'role' => 'admin', 'organization_id' => $sahelOrganization->id, 'phone' => '+216 21 700 700', 'team' => 'Management', 'address' => 'Hammamet, Tunisia'],
             ['name' => 'Hatem Mansour', 'email' => 'operator@sahelcharge.local', 'role' => 'operator', 'organization_id' => $sahelOrganization->id, 'phone' => '+216 21 800 800', 'team' => 'Network Operations', 'address' => 'Sousse, Tunisia'],
         ];
@@ -71,16 +74,40 @@ class DemoDataSeeder extends Seeder
             $user->syncRoles([$role]);
         }
 
+        $simulatorClient = User::query()->where('email', 'ocpp-client@chargetrackr.local')->firstOrFail();
+        $simulatorToken = (string) config('ocpp.simulator.id_tag', 'TEST-TAG-001');
+        OcppIdTag::query()->updateOrCreate(
+            ['token_hash' => OcppAuthorizationService::hash($simulatorToken)],
+            [
+                'user_id' => $simulatorClient->id,
+                'masked_token' => OcppAuthorizationService::mask($simulatorToken),
+                'label' => 'SAP simulator RFID',
+                'status' => 'active',
+            ],
+        );
+
         $stations = [
-            ['name' => 'Lac 1 Fast Hub', 'reference' => 'CT-TUN-001', 'location_name' => 'Lac 1', 'city' => 'Tunis', 'address' => 'Rue du Lac Biwa, Les Berges du Lac 1', 'latitude' => 36.8338, 'longitude' => 10.2370, 'status' => 'available', 'max_power_kw' => 150, 'model' => 'Terra HP 150', 'manufacturer' => 'ABB', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-terra-hp-150.png', 'uptime_percent' => 99.4, 'energy_today_kwh' => 428, 'sessions_today' => 34, 'utilization_percent' => 72, 'revenue_today' => 612, 'open_alerts_count' => 0],
-            ['name' => 'La Marsa Coast Station', 'reference' => 'CT-TUN-014', 'location_name' => 'La Marsa', 'city' => 'Tunis', 'address' => 'Avenue Habib Bourguiba, La Marsa', 'latitude' => 36.8782, 'longitude' => 10.3247, 'status' => 'charging', 'max_power_kw' => 120, 'model' => 'EVBox Troniq', 'manufacturer' => 'EVBox', 'ocpp_version' => 'OCPP 2.0.1', 'model_image' => '/assets/charger-evbox-troniq.png', 'uptime_percent' => 98.8, 'energy_today_kwh' => 313, 'sessions_today' => 22, 'utilization_percent' => 81, 'revenue_today' => 456, 'open_alerts_count' => 1],
-            ['name' => 'Ariana Tech Park', 'reference' => 'CT-ARI-006', 'location_name' => 'Centre Urbain Nord', 'city' => 'Ariana', 'address' => 'Centre Urbain Nord, Ariana', 'latitude' => 36.8532, 'longitude' => 10.2037, 'status' => 'faulted', 'max_power_kw' => 60, 'model' => 'eNext Park DC', 'manufacturer' => 'Circontrol', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-enext-park-dc.png', 'uptime_percent' => 94.1, 'energy_today_kwh' => 96, 'sessions_today' => 8, 'utilization_percent' => 34, 'revenue_today' => 141, 'open_alerts_count' => 3],
-            ['name' => 'Sousse Marina Charger', 'reference' => 'CT-SOU-022', 'location_name' => 'Port El Kantaoui', 'city' => 'Sousse', 'address' => 'Port El Kantaoui tourist zone', 'latitude' => 35.8925, 'longitude' => 10.5943, 'status' => 'available', 'max_power_kw' => 100, 'model' => 'Raption 100', 'manufacturer' => 'Circontrol', 'ocpp_version' => 'OCPP 2.0.1', 'model_image' => '/assets/charger-raption-100.png', 'uptime_percent' => 99.1, 'energy_today_kwh' => 285, 'sessions_today' => 19, 'utilization_percent' => 63, 'revenue_today' => 398, 'open_alerts_count' => 0],
+            ['name' => 'Lac 1 Fast Hub', 'reference' => 'CT-TUN-001', 'location_name' => 'Lac 1', 'city' => 'Tunis', 'address' => 'Rue du Lac Biwa, Les Berges du Lac 1', 'latitude' => 36.8338, 'longitude' => 10.2370, 'status' => 'offline', 'max_power_kw' => 150, 'model' => 'Terra HP 150', 'manufacturer' => 'ABB', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-terra-hp-150.png', 'uptime_percent' => 99.4, 'energy_today_kwh' => 428, 'sessions_today' => 34, 'utilization_percent' => 72, 'revenue_today' => 612, 'open_alerts_count' => 0],
+            ['name' => 'La Marsa Coast Station', 'reference' => 'CT-TUN-014', 'location_name' => 'La Marsa', 'city' => 'Tunis', 'address' => 'Avenue Habib Bourguiba, La Marsa', 'latitude' => 36.8782, 'longitude' => 10.3247, 'status' => 'offline', 'max_power_kw' => 120, 'model' => 'EVBox Troniq', 'manufacturer' => 'EVBox', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-evbox-troniq.png', 'uptime_percent' => 98.8, 'energy_today_kwh' => 313, 'sessions_today' => 22, 'utilization_percent' => 81, 'revenue_today' => 456, 'open_alerts_count' => 1],
+            ['name' => 'Ariana Tech Park', 'reference' => 'CT-ARI-006', 'location_name' => 'Centre Urbain Nord', 'city' => 'Ariana', 'address' => 'Centre Urbain Nord, Ariana', 'latitude' => 36.8532, 'longitude' => 10.2037, 'status' => 'offline', 'max_power_kw' => 60, 'model' => 'eNext Park DC', 'manufacturer' => 'Circontrol', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-enext-park-dc.png', 'uptime_percent' => 94.1, 'energy_today_kwh' => 96, 'sessions_today' => 8, 'utilization_percent' => 34, 'revenue_today' => 141, 'open_alerts_count' => 3],
+            ['name' => 'Sousse Marina Charger', 'reference' => 'CT-SOU-022', 'location_name' => 'Port El Kantaoui', 'city' => 'Sousse', 'address' => 'Port El Kantaoui tourist zone', 'latitude' => 35.8925, 'longitude' => 10.5943, 'status' => 'offline', 'max_power_kw' => 100, 'model' => 'Raption 100', 'manufacturer' => 'Circontrol', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-raption-100.png', 'uptime_percent' => 99.1, 'energy_today_kwh' => 285, 'sessions_today' => 19, 'utilization_percent' => 63, 'revenue_today' => 398, 'open_alerts_count' => 0],
             ['name' => 'Sfax Industrial Zone', 'reference' => 'CT-SFX-017', 'location_name' => 'Route de Gabes', 'city' => 'Sfax', 'address' => 'Zone industrielle Poudriere II', 'latitude' => 34.7406, 'longitude' => 10.7603, 'status' => 'offline', 'max_power_kw' => 75, 'model' => 'Delta UFC 100', 'manufacturer' => 'Delta', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-delta-ufc-100.png', 'uptime_percent' => 91.6, 'energy_today_kwh' => 0, 'sessions_today' => 0, 'utilization_percent' => 0, 'revenue_today' => 0, 'open_alerts_count' => 2],
-            ['name' => 'Bizerte Port Charger', 'reference' => 'CT-BIZ-009', 'location_name' => 'Port de Bizerte', 'city' => 'Bizerte', 'address' => "Avenue de l'Environnement, Bizerte", 'latitude' => 37.2744, 'longitude' => 9.8739, 'status' => 'maintenance', 'max_power_kw' => 50, 'model' => 'Tritium RTM50', 'manufacturer' => 'Tritium', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-tritium-rtm50.png', 'uptime_percent' => 96.8, 'energy_today_kwh' => 42, 'sessions_today' => 3, 'utilization_percent' => 18, 'revenue_today' => 64, 'open_alerts_count' => 1],
-            ['name' => 'Nabeul City Center', 'reference' => 'CT-NAB-004', 'location_name' => 'Centre-ville', 'city' => 'Nabeul', 'address' => 'Avenue Habib Thameur, Nabeul', 'latitude' => 36.4513, 'longitude' => 10.7352, 'status' => 'available', 'max_power_kw' => 80, 'model' => 'SICHARGE D', 'manufacturer' => 'Siemens', 'ocpp_version' => 'OCPP 2.0.1', 'model_image' => '/assets/charger-sicharge-d.png', 'uptime_percent' => 98.2, 'energy_today_kwh' => 214, 'sessions_today' => 16, 'utilization_percent' => 58, 'revenue_today' => 301, 'open_alerts_count' => 0],
-            ['name' => 'Monastir Airport EV', 'reference' => 'CT-MON-012', 'location_name' => 'Monastir Habib Bourguiba Airport', 'city' => 'Monastir', 'address' => 'Airport parking, Monastir', 'latitude' => 35.7581, 'longitude' => 10.7547, 'status' => 'charging', 'max_power_kw' => 120, 'model' => 'PowerDot DC 120', 'manufacturer' => 'PowerDot', 'ocpp_version' => 'OCPP 2.0.1', 'model_image' => '/assets/charger-powerdot-dc-120.png', 'uptime_percent' => 98.9, 'energy_today_kwh' => 344, 'sessions_today' => 27, 'utilization_percent' => 76, 'revenue_today' => 492, 'open_alerts_count' => 1],
-            ['name' => 'Hammamet Seafront Hub', 'reference' => 'CT-HAM-031', 'organization_id' => $sahelOrganization->id, 'location_name' => 'Yasmine Hammamet', 'city' => 'Hammamet', 'address' => 'Marina promenade, Yasmine Hammamet', 'latitude' => 36.3740, 'longitude' => 10.5460, 'status' => 'available', 'max_power_kw' => 120, 'model' => 'Terra HP 150', 'manufacturer' => 'ABB', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-terra-hp-150.png', 'uptime_percent' => 99.2, 'energy_today_kwh' => 238, 'sessions_today' => 17, 'utilization_percent' => 61, 'revenue_today' => 337, 'open_alerts_count' => 0],
+            ['name' => 'Bizerte Port Charger', 'reference' => 'CT-BIZ-009', 'location_name' => 'Port de Bizerte', 'city' => 'Bizerte', 'address' => "Avenue de l'Environnement, Bizerte", 'latitude' => 37.2744, 'longitude' => 9.8739, 'status' => 'offline', 'max_power_kw' => 50, 'model' => 'Tritium RTM50', 'manufacturer' => 'Tritium', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-tritium-rtm50.png', 'uptime_percent' => 96.8, 'energy_today_kwh' => 42, 'sessions_today' => 3, 'utilization_percent' => 18, 'revenue_today' => 64, 'open_alerts_count' => 1],
+            ['name' => 'Nabeul City Center', 'reference' => 'CT-NAB-004', 'location_name' => 'Centre-ville', 'city' => 'Nabeul', 'address' => 'Avenue Habib Thameur, Nabeul', 'latitude' => 36.4513, 'longitude' => 10.7352, 'status' => 'offline', 'max_power_kw' => 80, 'model' => 'SICHARGE D', 'manufacturer' => 'Siemens', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-sicharge-d.png', 'uptime_percent' => 98.2, 'energy_today_kwh' => 214, 'sessions_today' => 16, 'utilization_percent' => 58, 'revenue_today' => 301, 'open_alerts_count' => 0],
+            ['name' => 'Monastir Airport EV', 'reference' => 'CT-MON-012', 'location_name' => 'Monastir Habib Bourguiba Airport', 'city' => 'Monastir', 'address' => 'Airport parking, Monastir', 'latitude' => 35.7581, 'longitude' => 10.7547, 'status' => 'offline', 'max_power_kw' => 120, 'model' => 'PowerDot DC 120', 'manufacturer' => 'PowerDot', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-powerdot-dc-120.png', 'uptime_percent' => 98.9, 'energy_today_kwh' => 344, 'sessions_today' => 27, 'utilization_percent' => 76, 'revenue_today' => 492, 'open_alerts_count' => 1],
+            ['name' => 'Hammamet Seafront Hub', 'reference' => 'CT-HAM-031', 'organization_id' => $sahelOrganization->id, 'location_name' => 'Yasmine Hammamet', 'city' => 'Hammamet', 'address' => 'Marina promenade, Yasmine Hammamet', 'latitude' => 36.3740, 'longitude' => 10.5460, 'status' => 'offline', 'max_power_kw' => 120, 'model' => 'Terra HP 150', 'manufacturer' => 'ABB', 'ocpp_version' => 'OCPP 1.6J', 'model_image' => '/assets/charger-terra-hp-150.png', 'uptime_percent' => 99.2, 'energy_today_kwh' => 238, 'sessions_today' => 17, 'utilization_percent' => 61, 'revenue_today' => 337, 'open_alerts_count' => 0],
+        ];
+
+        $connectorTypes = [
+            'CT-TUN-001' => ['CCS2', 'CHAdeMO'],
+            'CT-TUN-014' => ['CCS2', 'Type 2'],
+            'CT-ARI-006' => ['CCS2', 'Type 2'],
+            'CT-SOU-022' => ['CCS2', 'CHAdeMO'],
+            'CT-SFX-017' => ['CCS2', 'Type 2'],
+            'CT-BIZ-009' => ['CCS2', 'CHAdeMO'],
+            'CT-NAB-004' => ['CCS2', 'Type 2'],
+            'CT-MON-012' => ['CCS2', 'CHAdeMO'],
+            'CT-HAM-031' => ['CCS2', 'Type 2'],
         ];
 
         foreach ($stations as $index => $stationData) {
@@ -88,20 +115,22 @@ class DemoDataSeeder extends Seeder
             unset($stationData['organization_id']);
             $station = Station::updateOrCreate(
                 ['reference' => $stationData['reference']],
-                [...$stationData, 'organization_id' => $stationOrganizationId, 'last_heartbeat_at' => now()->subSeconds(($index + 1) * 12)],
+                [...$stationData, 'organization_id' => $stationOrganizationId, 'last_heartbeat_at' => null],
             );
 
-            $connectorCount = [6, 4, 3, 5, 4, 2, 4, 5, 4][$index];
-            for ($connectorIndex = 1; $connectorIndex <= $connectorCount; $connectorIndex++) {
-                $status = $station->status === 'available' && $connectorIndex > 1 ? 'available' : $station->status;
+            $station->connectors()->whereNotIn('ocpp_connector_id', [1, 2])->delete();
+
+            foreach ($connectorTypes[$station->reference] as $connectorOffset => $connectorType) {
+                $connectorIndex = $connectorOffset + 1;
                 $station->connectors()->updateOrCreate(
                     ['external_id' => chr(64 + $index + 1).$connectorIndex],
                     [
-                        'type' => $connectorIndex % 3 === 0 ? 'Type 2' : ($connectorIndex % 2 === 0 ? 'CHAdeMO' : 'CCS2'),
-                        'current_type' => $connectorIndex % 3 === 0 ? 'AC' : 'DC',
-                        'max_power_kw' => $connectorIndex % 3 === 0 ? 22 : $station->max_power_kw,
-                        'status' => $status,
-                        'last_status_at' => now()->subMinutes($connectorIndex * 2),
+                        'ocpp_connector_id' => $connectorIndex,
+                        'type' => $connectorType,
+                        'current_type' => $connectorType === 'Type 2' ? 'AC' : 'DC',
+                        'max_power_kw' => $connectorType === 'Type 2' ? 22 : $station->max_power_kw,
+                        'status' => 'offline',
+                        'last_status_at' => null,
                     ],
                 );
             }

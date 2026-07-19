@@ -8,6 +8,7 @@ use App\Http\Resources\ChargingSessionResource;
 use App\Models\ChargingSession;
 use App\Models\User;
 use App\Services\ChargingSessionService;
+use App\Services\Ocpp\OcppCommandService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,15 +17,15 @@ use Illuminate\Validation\Rule;
 
 class ChargingSessionController extends Controller
 {
-    private const RELATIONS = ['organization', 'station', 'connector', 'client', 'payment'];
+    private const RELATIONS = ['organization', 'station', 'connector', 'client', 'payment', 'ocppTransaction'];
 
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', ChargingSession::class);
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
-            'status' => ['nullable', Rule::in(['charging', 'completed', 'cancelled'])],
-            'payment_status' => ['nullable', Rule::in(['unpaid', 'paid', 'failed'])],
+            'status' => ['nullable', Rule::in(['pending', 'charging', 'stopping', 'completed', 'interrupted', 'failed', 'cancelled'])],
+            'payment_status' => ['nullable', Rule::in(['unpaid', 'authorized', 'paid', 'failed'])],
         ]);
 
         /** @var User $user */
@@ -56,8 +57,8 @@ class ChargingSessionController extends Controller
             'data' => ChargingSessionResource::collection($sessions),
             'summary' => [
                 'total' => (clone $summary)->count(),
-                'active' => (clone $summary)->where('status', 'charging')->count(),
-                'completed' => (clone $summary)->where('status', 'completed')->count(),
+                'active' => (clone $summary)->whereIn('status', ['pending', 'charging', 'stopping'])->count(),
+                'completed' => (clone $summary)->whereIn('status', ['completed', 'interrupted'])->count(),
                 'energy_kwh' => round((float) ((clone $summary)->sum('energy_kwh')), 3),
                 'revenue_millimes' => (int) (clone $summary)->where('payment_status', 'paid')->sum('total_millimes'),
             ],
@@ -86,5 +87,13 @@ class ChargingSessionController extends Controller
         Gate::authorize('stop', $chargingSession);
 
         return new ChargingSessionResource($service->stop($chargingSession));
+    }
+
+    public function remoteStop(Request $request, ChargingSession $chargingSession, OcppCommandService $commands): ChargingSessionResource
+    {
+        Gate::authorize('stop', $chargingSession);
+        $commands->queueRemoteStop($chargingSession, $request->user());
+
+        return new ChargingSessionResource($chargingSession->fresh()->load(self::RELATIONS));
     }
 }

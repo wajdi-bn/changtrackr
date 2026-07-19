@@ -3,9 +3,12 @@ import type { ChargingSessionStatus, PaymentStatus, SessionPaymentStatus } from 
 
 const colors: Record<string, string> = {
   charging: 'purple',
+  stopping: 'blue',
   completed: 'green',
+  interrupted: 'orange',
   cancelled: 'default',
   unpaid: 'gold',
+  authorized: 'cyan',
   paid: 'green',
   failed: 'red',
   pending: 'blue',

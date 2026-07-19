@@ -1,0 +1,15 @@
+{
+  "uiServer": {
+    "host": "ocpp-simulator",
+    "port": 8080,
+    "protocol": "ui",
+    "version": "0.0.1",
+    "secure": false,
+    "authentication": {
+      "enabled": true,
+      "type": "protocol-basic-auth",
+      "username": "admin",
+      "password": "__OCPP_SIMULATOR_UI_PASSWORD__"
+    }
+  }
+}

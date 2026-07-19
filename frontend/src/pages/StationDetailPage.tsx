@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Button, Card, Drawer, Empty, Form, Input, InputNumber, Popconfirm, Select, Skeleton, Tabs } from 'antd'
+import { Alert, App, Button, Card, Drawer, Empty, Form, Input, InputNumber, Modal, Popconfirm, Select, Skeleton, Tabs } from 'antd'
+import { QRCodeSVG } from 'qrcode.react'
 import {
   Activity,
   AlertTriangle,
@@ -10,6 +11,7 @@ import {
   PencilLine,
   Plus,
   Power,
+  QrCode,
   RefreshCw,
   Settings,
   Trash2,
@@ -20,7 +22,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { createConnector, deleteConnector, getStation, updateConnector, updateStation } from '../features/stations/stationApi'
 import { StationStatusTag } from '../features/stations/StationStatusTag'
+import { availabilityReasonLabel } from '../features/stations/availabilityLabels'
 import { useAuth } from '../features/auth/useAuth'
+import { ConnectorTypeIcon } from '../features/charging/ConnectorTypeIcon'
 import type { Connector, ConnectorPayload, Station } from '../types/station'
 
 const utilizationData = [
@@ -42,6 +46,7 @@ export function StationDetailPage() {
   const { user, primaryRole } = useAuth()
   const [connectorDrawerOpen, setConnectorDrawerOpen] = useState(false)
   const [selectedConnector, setSelectedConnector] = useState<Connector | null>(null)
+  const [qrConnector, setQrConnector] = useState<Connector | null>(null)
   const canUpdate = user?.permissions.includes('stations.update') ?? false
   const canManageConnectors = canUpdate && (user?.permissions.includes('connectors.manage') ?? false)
   const isTechnician = primaryRole === 'technician'
@@ -53,7 +58,9 @@ export function StationDetailPage() {
   })
 
   const maintenanceMutation = useMutation({
-    mutationFn: (station: Station) => updateStation(station.id, { status: station.status === 'maintenance' ? 'offline' : 'maintenance' }),
+    mutationFn: (station: Station) => station.ocpp_managed
+      ? updateStation(station.id, { availability_override: station.availability_override === 'maintenance' ? null : 'maintenance' })
+      : updateStation(station.id, { status: station.status === 'maintenance' ? 'offline' : 'maintenance' }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['station', numericStationId] })
       await queryClient.invalidateQueries({ queryKey: ['stations'] })
@@ -146,8 +153,10 @@ export function StationDetailPage() {
                   <InfoFact label="Last update" value={connector.last_status_relative ?? 'Never'} />
                 </div>
                 <div className={`connector-fault ${connector.error_code ? 'has-error' : ''}`}><AlertTriangle size={14} />{connector.error_code ?? 'No active connector faults'}</div>
-                {canManageConnectors && (
-                  <div className="connector-actions">
+                {station.ocpp_managed && <div className="connector-availability-note"><Activity size={14} />{availabilityReasonLabel(connector.availability_reason)}</div>}
+                <div className="connector-actions">
+                    {station.ocpp_managed && <Button type="text" icon={<QrCode size={15} />} onClick={() => setQrConnector(connector)}>Charging QR</Button>}
+                  {canManageConnectors && <>
                     <Button type="text" icon={<PencilLine size={15} />} onClick={() => { setSelectedConnector(connector); setConnectorDrawerOpen(true) }}>Edit connector</Button>
                     <Popconfirm
                       title="Delete this connector?"
@@ -159,8 +168,8 @@ export function StationDetailPage() {
                     >
                       <Button type="text" danger icon={<Trash2 size={15} />}>Delete</Button>
                     </Popconfirm>
-                  </div>
-                )}
+                  </>}
+                </div>
               </div>
             ))}
           </div>
@@ -189,7 +198,9 @@ export function StationDetailPage() {
             <Button icon={<RefreshCw size={15} />} onClick={() => void message.info('The OCPP restart command will be connected in the supervision slice.')}>Restart station</Button>
             <Button icon={<LockOpen size={15} />} onClick={() => void message.info('Choose a connector from the Connectors tab first.')}>Unlock connector</Button>
             <Button className="maintenance-button" icon={<Wrench size={15} />} loading={maintenanceMutation.isPending} onClick={() => maintenanceMutation.mutate(station)}>
-              {station.status === 'maintenance' ? 'Leave maintenance mode' : 'Set maintenance mode'}
+              {station.ocpp_managed
+                ? (station.availability_override === 'maintenance' ? 'Leave maintenance mode' : 'Set maintenance mode')
+                : (station.status === 'maintenance' ? 'Leave maintenance mode' : 'Set maintenance mode')}
             </Button>
           </div>
         ) : isTechnician ? <Button icon={<Wrench size={15} />} onClick={() => navigate('/assigned-alerts')}>View assigned alerts</Button> : null}
@@ -203,6 +214,7 @@ export function StationDetailPage() {
         <InfoFact label="OCPP version" value={station.ocpp_version} />
         <InfoFact label="Power" value={`${station.max_power_kw} kW`} />
         <InfoFact label="Last heartbeat" value={station.last_heartbeat_relative} />
+        <InfoFact label="Availability rule" value={availabilityReasonLabel(station.availability_reason)} />
         <InfoFact label="Uptime" value={`${station.uptime_percent}%`} />
       </div>
 
@@ -211,12 +223,28 @@ export function StationDetailPage() {
       <ConnectorDrawer
         open={connectorDrawerOpen}
         connector={selectedConnector}
+        managed={station.ocpp_managed}
         submitting={connectorMutation.isPending}
         onClose={() => { setConnectorDrawerOpen(false); setSelectedConnector(null) }}
         onSubmit={(values) => connectorMutation.mutate(values)}
       />
+      <ConnectorQrModal station={station} connector={qrConnector} onClose={() => setQrConnector(null)} />
     </div>
   )
+}
+
+function ConnectorQrModal({ station, connector, onClose }: { station: Station; connector: Connector | null; onClose: () => void }) {
+  const { message } = App.useApp()
+  const url = connector ? `${window.location.origin}/charge/${station.id}/${connector.id}` : ''
+
+  return <Modal open={Boolean(connector)} title="Charging QR code" footer={<Button type="primary" onClick={onClose}>Done</Button>} onCancel={onClose} width={420}>
+    {connector && <div className="connector-qr-card">
+      <div className="connector-qr-brand"><ConnectorTypeIcon type={connector.type} /><span><strong>{station.name}</strong><small>Connector {connector.external_id} · {connector.type} · {connector.max_power_kw} kW</small></span></div>
+      <div className="connector-qr-code"><QRCodeSVG value={url} size={210} level="M" marginSize={2} /></div>
+      <p>Scan to open the secure client charging workflow for this connector.</p>
+      <Button icon={<QrCode size={15} />} onClick={async () => { await navigator.clipboard.writeText(url); void message.success('Charging link copied.') }}>Copy charging link</Button>
+    </div>}
+  </Modal>
 }
 
 function InfoFact({ label, value }: { label: string; value: string }) {
@@ -227,9 +255,10 @@ function MetricChartCard({ title, subtitle, children }: { title: string; subtitl
   return <Card className="station-chart-card" title={title} extra={<small>{subtitle}</small>}><div>{children}</div></Card>
 }
 
-function ConnectorDrawer({ open, connector, submitting, onClose, onSubmit }: {
+function ConnectorDrawer({ open, connector, managed, submitting, onClose, onSubmit }: {
   open: boolean
   connector: Connector | null
+  managed: boolean
   submitting: boolean
   onClose: () => void
   onSubmit: (values: ConnectorPayload) => void
@@ -251,17 +280,28 @@ function ConnectorDrawer({ open, connector, submitting, onClose, onSubmit }: {
           max_power_kw: connector.max_power_kw,
           status: connector.status,
           error_code: connector.error_code,
-        } : { type: 'CCS2', current_type: 'DC', status: 'offline' })
+        } : { type: 'CCS2', current_type: 'DC', ...(managed ? {} : { status: 'offline' }) })
       }}
       extra={<Button type="primary" loading={submitting} onClick={() => form.submit()}>Save</Button>}
     >
-      <Form form={form} layout="vertical" onFinish={onSubmit} requiredMark="optional">
+      <Form form={form} layout="vertical" onFinish={(values) => {
+        if (!managed) {
+          onSubmit(values)
+          return
+        }
+        const payload = { ...values }
+        delete payload.status
+        delete payload.error_code
+        onSubmit(payload)
+      }} requiredMark="optional">
         <Form.Item label="Connector identifier" name="external_id" rules={[{ required: true }]}><Input placeholder="A1" /></Form.Item>
         <Form.Item label="Connector type" name="type" rules={[{ required: true }]}><Select options={['CCS2', 'Type 2', 'CHAdeMO'].map((value) => ({ value }))} /></Form.Item>
         <Form.Item label="Current type" name="current_type" rules={[{ required: true }]}><Select options={[{ value: 'AC' }, { value: 'DC' }]} /></Form.Item>
         <Form.Item label="Maximum power (kW)" name="max_power_kw" rules={[{ required: true }]}><InputNumber min={1} max={1000} style={{ width: '100%' }} /></Form.Item>
-        <Form.Item label="Status" name="status" rules={[{ required: true }]}><Select options={['available', 'charging', 'faulted', 'offline', 'maintenance'].map((value) => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1) }))} /></Form.Item>
-        <Form.Item label="Error code" name="error_code"><Input placeholder="Optional OCPP error code" /></Form.Item>
+        {managed ? <Alert type="info" showIcon title="Connector status managed by OCPP" description="Status and error code are updated from StatusNotification events." /> : <>
+          <Form.Item label="Status" name="status" rules={[{ required: true }]}><Select options={['available', 'charging', 'faulted', 'offline', 'maintenance', 'reserved', 'unavailable'].map((value) => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1) }))} /></Form.Item>
+          <Form.Item label="Error code" name="error_code"><Input placeholder="Optional OCPP error code" /></Form.Item>
+        </>}
         <Button type="primary" htmlType="submit" loading={submitting} block>Save connector</Button>
       </Form>
     </Drawer>

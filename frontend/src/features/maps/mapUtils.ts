@@ -9,6 +9,8 @@ export const stationStatusColors: Record<StationStatus, string> = {
   faulted: '#ef4444',
   offline: '#64748b',
   maintenance: '#f59e0b',
+  reserved: '#2563eb',
+  unavailable: '#f97316',
 }
 
 export function formatCoordinates(latitude: number, longitude: number): string {

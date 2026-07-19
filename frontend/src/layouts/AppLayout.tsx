@@ -10,6 +10,7 @@ import type { MenuProps } from 'antd'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { getRoleConfig } from '../features/auth/roleConfig'
+import { AvailabilityRealtimeSync } from '../features/realtime/AvailabilityRealtimeSync'
 
 const { Header, Content } = Layout
 
@@ -56,6 +57,7 @@ export function AppLayout() {
 
   return (
     <Layout className="app-shell">
+      <AvailabilityRealtimeSync />
       <aside className="app-sidebar">
         <button className="brand-button" onClick={() => navigate(roleConfig.defaultPath)}>
           <img className="brand-mark" src="/assets/Logo.png" alt="" />

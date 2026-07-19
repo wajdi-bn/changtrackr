@@ -19,6 +19,7 @@ class AlertResource extends JsonResource
             'severity' => $this->severity,
             'status' => $this->status,
             'source' => $this->source,
+            'deduplication_key' => $this->deduplication_key,
             'description' => $this->description,
             'ocpp_log' => $this->ocpp_log,
             'suggested_cause' => $this->suggested_cause,

@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\Api\AccountInvitationController;
 use App\Http\Controllers\Api\AlertController;
+use App\Http\Controllers\Api\ChargingAttemptController;
 use App\Http\Controllers\Api\ChargingPlanController;
 use App\Http\Controllers\Api\ChargingSessionController;
 use App\Http\Controllers\Api\ConnectorController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DemoRequestController;
+use App\Http\Controllers\Api\Internal\OcppGatewayController;
 use App\Http\Controllers\Api\InterventionController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PlanSubscriptionController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\Api\TariffAssignmentController;
 use App\Http\Controllers\Api\TariffController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Middleware\EnsureUserOrganizationScope;
+use App\Http\Middleware\VerifyOcppGatewaySignature;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +28,15 @@ Route::post('/account-invitations/inspect', [AccountInvitationController::class,
     ->middleware('throttle:invitation-inspect');
 Route::post('/account-invitations/accept', [AccountInvitationController::class, 'accept'])
     ->middleware('throttle:invitation-accept');
+
+Route::prefix('/internal/ocpp')
+    ->middleware([VerifyOcppGatewaySignature::class, 'throttle:ocpp-gateway'])
+    ->group(function (): void {
+        Route::post('/authenticate', [OcppGatewayController::class, 'authenticate']);
+        Route::post('/events', [OcppGatewayController::class, 'ingest']);
+        Route::post('/commands/claim', [OcppGatewayController::class, 'claimCommand']);
+        Route::post('/commands/{ocppCommand}/result', [OcppGatewayController::class, 'completeCommand']);
+    });
 
 Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(function (): void {
     Route::get('/demo-requests', [DemoRequestController::class, 'index']);
@@ -54,6 +66,10 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(f
     Route::post('/charging-sessions', [ChargingSessionController::class, 'store']);
     Route::get('/charging-sessions/{chargingSession}', [ChargingSessionController::class, 'show']);
     Route::post('/charging-sessions/{chargingSession}/stop', [ChargingSessionController::class, 'stop']);
+    Route::post('/charging-sessions/{chargingSession}/remote-stop', [ChargingSessionController::class, 'remoteStop']);
+    Route::get('/charging-attempts', [ChargingAttemptController::class, 'index']);
+    Route::post('/charging-attempts', [ChargingAttemptController::class, 'store']);
+    Route::get('/charging-attempts/{chargingAttempt}', [ChargingAttemptController::class, 'show']);
     Route::post('/charging-sessions/{chargingSession}/payments', [PaymentController::class, 'store']);
     Route::get('/payments', [PaymentController::class, 'index']);
 

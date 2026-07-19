@@ -1,0 +1,45 @@
+{
+  "$schemaVersion": 1,
+  "supervisionUrls": ["ws://ocpp-gateway:9000/ocpp"],
+  "supervisionUrlDistribution": "round-robin",
+  "log": {
+    "file": "/dev/stdout",
+    "errorFile": "/dev/stderr",
+    "statisticsInterval": 30,
+    "level": "info",
+    "console": false,
+    "rotate": false
+  },
+  "worker": {
+    "processType": "workerSet",
+    "elementsPerWorker": "all"
+  },
+  "performanceStorage": {
+    "enabled": false,
+    "type": "none"
+  },
+  "uiServer": {
+    "enabled": true,
+    "type": "ws",
+    "version": "1.1",
+    "options": {
+      "host": "0.0.0.0",
+      "port": 8080
+    },
+    "accessPolicy": {
+      "requireTlsForNonLoopback": false,
+      "trustedProxies": [],
+      "allowLoopbackProxy": false,
+      "allowedHosts": ["localhost", "127.0.0.1", "ocpp-simulator"],
+      "allowedOrigins": []
+    },
+    "authentication": {
+      "enabled": true,
+      "type": "protocol-basic-auth",
+      "username": "admin",
+      "password": "configured-at-runtime"
+    }
+  },
+  "persistState": false,
+  "stationTemplateUrls": []
+}

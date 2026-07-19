@@ -12,6 +12,7 @@ class ChargingSessionResource extends JsonResource
         return [
             'id' => $this->id,
             'reference' => $this->reference,
+            'source' => $this->source,
             'organization_id' => $this->organization_id,
             'organization' => OrganizationSummaryResource::make($this->whenLoaded('organization')),
             'client' => [
@@ -30,6 +31,7 @@ class ChargingSessionResource extends JsonResource
                 'max_power_kw' => $this->whenLoaded('connector', fn () => $this->connector?->max_power_kw),
             ],
             'status' => $this->status,
+            'lifecycle_reason' => $this->lifecycle_reason,
             'payment_status' => $this->payment_status,
             'started_at' => $this->started_at?->toISOString(),
             'started_relative' => $this->started_at?->diffForHumans(),
@@ -38,7 +40,21 @@ class ChargingSessionResource extends JsonResource
             'duration_minutes' => (int) ceil($this->duration_seconds / 60),
             'meter_start_kwh' => $this->meter_start_kwh,
             'meter_stop_kwh' => $this->meter_stop_kwh,
+            'last_meter_value_at' => $this->last_meter_value_at?->toISOString(),
             'energy_kwh' => $this->energy_kwh,
+            'current_power_kw' => $this->current_power_kw,
+            'state_of_charge_percent' => $this->state_of_charge_percent,
+            'limits' => [
+                'energy_kwh' => $this->limit_energy_kwh,
+                'amount_millimes' => $this->limit_amount_millimes,
+                'duration_minutes' => $this->limit_duration_minutes,
+            ],
+            'ocpp' => $this->whenLoaded('ocppTransaction', fn () => $this->ocppTransaction ? [
+                'transaction_id' => $this->ocppTransaction->id,
+                'id_tag' => $this->ocppTransaction->id_tag_masked,
+                'status' => $this->ocppTransaction->status,
+                'stop_reason' => $this->ocppTransaction->stop_reason,
+            ] : null),
             'tariff' => [
                 'id' => $this->tariff_id,
                 'name' => $this->tariff_name ?? 'Fallback tariff',

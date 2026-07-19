@@ -23,9 +23,10 @@ export function PaymentsPage() {
   const { message } = App.useApp()
   const filters = useMemo(() => ({ search: deferredSearch.trim() || undefined, status: status === 'all' ? undefined : status }), [deferredSearch, status])
   const paymentsQuery = useQuery({ queryKey: ['payments', filters], queryFn: () => getPayments(filters) })
-  const unpaidQuery = useQuery({ queryKey: ['charging-sessions', 'unpaid'], queryFn: () => getChargingSessions({ payment_status: 'unpaid', status: 'completed' }), enabled: clientMode })
-  const failedQuery = useQuery({ queryKey: ['charging-sessions', 'failed-payment'], queryFn: () => getChargingSessions({ payment_status: 'failed', status: 'completed' }), enabled: clientMode })
-  const payableSessions = useMemo(() => [...(unpaidQuery.data?.data ?? []), ...(failedQuery.data?.data ?? [])], [failedQuery.data?.data, unpaidQuery.data?.data])
+  const unpaidQuery = useQuery({ queryKey: ['charging-sessions', 'unpaid'], queryFn: () => getChargingSessions({ payment_status: 'unpaid' }), enabled: clientMode })
+  const failedQuery = useQuery({ queryKey: ['charging-sessions', 'failed-payment'], queryFn: () => getChargingSessions({ payment_status: 'failed' }), enabled: clientMode })
+  const payableSessions = useMemo(() => [...(unpaidQuery.data?.data ?? []), ...(failedQuery.data?.data ?? [])]
+    .filter((session) => ['completed', 'interrupted'].includes(session.status)), [failedQuery.data?.data, unpaidQuery.data?.data])
 
   const paymentMutation = useMutation({
     mutationFn: ({ sessionId, payload }: { sessionId: number; payload: PaymentPayload }) => processPayment(sessionId, payload),

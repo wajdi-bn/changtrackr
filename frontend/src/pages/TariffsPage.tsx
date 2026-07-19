@@ -4,6 +4,7 @@ import { Alert, App, Button, DatePicker, Drawer, Empty, Form, Input, InputNumber
 import dayjs, { type Dayjs } from 'dayjs'
 import { Calculator, Link2, PencilLine, Plus, Trash2 } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
+import { CompactInputNumber } from '../components/CompactInputNumber'
 import { useAuth } from '../features/auth/useAuth'
 import { getStations } from '../features/stations/stationApi'
 import {
@@ -318,7 +319,7 @@ function ChargingPlanModal({ open, plan, canSave, submitting, onClose, onSubmit 
     })}>
       <div className="tariff-form-grid"><Form.Item label="Plan name" name="name" rules={[{ required: true }]}><Input placeholder="Member Plan" /></Form.Item><Form.Item label="Code" name="code" rules={[{ required: true }]}><Input placeholder="MEMBER" /></Form.Item></div>
       <Form.Item label="Description" name="description"><Input.TextArea rows={2} placeholder="Plan purpose and eligibility" /></Form.Item>
-      <div className="tariff-form-grid"><Form.Item label="Monthly fee" name="monthly_fee" rules={[{ required: true }]}><InputNumber min={0} precision={3} addonAfter="TND" style={{ width: '100%' }} /></Form.Item><Form.Item label="Charging discount" name="discount_percent" rules={[{ required: true }]}><InputNumber min={0} max={100} precision={2} addonAfter="%" style={{ width: '100%' }} /></Form.Item></div>
+      <div className="tariff-form-grid"><Form.Item label="Monthly fee" name="monthly_fee" rules={[{ required: true }]}><CompactInputNumber min={0} precision={3} addon="TND" /></Form.Item><Form.Item label="Charging discount" name="discount_percent" rules={[{ required: true }]}><CompactInputNumber min={0} max={100} precision={2} addon="%" /></Form.Item></div>
       <div className="tariff-form-grid"><Form.Item label="Audience" name="audience" rules={[{ required: true }]}><Input placeholder="Frequent drivers" /></Form.Item><Form.Item label="Members" name="member_count" rules={[{ required: true }]}><InputNumber min={0} precision={0} style={{ width: '100%' }} /></Form.Item></div>
       <Form.Item label="Status" name="status" rules={[{ required: true }]}><Select options={['draft', 'active', 'archived'].map((value) => ({ value, label: value }))} /></Form.Item>
       <div className="tariff-modal-actions"><Button disabled={false} onClick={onClose}>{canSave ? 'Cancel' : 'Close'}</Button>{canSave && <Button className="tariff-save-button" type="primary" htmlType="submit" loading={submitting}>Save plan</Button>}</div>
@@ -327,7 +328,7 @@ function ChargingPlanModal({ open, plan, canSave, submitting, onClose, onSubmit 
 }
 
 function MoneyField({ label, name, suffix }: { label: string; name: keyof TariffFormValues; suffix: string }) {
-  return <Form.Item label={label} name={name} rules={[{ required: true }]}><InputNumber min={0} max={1000} precision={3} step={0.05} addonAfter={suffix} style={{ width: '100%' }} /></Form.Item>
+  return <Form.Item label={label} name={name} rules={[{ required: true }]}><CompactInputNumber min={0} max={1000} precision={3} step={0.05} addon={suffix} /></Form.Item>
 }
 
 function TariffAssignmentDrawer({ open, initialTariff, assignment, tariffs, stations, submitting, onClose, onSubmit }: { open: boolean; initialTariff: Tariff | null; assignment?: TariffAssignment; tariffs: Tariff[]; stations: Station[]; submitting: boolean; onClose: () => void; onSubmit: (tariffId: number, payload: { station_id?: number; connector_id?: number }) => void }) {

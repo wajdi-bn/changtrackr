@@ -1,0 +1,13 @@
+.git
+.gitignore
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules
+backend/vendor
+backend/storage/logs
+backend/bootstrap/cache
+frontend/dist
+work
+output
+outputs

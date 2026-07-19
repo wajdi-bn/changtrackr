@@ -16,6 +16,7 @@ class UpdateStationRequest extends FormRequest
     public function rules(): array
     {
         $station = $this->route('station');
+        $managed = $station?->isOcppManaged() ?? false;
 
         return [
             'name' => ['sometimes', 'required', 'string', 'max:160'],
@@ -25,7 +26,8 @@ class UpdateStationRequest extends FormRequest
             'address' => ['sometimes', 'required', 'string', 'max:255'],
             'latitude' => ['sometimes', 'required', 'numeric', 'between:-90,90'],
             'longitude' => ['sometimes', 'required', 'numeric', 'between:-180,180'],
-            'status' => ['sometimes', 'required', Rule::in(['available', 'charging', 'faulted', 'offline', 'maintenance'])],
+            'status' => [Rule::prohibitedIf($managed), 'sometimes', 'required', Rule::in(['available', 'charging', 'faulted', 'offline', 'maintenance', 'reserved', 'unavailable'])],
+            'availability_override' => [Rule::prohibitedIf(! $managed), 'nullable', Rule::in(['maintenance', 'disabled'])],
             'max_power_kw' => ['sometimes', 'required', 'numeric', 'min:1', 'max:1000'],
             'model' => ['sometimes', 'required', 'string', 'max:120'],
             'manufacturer' => ['sometimes', 'required', 'string', 'max:120'],

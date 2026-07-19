@@ -1,0 +1,138 @@
+name: chargetrackr-ocpp
+
+services:
+  ocpp-gateway:
+    build:
+      context: ../../ocpp-gateway
+      dockerfile: Dockerfile
+      target: runtime
+    environment:
+      OCPP_GATEWAY_HOST: 0.0.0.0
+      OCPP_GATEWAY_PORT: 9000
+      OCPP_GATEWAY_PATH_PREFIX: /ocpp
+      OCPP_GATEWAY_SHARED_SECRET: ${OCPP_GATEWAY_SHARED_SECRET:?Configure infra/ocpp/.env first}
+      OCPP_LARAVEL_BASE_URL: http://host.docker.internal:8000/api/internal/ocpp
+      OCPP_HEARTBEAT_INTERVAL_SECONDS: 30
+      OCPP_COMMAND_POLL_INTERVAL_SECONDS: ${OCPP_COMMAND_POLL_INTERVAL_SECONDS:-1.5}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - 127.0.0.1:9000:9000
+    restart: unless-stopped
+
+  ocpp-simulator:
+    build:
+      context: ../..
+      dockerfile: infra/ocpp/simulator/Dockerfile
+      target: simulator
+      args:
+        SAP_SIMULATOR_REF: 6119452049739c05506351a9589d753e84c59e9f
+    depends_on:
+      - ocpp-gateway
+    environment:
+      OCPP_SIMULATOR_STATION_SECRET: ${OCPP_SIMULATOR_STATION_SECRET:?Configure infra/ocpp/.env first}
+      OCPP_SIMULATOR_UI_PASSWORD: ${OCPP_SIMULATOR_UI_PASSWORD:?Configure infra/ocpp/.env first}
+    ports:
+      - 127.0.0.1:8082:8080
+    restart: unless-stopped
+
+  ocpp-scenario:
+    profiles: [tools]
+    image: chargetrackr-ocpp-simulator-cli:local
+    build:
+      context: ../..
+      dockerfile: infra/ocpp/simulator/Dockerfile
+      target: cli
+      args:
+        SAP_SIMULATOR_REF: 6119452049739c05506351a9589d753e84c59e9f
+    depends_on:
+      - ocpp-simulator
+    environment:
+      OCPP_SIMULATOR_UI_PASSWORD: ${OCPP_SIMULATOR_UI_PASSWORD:?Configure infra/ocpp/.env first}
+      OCPP_SIMULATOR_STATION_IDENTITY: CT-TUN-001
+
+  ocpp-transaction-scenario:
+    profiles: [tools]
+    image: chargetrackr-ocpp-simulator-cli:local
+    build:
+      context: ../..
+      dockerfile: infra/ocpp/simulator/Dockerfile
+      target: cli
+      args:
+        SAP_SIMULATOR_REF: 6119452049739c05506351a9589d753e84c59e9f
+    depends_on:
+      - ocpp-simulator
+    entrypoint: ["run-ocpp-transaction-scenario"]
+    environment:
+      OCPP_SIMULATOR_UI_PASSWORD: ${OCPP_SIMULATOR_UI_PASSWORD:?Configure infra/ocpp/.env first}
+      OCPP_SIMULATOR_ID_TAG: ${OCPP_SIMULATOR_ID_TAG:-TEST-TAG-001}
+      OCPP_SIMULATOR_STATION_IDENTITY: CT-TUN-001
+
+  ocpp-plug:
+    profiles: [tools]
+    image: chargetrackr-ocpp-simulator-cli:local
+    build:
+      context: ../..
+      dockerfile: infra/ocpp/simulator/Dockerfile
+      target: cli
+      args:
+        SAP_SIMULATOR_REF: 6119452049739c05506351a9589d753e84c59e9f
+    depends_on:
+      - ocpp-simulator
+    entrypoint: ["run-ocpp-connector-status"]
+    environment:
+      OCPP_SIMULATOR_UI_PASSWORD: ${OCPP_SIMULATOR_UI_PASSWORD:?Configure infra/ocpp/.env first}
+      OCPP_SIMULATOR_STATION_IDENTITY: CT-TUN-001
+      OCPP_SIMULATOR_CONNECTOR_ID: 1
+      OCPP_SIMULATOR_CONNECTOR_STATUS: Preparing
+
+  ocpp-unplug:
+    profiles: [tools]
+    image: chargetrackr-ocpp-simulator-cli:local
+    build:
+      context: ../..
+      dockerfile: infra/ocpp/simulator/Dockerfile
+      target: cli
+      args:
+        SAP_SIMULATOR_REF: 6119452049739c05506351a9589d753e84c59e9f
+    depends_on:
+      - ocpp-simulator
+    entrypoint: ["run-ocpp-connector-status"]
+    environment:
+      OCPP_SIMULATOR_UI_PASSWORD: ${OCPP_SIMULATOR_UI_PASSWORD:?Configure infra/ocpp/.env first}
+      OCPP_SIMULATOR_STATION_IDENTITY: CT-TUN-001
+      OCPP_SIMULATOR_CONNECTOR_ID: 1
+      OCPP_SIMULATOR_CONNECTOR_STATUS: Available
+
+  ocpp-connection:
+    profiles: [tools]
+    image: chargetrackr-ocpp-simulator-cli:local
+    build:
+      context: ../..
+      dockerfile: infra/ocpp/simulator/Dockerfile
+      target: cli
+      args:
+        SAP_SIMULATOR_REF: 6119452049739c05506351a9589d753e84c59e9f
+    depends_on:
+      - ocpp-simulator
+    entrypoint: ["run-ocpp-connection-state"]
+    environment:
+      OCPP_SIMULATOR_UI_PASSWORD: ${OCPP_SIMULATOR_UI_PASSWORD:?Configure infra/ocpp/.env first}
+      OCPP_SIMULATOR_STATION_IDENTITY: CT-TUN-001
+      OCPP_SIMULATOR_CONNECTION_ACTION: close
+
+  ocpp-stop-transaction:
+    profiles: [tools]
+    image: chargetrackr-ocpp-simulator-cli:local
+    build:
+      context: ../..
+      dockerfile: infra/ocpp/simulator/Dockerfile
+      target: cli
+      args:
+        SAP_SIMULATOR_REF: 6119452049739c05506351a9589d753e84c59e9f
+    depends_on:
+      - ocpp-simulator
+    entrypoint: ["run-ocpp-stop-transaction"]
+    environment:
+      OCPP_SIMULATOR_UI_PASSWORD: ${OCPP_SIMULATOR_UI_PASSWORD:?Configure infra/ocpp/.env first}
+      OCPP_SIMULATOR_STATION_IDENTITY: CT-TUN-001

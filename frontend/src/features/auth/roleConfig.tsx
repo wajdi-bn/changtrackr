@@ -9,7 +9,6 @@ import {
   Inbox,
   LayoutDashboard,
   ListChecks,
-  Map,
   PlugZap,
   ReceiptText,
   Search,
@@ -71,7 +70,6 @@ export const roleConfigs: Record<UserRole, RoleConfig> = {
     navItems: [
       { icon: <LayoutDashboard size={iconSize} />, path: '/overview', label: 'Overview' },
       { icon: <PlugZap size={iconSize} />, path: '/stations', label: 'Stations' },
-      { icon: <Map size={iconSize} />, path: '/map', label: 'Map' },
       { icon: <AlertTriangle size={iconSize} />, path: '/alerts', label: 'Alerts' },
       { icon: <ReceiptText size={iconSize} />, path: '/sessions', label: 'Sessions' },
       { icon: <CreditCard size={iconSize} />, path: '/payments', label: 'Payments' },
@@ -87,7 +85,6 @@ export const roleConfigs: Record<UserRole, RoleConfig> = {
       { icon: <AlertTriangle size={iconSize} />, path: '/assigned-alerts', label: 'My Alerts' },
       { icon: <Wrench size={iconSize} />, path: '/my-interventions', label: 'My Interventions' },
       { icon: <PlugZap size={iconSize} />, path: '/stations', label: 'Stations' },
-      { icon: <Map size={iconSize} />, path: '/map', label: 'Map' },
       { icon: <ClipboardList size={iconSize} />, path: '/maintenance-reports', label: 'Maintenance Reports' },
     ],
   },

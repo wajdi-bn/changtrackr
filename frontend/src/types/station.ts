@@ -1,18 +1,26 @@
 import type { OrganizationSummary } from './auth'
 
-export type StationStatus = 'available' | 'charging' | 'faulted' | 'offline' | 'maintenance'
+export type StationStatus = 'available' | 'charging' | 'faulted' | 'offline' | 'maintenance' | 'reserved' | 'unavailable'
+export type AvailabilityOverride = 'maintenance' | 'disabled'
 export type ConnectorType = 'CCS2' | 'Type 2' | 'CHAdeMO'
 
 export interface Connector {
   id: number
   external_id: string
+  ocpp_connector_id: number | null
   type: ConnectorType
   current_type: 'AC' | 'DC'
   max_power_kw: number
   status: StationStatus
+  availability_reason: string | null
+  availability_source: string | null
+  availability_calculated_at: string | null
   error_code: string | null
   last_status_at: string | null
   last_status_relative: string | null
+  ocpp_status: string | null
+  ocpp_error_code: string | null
+  ocpp_last_status_at: string | null
 }
 
 export interface Station {
@@ -28,6 +36,22 @@ export interface Station {
   latitude: number
   longitude: number
   status: StationStatus
+  ocpp_managed: boolean
+  remote_start_available: boolean
+  remote_start_unavailable_reason: RemoteStartUnavailableReason | null
+  availability_override: AvailabilityOverride | null
+  availability_reason: string | null
+  availability_source: string | null
+  availability_calculated_at: string | null
+  ocpp_identity: string | null
+  ocpp_registration_status: string | null
+  ocpp_status: string | null
+  ocpp_error_code: string | null
+  ocpp_connected_at: string | null
+  ocpp_disconnected_at: string | null
+  ocpp_last_message_at: string | null
+  ocpp_last_status_at: string | null
+  ocpp_is_connected: boolean
   max_power_kw: number
   model: string
   manufacturer: string
@@ -54,7 +78,8 @@ export interface StationPayload {
   address: string
   latitude: number
   longitude: number
-  status: StationStatus
+  status?: StationStatus
+  availability_override?: AvailabilityOverride | null
   max_power_kw: number
   model: string
   manufacturer: string
@@ -70,12 +95,20 @@ export interface StationMapMarker {
   reference: string
   location_name: string
   city: string
+  location: string
   address: string
   latitude: number
   longitude: number
   status: StationStatus
+  ocpp_managed: boolean
+  remote_start_available: boolean
+  remote_start_unavailable_reason: RemoteStartUnavailableReason | null
+  availability_reason: string | null
+  availability_source: string | null
+  availability_calculated_at: string | null
   max_power_kw: number
   model_image: string | null
+  uptime_percent: number
   connectors_count: number
   available_connectors_count: number
   connectors: Connector[]
@@ -111,9 +144,18 @@ export interface ConnectorPayload {
   type: ConnectorType
   current_type: 'AC' | 'DC'
   max_power_kw: number
-  status: StationStatus
+  status?: StationStatus
   error_code?: string | null
 }
+
+export type RemoteStartUnavailableReason =
+  | 'not_ocpp_managed'
+  | 'organization_inactive'
+  | 'maintenance'
+  | 'disabled'
+  | 'station_offline'
+  | 'station_unavailable'
+  | 'no_available_connector'
 
 export interface StationsResponse {
   data: Station[]

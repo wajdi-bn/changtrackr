@@ -1,6 +1,8 @@
 import { httpClient } from '../../api/httpClient'
 import type {
   ChargingSession,
+  ChargingAttempt,
+  ChargingAttemptPayload,
   ChargingSessionsResponse,
   ChargingSessionStatus,
   Payment,
@@ -26,8 +28,28 @@ export async function startChargingSession(payload: { station_id: number; connec
   return response.data.data
 }
 
+export async function startChargingAttempt(payload: ChargingAttemptPayload): Promise<ChargingAttempt> {
+  const response = await httpClient.post<{ data: ChargingAttempt }>('/charging-attempts', payload)
+  return response.data.data
+}
+
+export async function getChargingAttempt(uuid: string): Promise<ChargingAttempt> {
+  const response = await httpClient.get<{ data: ChargingAttempt }>(`/charging-attempts/${uuid}`)
+  return response.data.data
+}
+
+export async function getChargingAttempts(): Promise<ChargingAttempt[]> {
+  const response = await httpClient.get<{ data: ChargingAttempt[] }>('/charging-attempts')
+  return response.data.data
+}
+
 export async function stopChargingSession(sessionId: number): Promise<ChargingSession> {
   const response = await httpClient.post<{ data: ChargingSession }>(`/charging-sessions/${sessionId}/stop`)
+  return response.data.data
+}
+
+export async function remoteStopChargingSession(sessionId: number): Promise<ChargingSession> {
+  const response = await httpClient.post<{ data: ChargingSession }>(`/charging-sessions/${sessionId}/remote-stop`)
   return response.data.data
 }
 

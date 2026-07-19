@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'organization_id', 'station_id', 'connector_id', 'assigned_technician_id',
-    'reference', 'title', 'problem_type', 'severity', 'status', 'source',
+    'reference', 'title', 'problem_type', 'severity', 'status', 'source', 'deduplication_key',
     'description', 'ocpp_log', 'suggested_cause', 'recommended_action',
     'detected_at', 'due_at', 'resolved_at',
 ])]

@@ -1,0 +1,65 @@
+[
+  {
+    "identity": "CT-TUN-001",
+    "manufacturer": "ABB",
+    "model": "Terra HP 150",
+    "maxPowerKw": 150,
+    "connectorPowersKw": [150, 150]
+  },
+  {
+    "identity": "CT-TUN-014",
+    "manufacturer": "EVBox",
+    "model": "EVBox Troniq",
+    "maxPowerKw": 120,
+    "connectorPowersKw": [120, 22]
+  },
+  {
+    "identity": "CT-ARI-006",
+    "manufacturer": "Circontrol",
+    "model": "eNext Park DC",
+    "maxPowerKw": 60,
+    "connectorPowersKw": [60, 22]
+  },
+  {
+    "identity": "CT-SOU-022",
+    "manufacturer": "Circontrol",
+    "model": "Raption 100",
+    "maxPowerKw": 100,
+    "connectorPowersKw": [100, 100]
+  },
+  {
+    "identity": "CT-SFX-017",
+    "manufacturer": "Delta",
+    "model": "Delta UFC 100",
+    "maxPowerKw": 75,
+    "connectorPowersKw": [75, 22]
+  },
+  {
+    "identity": "CT-BIZ-009",
+    "manufacturer": "Tritium",
+    "model": "Tritium RTM50",
+    "maxPowerKw": 50,
+    "connectorPowersKw": [50, 50]
+  },
+  {
+    "identity": "CT-NAB-004",
+    "manufacturer": "Siemens",
+    "model": "SICHARGE D",
+    "maxPowerKw": 80,
+    "connectorPowersKw": [80, 22]
+  },
+  {
+    "identity": "CT-MON-012",
+    "manufacturer": "PowerDot",
+    "model": "PowerDot DC 120",
+    "maxPowerKw": 120,
+    "connectorPowersKw": [120, 120]
+  },
+  {
+    "identity": "CT-HAM-031",
+    "manufacturer": "ABB",
+    "model": "Terra HP 150",
+    "maxPowerKw": 120,
+    "connectorPowersKw": [120, 22]
+  }
+]

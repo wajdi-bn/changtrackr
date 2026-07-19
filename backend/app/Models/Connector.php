@@ -8,7 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['station_id', 'external_id', 'type', 'current_type', 'max_power_kw', 'status', 'error_code', 'last_status_at'])]
+#[Fillable([
+    'station_id', 'external_id', 'ocpp_connector_id', 'type', 'current_type',
+    'max_power_kw', 'status', 'availability_reason', 'availability_source',
+    'availability_calculated_at', 'error_code', 'last_status_at', 'ocpp_status',
+    'ocpp_error_code', 'ocpp_last_status_at',
+])]
 class Connector extends Model
 {
     /** @return BelongsTo<Station, $this> */
@@ -27,12 +32,26 @@ class Connector extends Model
         return $this->hasOne(TariffAssignment::class);
     }
 
+    /** @return HasMany<AvailabilityTransition, $this> */
+    public function availabilityTransitions(): HasMany
+    {
+        return $this->hasMany(AvailabilityTransition::class);
+    }
+
+    public function ocppTransactions(): HasMany
+    {
+        return $this->hasMany(OcppTransaction::class);
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {
         return [
             'max_power_kw' => 'float',
+            'ocpp_connector_id' => 'integer',
             'last_status_at' => 'datetime',
+            'ocpp_last_status_at' => 'datetime',
+            'availability_calculated_at' => 'datetime',
         ];
     }
 }

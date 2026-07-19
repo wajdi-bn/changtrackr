@@ -8,6 +8,7 @@ use App\Models\Station;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -95,6 +96,41 @@ class StationApiTest extends TestCase
         ])
             ->assertCreated()
             ->assertJsonPath('data.external_id', 'A1');
+    }
+
+    public function test_ocpp_managed_station_rejects_manual_status_and_accepts_operational_overrides(): void
+    {
+        [$user, $organization] = $this->userWithRole('operator');
+        $station = $this->station($organization, 'CT-MANAGED-001');
+        $station->update([
+            'ocpp_auth_secret_hash' => Hash::make('managed-station-secret-0123456789'),
+            'availability_monitoring_started_at' => now(),
+        ]);
+        Sanctum::actingAs($user);
+
+        $this->patchJson("/api/stations/{$station->id}", ['status' => 'available'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
+
+        $this->patchJson("/api/stations/{$station->id}", ['availability_override' => 'maintenance'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'maintenance')
+            ->assertJsonPath('data.availability_reason', 'planned_maintenance');
+
+        $this->postJson("/api/stations/{$station->id}/connectors", [
+            'external_id' => 'AUTO-1',
+            'type' => 'CCS2',
+            'current_type' => 'DC',
+            'max_power_kw' => 120,
+        ])->assertCreated()->assertJsonPath('data.status', 'maintenance');
+
+        $this->postJson("/api/stations/{$station->id}/connectors", [
+            'external_id' => 'MANUAL-1',
+            'type' => 'CCS2',
+            'current_type' => 'DC',
+            'max_power_kw' => 120,
+            'status' => 'available',
+        ])->assertUnprocessable()->assertJsonValidationErrors('status');
     }
 
     public function test_operator_cannot_inject_an_organization_or_use_a_connector_from_another_station(): void
@@ -207,10 +243,50 @@ class StationApiTest extends TestCase
         ]);
         Sanctum::actingAs($client);
 
-        $this->getJson('/api/stations/map?connector_type=CCS2&min_power_kw=100&available_only=1&north=37&south=36&east=11&west=10')
+        $this->getJson('/api/stations/map?connector_type=CCS2&min_power_kw=100&available_only=true&north=37&south=36&east=11&west=10')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $matching->id);
+    }
+
+    public function test_station_resources_expose_remote_start_capability_and_reason(): void
+    {
+        [$client, $organization] = $this->userWithRole('client');
+        $client->update(['organization_id' => null]);
+        $station = $this->station($organization, 'CT-REMOTE-CAPABILITY-001');
+        $station->update([
+            'ocpp_auth_secret_hash' => Hash::make('remote-capability-secret'),
+            'ocpp_connected_at' => now(),
+            'ocpp_last_message_at' => now(),
+            'last_heartbeat_at' => now(),
+        ]);
+        Connector::query()->create([
+            'station_id' => $station->id,
+            'external_id' => 'A1',
+            'ocpp_connector_id' => 1,
+            'type' => 'CCS2',
+            'current_type' => 'DC',
+            'max_power_kw' => 120,
+            'status' => 'available',
+            'ocpp_status' => 'Available',
+            'ocpp_last_status_at' => now(),
+        ]);
+        Sanctum::actingAs($client);
+
+        $this->getJson('/api/stations/map')
+            ->assertOk()
+            ->assertJsonPath('data.0.remote_start_available', true)
+            ->assertJsonPath('data.0.remote_start_unavailable_reason', null);
+
+        $station->update([
+            'status' => 'offline',
+            'ocpp_disconnected_at' => now(),
+        ]);
+
+        $this->getJson("/api/stations/{$station->id}")
+            ->assertOk()
+            ->assertJsonPath('data.remote_start_available', false)
+            ->assertJsonPath('data.remote_start_unavailable_reason', 'station_offline');
     }
 
     /** @return array{User, Organization} */

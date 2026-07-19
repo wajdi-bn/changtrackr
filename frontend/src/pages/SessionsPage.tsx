@@ -7,8 +7,9 @@ import type { ColumnsType } from 'antd/es/table'
 import { MountainBanner } from '../components/MountainBanner'
 import {
   getChargingSessions,
+  getChargingAttempts,
   processPayment,
-  startChargingSession,
+  remoteStopChargingSession,
   stopChargingSession,
 } from '../features/charging/chargingApi'
 import { ChargingStatusTag } from '../features/charging/ChargingStatusTag'
@@ -16,7 +17,7 @@ import { PaymentDrawer } from '../features/charging/PaymentDrawer'
 import { StartSessionDrawer } from '../features/charging/StartSessionDrawer'
 import { useAuth } from '../features/auth/useAuth'
 import { getStations } from '../features/stations/stationApi'
-import type { ChargingSession, ChargingSessionStatus, PaymentPayload } from '../types/charging'
+import type { ChargingAttempt, ChargingSession, ChargingSessionStatus, PaymentPayload } from '../types/charging'
 
 export function SessionsPage() {
   const { primaryRole } = useAuth()
@@ -25,6 +26,7 @@ export function SessionsPage() {
   const deferredSearch = useDeferredValue(search)
   const [status, setStatus] = useState<'all' | ChargingSessionStatus>('all')
   const [startOpen, setStartOpen] = useState(false)
+  const [resumeAttemptUuid, setResumeAttemptUuid] = useState<string | null>(null)
   const [paymentSession, setPaymentSession] = useState<ChargingSession | null>(null)
   const queryClient = useQueryClient()
   const { message } = App.useApp()
@@ -35,8 +37,10 @@ export function SessionsPage() {
   }), [deferredSearch, status])
   const sessionsQuery = useQuery({ queryKey: ['charging-sessions', filters], queryFn: () => getChargingSessions(filters) })
   const stationsQuery = useQuery({ queryKey: ['stations', 'session-start'], queryFn: () => getStations({}), enabled: clientMode })
+  const attemptsQuery = useQuery({ queryKey: ['charging-attempts'], queryFn: getChargingAttempts, enabled: clientMode })
   const sessions = useMemo(() => sessionsQuery.data?.data ?? [], [sessionsQuery.data?.data])
-  const activeSession = sessions.find((session) => session.status === 'charging') ?? null
+  const activeSession = sessions.find((session) => isActiveSession(session)) ?? null
+  const activeAttempt = attemptsQuery.data?.find((attempt) => isActiveAttempt(attempt)) ?? null
 
   const refreshWorkflow = async () => {
     await queryClient.invalidateQueries({ queryKey: ['charging-sessions'] })
@@ -44,21 +48,12 @@ export function SessionsPage() {
     await queryClient.invalidateQueries({ queryKey: ['stations'] })
   }
 
-  const startMutation = useMutation({
-    mutationFn: startChargingSession,
-    onSuccess: async () => {
-      await refreshWorkflow()
-      setStartOpen(false)
-      void message.success('Charging session started.')
-    },
-    onError: () => void message.error('The session could not be started. The connector may no longer be available.'),
-  })
   const stopMutation = useMutation({
-    mutationFn: stopChargingSession,
+    mutationFn: (session: ChargingSession) => session.source === 'ocpp' ? remoteStopChargingSession(session.id) : stopChargingSession(session.id),
     onSuccess: async (session) => {
       await refreshWorkflow()
-      if (clientMode) setPaymentSession(session)
-      void message.success('Charging session stopped. The amount is ready for payment.')
+      if (session.source !== 'ocpp' && clientMode) setPaymentSession(session)
+      void message.success(session.source === 'ocpp' ? 'Stop command sent to the station.' : 'Charging session stopped. The amount is ready for payment.')
     },
     onError: () => void message.error('The session could not be stopped.'),
   })
@@ -77,18 +72,18 @@ export function SessionsPage() {
   })
 
   const columns: ColumnsType<ChargingSession> = [
-    { title: 'Session', dataIndex: 'reference', key: 'reference', render: (value: string, item) => <span className="session-reference"><strong>{value}</strong><small>{dayjs(item.started_at).format('DD MMM YYYY, HH:mm')}</small></span> },
+    { title: 'Session', dataIndex: 'reference', key: 'reference', render: (value: string, item) => <span className="session-reference"><strong>{value}</strong><small>{item.source === 'ocpp' ? `OCPP #${item.ocpp?.transaction_id ?? '—'} - ` : ''}{dayjs(item.started_at).format('DD MMM YYYY, HH:mm')}</small></span> },
     ...(!clientMode ? [{ title: 'Client', key: 'client', render: (_: unknown, item: ChargingSession) => item.client.name }] : []),
     { title: 'Station', key: 'station', render: (_: unknown, item) => <span className="session-station"><strong>{item.station.name}</strong><small>{clientMode && item.organization ? `${item.organization.name} - ` : ''}Connector {item.connector.external_id}</small></span> },
-    { title: 'Duration', key: 'duration', render: (_: unknown, item) => item.status === 'charging' ? 'In progress' : `${item.duration_minutes} min` },
+    { title: 'Duration', key: 'duration', render: (_: unknown, item) => isActiveSession(item) ? 'In progress' : `${item.duration_minutes} min` },
     { title: 'Energy', key: 'energy', render: (_: unknown, item) => `${item.energy_kwh.toFixed(3)} kWh` },
     { title: 'Session', dataIndex: 'status', key: 'status', render: (value: ChargingSessionStatus) => <ChargingStatusTag value={value} /> },
     { title: 'Payment', dataIndex: 'payment_status', key: 'payment_status', render: (value) => <ChargingStatusTag value={value} /> },
     { title: 'Total', key: 'total', align: 'right', render: (_: unknown, item) => <span className="session-total"><strong>{item.total_amount} {item.currency}</strong>{item.discount_millimes > 0 && <small>-{(item.discount_millimes / 1000).toFixed(3)} TND plan saving</small>}</span> },
     {
-      title: '', key: 'actions', align: 'right', render: (_: unknown, item) => item.status === 'charging' ? (
-        <Popconfirm title="Stop this charging session?" onConfirm={() => stopMutation.mutate(item.id)} okText="Stop">
-          <Button size="small" icon={<Square size={12} />}>Stop</Button>
+      title: '', key: 'actions', align: 'right', render: (_: unknown, item) => isActiveSession(item) ? (
+        <Popconfirm title="Stop this charging session?" description={item.source === 'ocpp' ? 'A RemoteStopTransaction command will be sent to the station.' : undefined} onConfirm={() => stopMutation.mutate(item)} okText="Stop">
+          <Button size="small" icon={<Square size={12} />} loading={stopMutation.isPending}>Stop</Button>
         </Popconfirm>
       ) : clientMode && item.payment_status !== 'paid' ? <Button size="small" type="primary" onClick={() => setPaymentSession(item)}>Pay now</Button> : null,
     },
@@ -114,38 +109,57 @@ export function SessionsPage() {
       <section className="active-session-card">
         <div className="active-session-pulse"><BatteryCharging size={25} /></div>
         <div className="active-session-main">
-          <span>Charging now</span>
+          <span>{activeSession.status === 'stopping' ? 'Stopping' : 'Charging now'}{activeSession.source === 'ocpp' ? ' - Live OCPP' : ''}</span>
           <h2>{activeSession.station.name}</h2>
           <p>{activeSession.organization?.name ?? 'Charging network'} - Connector {activeSession.connector.external_id} - {activeSession.connector.type} - {activeSession.tariff.name}{activeSession.plan ? ` - ${activeSession.plan.name} (${(activeSession.plan.discount_basis_points / 100).toFixed(0)}% off)` : ''} - started {activeSession.started_relative}</p>
         </div>
         <div className="active-session-metrics">
           <div><Clock3 size={15} /><span><small>Elapsed</small><strong>{Math.max(1, dayjs().diff(dayjs(activeSession.started_at), 'minute'))} min</strong></span></div>
-          <div><Zap size={15} /><span><small>Tariff</small><strong>{(activeSession.price_per_kwh_millimes / 1000).toFixed(3)} TND/kWh</strong></span></div>
+          <div><Zap size={15} /><span><small>Measured energy</small><strong>{activeSession.energy_kwh.toFixed(3)} kWh</strong></span></div>
+          {activeSession.current_power_kw !== null && <div><Gauge size={15} /><span><small>Current power</small><strong>{activeSession.current_power_kw.toFixed(1)} kW</strong></span></div>}
+          <div><CreditCard size={15} /><span><small>Current estimate</small><strong>{activeSession.total_amount} {activeSession.currency}</strong></span></div>
         </div>
-        <Popconfirm title="Stop charging now?" description="The final energy and amount will be calculated." onConfirm={() => stopMutation.mutate(activeSession.id)} okText="Stop session">
+        <Popconfirm title="Stop charging now?" description={activeSession.source === 'ocpp' ? 'The station will receive a secure remote stop command.' : 'The final energy and amount will be calculated.'} onConfirm={() => stopMutation.mutate(activeSession)} okText="Stop session">
           <Button danger icon={<Square size={14} />} loading={stopMutation.isPending}>Stop charging</Button>
         </Popconfirm>
+      </section>
+    ) : activeAttempt ? (
+      <section className="no-active-session pending-attempt-card">
+        <div><BatteryCharging size={21} /></div><span><strong>Charging start in progress</strong><p>{activeAttempt.station.name} · {attemptStatusLabel(activeAttempt)}</p></span>
+        <Button type="primary" onClick={() => { setResumeAttemptUuid(activeAttempt.uuid); setStartOpen(true) }}>Resume</Button>
       </section>
     ) : (
       <section className="no-active-session">
         <div><Play size={21} /></div><span><strong>No active charging session</strong><p>Choose an available station and connector to begin.</p></span>
-        <Button type="primary" icon={<Play size={14} />} onClick={() => setStartOpen(true)}>Start a session</Button>
+        <Button type="primary" icon={<Play size={14} />} onClick={() => { setResumeAttemptUuid(null); setStartOpen(true) }}>Start a session</Button>
       </section>
     ))}
 
-    <Card className="sessions-table-card" title={clientMode ? 'Session history' : 'Network sessions'} extra={clientMode && <Button type="primary" icon={<Play size={14} />} disabled={Boolean(activeSession)} onClick={() => setStartOpen(true)}>Start session</Button>}>
+    <Card className="sessions-table-card" title={clientMode ? 'Session history' : 'Network sessions'} extra={clientMode && <Button type="primary" icon={<Play size={14} />} disabled={Boolean(activeSession || activeAttempt)} onClick={() => { setResumeAttemptUuid(null); setStartOpen(true) }}>Start session</Button>}>
       <div className="sessions-toolbar">
         <Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={14} />} placeholder="Search sessions" allowClear />
-        <Select value={status} onChange={(value) => setStatus(value)} options={['all', 'charging', 'completed', 'cancelled'].map((value) => ({ value, label: value === 'all' ? 'All statuses' : value }))} />
+        <Select value={status} onChange={(value) => setStatus(value)} options={['all', 'pending', 'charging', 'stopping', 'completed', 'interrupted', 'failed', 'cancelled'].map((value) => ({ value, label: value === 'all' ? 'All statuses' : value }))} />
       </div>
       <Table rowKey="id" columns={columns} dataSource={sessions} loading={sessionsQuery.isLoading} pagination={{ pageSize: 8, hideOnSinglePage: true }} scroll={{ x: 1050 }} locale={{ emptyText: <Empty description="No charging sessions found" /> }} />
     </Card>
 
-    <StartSessionDrawer open={startOpen} stations={stationsQuery.data?.data ?? []} submitting={startMutation.isPending} onClose={() => setStartOpen(false)} onSubmit={(payload) => startMutation.mutate(payload)} />
+    <StartSessionDrawer open={startOpen} stations={stationsQuery.data?.data ?? []} initialAttemptUuid={resumeAttemptUuid} onClose={() => setStartOpen(false)} onSessionStarted={() => { void refreshWorkflow(); void message.success('The station confirmed that charging has started.') }} />
     <PaymentDrawer open={Boolean(paymentSession)} session={paymentSession} submitting={paymentMutation.isPending} onClose={() => setPaymentSession(null)} onSubmit={(payload) => paymentSession && paymentMutation.mutate({ sessionId: paymentSession.id, payload })} />
   </div>
 }
 
 function SessionKpi({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string | number; tone: string }) {
   return <div className="session-kpi"><span className={tone}>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>
+}
+
+function isActiveSession(session: ChargingSession) {
+  return ['pending', 'charging', 'stopping'].includes(session.status)
+}
+
+function isActiveAttempt(attempt: ChargingAttempt) {
+  return !attempt.charging_session && !['completed', 'failed'].includes(attempt.status)
+}
+
+function attemptStatusLabel(attempt: ChargingAttempt) {
+  return ({ payment_pending: 'Authorizing payment', authorized: 'Payment authorized', command_queued: 'Command queued', command_sent: 'Contacting station', awaiting_station: 'Waiting for station confirmation', charging: 'Starting session' } as Record<string, string>)[attempt.status] ?? 'In progress'
 }
