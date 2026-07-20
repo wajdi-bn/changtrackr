@@ -6,6 +6,7 @@ use App\Models\Alert;
 use App\Models\ChargingPlan;
 use App\Models\ChargingSession;
 use App\Models\Intervention;
+use App\Models\MaintenancePlan;
 use App\Models\OcppIdTag;
 use App\Models\Organization;
 use App\Models\Payment;
@@ -323,6 +324,106 @@ class DemoDataSeeder extends Seeder
                     ['description' => $description],
                     ['actor_id' => $seed['technician_id'], 'event_type' => 'workflow', 'occurred_at' => now()->subMinutes((count($events) - $eventIndex) * 15)],
                 );
+            }
+        }
+
+        $maintenanceSeeds = [
+            [
+                'plan_reference' => 'MPL-DEMO-001', 'reference' => 'MPL-DEMO-001-001', 'station_reference' => 'CT-TUN-001',
+                'technician_id' => $nour->id, 'title' => 'Monthly fast charger safety inspection', 'type' => 'preventive',
+                'priority' => 'info', 'status' => 'assigned', 'scheduled_at' => now()->addDay()->setTime(9, 0), 'duration' => 75,
+                'instructions' => 'Inspect cabinet seals, emergency stop, cable jacket, connector pins and grounding continuity.',
+                'recurrence' => 'monthly', 'recurrence_interval' => 1, 'recurrence_ends_at' => now()->addMonths(6),
+            ],
+            [
+                'plan_reference' => 'MPL-DEMO-002', 'reference' => 'MPL-DEMO-002-001', 'station_reference' => 'CT-TUN-014',
+                'technician_id' => $karim->id, 'title' => 'Cooling system and filter service', 'type' => 'preventive',
+                'priority' => 'warning', 'status' => 'assigned', 'scheduled_at' => now()->addDays(3)->setTime(14, 30), 'duration' => 120,
+                'instructions' => 'Clean ventilation filters, verify fan operation and compare thermal readings under load.',
+                'recurrence' => 'none', 'recurrence_interval' => 1, 'recurrence_ends_at' => null,
+            ],
+            [
+                'plan_reference' => 'MPL-DEMO-003', 'reference' => 'MPL-DEMO-003-001', 'station_reference' => 'CT-BIZ-009',
+                'technician_id' => $nour->id, 'title' => 'Replace damaged cable strain relief', 'type' => 'corrective',
+                'priority' => 'critical', 'status' => 'assigned', 'scheduled_at' => now()->addDays(5)->setTime(8, 30), 'duration' => 90,
+                'instructions' => 'Isolate power, replace the cable strain relief and complete insulation and continuity tests.',
+                'recurrence' => 'none', 'recurrence_interval' => 1, 'recurrence_ends_at' => null,
+            ],
+            [
+                'plan_reference' => 'MPL-DEMO-004', 'reference' => 'MPL-DEMO-004-001', 'station_reference' => 'CT-ARI-006',
+                'technician_id' => $karim->id, 'title' => 'Quarterly enclosure inspection', 'type' => 'preventive',
+                'priority' => 'info', 'status' => 'resolved', 'scheduled_at' => now()->subDays(4)->setTime(10, 0), 'duration' => 60,
+                'instructions' => 'Inspect enclosure, protection devices and communication equipment.',
+                'recurrence' => 'none', 'recurrence_interval' => 1, 'recurrence_ends_at' => null,
+            ],
+            [
+                'plan_reference' => 'MPL-DEMO-005', 'reference' => 'MPL-DEMO-005-001', 'station_reference' => 'CT-MON-012',
+                'technician_id' => $nour->id, 'title' => 'Site access inspection', 'type' => 'preventive',
+                'priority' => 'info', 'status' => 'cancelled', 'scheduled_at' => now()->subDay()->setTime(11, 0), 'duration' => 45,
+                'instructions' => 'Verify parking markings, lighting and unrestricted access to the charging bay.',
+                'recurrence' => 'none', 'recurrence_interval' => 1, 'recurrence_ends_at' => null,
+            ],
+        ];
+
+        foreach ($maintenanceSeeds as $seed) {
+            $station = Station::query()->where('reference', $seed['station_reference'])->firstOrFail();
+            $plan = MaintenancePlan::updateOrCreate(
+                ['reference' => $seed['plan_reference']],
+                [
+                    'organization_id' => $station->organization_id,
+                    'station_id' => $station->id,
+                    'assigned_technician_id' => $seed['technician_id'],
+                    'created_by_id' => User::query()->where('email', 'operator@chargetrackr.local')->value('id'),
+                    'title' => $seed['title'],
+                    'type' => $seed['type'],
+                    'priority' => $seed['priority'],
+                    'status' => in_array($seed['status'], ['resolved', 'cancelled'], true) && $seed['recurrence'] === 'none'
+                        ? ($seed['status'] === 'resolved' ? 'completed' : 'cancelled')
+                        : 'active',
+                    'instructions' => $seed['instructions'],
+                    'first_scheduled_at' => $seed['scheduled_at'],
+                    'estimated_duration_minutes' => $seed['duration'],
+                    'recurrence_frequency' => $seed['recurrence'],
+                    'recurrence_interval' => $seed['recurrence_interval'],
+                    'recurrence_ends_at' => $seed['recurrence_ends_at'],
+                    'next_occurrence_at' => $seed['recurrence'] === 'monthly' ? $seed['scheduled_at']->copy()->addMonth() : null,
+                    'last_generated_at' => now(),
+                    'last_occurrence_number' => 1,
+                ],
+            );
+
+            $intervention = Intervention::updateOrCreate(
+                ['reference' => $seed['reference']],
+                [
+                    'organization_id' => $station->organization_id,
+                    'alert_id' => null,
+                    'maintenance_plan_id' => $plan->id,
+                    'maintenance_occurrence_number' => 1,
+                    'station_id' => $station->id,
+                    'assigned_technician_id' => $seed['technician_id'],
+                    'created_by_id' => $plan->created_by_id,
+                    'status' => $seed['status'],
+                    'priority' => $seed['priority'],
+                    'scheduled_at' => $seed['scheduled_at'],
+                    'ended_at' => in_array($seed['status'], ['resolved', 'cancelled'], true) ? $seed['scheduled_at']->copy()->addMinutes($seed['duration']) : null,
+                    'estimated_duration_minutes' => $seed['duration'],
+                    'problem' => $seed['instructions'],
+                    'final_status' => $seed['status'] === 'resolved' ? 'Operational' : ($seed['status'] === 'cancelled' ? 'Cancelled' : null),
+                ],
+            );
+            $intervention->events()->firstOrCreate(
+                ['event_type' => 'maintenance_scheduled'],
+                ['actor_id' => $plan->created_by_id, 'description' => 'Maintenance occurrence scheduled from the demo plan.', 'occurred_at' => now()],
+            );
+            if ($plan->isRecurring()) {
+                $latestOccurrence = $plan->interventions()->orderByDesc('maintenance_occurrence_number')->firstOrFail();
+                $nextOccurrence = $latestOccurrence->scheduled_at?->copy()->addMonthsNoOverflow($plan->recurrence_interval);
+                $plan->update([
+                    'last_occurrence_number' => $latestOccurrence->maintenance_occurrence_number,
+                    'next_occurrence_at' => $nextOccurrence !== null && ($plan->recurrence_ends_at === null || $nextOccurrence->lte($plan->recurrence_ends_at))
+                        ? $nextOccurrence
+                        : null,
+                ]);
             }
         }
 

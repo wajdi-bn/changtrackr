@@ -6,8 +6,12 @@ import type {
   AlertsResponse,
   InterventionItem,
   InterventionPayload,
+  InterventionReportPayload,
   InterventionsResponse,
   InterventionStatus,
+  MaintenancePlanPayload,
+  MaintenanceType,
+  MaintenancesResponse,
 } from '../../types/operations'
 
 export async function getAlerts(filters: { search?: string; severity?: AlertSeverity; status?: AlertStatus }): Promise<AlertsResponse> {
@@ -68,5 +72,62 @@ export async function updateIntervention(interventionId: number, payload: Partia
 
 export async function addInterventionNote(interventionId: number, description: string): Promise<InterventionItem> {
   const response = await httpClient.post<{ data: InterventionItem }>(`/interventions/${interventionId}/notes`, { description })
+  return response.data.data
+}
+
+export async function uploadInterventionPhoto(interventionId: number, payload: { photo: File; phase: 'before' | 'after' | 'evidence'; caption?: string }): Promise<InterventionItem> {
+  const formData = new FormData()
+  formData.append('photo', payload.photo)
+  formData.append('phase', payload.phase)
+  if (payload.caption) formData.append('caption', payload.caption)
+  const response = await httpClient.post<{ data: InterventionItem }>(`/interventions/${interventionId}/photos`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000,
+  })
+  return response.data.data
+}
+
+export async function deleteInterventionPhoto(interventionId: number, photoId: number): Promise<InterventionItem> {
+  const response = await httpClient.delete<{ data: InterventionItem }>(`/interventions/${interventionId}/photos/${photoId}`)
+  return response.data.data
+}
+
+export async function viewInterventionPhoto(interventionId: number, photoId: number): Promise<void> {
+  const response = await httpClient.get<Blob>(`/interventions/${interventionId}/photos/${photoId}`, { responseType: 'blob' })
+  const url = URL.createObjectURL(response.data)
+  window.open(url, '_blank', 'noopener,noreferrer')
+  window.setTimeout(() => URL.revokeObjectURL(url), 60000)
+}
+
+export async function submitInterventionReport(interventionId: number, payload: InterventionReportPayload): Promise<InterventionItem> {
+  const response = await httpClient.post<{ data: InterventionItem }>(`/interventions/${interventionId}/report`, payload)
+  return response.data.data
+}
+
+export async function getMaintenances(filters: {
+  search?: string
+  status?: InterventionStatus
+  type?: MaintenanceType
+  station_id?: number
+  date_from?: string
+  date_to?: string
+}): Promise<MaintenancesResponse> {
+  const response = await httpClient.get<MaintenancesResponse>('/maintenances', { params: filters })
+  return response.data
+}
+
+export async function createMaintenancePlan(payload: MaintenancePlanPayload): Promise<InterventionItem> {
+  const response = await httpClient.post<{ data: InterventionItem }>('/maintenances', payload)
+  return response.data.data
+}
+
+export async function updateMaintenanceOccurrence(interventionId: number, payload: Partial<{
+  assigned_technician_id: number
+  scheduled_at: string
+  estimated_duration_minutes: number
+  priority: AlertSeverity
+  problem: string
+}>): Promise<InterventionItem> {
+  const response = await httpClient.patch<{ data: InterventionItem }>(`/maintenances/${interventionId}`, payload)
   return response.data.data
 }

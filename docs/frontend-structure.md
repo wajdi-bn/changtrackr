@@ -27,6 +27,8 @@ Suggested feature modules:
 - `map`
 - `alerts`
 - `interventions`
+  - guided diagnosis, work, evidence, and final review workflow
+- `maintenance`
 - `sessions`
 - `payments`
 - `reports`

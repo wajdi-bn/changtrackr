@@ -28,4 +28,9 @@ class PaymentPolicy
             && $user->can('payments.pay')
             && $session->client_id === $user->id;
     }
+
+    public function export(User $user): bool
+    {
+        return $user->can('payments.view') && $user->can('reports.export');
+    }
 }

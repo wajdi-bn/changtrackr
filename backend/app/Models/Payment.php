@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'organization_id', 'user_id', 'charging_session_id', 'reference', 'provider',
@@ -26,6 +28,16 @@ class Payment extends Model
     public function chargingSession(): BelongsTo
     {
         return $this->belongsTo(ChargingSession::class);
+    }
+
+    public function providerEvents(): HasMany
+    {
+        return $this->hasMany(PaymentProviderEvent::class);
+    }
+
+    public function latestProviderEvent(): HasOne
+    {
+        return $this->hasOne(PaymentProviderEvent::class)->ofMany('id', 'max');
     }
 
     protected function casts(): array

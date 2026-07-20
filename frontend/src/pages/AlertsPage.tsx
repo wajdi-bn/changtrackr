@@ -27,8 +27,11 @@ import { useAuth } from '../features/auth/useAuth'
 import type { AlertItem, AlertSeverity, AlertStatus, InterventionPayload } from '../types/operations'
 
 export function AlertsPage() {
-  const { primaryRole } = useAuth()
+  const { primaryRole, user } = useAuth()
   const technicianMode = primaryRole === 'technician'
+  const canManageAlerts = user?.permissions.includes('alerts.manage') ?? false
+  const canAssignAlerts = user?.permissions.includes('alerts.assign') ?? false
+  const canManageInterventions = user?.permissions.includes('interventions.manage') ?? false
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const [severity, setSeverity] = useState<'all' | AlertSeverity>('all')
@@ -46,7 +49,7 @@ export function AlertsPage() {
   }), [deferredSearch, severity, status])
 
   const alertsQuery = useQuery({ queryKey: ['alerts', filters, technicianMode], queryFn: () => getAlerts(filters) })
-  const stationsQuery = useQuery({ queryKey: ['stations', 'alert-options'], queryFn: () => getStations({}), enabled: !technicianMode })
+  const stationsQuery = useQuery({ queryKey: ['stations', 'alert-options'], queryFn: () => getStations({}), enabled: canManageAlerts })
   const alerts = useMemo(() => alertsQuery.data?.data ?? [], [alertsQuery.data?.data])
   const selectedAlert = alerts.find((alert) => alert.id === selectedId) ?? alerts[0] ?? null
 
@@ -92,7 +95,7 @@ export function AlertsPage() {
     <div className="alerts-page">
       <MountainBanner
         color={technicianMode ? 'orange' : 'pink'}
-        breadcrumb={[technicianMode ? 'Technician' : 'Operations', technicianMode ? 'My alerts' : 'Alerts']}
+        breadcrumb={[technicianMode ? 'Technician' : primaryRole === 'admin' ? 'Organization' : 'Operations', technicianMode ? 'My alerts' : 'Alerts']}
         title={technicianMode ? 'My alerts' : 'Alerts'}
         count={alertsQuery.data?.summary.total ?? 0}
         subtitle={technicianMode
@@ -104,7 +107,7 @@ export function AlertsPage() {
         <section className="alerts-list-panel">
           <div className="alerts-search-row">
             <Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={14} />} placeholder="Search alerts" allowClear />
-            {!technicianMode && <Button type="primary" onClick={() => setDrawer('create')}>Create <ChevronDown size={14} /></Button>}
+            {canManageAlerts && <Button type="primary" onClick={() => setDrawer('create')}>Create <ChevronDown size={14} /></Button>}
           </div>
           <div className="alerts-filter-pills">
             {(['all', 'critical', 'warning', 'info'] as const).map((item) => (
@@ -134,11 +137,14 @@ export function AlertsPage() {
             <AlertDetails
               alert={selectedAlert}
               technicianMode={technicianMode}
+              canManageAlerts={canManageAlerts}
+              canAssignAlerts={canAssignAlerts}
+              canManageInterventions={canManageInterventions}
               updating={updateMutation.isPending}
               onAssign={() => setDrawer('assign')}
               onCreateIntervention={() => setDrawer('intervention')}
               onStatus={(nextStatus) => updateMutation.mutate({ alertId: selectedAlert.id, payload: { status: nextStatus } })}
-              onOpenIntervention={() => navigate('/my-interventions')}
+              onOpenIntervention={() => navigate(technicianMode ? '/my-interventions' : '/interventions')}
             />
           )}
         </section>
@@ -172,15 +178,20 @@ export function AlertsPage() {
   )
 }
 
-function AlertDetails({ alert, technicianMode, updating, onAssign, onCreateIntervention, onStatus, onOpenIntervention }: {
+function AlertDetails({ alert, technicianMode, canManageAlerts, canAssignAlerts, canManageInterventions, updating, onAssign, onCreateIntervention, onStatus, onOpenIntervention }: {
   alert: AlertItem
   technicianMode: boolean
+  canManageAlerts: boolean
+  canAssignAlerts: boolean
+  canManageInterventions: boolean
   updating: boolean
   onAssign: () => void
   onCreateIntervention: () => void
   onStatus: (status: AlertStatus) => void
   onOpenIntervention: () => void
 }) {
+  const hasActiveIntervention = alert.intervention && alert.intervention.status !== 'cancelled'
+
   return <div className="alert-detail-content">
     <header><div><h2>{alert.title}</h2><p>{alert.reference} - {alert.station.name}</p></div><Button type="text" icon={<MoreHorizontal size={17} />} /></header>
     <div className="alert-detail-tags"><WorkflowTag value={alert.severity} /><WorkflowTag value={alert.status} /><span>Problem type: {alert.problem_type}</span></div>
@@ -190,8 +201,8 @@ function AlertDetails({ alert, technicianMode, updating, onAssign, onCreateInter
       <div><ClipboardCheck size={15} /><span><strong>{alert.intervention?.reference ?? 'Field intervention'}</strong><small>Intervention</small></span></div>
     </div>
     <section className="alert-description"><h3>Description</h3><p>{alert.description}</p></section>
-    {technicianMode && alert.ocpp_log && <section className="ocpp-context"><h3>OCPP context</h3><pre>{alert.ocpp_log}</pre></section>}
-    {technicianMode && (alert.suggested_cause || alert.recommended_action) && <section className="field-suggestion"><strong>Diagnostic suggestion</strong><p>{alert.suggested_cause} {alert.recommended_action}</p></section>}
+    {alert.ocpp_log && <section className="ocpp-context"><h3>OCPP context</h3><pre>{alert.ocpp_log}</pre></section>}
+    {(alert.suggested_cause || alert.recommended_action) && <section className="field-suggestion"><strong>Diagnostic suggestion</strong><p>{alert.suggested_cause} {alert.recommended_action}</p></section>}
     <section className="workflow-timeline"><h3>Timeline</h3>{alert.events.map((event) => <div key={event.id}><span><CheckCircle2 size={13} /></span><p>{event.description}<small>{event.occurred_relative}</small></p></div>)}</section>
     <div className="alert-actions">
       {technicianMode ? (
@@ -199,10 +210,11 @@ function AlertDetails({ alert, technicianMode, updating, onAssign, onCreateInter
           ? <Button type="primary" onClick={onOpenIntervention}>Open intervention</Button>
           : <Button disabled>No intervention assigned</Button>
       ) : <>
-        <Button icon={<Plus size={15} />} onClick={onAssign}>Assign technician</Button>
-        {alert.status === 'new' && <Button className="violet-button" loading={updating} onClick={() => onStatus('in-progress')}>Mark in progress</Button>}
-        {!alert.intervention && <Button icon={<ClipboardCheck size={15} />} onClick={onCreateIntervention}>Create intervention</Button>}
-        {alert.status !== 'resolved' && <Button type="primary" loading={updating} onClick={() => onStatus('resolved')}>Resolve</Button>}
+        {canAssignAlerts && alert.status !== 'resolved' && <Button icon={<Plus size={15} />} onClick={onAssign}>Assign technician</Button>}
+        {canManageAlerts && alert.status === 'new' && <Button className="violet-button" loading={updating} onClick={() => onStatus('in-progress')}>Acknowledge alert</Button>}
+        {canManageInterventions && alert.status !== 'resolved' && !hasActiveIntervention && <Button icon={<ClipboardCheck size={15} />} onClick={onCreateIntervention}>Create intervention</Button>}
+        {canManageInterventions && hasActiveIntervention && <Button icon={<ClipboardCheck size={15} />} onClick={onOpenIntervention}>Open intervention</Button>}
+        {canManageAlerts && alert.status !== 'resolved' && <Button type="primary" loading={updating} onClick={() => onStatus('resolved')}>Resolve</Button>}
       </>}
     </div>
   </div>

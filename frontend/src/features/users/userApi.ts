@@ -21,6 +21,21 @@ export async function deactivateManagedUser(userId: number): Promise<ManagedUser
   return response.data.data
 }
 
+export async function remindEmployeeInvitation(userId: number): Promise<ManagedUser> {
+  const response = await httpClient.post<{ data: ManagedUser }>(`/users/${userId}/invitation/remind`)
+  return response.data.data
+}
+
+export async function renewEmployeeInvitation(userId: number): Promise<ManagedUser> {
+  const response = await httpClient.post<{ data: ManagedUser }>(`/users/${userId}/invitation/renew`)
+  return response.data.data
+}
+
+export async function cancelEmployeeInvitation(userId: number): Promise<ManagedUser> {
+  const response = await httpClient.delete<{ data: ManagedUser }>(`/users/${userId}/invitation`)
+  return response.data.data
+}
+
 export async function exportManagedUsers(filters: ManagedUserFilters, format: 'csv' | 'json'): Promise<Blob> {
   const response = await httpClient.get<Blob>('/users/export', {
     params: { ...filters, format, page: undefined, per_page: undefined },

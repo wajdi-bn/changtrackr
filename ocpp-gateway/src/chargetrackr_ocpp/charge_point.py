@@ -7,7 +7,7 @@ from typing import Any, Protocol
 from ocpp.routing import on
 from ocpp.v16 import ChargePoint as Ocpp16ChargePoint
 from ocpp.v16 import call, call_result
-from ocpp.v16.enums import Action, RegistrationStatus
+from ocpp.v16.enums import Action, AvailabilityType, RegistrationStatus, ResetType
 
 from chargetrackr_ocpp.events import build_event
 
@@ -77,11 +77,32 @@ class ChargeTrackrChargePoint(Ocpp16ChargePoint):
                     transaction_id=int(payload["transactionId"]),
                 )
             )
+        elif action == "Reset":
+            reset_type = ResetType(str(payload["type"]))
+            if reset_type is not ResetType.soft:
+                raise ValueError("Only Soft Reset is allowed")
+            response = await self.call(call.Reset(type=reset_type))
+        elif action == "UnlockConnector":
+            response = await self.call(
+                call.UnlockConnector(connector_id=int(payload["connectorId"]))
+            )
+        elif action == "ChangeAvailability":
+            response = await self.call(
+                call.ChangeAvailability(
+                    connector_id=int(payload["connectorId"]),
+                    type=AvailabilityType(str(payload["type"])),
+                )
+            )
         else:
             raise ValueError(f"Unsupported OCPP command: {action}")
 
-        status = str(_value(response.status)).lower()
-        return {"status": status, "ocppStatus": _value(response.status)}
+        ocpp_status = str(_value(response.status))
+        normalized_status = (
+            "accepted"
+            if ocpp_status in {"Accepted", "Unlocked", "Scheduled"}
+            else "rejected"
+        )
+        return {"status": normalized_status, "ocppStatus": ocpp_status}
 
     async def _publish(
         self,

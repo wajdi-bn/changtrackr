@@ -2,10 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\AccountInvitation;
 use App\Models\Organization;
 use App\Models\User;
+use App\Notifications\AccountInvitationNotification;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -38,8 +42,9 @@ class UserManagementApiTest extends TestCase
             ->assertJsonPath('summary.by_role.operator', 1);
     }
 
-    public function test_administrator_can_create_update_and_logically_deactivate_an_organization_user(): void
+    public function test_administrator_invites_an_employee_who_activates_before_being_managed(): void
     {
+        Notification::fake();
         $organization = $this->organization('crud-network');
         $administrator = $this->user($organization, 'admin');
         Sanctum::actingAs($administrator);
@@ -50,14 +55,41 @@ class UserManagementApiTest extends TestCase
             'phone' => '+216 20 123 456',
             'team' => 'Field Maintenance',
             'address' => 'Ariana, Tunisia',
-            'status' => 'active',
             'role' => 'technician',
-            'password' => 'password123',
         ])
             ->assertCreated()
             ->assertJsonPath('data.organization.id', $organization->id)
             ->assertJsonPath('data.roles.0', 'technician')
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.invitation.status', 'pending')
             ->json('data.id');
+
+        $managedUser = User::query()->findOrFail($userId);
+        $this->assertDatabaseHas('account_invitations', [
+            'user_id' => $managedUser->id,
+            'organization_id' => $organization->id,
+            'invited_by_id' => $administrator->id,
+            'status' => 'pending',
+        ]);
+
+        $activationUrl = null;
+        Notification::assertSentTo($managedUser, AccountInvitationNotification::class, function (AccountInvitationNotification $notification) use ($managedUser, &$activationUrl): bool {
+            $activationUrl = $notification->toMail($managedUser)->actionUrl;
+
+            return true;
+        });
+        $this->assertIsString($activationUrl);
+        parse_str((string) parse_url($activationUrl, PHP_URL_QUERY), $activationQuery);
+
+        $this->postJson('/api/account-invitations/accept', [
+            'email' => $managedUser->email,
+            'token' => $activationQuery['token'],
+            'password' => 'SecurePass123',
+            'password_confirmation' => 'SecurePass123',
+        ])->assertOk();
+
+        $this->assertSame('active', $managedUser->fresh()->status);
+        $this->assertTrue(Hash::check('SecurePass123', $managedUser->fresh()->password));
 
         $this->patchJson("/api/users/{$userId}", [
             'name' => 'Network Operator',
@@ -79,6 +111,52 @@ class UserManagementApiTest extends TestCase
         $this->assertDatabaseCount('personal_access_tokens', 0);
     }
 
+    public function test_employee_invitation_actions_are_contextual_and_scoped(): void
+    {
+        Notification::fake();
+        $organization = $this->organization('invitation-network');
+        $otherOrganization = $this->organization('other-invitation-network');
+        $administrator = $this->user($organization, 'admin');
+        $otherAdministrator = $this->user($otherOrganization, 'admin');
+        Sanctum::actingAs($administrator);
+
+        $employeeId = $this->postJson('/api/users', [
+            'name' => 'Pending Operator',
+            'email' => 'pending.operator@example.com',
+            'role' => 'operator',
+            'team' => 'Network Operations',
+        ])->assertCreated()->json('data.id');
+        $employee = User::query()->findOrFail($employeeId);
+
+        $this->postJson("/api/users/{$employeeId}/invitation/remind")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('invitation');
+
+        $this->travel(11)->minutes();
+        $this->postJson("/api/users/{$employeeId}/invitation/remind")
+            ->assertOk()
+            ->assertJsonPath('data.invitation.status', 'pending');
+        Notification::assertSentToTimes($employee, AccountInvitationNotification::class, 2);
+
+        Sanctum::actingAs($otherAdministrator);
+        $this->deleteJson("/api/users/{$employeeId}/invitation")->assertForbidden();
+
+        Sanctum::actingAs($administrator);
+        $this->deleteJson("/api/users/{$employeeId}/invitation")
+            ->assertOk()
+            ->assertJsonPath('data.invitation.status', 'revoked')
+            ->assertJsonPath('data.invitation.can_renew', true);
+
+        $this->postJson("/api/users/{$employeeId}/invitation/renew")
+            ->assertOk()
+            ->assertJsonPath('data.invitation.status', 'pending');
+
+        $this->assertDatabaseCount('account_invitations', 2);
+        $this->assertSame(1, AccountInvitation::query()->where('status', 'revoked')->count());
+        Notification::assertSentToTimes($employee, AccountInvitationNotification::class, 3);
+        $this->travelBack();
+    }
+
     public function test_administrator_cannot_manage_another_organization_or_assign_super_administrator_role(): void
     {
         $organization = $this->organization('protected-network');
@@ -93,34 +171,26 @@ class UserManagementApiTest extends TestCase
         $this->postJson('/api/users', [
             'name' => 'Forbidden Super Admin',
             'email' => 'forbidden.super@example.com',
-            'status' => 'active',
             'role' => 'super_admin',
-            'password' => 'password123',
         ])->assertUnprocessable()->assertJsonValidationErrors('role');
 
         $this->postJson('/api/users', [
             'name' => 'Forbidden Administrator',
             'email' => 'forbidden.admin@example.com',
-            'status' => 'active',
             'role' => 'admin',
-            'password' => 'password123',
         ])->assertUnprocessable()->assertJsonValidationErrors('role');
 
         $this->postJson('/api/users', [
             'organization_id' => $otherOrganization->id,
             'name' => 'Injected Operator',
             'email' => 'injected.operator@example.com',
-            'status' => 'active',
             'role' => 'operator',
-            'password' => 'password123',
         ])->assertUnprocessable()->assertJsonValidationErrors('organization_id');
 
         $this->postJson('/api/users', [
             'name' => 'Client Account',
             'email' => 'client.account@example.com',
-            'status' => 'active',
             'role' => 'client',
-            'password' => 'password123',
         ])->assertUnprocessable()->assertJsonValidationErrors('role');
     }
 
@@ -134,9 +204,7 @@ class UserManagementApiTest extends TestCase
         $this->postJson('/api/users', [
             'name' => 'Denied User',
             'email' => 'denied@example.com',
-            'status' => 'active',
             'role' => 'technician',
-            'password' => 'password123',
         ])->assertForbidden();
     }
 

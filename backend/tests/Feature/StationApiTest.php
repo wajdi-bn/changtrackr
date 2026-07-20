@@ -98,7 +98,43 @@ class StationApiTest extends TestCase
             ->assertJsonPath('data.external_id', 'A1');
     }
 
-    public function test_ocpp_managed_station_rejects_manual_status_and_accepts_operational_overrides(): void
+    public function test_admin_can_manage_only_their_organization_stations_and_connectors(): void
+    {
+        [$admin, $organization] = $this->userWithRole('admin');
+        $ownStation = $this->station($organization, 'CT-ADMIN-OWN');
+        $otherOrganization = Organization::query()->create(['name' => 'External Network', 'slug' => 'external-admin-network', 'status' => 'active']);
+        $otherStation = $this->station($otherOrganization, 'CT-ADMIN-OTHER');
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/stations')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $ownStation->id);
+
+        $createdId = $this->postJson('/api/stations', $this->stationPayload('CT-ADMIN-NEW'))
+            ->assertCreated()
+            ->assertJsonPath('data.organization_id', $organization->id)
+            ->json('data.id');
+
+        $this->postJson("/api/stations/{$createdId}/connectors", [
+            'external_id' => 'ADM-1',
+            'type' => 'CCS2',
+            'current_type' => 'DC',
+            'max_power_kw' => 120,
+            'status' => 'available',
+        ])->assertCreated();
+
+        $this->patchJson("/api/stations/{$otherStation->id}", ['name' => 'Forbidden update'])->assertForbidden();
+        $this->deleteJson("/api/stations/{$otherStation->id}")->assertForbidden();
+        $this->postJson('/api/stations', [
+            ...$this->stationPayload('CT-ADMIN-INJECTED'),
+            'organization_id' => $otherOrganization->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('organization_id');
+
+        $this->deleteJson("/api/stations/{$createdId}")->assertNoContent();
+    }
+
+    public function test_ocpp_managed_station_rejects_manual_status_and_reserves_maintenance_for_supervision(): void
     {
         [$user, $organization] = $this->userWithRole('operator');
         $station = $this->station($organization, 'CT-MANAGED-001');
@@ -113,16 +149,20 @@ class StationApiTest extends TestCase
             ->assertJsonValidationErrors('status');
 
         $this->patchJson("/api/stations/{$station->id}", ['availability_override' => 'maintenance'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('availability_override');
+
+        $this->patchJson("/api/stations/{$station->id}", ['availability_override' => 'disabled'])
             ->assertOk()
-            ->assertJsonPath('data.status', 'maintenance')
-            ->assertJsonPath('data.availability_reason', 'planned_maintenance');
+            ->assertJsonPath('data.status', 'unavailable')
+            ->assertJsonPath('data.availability_reason', 'manually_disabled');
 
         $this->postJson("/api/stations/{$station->id}/connectors", [
             'external_id' => 'AUTO-1',
             'type' => 'CCS2',
             'current_type' => 'DC',
             'max_power_kw' => 120,
-        ])->assertCreated()->assertJsonPath('data.status', 'maintenance');
+        ])->assertCreated()->assertJsonPath('data.status', 'unavailable');
 
         $this->postJson("/api/stations/{$station->id}/connectors", [
             'external_id' => 'MANUAL-1',

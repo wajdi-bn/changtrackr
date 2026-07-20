@@ -1,0 +1,45 @@
+{
+  "id": "28d4e9fc-eb77-48a3-9454-2cd8f8496373",
+  "name": "Successful payment operation with callback",
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/payment-operations",
+    "headers": {
+      "X-Simulator-Api-Key": {
+        "equalTo": "chargetrackr-local"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": "$[?(@.simulation_outcome == 'success')]"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"event_id\":\"{{jsonPath request.body '$.event_id'}}\",\"operation\":\"{{jsonPath request.body '$.operation'}}\",\"status\":\"{{jsonPath request.body '$.provider_status'}}\",\"payment_reference\":\"{{jsonPath request.body '$.payment_reference'}}\",\"provider_transaction_id\":\"{{jsonPath request.body '$.provider_transaction_id'}}\",\"amount_millimes\":{{jsonPath request.body '$.amount_millimes'}},\"currency\":\"{{jsonPath request.body '$.currency'}}\"}"
+  },
+  "serveEventListeners": [
+    {
+      "name": "webhook",
+      "parameters": {
+        "method": "POST",
+        "url": "{{jsonPath originalRequest.body '$.webhook_url'}}",
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-ChargeTrackr-Signature": "{{jsonPath originalRequest.body '$.webhook_signature'}}"
+        },
+        "body": "{\"event_id\":\"{{jsonPath originalRequest.body '$.event_id'}}\",\"type\":\"{{jsonPath originalRequest.body '$.event_type'}}\",\"operation\":\"{{jsonPath originalRequest.body '$.operation'}}\",\"status\":\"{{jsonPath originalRequest.body '$.provider_status'}}\",\"payment_reference\":\"{{jsonPath originalRequest.body '$.payment_reference'}}\",\"provider_transaction_id\":\"{{jsonPath originalRequest.body '$.provider_transaction_id'}}\",\"authorization_id\":\"{{jsonPath originalRequest.body '$.authorization_id'}}\",\"amount_millimes\":{{jsonPath originalRequest.body '$.amount_millimes'}},\"currency\":\"{{jsonPath originalRequest.body '$.currency'}}\",\"idempotency_key\":\"{{jsonPath originalRequest.body '$.idempotency_key'}}\"}",
+        "delay": {
+          "type": "fixed",
+          "milliseconds": 150
+        }
+      }
+    }
+  ]
+}

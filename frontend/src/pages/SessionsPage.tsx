@@ -1,13 +1,14 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { App, Button, Card, Empty, Input, Popconfirm, Select, Skeleton, Table } from 'antd'
+import { App, Button, Card, Dropdown, Empty, Input, Popconfirm, Select, Skeleton, Table } from 'antd'
 import dayjs from 'dayjs'
-import { BatteryCharging, Clock3, CreditCard, Gauge, Play, Search, Square, Zap } from 'lucide-react'
+import { BatteryCharging, Clock3, CreditCard, Download, Gauge, Play, Search, Square, Zap } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
 import { MountainBanner } from '../components/MountainBanner'
 import {
   getChargingSessions,
   getChargingAttempts,
+  exportChargingSessions,
   processPayment,
   remoteStopChargingSession,
   stopChargingSession,
@@ -18,10 +19,14 @@ import { StartSessionDrawer } from '../features/charging/StartSessionDrawer'
 import { useAuth } from '../features/auth/useAuth'
 import { getStations } from '../features/stations/stationApi'
 import type { ChargingAttempt, ChargingSession, ChargingSessionStatus, PaymentPayload } from '../types/charging'
+import { downloadBlob } from '../utils/downloadBlob'
 
 export function SessionsPage() {
-  const { primaryRole } = useAuth()
+  const { primaryRole, user } = useAuth()
   const clientMode = primaryRole === 'client'
+  const canStopSessions = (clientMode && (user?.permissions.includes('sessions.stop') ?? false))
+    || (user?.permissions.includes('sessions.manage') ?? false)
+  const canExport = user?.permissions.includes('reports.export') ?? false
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const [status, setStatus] = useState<'all' | ChargingSessionStatus>('all')
@@ -57,6 +62,14 @@ export function SessionsPage() {
     },
     onError: () => void message.error('The session could not be stopped.'),
   })
+  const exportMutation = useMutation({
+    mutationFn: (format: 'csv' | 'json') => exportChargingSessions(filters, format),
+    onSuccess: (blob, format) => {
+      downloadBlob(blob, `organization-charging-sessions.${format}`)
+      void message.success(`Session export generated as ${format.toUpperCase()}.`)
+    },
+    onError: () => void message.error('The session export could not be generated.'),
+  })
   const paymentMutation = useMutation({
     mutationFn: ({ sessionId, payload }: { sessionId: number; payload: PaymentPayload }) => processPayment(sessionId, payload),
     onSuccess: async (payment) => {
@@ -81,7 +94,7 @@ export function SessionsPage() {
     { title: 'Payment', dataIndex: 'payment_status', key: 'payment_status', render: (value) => <ChargingStatusTag value={value} /> },
     { title: 'Total', key: 'total', align: 'right', render: (_: unknown, item) => <span className="session-total"><strong>{item.total_amount} {item.currency}</strong>{item.discount_millimes > 0 && <small>-{(item.discount_millimes / 1000).toFixed(3)} TND plan saving</small>}</span> },
     {
-      title: '', key: 'actions', align: 'right', render: (_: unknown, item) => isActiveSession(item) ? (
+      title: '', key: 'actions', align: 'right', render: (_: unknown, item) => isActiveSession(item) && canStopSessions ? (
         <Popconfirm title="Stop this charging session?" description={item.source === 'ocpp' ? 'A RemoteStopTransaction command will be sent to the station.' : undefined} onConfirm={() => stopMutation.mutate(item)} okText="Stop">
           <Button size="small" icon={<Square size={12} />} loading={stopMutation.isPending}>Stop</Button>
         </Popconfirm>
@@ -135,7 +148,12 @@ export function SessionsPage() {
       </section>
     ))}
 
-    <Card className="sessions-table-card" title={clientMode ? 'Session history' : 'Network sessions'} extra={clientMode && <Button type="primary" icon={<Play size={14} />} disabled={Boolean(activeSession || activeAttempt)} onClick={() => { setResumeAttemptUuid(null); setStartOpen(true) }}>Start session</Button>}>
+    <Card className="sessions-table-card" title={clientMode ? 'Session history' : 'Network sessions'} extra={clientMode
+      ? <Button type="primary" icon={<Play size={14} />} disabled={Boolean(activeSession || activeAttempt)} onClick={() => { setResumeAttemptUuid(null); setStartOpen(true) }}>Start session</Button>
+      : canExport && <Dropdown menu={{ items: [
+        { key: 'csv', label: 'Export CSV', onClick: () => exportMutation.mutate('csv') },
+        { key: 'json', label: 'Export JSON', onClick: () => exportMutation.mutate('json') },
+      ] }}><Button icon={<Download size={14} />} loading={exportMutation.isPending}>Export</Button></Dropdown>}>
       <div className="sessions-toolbar">
         <Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={14} />} placeholder="Search sessions" allowClear />
         <Select value={status} onChange={(value) => setStatus(value)} options={['all', 'pending', 'charging', 'stopping', 'completed', 'interrupted', 'failed', 'cancelled'].map((value) => ({ value, label: value === 'all' ? 'All statuses' : value }))} />

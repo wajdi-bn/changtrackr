@@ -1,8 +1,20 @@
 import type { AuthUser, UserRole } from './auth'
 
 export type EmployeeRole = Exclude<UserRole, 'client'>
-export type ManagedUser = Omit<AuthUser, 'roles'> & { roles: EmployeeRole[] }
+export type EmployeeInvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked'
+export interface EmployeeInvitation {
+  status: EmployeeInvitationStatus
+  expires_at: string | null
+  last_sent_at: string | null
+  accepted_at: string | null
+  cancelled_at: string | null
+  can_remind: boolean
+  can_cancel: boolean
+  can_renew: boolean
+}
+export type ManagedUser = Omit<AuthUser, 'roles'> & { roles: EmployeeRole[]; invitation: EmployeeInvitation | null }
 export type ManagedUserStatus = 'active' | 'inactive' | 'pending'
+export type ManagedUserFilterStatus = ManagedUserStatus | 'expired' | 'revoked'
 export type LastLoginFilter = 'today' | 'week' | 'month'
 
 export interface ManagedUserPayload {
@@ -12,15 +24,14 @@ export interface ManagedUserPayload {
   avatar_url?: string | null
   team?: string | null
   address?: string | null
-  status: ManagedUserStatus
+  status?: ManagedUserStatus
   role: EmployeeRole
-  password?: string
 }
 
 export interface ManagedUserFilters {
   search?: string
   role?: EmployeeRole
-  status?: ManagedUserStatus
+  status?: ManagedUserFilterStatus
   team?: string
   last_login?: LastLoginFilter
   page?: number

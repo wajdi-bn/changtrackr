@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'organization_id', 'user_id', 'demo_request_id', 'invited_by_id', 'name', 'email',
-    'role', 'token_hash', 'status', 'expires_at', 'accepted_at', 'revoked_at',
+    'role', 'token_hash', 'status', 'expires_at', 'last_sent_at', 'accepted_at', 'revoked_at',
 ])]
 class AccountInvitation extends Model
 {
@@ -51,6 +51,7 @@ class AccountInvitation extends Model
     {
         return [
             'expires_at' => 'datetime',
+            'last_sent_at' => 'datetime',
             'accepted_at' => 'datetime',
             'revoked_at' => 'datetime',
         ];

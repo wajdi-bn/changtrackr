@@ -28,6 +28,10 @@ Broadcast::channel('users.{userId}.sessions', function ($user, $userId) {
     return $user->status === 'active' && (int) $user->id === (int) $userId;
 });
 
+Broadcast::channel('users.{userId}.notifications', function ($user, $userId) {
+    return $user->status === 'active' && (int) $user->id === (int) $userId;
+});
+
 Broadcast::channel('sessions.super-admin', function ($user) {
     return $user->status === 'active' && $user->hasRole('super_admin');
 });

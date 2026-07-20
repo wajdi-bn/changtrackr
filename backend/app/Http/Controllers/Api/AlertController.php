@@ -10,6 +10,7 @@ use App\Models\Alert;
 use App\Models\Connector;
 use App\Models\Station;
 use App\Models\User;
+use App\Services\Notifications\OperationalNotificationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,8 @@ use Illuminate\Validation\ValidationException;
 class AlertController extends Controller
 {
     private const RELATIONS = ['station', 'connector', 'assignedTechnician', 'events', 'intervention'];
+
+    public function __construct(private readonly OperationalNotificationService $notifications) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -109,6 +112,11 @@ class AlertController extends Controller
             return $alert;
         });
 
+        $this->notifications->notifyAlertOpened(
+            $alert->loadMissing('station'),
+            (int) $alert->events()->latest('id')->value('id'),
+        );
+
         return (new AlertResource($alert->load(self::RELATIONS)))->response()->setStatusCode(201);
     }
 
@@ -131,9 +139,10 @@ class AlertController extends Controller
             $this->assertTechnicianScope($attributes['assigned_technician_id'], $alert->organization_id);
         }
 
-        DB::transaction(function () use ($alert, $attributes, $user): void {
-            $previousStatus = $alert->status;
-            $previousTechnician = $alert->assigned_technician_id;
+        $previousStatus = $alert->status;
+        $previousTechnician = $alert->assigned_technician_id;
+
+        DB::transaction(function () use ($alert, $attributes, $user, $previousStatus, $previousTechnician): void {
             $attributes['resolved_at'] = ($attributes['status'] ?? null) === 'resolved' ? now() : ($previousStatus === 'resolved' ? null : $alert->resolved_at);
             $alert->update($attributes);
 
@@ -158,6 +167,16 @@ class AlertController extends Controller
 
             $this->syncStationAlertCount($alert->station_id);
         });
+
+        $alert->refresh()->loadMissing(['station', 'assignedTechnician']);
+        if ($alert->assigned_technician_id !== $previousTechnician && $alert->assignedTechnician !== null) {
+            $assignmentEventId = (int) $alert->events()->where('event_type', 'assigned')->latest('id')->value('id');
+            $this->notifications->notifyAlertAssigned($alert, $alert->assignedTechnician, $assignmentEventId);
+        }
+        if ($alert->status !== $previousStatus) {
+            $statusEventId = (int) $alert->events()->where('event_type', 'status_changed')->latest('id')->value('id');
+            $this->notifications->notifyAlertStatusChanged($alert, $previousStatus, $statusEventId);
+        }
 
         return new AlertResource($alert->fresh()->load(self::RELATIONS));
     }

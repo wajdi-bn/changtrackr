@@ -1,16 +1,16 @@
 import {
-  BellOutlined,
   LogoutOutlined,
   QuestionCircleOutlined,
   SettingOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { Avatar, Badge, Button, Dropdown, Input, Layout, Menu, Select, Space } from 'antd'
+import { Avatar, Dropdown, Input, Layout, Menu, Space } from 'antd'
 import type { MenuProps } from 'antd'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { getRoleConfig } from '../features/auth/roleConfig'
 import { AvailabilityRealtimeSync } from '../features/realtime/AvailabilityRealtimeSync'
+import { NotificationCenter } from '../features/notifications/NotificationCenter'
 
 const { Header, Content } = Layout
 
@@ -84,12 +84,6 @@ export function AppLayout() {
             <div><strong>ChargeTrackr</strong><small>{roleConfig.shortLabel} workspace</small></div>
           </div>
 
-          <Select
-            className="network-select"
-            value={user?.organization?.name ?? 'Tunisia network'}
-            options={[{ value: user?.organization?.name ?? 'Tunisia network', label: user?.organization?.name ?? 'Tunisia network' }]}
-          />
-
           <Input.Search
             className="global-search"
             placeholder="Search stations, sessions, alerts"
@@ -97,9 +91,7 @@ export function AppLayout() {
           />
 
           <Space size="middle">
-            <Badge dot>
-              <Button icon={<BellOutlined />} />
-            </Badge>
+            <NotificationCenter />
             <Dropdown menu={{ items: avatarMenu }} trigger={['click']}>
               <button className="avatar-button">
                 <Avatar src={user?.avatar_url ?? '/assets/avatar-vendor-1.jpg'} icon={<UserOutlined />} />

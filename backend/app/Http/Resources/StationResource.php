@@ -30,6 +30,7 @@ class StationResource extends JsonResource
             'remote_start_available' => $this->canStartRemotely(),
             'remote_start_unavailable_reason' => $this->remoteStartUnavailableReason(),
             'availability_override' => $this->availability_override,
+            'maintenance_intervention_id' => $this->maintenance_intervention_id,
             'availability_reason' => $this->availability_reason,
             'availability_source' => $this->availability_source,
             'availability_calculated_at' => $this->availability_calculated_at?->toISOString(),

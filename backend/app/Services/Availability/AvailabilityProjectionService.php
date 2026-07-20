@@ -8,6 +8,7 @@ use App\Models\AvailabilityTransition;
 use App\Models\Connector;
 use App\Models\Station;
 use App\Services\ChargingSessionService;
+use App\Services\Notifications\OperationalNotificationService;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,10 @@ use Illuminate\Support\Str;
 
 class AvailabilityProjectionService
 {
-    public function __construct(private readonly ChargingSessionService $chargingSessions) {}
+    public function __construct(
+        private readonly ChargingSessionService $chargingSessions,
+        private readonly OperationalNotificationService $notifications,
+    ) {}
 
     public function resolveDeletedConnectorAlert(Station $station, Connector $connector): void
     {
@@ -391,11 +395,12 @@ class AvailabilityProjectionService
             return;
         }
 
-        $alert->events()->create([
+        $event = $alert->events()->create([
             'event_type' => $eventType,
             'description' => $description,
             'occurred_at' => $occurredAt,
         ]);
+        $this->notifications->notifyAlertOpened($alert->loadMissing('station'), $event->id);
     }
 
     private function resolveAutomaticAlert(string $key, CarbonInterface $occurredAt): void
@@ -406,12 +411,18 @@ class AvailabilityProjectionService
             return;
         }
 
+        $previousStatus = $alert->status;
         $alert->update(['status' => 'resolved', 'resolved_at' => $occurredAt]);
-        $alert->events()->create([
+        $event = $alert->events()->create([
             'event_type' => 'auto_resolved',
             'description' => 'The availability condition returned to normal.',
             'occurred_at' => $occurredAt,
         ]);
+        $this->notifications->notifyAlertStatusChanged(
+            $alert->loadMissing(['station', 'assignedTechnician']),
+            $previousStatus,
+            $event->id,
+        );
     }
 
     private function syncStationAlertCount(Station $station): void

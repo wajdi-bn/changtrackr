@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Button, Card, Drawer, Empty, Form, Input, InputNumber, Modal, Popconfirm, Select, Skeleton, Tabs } from 'antd'
+import { Alert, App, Avatar, Button, Card, Drawer, Empty, Form, Input, InputNumber, Modal, Popconfirm, Select, Skeleton, Table, Tag, Tabs, Tooltip } from 'antd'
+import type { ColumnsType } from 'antd/es/table'
+import { isAxiosError } from 'axios'
+import dayjs from 'dayjs'
 import { QRCodeSVG } from 'qrcode.react'
 import {
   Activity,
@@ -19,13 +22,16 @@ import {
   Zap,
 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { createConnector, deleteConnector, getStation, updateConnector, updateStation } from '../features/stations/stationApi'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts'
+import { createConnector, deleteConnector, getStation, getStationCommands, restartStation, setStationMaintenanceMode, unlockStationConnector, updateConnector, updateStation } from '../features/stations/stationApi'
 import { StationStatusTag } from '../features/stations/StationStatusTag'
 import { availabilityReasonLabel } from '../features/stations/availabilityLabels'
 import { useAuth } from '../features/auth/useAuth'
 import { ConnectorTypeIcon } from '../features/charging/ConnectorTypeIcon'
-import type { Connector, ConnectorPayload, Station } from '../types/station'
+import { getMaintenances } from '../features/operations/operationsApi'
+import { WorkflowTag } from '../features/operations/WorkflowTag'
+import type { InterventionItem, InterventionStatus } from '../types/operations'
+import type { Connector, ConnectorPayload, MaintenanceModeResponse, OcppCommand, OcppCommandStatus, Station } from '../types/station'
 
 const utilizationData = [
   { label: '08:00', value: 42 }, { label: '10:00', value: 58 }, { label: '12:00', value: 76 },
@@ -42,13 +48,16 @@ export function StationDetailPage() {
   const numericStationId = Number(stationId)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
   const { user, primaryRole } = useAuth()
   const [connectorDrawerOpen, setConnectorDrawerOpen] = useState(false)
   const [selectedConnector, setSelectedConnector] = useState<Connector | null>(null)
   const [qrConnector, setQrConnector] = useState<Connector | null>(null)
   const canUpdate = user?.permissions.includes('stations.update') ?? false
   const canManageConnectors = canUpdate && (user?.permissions.includes('connectors.manage') ?? false)
+  const canViewCommands = user?.permissions.includes('ocpp_commands.view') ?? false
+  const canExecuteCommands = user?.permissions.includes('ocpp_commands.execute') ?? false
+  const canViewMaintenance = user?.permissions.includes('maintenances.view') ?? false
   const isTechnician = primaryRole === 'technician'
 
   const stationQuery = useQuery({
@@ -57,16 +66,60 @@ export function StationDetailPage() {
     enabled: Number.isFinite(numericStationId),
   })
 
-  const maintenanceMutation = useMutation({
-    mutationFn: (station: Station) => station.ocpp_managed
-      ? updateStation(station.id, { availability_override: station.availability_override === 'maintenance' ? null : 'maintenance' })
-      : updateStation(station.id, { status: station.status === 'maintenance' ? 'offline' : 'maintenance' }),
+  const commandsQuery = useQuery({
+    queryKey: ['station-commands', numericStationId],
+    queryFn: () => getStationCommands(numericStationId),
+    enabled: Number.isFinite(numericStationId) && canViewCommands,
+    refetchInterval: (query) => query.state.data?.data.some((command) => ['queued', 'sent'].includes(command.status)) ? 2_000 : false,
+  })
+
+  const maintenanceQuery = useQuery({
+    queryKey: ['maintenances', { station_id: numericStationId }],
+    queryFn: () => getMaintenances({ station_id: numericStationId }),
+    enabled: Number.isFinite(numericStationId) && canViewMaintenance,
+  })
+
+  const refreshStationData = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['station', numericStationId] }),
+      queryClient.invalidateQueries({ queryKey: ['stations'] }),
+      queryClient.invalidateQueries({ queryKey: ['station-commands', numericStationId] }),
+      queryClient.invalidateQueries({ queryKey: ['maintenances'] }),
+    ])
+  }
+
+  const resetMutation = useMutation({
+    mutationFn: () => restartStation(numericStationId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['station', numericStationId] })
-      await queryClient.invalidateQueries({ queryKey: ['stations'] })
-      void message.success('Station status updated.')
+      await refreshStationData()
+      void message.success('Soft restart command queued.')
     },
-    onError: () => void message.error('Station status could not be updated.'),
+    onError: (error) => void message.error(apiErrorMessage(error, 'The restart command could not be queued.')),
+  })
+
+  const unlockMutation = useMutation({
+    mutationFn: (connectorId: number) => unlockStationConnector(numericStationId, connectorId),
+    onSuccess: async (_, connectorId) => {
+      await refreshStationData()
+      const connector = stationQuery.data?.connectors.find((item) => item.id === connectorId)
+      void message.success(`Unlock command queued for connector ${connector?.external_id ?? connectorId}.`)
+    },
+    onError: (error) => void message.error(apiErrorMessage(error, 'The connector could not be unlocked.')),
+  })
+
+  const maintenanceMutation = useMutation<Station | MaintenanceModeResponse, unknown, Station>({
+    mutationFn: (station: Station) => station.ocpp_managed
+      ? setStationMaintenanceMode(station.id, station.availability_override !== 'maintenance')
+      : updateStation(station.id, { status: station.status === 'maintenance' ? 'offline' : 'maintenance' }),
+    onSuccess: async (result, station) => {
+      await refreshStationData()
+      if ('ocpp_sync' in result && result.ocpp_sync === 'not_connected') {
+        void message.warning('Maintenance mode was updated locally. The station is offline, so no OCPP command was sent.')
+        return
+      }
+      void message.success(station.availability_override === 'maintenance' ? 'Maintenance mode cleared.' : 'Maintenance mode enabled.')
+    },
+    onError: (error) => void message.error(apiErrorMessage(error, 'Station maintenance mode could not be updated.')),
   })
 
   const connectorMutation = useMutation({
@@ -102,6 +155,37 @@ export function StationDetailPage() {
   }
 
   const station = stationQuery.data
+  const confirmRestart = () => {
+    modal.confirm({
+      title: 'Restart this station?',
+      content: 'A Soft Reset command will be sent through OCPP. Active charging sessions may be briefly interrupted by the station.',
+      okText: 'Queue soft restart',
+      cancelText: 'Cancel',
+      okButtonProps: { danger: true },
+      onOk: () => resetMutation.mutateAsync(),
+    })
+  }
+  const confirmUnlock = (connector: Connector) => {
+    modal.confirm({
+      title: `Unlock connector ${connector.external_id}?`,
+      content: 'The station will be asked to release the physical connector lock. Use this only when a cable remains locked.',
+      okText: 'Queue unlock',
+      cancelText: 'Cancel',
+      onOk: () => unlockMutation.mutateAsync(connector.id),
+    })
+  }
+  const confirmMaintenance = () => {
+    const leaving = station.availability_override === 'maintenance' || (!station.ocpp_managed && station.status === 'maintenance')
+    modal.confirm({
+      title: leaving ? 'Return this station to service?' : 'Set this station to maintenance?',
+      content: leaving
+        ? 'The local maintenance override will be cleared. If the station is connected, OCPP will also request Operative availability.'
+        : 'The platform will immediately make the station unavailable to clients. If connected, OCPP will also request Inoperative availability.',
+      okText: leaving ? 'Leave maintenance' : 'Enable maintenance',
+      cancelText: 'Cancel',
+      onOk: () => maintenanceMutation.mutateAsync(station),
+    })
+  }
   const metrics = [
     { label: 'Energy today', value: `${station.energy_today_kwh} kWh`, icon: Zap },
     { label: 'Sessions today', value: station.sessions_today.toString(), icon: Activity },
@@ -117,12 +201,12 @@ export function StationDetailPage() {
         <div className="station-overview-grid">
           <MetricChartCard title="Utilization rate" subtitle={`${station.utilization_percent}% live utilization`}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={utilizationData}><CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" /><XAxis dataKey="label" tickLine={false} axisLine={false} /><YAxis tickLine={false} axisLine={false} /><Tooltip /><Area type="monotone" dataKey="value" stroke="#7c3aed" fill="#ede9fe" strokeWidth={2} /></AreaChart>
+              <AreaChart data={utilizationData}><CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" /><XAxis dataKey="label" tickLine={false} axisLine={false} /><YAxis tickLine={false} axisLine={false} /><ChartTooltip /><Area type="monotone" dataKey="value" stroke="#7c3aed" fill="#ede9fe" strokeWidth={2} /></AreaChart>
             </ResponsiveContainer>
           </MetricChartCard>
           <MetricChartCard title="Energy delivered" subtitle="Recent daily energy output">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={energyData}><CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" /><XAxis dataKey="label" tickLine={false} axisLine={false} /><YAxis tickLine={false} axisLine={false} /><Tooltip /><Bar dataKey="energy" fill="#22c55e" radius={[6, 6, 0, 0]} /></BarChart>
+              <BarChart data={energyData}><CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" /><XAxis dataKey="label" tickLine={false} axisLine={false} /><YAxis tickLine={false} axisLine={false} /><ChartTooltip /><Bar dataKey="energy" fill="#22c55e" radius={[6, 6, 0, 0]} /></BarChart>
             </ResponsiveContainer>
           </MetricChartCard>
           <Card title="Live metrics" className="station-live-card" extra={<small>Current operational counters</small>}>
@@ -155,7 +239,20 @@ export function StationDetailPage() {
                 <div className={`connector-fault ${connector.error_code ? 'has-error' : ''}`}><AlertTriangle size={14} />{connector.error_code ?? 'No active connector faults'}</div>
                 {station.ocpp_managed && <div className="connector-availability-note"><Activity size={14} />{availabilityReasonLabel(connector.availability_reason)}</div>}
                 <div className="connector-actions">
-                    {station.ocpp_managed && <Button type="text" icon={<QrCode size={15} />} onClick={() => setQrConnector(connector)}>Charging QR</Button>}
+                  {station.ocpp_managed && <Button type="text" icon={<QrCode size={15} />} onClick={() => setQrConnector(connector)}>Charging QR</Button>}
+                  {canExecuteCommands && station.ocpp_managed && (
+                    <Tooltip title={!station.ocpp_is_connected ? 'The station must be online.' : connector.ocpp_connector_id === null ? 'No OCPP connector identifier is configured.' : undefined}>
+                      <span>
+                        <Button
+                          type="text"
+                          icon={<LockOpen size={15} />}
+                          disabled={!station.ocpp_is_connected || connector.ocpp_connector_id === null}
+                          loading={unlockMutation.isPending && unlockMutation.variables === connector.id}
+                          onClick={() => confirmUnlock(connector)}
+                        >Unlock</Button>
+                      </span>
+                    </Tooltip>
+                  )}
                   {canManageConnectors && <>
                     <Button type="text" icon={<PencilLine size={15} />} onClick={() => { setSelectedConnector(connector); setConnectorDrawerOpen(true) }}>Edit connector</Button>
                     <Popconfirm
@@ -176,7 +273,46 @@ export function StationDetailPage() {
         </Card>
       ),
     },
-    ...['Sessions', 'Alerts', 'Maintenance', 'Documents'].map((label) => ({
+    ...(canViewCommands ? [{
+      key: 'command-history',
+      label: 'Command history',
+      children: (
+        <Card className="ocpp-command-history" title="OCPP supervision history" extra={<small>Latest 20 commands</small>}>
+          {commandsQuery.isError && <Alert type="error" showIcon title="Unable to load command history" action={<Button size="small" onClick={() => void commandsQuery.refetch()}>Retry</Button>} />}
+          <Table<OcppCommand>
+            rowKey="uuid"
+            columns={commandColumns}
+            dataSource={commandsQuery.data?.data ?? []}
+            loading={commandsQuery.isLoading}
+            pagination={false}
+            scroll={{ x: 860 }}
+            locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No supervision command has been sent to this station" /> }}
+          />
+        </Card>
+      ),
+    }] : []),
+    ...(canViewMaintenance ? [{
+      key: 'maintenance',
+      label: 'Maintenance',
+      children: <Card className="station-maintenance-panel" title="Maintenance history and schedule" extra={canExecuteCommands && <Button size="small" icon={<Plus size={14} />} onClick={() => navigate('/maintenance')}>Plan maintenance</Button>}>
+        <Table<InterventionItem>
+          rowKey="id"
+          loading={maintenanceQuery.isLoading}
+          dataSource={maintenanceQuery.data?.data ?? []}
+          pagination={{ pageSize: 6, showSizeChanger: false }}
+          columns={[
+            { title: 'Reference', dataIndex: 'reference', width: 150, render: (value: string, item) => <span className="station-maintenance-reference"><strong>{value}</strong><small>{item.maintenance_plan?.title ?? 'Maintenance'}</small></span> },
+            { title: 'Type', key: 'type', width: 120, render: (_, item) => <Tag color={item.maintenance_plan?.type === 'preventive' ? 'green' : 'orange'}>{item.maintenance_plan?.type ?? 'corrective'}</Tag> },
+            { title: 'Technician', key: 'technician', width: 170, render: (_, item) => item.assigned_technician?.name ?? 'Unassigned' },
+            { title: 'Scheduled', dataIndex: 'scheduled_at', width: 170, render: (value: string | null) => value ? dayjs(value).format('DD MMM YYYY, HH:mm') : 'Not scheduled' },
+            { title: 'Status', dataIndex: 'status', width: 130, render: (value: InterventionStatus) => value === 'assigned' ? <Tag color="purple">Planned</Tag> : value === 'resolved' ? <Tag color="success">Completed</Tag> : <WorkflowTag value={value} /> },
+          ]}
+          scroll={{ x: 760 }}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No maintenance has been scheduled for this station" /> }}
+        />
+      </Card>,
+    }] : []),
+    ...['Sessions', 'Alerts', 'Documents'].map((label) => ({
       key: label.toLowerCase(),
       label,
       children: <Card><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={`${label} will be connected in its dedicated vertical slice.`} /></Card>,
@@ -193,15 +329,26 @@ export function StationDetailPage() {
           <h1>{station.name}</h1>
           <p><MapPin size={15} />{station.address}</p>
         </div>
-        {canUpdate ? (
+        {canExecuteCommands ? (
           <div className="station-command-buttons">
-            <Button icon={<RefreshCw size={15} />} onClick={() => void message.info('The OCPP restart command will be connected in the supervision slice.')}>Restart station</Button>
-            <Button icon={<LockOpen size={15} />} onClick={() => void message.info('Choose a connector from the Connectors tab first.')}>Unlock connector</Button>
-            <Button className="maintenance-button" icon={<Wrench size={15} />} loading={maintenanceMutation.isPending} onClick={() => maintenanceMutation.mutate(station)}>
-              {station.ocpp_managed
-                ? (station.availability_override === 'maintenance' ? 'Leave maintenance mode' : 'Set maintenance mode')
-                : (station.status === 'maintenance' ? 'Leave maintenance mode' : 'Set maintenance mode')}
-            </Button>
+            {station.ocpp_managed && (
+              <Tooltip title={!station.ocpp_is_connected ? 'The station must be online to receive a restart command.' : undefined}>
+                <span>
+                  <Button disabled={!station.ocpp_is_connected} icon={<RefreshCw size={15} />} loading={resetMutation.isPending} onClick={confirmRestart}>Restart station</Button>
+                </span>
+              </Tooltip>
+            )}
+            <Tooltip title={station.maintenance_intervention_id ? 'Maintenance mode is controlled by the active technician intervention.' : undefined}>
+              <span>
+                <Button className="maintenance-button" disabled={station.maintenance_intervention_id !== null} icon={<Wrench size={15} />} loading={maintenanceMutation.isPending} onClick={confirmMaintenance}>
+                  {station.maintenance_intervention_id
+                    ? 'Maintenance in progress'
+                    : station.ocpp_managed
+                      ? (station.availability_override === 'maintenance' ? 'Leave maintenance mode' : 'Set maintenance mode')
+                      : (station.status === 'maintenance' ? 'Leave maintenance mode' : 'Set maintenance mode')}
+                </Button>
+              </span>
+            </Tooltip>
           </div>
         ) : isTechnician ? <Button icon={<Wrench size={15} />} onClick={() => navigate('/assigned-alerts')}>View assigned alerts</Button> : null}
       </section>
@@ -253,6 +400,59 @@ function InfoFact({ label, value }: { label: string; value: string }) {
 
 function MetricChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return <Card className="station-chart-card" title={title} extra={<small>{subtitle}</small>}><div>{children}</div></Card>
+}
+
+const commandStatusConfig: Record<OcppCommandStatus, { color: string; label: string }> = {
+  queued: { color: 'default', label: 'Queued' },
+  sent: { color: 'processing', label: 'Sent' },
+  accepted: { color: 'success', label: 'Accepted' },
+  rejected: { color: 'error', label: 'Rejected' },
+  failed: { color: 'error', label: 'Failed' },
+  timed_out: { color: 'warning', label: 'Timed out' },
+}
+
+const commandActionLabels: Record<OcppCommand['action'], string> = {
+  Reset: 'Soft restart',
+  UnlockConnector: 'Unlock connector',
+  ChangeAvailability: 'Change availability',
+}
+
+const commandColumns: ColumnsType<OcppCommand> = [
+  {
+    title: 'Command',
+    dataIndex: 'action',
+    render: (action: OcppCommand['action'], command) => <span className="ocpp-command-name"><strong>{commandActionLabels[action]}</strong><small>{command.connector ? `Connector ${command.connector.external_id}` : 'Whole station'}</small></span>,
+  },
+  {
+    title: 'Requested by',
+    dataIndex: 'requested_by',
+    render: (requestedBy: OcppCommand['requested_by']) => requestedBy
+      ? <span className="ocpp-command-user"><Avatar size={26} src={requestedBy.avatar_url}>{requestedBy.name.charAt(0)}</Avatar>{requestedBy.name}</span>
+      : <span>System</span>,
+  },
+  {
+    title: 'Queued',
+    dataIndex: 'queued_at',
+    render: (value: string) => <span className="ocpp-command-date"><strong>{dayjs(value).format('DD MMM YYYY')}</strong><small>{dayjs(value).format('HH:mm:ss')}</small></span>,
+  },
+  {
+    title: 'Status',
+    dataIndex: 'status',
+    render: (status: OcppCommandStatus) => <Tag color={commandStatusConfig[status].color}>{commandStatusConfig[status].label}</Tag>,
+  },
+  {
+    title: 'Station response',
+    key: 'result',
+    render: (_, command) => command.failure_message
+      ?? (command.result?.ocppStatus ? String(command.result.ocppStatus) : ['queued', 'sent'].includes(command.status) ? 'Waiting for station' : 'No details'),
+  },
+]
+
+function apiErrorMessage(error: unknown, fallback: string): string {
+  if (!isAxiosError(error)) return fallback
+  const data = error.response?.data as { message?: string; errors?: Record<string, string[]> } | undefined
+  const validationMessage = data?.errors ? Object.values(data.errors).flat()[0] : undefined
+  return validationMessage ?? data?.message ?? fallback
 }
 
 function ConnectorDrawer({ open, connector, managed, submitting, onClose, onSubmit }: {

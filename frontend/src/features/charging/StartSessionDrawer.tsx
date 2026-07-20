@@ -5,7 +5,7 @@ import type { FormInstance } from 'antd'
 import { motion } from 'framer-motion'
 import { BadgePercent, BatteryCharging, CheckCircle2, CircleDollarSign, Clock3, CreditCard, Gauge, MapPin, PlugZap, ShieldCheck, Zap } from 'lucide-react'
 import { isAxiosError } from 'axios'
-import type { ChargingAttempt, ChargingAttemptPayload, ChargingSession, SimulatedPaymentMethod } from '../../types/charging'
+import type { ChargingAttempt, ChargingAttemptPayload, ChargingSession, PaymentSimulationOutcome, SimulatedPaymentMethod } from '../../types/charging'
 import type { Connector, Station } from '../../types/station'
 import { getStation } from '../stations/stationApi'
 import { getEffectivePricing } from '../tariffs/tariffApi'
@@ -20,7 +20,7 @@ type FormValues = {
   station_id: number
   connector_id: number
   method: SimulatedPaymentMethod
-  simulation_outcome: 'success' | 'declined'
+  simulation_outcome: PaymentSimulationOutcome
   limit_type: 'none' | 'energy' | 'amount' | 'duration'
   limit_value?: number
 }
@@ -268,7 +268,12 @@ function PaymentStep({ pricing, limitType }: { pricing?: Awaited<ReturnType<type
     {limitType && limitType !== 'none' && <Form.Item label={`Maximum ${limitType}`} name="limit_value" rules={[{ required: true, message: 'Enter a limit' }]}>
       <Space.Compact block><InputNumber className="charging-limit-input" min={limitType === 'energy' ? 0.1 : 1} max={limitType === 'amount' ? 30 : limitType === 'duration' ? 1440 : 200} step={limitType === 'energy' ? 0.5 : 1} /><Button disabled>{limitLabel}</Button></Space.Compact>
     </Form.Item>}
-    {import.meta.env.DEV && <Form.Item label="Payment simulator result" name="simulation_outcome"><Select options={[{ value: 'success', label: 'Authorize successfully' }, { value: 'declined', label: 'Simulate a decline' }]} /></Form.Item>}
+    {import.meta.env.DEV && <Form.Item label="External sandbox result" name="simulation_outcome"><Select options={[
+      { value: 'success', label: 'Authorize successfully' },
+      { value: 'declined', label: 'Provider decline' },
+      { value: 'timeout', label: 'Provider timeout' },
+      { value: 'provider_error', label: 'Provider unavailable' },
+    ]} /></Form.Item>}
     {pricing && <div className="effective-pricing-card"><div><small>Applied tariff</small><strong>{pricing.name}</strong><span>{pricingSourceLabel(pricing.source)}</span></div><div><small>Energy</small><strong>{(pricing.effective_price_per_kwh_millimes / 1000).toFixed(3)} TND/kWh</strong></div><div><small>Start fee</small><strong>{(pricing.session_fee_millimes / 1000).toFixed(3)} TND</strong></div><div><small>Minimum</small><strong>{(pricing.minimum_charge_millimes / 1000).toFixed(3)} TND</strong></div></div>}
     {pricing?.plan && <div className="start-plan-benefit"><BadgePercent size={15} /><span><strong>{pricing.plan.name}</strong><small>{(pricing.plan.discount_basis_points / 100).toFixed(0)}% subscription discount is applied automatically.</small></span></div>}
   </section>
@@ -277,7 +282,7 @@ function PaymentStep({ pricing, limitType }: { pricing?: Awaited<ReturnType<type
 function AttemptStep({ attempt, loading }: { attempt?: ChargingAttempt; loading: boolean }) {
   if (loading && !attempt) return <div className="attempt-loading"><Spin size="large" /><h2>Authorizing payment</h2><p>Please keep this window open.</p></div>
   if (!attempt) return <Result status="warning" title="Charging status is unavailable" />
-  if (attempt.status === 'failed') return <Result status="error" title="Charging did not start" subTitle={attempt.failure_message ?? 'The station or payment simulator rejected the request.'} />
+  if (attempt.status === 'failed') return <Result status="error" title="Charging did not start" subTitle={attempt.failure_message ?? 'The station or external payment sandbox rejected the request.'} />
   if (attempt.charging_session) return <Result status="success" icon={<CheckCircle2 />} title="Charging has started" subTitle={`${attempt.station.name} · Connector ${attempt.connector.external_id}`} extra={<div className="attempt-session-summary"><span><Gauge size={16} />Live OCPP session</span><span><ShieldCheck size={16} />Payment authorized</span><span><Clock3 size={16} />Automatic final capture</span></div>} />
 
   const status = attempt.status === 'payment_pending' ? 'Authorizing payment'

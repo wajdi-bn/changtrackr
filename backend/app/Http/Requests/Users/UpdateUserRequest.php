@@ -4,7 +4,6 @@ namespace App\Http\Requests\Users;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 class UpdateUserRequest extends FormRequest
 {
@@ -35,7 +34,7 @@ class UpdateUserRequest extends FormRequest
             'role' => ['sometimes', 'required', Rule::in($isSuperAdministrator
                 ? ['super_admin', 'admin', 'operator', 'technician']
                 : ['operator', 'technician'])],
-            'password' => ['nullable', 'string', Password::min(8)],
+            'password' => ['prohibited'],
         ];
     }
 }

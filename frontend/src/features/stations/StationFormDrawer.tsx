@@ -39,7 +39,7 @@ export function StationFormDrawer({ open, station, submitting, initialCoordinate
       latitude: station.latitude,
       longitude: station.longitude,
       status: station.status,
-      availability_override: station.availability_override,
+      availability_override: station.availability_override === 'disabled' ? 'disabled' : undefined,
       max_power_kw: station.max_power_kw,
       model: station.model,
       manufacturer: station.manufacturer,
@@ -60,8 +60,13 @@ export function StationFormDrawer({ open, station, submitting, initialCoordinate
       return
     }
 
-    const payload = { ...values, availability_override: values.availability_override ?? null }
+    const payload = { ...values }
     delete payload.status
+    if (station.availability_override === 'maintenance') {
+      delete payload.availability_override
+    } else {
+      payload.availability_override = values.availability_override ?? null
+    }
     onSubmit(payload)
   }
 
@@ -97,12 +102,11 @@ export function StationFormDrawer({ open, station, submitting, initialCoordinate
               <Input value={`${station.status.charAt(0).toUpperCase() + station.status.slice(1)} - ${availabilityReasonLabel(station.availability_reason)}`} disabled />
             </Form.Item>
             <Form.Item label="Operational override" name="availability_override">
-              <Select allowClear placeholder="Automatic (OCPP)" options={[
-                { value: 'maintenance', label: 'Planned maintenance' },
+              <Select disabled={station.availability_override === 'maintenance'} allowClear placeholder="Automatic (OCPP)" options={[
                 { value: 'disabled', label: 'Manually disabled' },
               ]} />
             </Form.Item>
-            <Alert className="station-form-wide" type="info" showIcon title="Status managed by OCPP" description="Clear the override to calculate availability from connectivity and connector events." />
+            <Alert className="station-form-wide" type="info" showIcon title="Status managed by OCPP" description="Use the station supervision action for planned maintenance. Clear this administrative override to resume automatic calculation." />
           </> : <Form.Item label="Status" name="status" rules={[{ required: true }]}><Select options={statusOptions} /></Form.Item>}
           <Form.Item label="Maximum power (kW)" name="max_power_kw" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} min={1} max={1000} /></Form.Item>
           <Form.Item label="Manufacturer" name="manufacturer" rules={[{ required: true }]}><Input placeholder="ABB" /></Form.Item>

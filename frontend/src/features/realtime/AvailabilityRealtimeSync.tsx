@@ -21,7 +21,7 @@ export function AvailabilityRealtimeSync() {
 
     const echo = createRealtimeClient()
     const channel = echo.private(channelName)
-    const canReceiveSessions = ['client', 'operator', 'super_admin'].includes(primaryRole ?? '')
+    const canReceiveSessions = ['client', 'admin', 'operator', 'super_admin'].includes(primaryRole ?? '')
     const sessionChannelName = primaryRole === 'super_admin'
       ? 'sessions.super-admin'
       : primaryRole === 'client'
@@ -39,6 +39,16 @@ export function AvailabilityRealtimeSync() {
         queryClient.invalidateQueries({ queryKey: ['stations'] }),
         queryClient.invalidateQueries({ queryKey: ['station'] }),
         queryClient.invalidateQueries({ queryKey: ['alerts'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ])
+    })
+
+    channel.listen('.ocpp-command.changed', () => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['station-commands'] }),
+        queryClient.invalidateQueries({ queryKey: ['station'] }),
+        queryClient.invalidateQueries({ queryKey: ['stations'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
       ])
     })
 
@@ -48,6 +58,7 @@ export function AvailabilityRealtimeSync() {
         queryClient.invalidateQueries({ queryKey: ['payments'] }),
         queryClient.invalidateQueries({ queryKey: ['customers'] }),
         queryClient.invalidateQueries({ queryKey: ['stations'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
       ])
     })
 
@@ -56,6 +67,7 @@ export function AvailabilityRealtimeSync() {
         queryClient.invalidateQueries({ queryKey: ['charging-attempts'] }),
         queryClient.invalidateQueries({ queryKey: ['charging-attempt'] }),
         queryClient.invalidateQueries({ queryKey: ['stations'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
       ])
     })
 

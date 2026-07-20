@@ -1,6 +1,6 @@
-import { Alert, Button, Drawer, Form, Radio, Select } from 'antd'
+import { Alert, Button, Drawer, Form, Select } from 'antd'
 import { CreditCard, FlaskConical, LockKeyhole } from 'lucide-react'
-import type { ChargingSession, PaymentPayload, SimulatedPaymentMethod } from '../../types/charging'
+import type { ChargingSession, PaymentPayload, PaymentSimulationOutcome, SimulatedPaymentMethod } from '../../types/charging'
 
 interface PaymentDrawerProps {
   open: boolean
@@ -11,7 +11,7 @@ interface PaymentDrawerProps {
 }
 
 export function PaymentDrawer({ open, session, submitting, onClose, onSubmit }: PaymentDrawerProps) {
-  const [form] = Form.useForm<{ method: SimulatedPaymentMethod; simulation_outcome: 'success' | 'declined' }>()
+  const [form] = Form.useForm<{ method: SimulatedPaymentMethod; simulation_outcome: PaymentSimulationOutcome }>()
 
   return (
     <Drawer
@@ -47,18 +47,20 @@ export function PaymentDrawer({ open, session, submitting, onClose, onSubmit }: 
               { value: 'simulated_d17', label: 'D17 wallet (simulated)' },
             ]} />
           </Form.Item>
-          <Form.Item label="Sandbox result" name="simulation_outcome" rules={[{ required: true }]}>
-            <Radio.Group optionType="button" buttonStyle="solid" options={[
+          <Form.Item label="External sandbox result" name="simulation_outcome" rules={[{ required: true }]}>
+            <Select options={[
               { value: 'success', label: 'Successful payment' },
-              { value: 'declined', label: 'Simulate decline' },
+              { value: 'declined', label: 'Provider decline' },
+              { value: 'timeout', label: 'Provider timeout' },
+              { value: 'provider_error', label: 'Provider unavailable' },
             ]} />
           </Form.Item>
           <Alert
             type="warning"
             showIcon
             icon={<FlaskConical size={16} />}
-            title="Simulation only"
-            description="No card number, D17 identifier, credential, or real money is requested or transmitted."
+            title="External sandbox only"
+            description="The request is sent to the local WireMock provider. No card number, D17 identifier, credential, or real money is transmitted."
           />
           <Button className="payment-submit" type="primary" htmlType="submit" icon={<CreditCard size={16} />} loading={submitting} block>
             Pay {session.total_amount} {session.currency}

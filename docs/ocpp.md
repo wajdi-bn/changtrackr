@@ -79,6 +79,9 @@ The implemented OCPP messages are:
 - `StopTransaction`: applies the final meter, stop reason, terminal state and billable amount.
 - `RemoteStartTransaction`: asks the station to start with a short-lived virtual client idTag.
 - `RemoteStopTransaction`: asks the station to end an active OCPP transaction.
+- `Reset` with type `Soft`: restarts a connected station without exposing Hard Reset in the API.
+- `UnlockConnector`: asks a connected station to release one physical connector lock.
+- `ChangeAvailability`: synchronizes the platform maintenance override with connector `0` of a connected station.
 - Connection open/close: records the transport lifecycle independently of OCPP messages.
 
 Every message is normalized to a UUID event with connection ID, OCPP message ID, action, payload,
@@ -260,6 +263,32 @@ cd backend && C:\php\php.exe artisan test --compact tests/Feature/RemoteCharging
 
 It covers successful remote start/stop and capture, payment refusal, station rejection/release and
 automatic remote stop when an energy limit is reached.
+
+### Supervision command scenario
+
+Start the fleet, sign in as an administrator or operator, then open the detail page for a connected
+simulator station such as `CT-TUN-001`. The station page provides three auditable scenarios:
+
+1. Use `Restart station`, confirm the Soft Reset, then verify that the history progresses from
+   `Queued` to `Sent` and finally `Accepted` or `Rejected`. A successful reset can briefly reconnect
+   the simulator WebSocket.
+2. Run `npm run ocpp:plug -- CT-TUN-001 1`, open the Connectors tab and use `Unlock` on connector
+   `A1`. The command history retains both the target connector and the SAP simulator response.
+3. Use `Set maintenance mode`. The business projection changes immediately and the connected
+   simulator receives `ChangeAvailability(Inoperative)` for connector `0`. Leaving maintenance sends
+   `ChangeAvailability(Operative)`. If the station is offline, only the safe local override is changed
+   and the interface explicitly reports that no OCPP command was sent.
+
+The deterministic command contracts do not require Docker:
+
+```bash
+cd backend && C:\php\php.exe artisan test --compact tests/Feature/OcppSupervisionApiTest.php
+cd ocpp-gateway && python -m pytest -q
+```
+
+These tests cover organization isolation, Admin/Operator execution, Technician read-only history,
+encrypted payloads, duplicate prevention, the 60-second pending timeout, terminal accepted commands,
+Soft Reset enforcement and OCPP response normalization.
 
 Inspect the non-secret station, connector, event and transaction state:
 

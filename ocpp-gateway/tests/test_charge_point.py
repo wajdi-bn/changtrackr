@@ -159,3 +159,44 @@ async def test_remote_start_and_stop_commands_are_sent_to_the_station(
     assert started == {"status": "accepted", "ocppStatus": "Accepted"}
     assert stopped == {"status": "accepted", "ocppStatus": "Accepted"}
     assert point.call.await_count == 2
+
+
+async def test_supervision_commands_are_sent_and_normalized(
+    charge_point: tuple[ChargeTrackrChargePoint, RecordingPublisher],
+) -> None:
+    point, _ = charge_point
+    point.call = AsyncMock(side_effect=[
+        type("Response", (), {"status": "Accepted"})(),
+        type("Response", (), {"status": "Unlocked"})(),
+        type("Response", (), {"status": "Scheduled"})(),
+        type("Response", (), {"status": "Rejected"})(),
+    ])
+
+    reset = await point.execute_command("Reset", {"type": "Soft"})
+    unlock = await point.execute_command("UnlockConnector", {"connectorId": 2})
+    availability = await point.execute_command(
+        "ChangeAvailability",
+        {"connectorId": 0, "type": "Inoperative"},
+    )
+    rejected = await point.execute_command(
+        "ChangeAvailability",
+        {"connectorId": 0, "type": "Operative"},
+    )
+
+    assert reset == {"status": "accepted", "ocppStatus": "Accepted"}
+    assert unlock == {"status": "accepted", "ocppStatus": "Unlocked"}
+    assert availability == {"status": "accepted", "ocppStatus": "Scheduled"}
+    assert rejected == {"status": "rejected", "ocppStatus": "Rejected"}
+    assert point.call.await_count == 4
+
+
+async def test_hard_reset_is_never_forwarded(
+    charge_point: tuple[ChargeTrackrChargePoint, RecordingPublisher],
+) -> None:
+    point, _ = charge_point
+    point.call = AsyncMock()
+
+    with pytest.raises(ValueError, match="Only Soft Reset"):
+        await point.execute_command("Reset", {"type": "Hard"})
+
+    point.call.assert_not_awaited()

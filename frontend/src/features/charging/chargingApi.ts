@@ -23,6 +23,14 @@ export async function getChargingSessions(filters: SessionFilters = {}): Promise
   return response.data
 }
 
+export async function exportChargingSessions(filters: SessionFilters, format: 'csv' | 'json'): Promise<Blob> {
+  const response = await httpClient.get<Blob>('/charging-sessions/export', {
+    params: { ...filters, format },
+    responseType: 'blob',
+  })
+  return response.data
+}
+
 export async function startChargingSession(payload: { station_id: number; connector_id: number }): Promise<ChargingSession> {
   const response = await httpClient.post<{ data: ChargingSession }>('/charging-sessions', payload)
   return response.data.data
@@ -55,6 +63,14 @@ export async function remoteStopChargingSession(sessionId: number): Promise<Char
 
 export async function getPayments(filters: { search?: string; status?: PaymentStatus } = {}): Promise<PaymentsResponse> {
   const response = await httpClient.get<PaymentsResponse>('/payments', { params: filters })
+  return response.data
+}
+
+export async function exportPayments(filters: { search?: string; status?: PaymentStatus }, format: 'csv' | 'json'): Promise<Blob> {
+  const response = await httpClient.get<Blob>('/payments/export', {
+    params: { ...filters, format },
+    responseType: 'blob',
+  })
   return response.data
 }
 

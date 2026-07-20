@@ -32,6 +32,24 @@ class InterventionPolicy
         );
     }
 
+    public function submitReport(User $user, Intervention $intervention): bool
+    {
+        return $user->can('interventions.report')
+            && $this->belongsToUserScope($user, $intervention)
+            && $intervention->assigned_technician_id === $user->id
+            && in_array($intervention->status, ['in-progress', 'paused', 'waiting-parts'], true);
+    }
+
+    public function manageEvidence(User $user, Intervention $intervention): bool
+    {
+        return $this->submitReport($user, $intervention) && $intervention->report()->doesntExist();
+    }
+
+    public function viewEvidence(User $user, Intervention $intervention): bool
+    {
+        return $this->view($user, $intervention);
+    }
+
     private function belongsToUserScope(User $user, Intervention $intervention): bool
     {
         return $user->canAccessOrganization($intervention->organization_id);

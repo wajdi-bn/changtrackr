@@ -46,8 +46,12 @@ class AppServiceProvider extends ServiceProvider
             ->by('invitation-inspect:'.$request->ip()));
         RateLimiter::for('invitation-accept', fn (Request $request) => Limit::perMinute(5)
             ->by('invitation-accept:'.$request->ip().':'.sha1(mb_strtolower((string) $request->input('email')))));
+        RateLimiter::for('employee-invitation-management', fn (Request $request) => Limit::perMinute(10)
+            ->by('employee-invitation-management:'.$request->user()?->id));
         RateLimiter::for('ocpp-gateway', fn (Request $request) => Limit::perMinute(600)
             ->by('ocpp-gateway:'.$request->ip()));
+        RateLimiter::for('payment-webhook', fn (Request $request) => Limit::perMinute(120)
+            ->by('payment-webhook:'.$request->ip()));
 
         ResetPassword::createUrlUsing(function (User $user, string $token): string {
             $frontendUrl = rtrim((string) config('frontend.url'), '/');

@@ -1,0 +1,14 @@
+services:
+  payment-simulator:
+    image: wiremock/wiremock:3.13.1
+    container_name: chargetrackr-payment-simulator
+    command:
+      - --global-response-templating
+      - --verbose
+    ports:
+      - "127.0.0.1:9090:8080"
+    volumes:
+      - ./mappings:/home/wiremock/mappings:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

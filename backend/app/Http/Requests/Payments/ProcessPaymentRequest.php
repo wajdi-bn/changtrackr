@@ -16,7 +16,7 @@ class ProcessPaymentRequest extends FormRequest
     {
         return [
             'method' => ['required', Rule::in(['simulated_card', 'simulated_edinar', 'simulated_d17'])],
-            'simulation_outcome' => ['nullable', Rule::in(['success', 'declined'])],
+            'simulation_outcome' => ['nullable', Rule::in(['success', 'declined', 'timeout', 'provider_error'])],
             'idempotency_key' => ['required', 'uuid'],
         ];
     }

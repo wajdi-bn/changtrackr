@@ -4,6 +4,7 @@ export type ChargingSessionStatus = 'pending' | 'charging' | 'stopping' | 'compl
 export type SessionPaymentStatus = 'unpaid' | 'authorized' | 'paid' | 'failed'
 export type PaymentStatus = 'pending' | 'paid' | 'failed'
 export type SimulatedPaymentMethod = 'simulated_card' | 'simulated_edinar' | 'simulated_d17'
+export type PaymentSimulationOutcome = 'success' | 'declined' | 'timeout' | 'provider_error'
 
 export interface Payment {
   id: number
@@ -19,6 +20,13 @@ export interface Payment {
   paid_at: string | null
   failed_at: string | null
   created_at: string
+  provider_event: {
+    event_id: string
+    type: string
+    status: string
+    processing_status: 'received' | 'pending_reconciliation' | 'processed' | 'requires_review'
+    received_at: string
+  } | null
   organization: OrganizationSummary | null
   client?: { id: number; name: string } | null
   session?: {
@@ -87,7 +95,9 @@ export interface ChargingAttempt {
   uuid: string
   status: ChargingAttemptStatus
   payment_status: ChargingAttemptPaymentStatus
+  payment_provider: string
   payment_method: SimulatedPaymentMethod
+  provider_authorization_id: string | null
   preauthorized_amount_millimes: number
   preauthorized_amount: string
   currency: string
@@ -109,7 +119,7 @@ export interface ChargingAttemptPayload {
   station_id: number
   connector_id: number
   method: SimulatedPaymentMethod
-  simulation_outcome: 'success' | 'declined'
+  simulation_outcome: PaymentSimulationOutcome
   idempotency_key: string
   limit_energy_kwh?: number
   limit_amount_tnd?: number
@@ -139,6 +149,6 @@ export interface PaymentsResponse {
 
 export interface PaymentPayload {
   method: SimulatedPaymentMethod
-  simulation_outcome: 'success' | 'declined'
+  simulation_outcome: PaymentSimulationOutcome
   idempotency_key: string
 }

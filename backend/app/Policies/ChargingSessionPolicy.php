@@ -28,6 +28,11 @@ class ChargingSessionPolicy
         return $user->hasRole('client') && $user->can('sessions.start');
     }
 
+    public function export(User $user): bool
+    {
+        return $user->can('sessions.view') && $user->can('reports.export');
+    }
+
     public function stop(User $user, ChargingSession $session): bool
     {
         if ($user->hasRole('client')) {

@@ -1,0 +1,27 @@
+{
+  "id": "8f3550f9-16ff-4b87-97e9-f710860e13e0",
+  "name": "Payment provider timeout",
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/payment-operations",
+    "headers": {
+      "X-Simulator-Api-Key": {
+        "equalTo": "chargetrackr-local"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": "$[?(@.simulation_outcome == 'timeout')]"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "fixedDelayMilliseconds": 6000,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"status\":\"{{jsonPath request.body '$.provider_status'}}\",\"provider_transaction_id\":\"{{jsonPath request.body '$.provider_transaction_id'}}\"}"
+  }
+}

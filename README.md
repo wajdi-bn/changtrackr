@@ -7,9 +7,9 @@ ChargeTrackr is a web platform for visualizing, supervising, and monitoring the 
 - Frontend: React, TypeScript, Ant Design, React Router, TanStack Query, Axios, Recharts, Leaflet, Framer Motion, GSAP
 - Backend: Laravel, REST API, Sanctum session cookies, OAuth2 Google, Laravel Reverb, Queue, Scheduler
 - Data: PostgreSQL
-- Infrastructure services: Redis, Mailpit for local email testing
+- Infrastructure services: Redis, Mailpit for local email testing, Resend for transactional email
 - EV communication: OCPP 1.6 JSON gateway and SAP charging-station simulator
-- Payment: simulated MVP provider with future adapters
+- Payment: extensible gateway with in-memory tests and an external WireMock sandbox
 
 ## Current Status
 
@@ -19,6 +19,12 @@ ChargeTrackr is a web platform for visualizing, supervising, and monitoring the 
 - Password and Google sign-in use the same server-side Sanctum session flow.
 - The OCPP gateway authenticates a nine-station SAP simulator fleet and stores normalized technical events through Laravel.
 - Provisioned OCPP stations use calculated availability, audited transitions, automatic alerts and Reverb updates.
+- Organization teams can plan preventive or corrective maintenance, generate recurring work orders, and synchronize active maintenance with OCPP availability.
+- Technicians complete interventions through a guided, immutable report with private before/after evidence and controlled alert follow-up.
+- Payment authorization, capture, release and direct charge can run against a Dockerized external sandbox with signed, idempotent webhooks.
+- Personal in-app notifications cover operational alerts, assignments, maintenance, SLA deadlines and payment failures, with Reverb updates and traceable queued emails.
+- Role-aware dashboards aggregate real stations, availability history, sessions, energy, payments and field activity for Super Admin, Admin, operator, technician and client scopes.
+- Organization administrators invite operators and technicians through expiring, single-use activation links without handling employee passwords.
 - `infra/` contains optional local service configuration.
 
 ## Quick Start
@@ -46,6 +52,13 @@ npm run dev:scheduler
 npm run dev:reverb
 ```
 
+External payment sandbox:
+
+```bash
+npm run payment:up
+npm run payment:status
+```
+
 ## Backend Prerequisites
 
 Backend requirements:
@@ -60,6 +73,10 @@ See [docs/setup.md](docs/setup.md) for complete setup notes.
 See [docs/environment.md](docs/environment.md) for environment rules.
 See [docs/security.md](docs/security.md) for the security baseline.
 See [docs/ocpp.md](docs/ocpp.md) for the OCPP gateway and simulator workflow.
+See [docs/payment-simulator.md](docs/payment-simulator.md) for the external payment sandbox and test scenarios.
+See [docs/notifications.md](docs/notifications.md) for notification recipients, channels, SLA rules and operations.
+See [docs/dashboards.md](docs/dashboards.md) for dashboard scopes, periods, formulas and API contracts.
+See [docs/employee-invitations.md](docs/employee-invitations.md) for employee account activation and invitation lifecycle rules.
 
 Run `npm run ocpp:configure`, `npm run ocpp:provision-fleet`, then `npm run ocpp:up` to start the
 local OCPP fleet. `npm run ocpp:transaction-scenario -- CT-HAM-031` exercises an authorized cycle

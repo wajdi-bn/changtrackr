@@ -32,6 +32,16 @@ class StationPolicy
         return $user->can('stations.delete') && $this->belongsToUserScope($user, $station);
     }
 
+    public function viewCommands(User $user, Station $station): bool
+    {
+        return $user->can('ocpp_commands.view') && $this->belongsToUserScope($user, $station);
+    }
+
+    public function executeCommands(User $user, Station $station): bool
+    {
+        return $user->can('ocpp_commands.execute') && $this->belongsToUserScope($user, $station);
+    }
+
     private function belongsToUserScope(User $user, Station $station): bool
     {
         if ($user->hasRole('super_admin')) {

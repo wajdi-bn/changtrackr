@@ -26,6 +26,12 @@ class AccountInvitationNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $role = match ($this->invitation->role) {
+            'admin' => 'organization administrator',
+            'operator' => 'network operator',
+            'technician' => 'field technician',
+            default => 'organization member',
+        };
         $url = rtrim((string) config('frontend.url'), '/').'/activate-invitation?'.http_build_query([
             'token' => $this->token,
             'email' => $this->invitation->email,
@@ -34,8 +40,8 @@ class AccountInvitationNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Activate your ChargeTrackr organization account')
             ->greeting('Welcome to ChargeTrackr, '.$this->invitation->name)
-            ->line('Your organization workspace has been prepared for '.$this->invitation->organization->name.'.')
-            ->line('Use the secure link below to activate your administrator account and choose your password.')
+            ->line('You have been invited to '.$this->invitation->organization->name.' as a '.$role.'.')
+            ->line('Use the secure link below to activate your account and choose your password.')
             ->action('Activate my account', $url)
             ->line('This one-time invitation expires at '.$this->invitation->expires_at->format('Y-m-d H:i T').'.')
             ->line('Ignore this message if you were not expecting this invitation.');

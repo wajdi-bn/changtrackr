@@ -6,6 +6,7 @@ use App\Models\AccountInvitation;
 use App\Models\DemoRequest;
 use App\Models\Organization;
 use App\Models\User;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -20,6 +21,7 @@ class AccountInvitationService
         string $email,
         string $role,
         ?DemoRequest $demoRequest = null,
+        array $profile = [],
     ): array {
         $email = mb_strtolower(trim($email));
 
@@ -31,31 +33,29 @@ class AccountInvitationService
             throw ValidationException::withMessages(['email' => ['An account already exists with this email address.']]);
         }
 
-        $token = Str::random(80);
-        $user = User::query()->create([
-            'organization_id' => $organization->id,
-            'name' => $name,
-            'email' => $email,
-            'password' => Str::random(64),
-            'status' => 'pending',
-            'team' => $this->defaultTeam($role),
-        ]);
-        $user->assignRole($role);
+        return DB::transaction(function () use ($organization, $inviter, $name, $email, $role, $demoRequest, $profile): array {
+            $user = User::query()->create([
+                'organization_id' => $organization->id,
+                'name' => $name,
+                'email' => $email,
+                'password' => Str::random(64),
+                'status' => 'pending',
+                ...Arr::only($profile, ['phone', 'avatar_url', 'address']),
+                'team' => $profile['team'] ?? $this->defaultTeam($role),
+            ]);
+            $user->assignRole($role);
 
-        $invitation = AccountInvitation::query()->create([
-            'organization_id' => $organization->id,
-            'user_id' => $user->id,
-            'demo_request_id' => $demoRequest?->id,
-            'invited_by_id' => $inviter->id,
-            'name' => $name,
-            'email' => $email,
-            'role' => $role,
-            'token_hash' => hash('sha256', $token),
-            'status' => 'pending',
-            'expires_at' => now()->addHours((int) config('demo.invitation_expiration_hours', 48)),
-        ]);
-
-        return compact('invitation', 'user', 'token');
+            return $this->createInvitation(
+                $organization,
+                $user,
+                $inviter,
+                $role,
+                $demoRequest,
+                $demoRequest
+                    ? (int) config('demo.invitation_expiration_hours', 48)
+                    : (int) config('invitations.employee_expiration_hours', 72),
+            );
+        });
     }
 
     public function inspect(string $email, string $token): ?AccountInvitation
@@ -114,6 +114,7 @@ class AccountInvitationService
                 'token_hash' => hash('sha256', $token),
                 'status' => 'pending',
                 'expires_at' => now()->addHours((int) config('demo.invitation_expiration_hours', 48)),
+                'last_sent_at' => now(),
             ]);
 
             return ['invitation' => $invitation, 'user' => $previous->user, 'token' => $token];
@@ -136,6 +137,98 @@ class AccountInvitationService
             }
 
             $invitation->update(['status' => 'revoked', 'revoked_at' => now()]);
+
+            return $invitation->fresh();
+        });
+    }
+
+    /** @return array{invitation: AccountInvitation, user: User, token: string} */
+    public function remindEmployee(User $employee, User $inviter): array
+    {
+        return DB::transaction(function () use ($employee, $inviter): array {
+            $lockedEmployee = $this->lockedEmployee($employee, $inviter);
+            $invitation = $this->latestEmployeeInvitation($lockedEmployee);
+
+            if ($invitation?->status === 'pending' && $invitation->expires_at->isPast()) {
+                $invitation->update(['status' => 'expired']);
+            }
+
+            if (! $invitation || ! $invitation->isUsable()) {
+                throw ValidationException::withMessages([
+                    'invitation' => ['Only a valid pending employee invitation can receive a reminder.'],
+                ]);
+            }
+
+            $cooldown = (int) config('invitations.reminder_cooldown_minutes', 10);
+            $lastSentAt = $invitation->last_sent_at ?? $invitation->created_at;
+            if ($lastSentAt->isAfter(now()->subMinutes($cooldown))) {
+                throw ValidationException::withMessages([
+                    'invitation' => ["A reminder was sent recently. Try again after {$cooldown} minutes."],
+                ]);
+            }
+
+            $token = Str::random(80);
+            $invitation->update([
+                'token_hash' => hash('sha256', $token),
+                'last_sent_at' => now(),
+                'invited_by_id' => $inviter->id,
+            ]);
+
+            return ['invitation' => $invitation->fresh(), 'user' => $lockedEmployee, 'token' => $token];
+        });
+    }
+
+    /** @return array{invitation: AccountInvitation, user: User, token: string} */
+    public function renewEmployee(User $employee, User $inviter): array
+    {
+        return DB::transaction(function () use ($employee, $inviter): array {
+            $lockedEmployee = $this->lockedEmployee($employee, $inviter);
+            $previous = $this->latestEmployeeInvitation($lockedEmployee);
+
+            if ($previous?->status === 'pending' && $previous->expires_at->isPast()) {
+                $previous->update(['status' => 'expired']);
+            }
+
+            if (! $previous || ! in_array($previous->fresh()->status, ['revoked', 'expired'], true)) {
+                throw ValidationException::withMessages([
+                    'invitation' => ['Only an expired or cancelled employee invitation can be renewed.'],
+                ]);
+            }
+
+            $role = $lockedEmployee->primaryRoleName();
+
+            return $this->createInvitation(
+                $lockedEmployee->organization,
+                $lockedEmployee,
+                $inviter,
+                (string) $role,
+                null,
+                (int) config('invitations.employee_expiration_hours', 72),
+            );
+        });
+    }
+
+    public function cancelEmployee(User $employee, User $inviter): AccountInvitation
+    {
+        return DB::transaction(function () use ($employee, $inviter): AccountInvitation {
+            $lockedEmployee = $this->lockedEmployee($employee, $inviter);
+            $invitation = $this->latestEmployeeInvitation($lockedEmployee);
+
+            if ($invitation?->status === 'pending' && $invitation->expires_at->isPast()) {
+                $invitation->update(['status' => 'expired']);
+            }
+
+            if (! $invitation || ! $invitation->isUsable()) {
+                throw ValidationException::withMessages([
+                    'invitation' => ['Only a valid pending employee invitation can be cancelled.'],
+                ]);
+            }
+
+            $invitation->update([
+                'status' => 'revoked',
+                'revoked_at' => now(),
+                'invited_by_id' => $inviter->id,
+            ]);
 
             return $invitation->fresh();
         });
@@ -190,6 +283,64 @@ class AccountInvitationService
         return AccountInvitation::query()
             ->where('email', mb_strtolower(trim($email)))
             ->where('token_hash', hash('sha256', $token));
+    }
+
+    /** @return array{invitation: AccountInvitation, user: User, token: string} */
+    private function createInvitation(
+        Organization $organization,
+        User $user,
+        User $inviter,
+        string $role,
+        ?DemoRequest $demoRequest,
+        int $expirationHours,
+    ): array {
+        $token = Str::random(80);
+        $invitation = AccountInvitation::query()->create([
+            'organization_id' => $organization->id,
+            'user_id' => $user->id,
+            'demo_request_id' => $demoRequest?->id,
+            'invited_by_id' => $inviter->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $role,
+            'token_hash' => hash('sha256', $token),
+            'status' => 'pending',
+            'expires_at' => now()->addHours($expirationHours),
+            'last_sent_at' => now(),
+        ]);
+
+        return compact('invitation', 'user', 'token');
+    }
+
+    private function lockedEmployee(User $employee, User $inviter): User
+    {
+        $lockedEmployee = User::query()->lockForUpdate()->findOrFail($employee->id);
+        $lockedEmployee->load(['organization', 'roles']);
+        $role = $lockedEmployee->primaryRoleName();
+
+        if (
+            $lockedEmployee->status !== 'pending'
+            || ! in_array($role, ['operator', 'technician'], true)
+            || $lockedEmployee->organization?->status !== 'active'
+            || ! $inviter->canAccessOrganization($lockedEmployee->organization_id)
+            || ! $inviter->hasAnyRole(['super_admin', 'admin'])
+        ) {
+            throw ValidationException::withMessages([
+                'invitation' => ['This employee account cannot be invited.'],
+            ]);
+        }
+
+        return $lockedEmployee;
+    }
+
+    private function latestEmployeeInvitation(User $employee): ?AccountInvitation
+    {
+        return AccountInvitation::query()
+            ->where('user_id', $employee->id)
+            ->whereNull('demo_request_id')
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
     }
 
     private function defaultTeam(string $role): string

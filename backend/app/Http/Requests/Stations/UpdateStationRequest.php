@@ -27,7 +27,7 @@ class UpdateStationRequest extends FormRequest
             'latitude' => ['sometimes', 'required', 'numeric', 'between:-90,90'],
             'longitude' => ['sometimes', 'required', 'numeric', 'between:-180,180'],
             'status' => [Rule::prohibitedIf($managed), 'sometimes', 'required', Rule::in(['available', 'charging', 'faulted', 'offline', 'maintenance', 'reserved', 'unavailable'])],
-            'availability_override' => [Rule::prohibitedIf(! $managed), 'nullable', Rule::in(['maintenance', 'disabled'])],
+            'availability_override' => [Rule::prohibitedIf(! $managed), 'nullable', Rule::in(['disabled'])],
             'max_power_kw' => ['sometimes', 'required', 'numeric', 'min:1', 'max:1000'],
             'model' => ['sometimes', 'required', 'string', 'max:120'],
             'manufacturer' => ['sometimes', 'required', 'string', 'max:120'],

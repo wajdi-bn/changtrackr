@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ChargingSession;
 use App\Models\Connector;
 use App\Models\Organization;
+use App\Models\Payment;
 use App\Models\Station;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -180,6 +181,49 @@ class ChargingSessionPaymentApiTest extends TestCase
         $this->getJson('/api/payments')->assertOk()->assertJsonCount(0, 'data');
     }
 
+    public function test_admin_can_view_and_export_only_their_organization_sessions_and_payments(): void
+    {
+        $organization = $this->organization('admin-finance-network');
+        $otherOrganization = $this->organization('external-finance-network');
+        $admin = $this->user($organization, 'admin');
+        $client = $this->user(null, 'client');
+        $otherClient = $this->user(null, 'client');
+        [$station, $connector] = $this->stationWithConnector($organization, 'CT-ADMIN-FINANCE');
+        [$otherStation, $otherConnector] = $this->stationWithConnector($otherOrganization, 'CT-OTHER-FINANCE');
+        $session = $this->completedSession($client, $station, $connector, 'SES-ADMIN-VISIBLE');
+        $otherSession = $this->completedSession($otherClient, $otherStation, $otherConnector, 'SES-ADMIN-HIDDEN');
+        $this->payment($session, $client, 'PAY-ADMIN-VISIBLE', '40000000-0000-4000-8000-000000000001');
+        $this->payment($otherSession, $otherClient, 'PAY-ADMIN-HIDDEN', '40000000-0000-4000-8000-000000000002');
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/charging-sessions')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.reference', 'SES-ADMIN-VISIBLE');
+        $this->getJson("/api/charging-sessions/{$otherSession->id}")->assertForbidden();
+        $this->postJson("/api/charging-sessions/{$session->id}/remote-stop")->assertForbidden();
+
+        $this->getJson('/api/payments')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.reference', 'PAY-ADMIN-VISIBLE');
+
+        $this->getJson('/api/charging-sessions/export?format=json')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.reference', 'SES-ADMIN-VISIBLE')
+            ->assertJsonMissing(['reference' => 'SES-ADMIN-HIDDEN']);
+        $this->getJson('/api/payments/export?format=json')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.reference', 'PAY-ADMIN-VISIBLE')
+            ->assertJsonMissing(['reference' => 'PAY-ADMIN-HIDDEN']);
+
+        Sanctum::actingAs($client);
+        $this->getJson('/api/charging-sessions/export?format=json')->assertForbidden();
+        $this->getJson('/api/payments/export?format=json')->assertForbidden();
+    }
+
     /** @return array{User, Organization} */
     private function userWithRole(string $role): array
     {
@@ -254,6 +298,24 @@ class ChargingSessionPaymentApiTest extends TestCase
             'session_fee_millimes' => 500,
             'total_millimes' => 9000,
             'currency' => 'TND',
+        ]);
+    }
+
+    private function payment(ChargingSession $session, User $client, string $reference, string $idempotencyKey): Payment
+    {
+        return Payment::query()->create([
+            'organization_id' => $session->organization_id,
+            'user_id' => $client->id,
+            'charging_session_id' => $session->id,
+            'reference' => $reference,
+            'provider' => 'simulated',
+            'method' => 'simulated_card',
+            'status' => 'paid',
+            'amount_millimes' => $session->total_millimes,
+            'currency' => $session->currency,
+            'idempotency_key' => $idempotencyKey,
+            'provider_transaction_id' => 'SIM-'.$reference,
+            'paid_at' => now(),
         ]);
     }
 }

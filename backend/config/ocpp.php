@@ -5,6 +5,7 @@ return [
         'shared_secret' => env('OCPP_GATEWAY_SHARED_SECRET'),
         'signature_tolerance_seconds' => (int) env('OCPP_GATEWAY_SIGNATURE_TOLERANCE_SECONDS', 300),
         'command_ttl_seconds' => (int) env('OCPP_COMMAND_TTL_SECONDS', 120),
+        'supervision_command_ttl_seconds' => (int) env('OCPP_SUPERVISION_COMMAND_TTL_SECONDS', 60),
         'command_poll_interval_seconds' => (float) env('OCPP_COMMAND_POLL_INTERVAL_SECONDS', 1.5),
     ],
 

@@ -17,7 +17,7 @@ class UpdateInterventionRequest extends FormRequest
     {
         return [
             'assigned_technician_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
-            'status' => ['sometimes', 'required', Rule::in(['assigned', 'in-progress', 'paused', 'waiting-parts', 'resolved'])],
+            'status' => ['sometimes', 'required', Rule::in(['assigned', 'in-progress', 'paused', 'waiting-parts', 'resolved', 'cancelled'])],
             'scheduled_at' => ['sometimes', 'nullable', 'date'],
             'estimated_duration_minutes' => ['sometimes', 'nullable', 'integer', 'min:5', 'max:1440'],
             'diagnosis' => ['sometimes', 'nullable', 'string', 'max:5000'],

@@ -29,25 +29,32 @@ import {
   PencilLine,
   Phone,
   Plus,
+  RefreshCw,
   Search,
+  Send,
   Table2,
   Trash2,
   UserRound,
+  XCircle,
 } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
 import { UserDirectoryTabs } from '../components/UserDirectoryTabs'
 import { useAuth } from '../features/auth/useAuth'
 import {
+  cancelEmployeeInvitation,
   createManagedUser,
   deactivateManagedUser,
   exportManagedUsers,
   getManagedUsers,
+  remindEmployeeInvitation,
+  renewEmployeeInvitation,
   updateManagedUser,
 } from '../features/users/userApi'
 import type { UserRole } from '../types/auth'
 import type {
   EmployeeRole,
   LastLoginFilter,
+  ManagedUserFilterStatus,
   ManagedUser,
   ManagedUserFilters,
   ManagedUserPayload,
@@ -56,6 +63,7 @@ import type {
 
 type UserView = 'table' | 'list' | 'grid'
 type UserEditor = ManagedUser | null | undefined
+type InvitationAction = 'remind' | 'renew' | 'cancel'
 
 const roleFilterOptions: Array<{ value: Exclude<EmployeeRole, 'super_admin'>; label: string }> = [
   { value: 'admin', label: 'Administrator' },
@@ -74,7 +82,7 @@ export function UsersPage() {
   const { user: currentUser } = useAuth()
   const [search, setSearch] = useState('')
   const [role, setRole] = useState<EmployeeRole | undefined>()
-  const [status, setStatus] = useState<ManagedUserStatus | undefined>()
+  const [status, setStatus] = useState<ManagedUserFilterStatus | undefined>()
   const [team, setTeam] = useState<string | undefined>()
   const [lastLogin, setLastLogin] = useState<LastLoginFilter | undefined>()
   const [view, setView] = useState<UserView>('table')
@@ -112,9 +120,9 @@ export function UsersPage() {
       await refreshUsers()
       if (selectedUser?.id === savedUser.id) setSelectedUser(savedUser)
       setEditor(undefined)
-      void message.success(variables.managedUser ? 'Employee updated successfully.' : 'Employee created successfully.')
+      void message.success(variables.managedUser ? 'Employee updated successfully.' : `Invitation sent to ${savedUser.email}.`)
     },
-    onError: () => void message.error('The user could not be saved. Check the email, role, and password.'),
+    onError: () => void message.error('The employee could not be saved. Check the email and assigned role.'),
   })
   const deactivateUser = useMutation({
     mutationFn: deactivateManagedUser,
@@ -124,6 +132,29 @@ export function UsersPage() {
       void message.success('Employee account deactivated and active sessions revoked.')
     },
     onError: () => void message.error('This user cannot be deactivated. Keep at least one active administrator.'),
+  })
+  const manageInvitation = useMutation({
+    mutationFn: ({ userId, action }: { userId: number; action: InvitationAction }) => {
+      if (action === 'remind') return remindEmployeeInvitation(userId)
+      if (action === 'renew') return renewEmployeeInvitation(userId)
+      return cancelEmployeeInvitation(userId)
+    },
+    onSuccess: async (managedUser, variables) => {
+      await refreshUsers()
+      if (selectedUser?.id === managedUser.id) setSelectedUser(managedUser)
+      const success = variables.action === 'remind'
+        ? 'A fresh activation link was sent. The previous link is no longer valid.'
+        : variables.action === 'renew'
+          ? 'The invitation was renewed and sent.'
+          : 'The invitation was cancelled.'
+      void message.success(success)
+    },
+    onError: (_error, variables) => {
+      const fallback = variables.action === 'remind'
+        ? 'The reminder is not available yet or the invitation is no longer pending.'
+        : 'The invitation action could not be completed.'
+      void message.error(fallback)
+    },
   })
   const exportUsers = useMutation({
     mutationFn: (format: 'csv' | 'json') => exportManagedUsers(filters, format),
@@ -172,8 +203,10 @@ export function UsersPage() {
       <FilterSelect value={role} placeholder="Role: All" options={roleFilterOptions} onChange={(value) => updateFilter(setRole, value)} />
       <FilterSelect value={status} placeholder="Status: All" options={[
         { value: 'active', label: 'Active' },
-        { value: 'inactive', label: 'Inactive' },
-        { value: 'pending', label: 'Pending' },
+        { value: 'inactive', label: 'Suspended' },
+        { value: 'pending', label: 'Pending activation' },
+        { value: 'expired', label: 'Invitation expired' },
+        { value: 'revoked', label: 'Invitation cancelled' },
       ]} onChange={(value) => updateFilter(setStatus, value)} />
       <FilterSelect value={team} placeholder="Team: All" options={teamOptions.map((value) => ({ value, label: value }))} onChange={(value) => updateFilter(setTeam, value)} />
       <FilterSelect value={lastLogin} placeholder="Last login: Any time" options={[
@@ -195,9 +228,9 @@ export function UsersPage() {
 
     <SectionCard title="Employee management" subtitle="Administrators are read-only here; operators and technicians are managed by the organization administrator.">
       {usersQuery.isLoading ? <UsersLoading /> : users.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No user matches the current filters" /> : <>
-        {view === 'table' && <UsersTable users={users} currentUserId={currentUser?.id} canUpdate={canUpdate} canDeactivate={canDeactivate} onSelect={setSelectedUser} onEdit={setEditor} onDeactivate={(managedUser) => deactivateUser.mutate(managedUser.id)} />}
-        {view === 'list' && <UsersList users={users} currentUserId={currentUser?.id} canUpdate={canUpdate} canDeactivate={canDeactivate} onSelect={setSelectedUser} onEdit={setEditor} onDeactivate={(managedUser) => deactivateUser.mutate(managedUser.id)} />}
-        {view === 'grid' && <UsersGrid users={users} currentUserId={currentUser?.id} canUpdate={canUpdate} canDeactivate={canDeactivate} onSelect={setSelectedUser} onEdit={setEditor} onDeactivate={(managedUser) => deactivateUser.mutate(managedUser.id)} />}
+        {view === 'table' && <UsersTable users={users} currentUserId={currentUser?.id} canUpdate={canUpdate} canDeactivate={canDeactivate} invitationAction={manageInvitation.variables} invitationLoading={manageInvitation.isPending} onSelect={setSelectedUser} onEdit={setEditor} onDeactivate={(managedUser) => deactivateUser.mutate(managedUser.id)} onInvitationAction={(managedUser, action) => manageInvitation.mutate({ userId: managedUser.id, action })} />}
+        {view === 'list' && <UsersList users={users} currentUserId={currentUser?.id} canUpdate={canUpdate} canDeactivate={canDeactivate} invitationAction={manageInvitation.variables} invitationLoading={manageInvitation.isPending} onSelect={setSelectedUser} onEdit={setEditor} onDeactivate={(managedUser) => deactivateUser.mutate(managedUser.id)} onInvitationAction={(managedUser, action) => manageInvitation.mutate({ userId: managedUser.id, action })} />}
+        {view === 'grid' && <UsersGrid users={users} currentUserId={currentUser?.id} canUpdate={canUpdate} canDeactivate={canDeactivate} invitationAction={manageInvitation.variables} invitationLoading={manageInvitation.isPending} onSelect={setSelectedUser} onEdit={setEditor} onDeactivate={(managedUser) => deactivateUser.mutate(managedUser.id)} onInvitationAction={(managedUser, action) => manageInvitation.mutate({ userId: managedUser.id, action })} />}
       </>}
       {meta && meta.last_page > 1 && <Pagination className="users-pagination" current={meta.current_page} total={meta.total} pageSize={meta.per_page} showSizeChanger={false} onChange={setPage} />}
     </SectionCard>
@@ -240,7 +273,7 @@ function UsersTable(props: UsersViewProps) {
       <td>{managedUser.email}</td>
       <td>{roleLabel(managedUser.roles[0])}</td>
       <td>{managedUser.team ?? '-'}</td>
-      <td><UserStatus status={managedUser.status} /></td>
+      <td><UserStatus status={employeeLifecycleStatus(managedUser)} /></td>
       <td>{formatLastLogin(managedUser.last_login_at)}</td>
       <td className="users-activity-cell">{activitySummary(managedUser)}</td>
       <td><UserActions {...props} managedUser={managedUser} /></td>
@@ -252,14 +285,14 @@ function UsersList(props: UsersViewProps) {
   return <div className="users-list">{props.users.map((managedUser) => <article key={managedUser.id}>
     <div className="users-list-identity"><UserAvatar user={managedUser} size={44} /><span><strong>{managedUser.name}</strong><small>{managedUser.email} - {roleLabel(managedUser.roles[0])} - {managedUser.team ?? 'No team'}</small></span></div>
     <p>{activitySummary(managedUser)}</p>
-    <UserStatus status={managedUser.status} />
+    <UserStatus status={employeeLifecycleStatus(managedUser)} />
     <UserActions {...props} managedUser={managedUser} />
   </article>)}</div>
 }
 
 function UsersGrid(props: UsersViewProps) {
   return <div className="users-grid">{props.users.map((managedUser) => <article key={managedUser.id}>
-    <header><div><UserAvatar user={managedUser} size={48} /><span><strong>{managedUser.name}</strong><small>{roleLabel(managedUser.roles[0])}</small></span></div><UserStatus status={managedUser.status} /></header>
+    <header><div><UserAvatar user={managedUser} size={48} /><span><strong>{managedUser.name}</strong><small>{roleLabel(managedUser.roles[0])}</small></span></div><UserStatus status={employeeLifecycleStatus(managedUser)} /></header>
     <p>{activitySummary(managedUser)}</p>
     <footer><span>{managedUser.team ?? 'No team assigned'}</span><UserActions {...props} managedUser={managedUser} /></footer>
   </article>)}</div>
@@ -270,19 +303,27 @@ interface UsersViewProps {
   currentUserId?: number
   canUpdate: boolean
   canDeactivate: boolean
+  invitationAction?: { userId: number; action: InvitationAction }
+  invitationLoading: boolean
   onSelect: (user: ManagedUser) => void
   onEdit: (user: ManagedUser) => void
   onDeactivate: (user: ManagedUser) => void
+  onInvitationAction: (user: ManagedUser, action: InvitationAction) => void
 }
 
-function UserActions({ managedUser, currentUserId, canUpdate, canDeactivate, onSelect, onEdit, onDeactivate }: Omit<UsersViewProps, 'users'> & { managedUser: ManagedUser }) {
+function UserActions({ managedUser, currentUserId, canUpdate, canDeactivate, invitationAction, invitationLoading, onSelect, onEdit, onDeactivate, onInvitationAction }: Omit<UsersViewProps, 'users'> & { managedUser: ManagedUser }) {
   const self = managedUser.id === currentUserId
   const manageable = isOrganizationManagedRole(managedUser.roles[0])
-  const deactivationAvailable = canDeactivate && manageable && !self && managedUser.status !== 'inactive'
+  const deactivationAvailable = canDeactivate && manageable && !self && managedUser.status === 'active'
+  const invitation = managedUser.invitation
+  const actionPending = invitationLoading && invitationAction?.userId === managedUser.id
 
   return <div className="user-row-actions">
     <Tooltip title="View user"><button type="button" className="view" aria-label={`View ${managedUser.name}`} onClick={() => onSelect(managedUser)}><Eye size={15} /></button></Tooltip>
     {canUpdate && manageable && <Tooltip title="Edit user"><button type="button" aria-label={`Edit ${managedUser.name}`} onClick={() => onEdit(managedUser)}><PencilLine size={15} /></button></Tooltip>}
+    {canUpdate && invitation?.status === 'pending' && <Tooltip title={invitation.can_remind ? 'Send a fresh activation link' : 'A reminder was sent recently'}><button type="button" disabled={!invitation.can_remind || actionPending} aria-label={`Send activation reminder to ${managedUser.name}`} onClick={() => onInvitationAction(managedUser, 'remind')}><Send size={15} /></button></Tooltip>}
+    {canUpdate && invitation?.can_renew && <Tooltip title="Renew invitation"><button type="button" disabled={actionPending} aria-label={`Renew invitation for ${managedUser.name}`} onClick={() => onInvitationAction(managedUser, 'renew')}><RefreshCw size={15} /></button></Tooltip>}
+    {canUpdate && invitation?.can_cancel && <Popconfirm title="Cancel this invitation?" description="The current activation link will stop working." okText="Cancel invitation" okButtonProps={{ danger: true }} onConfirm={() => onInvitationAction(managedUser, 'cancel')}><Tooltip title="Cancel invitation"><button type="button" className="danger" disabled={actionPending} aria-label={`Cancel invitation for ${managedUser.name}`}><XCircle size={15} /></button></Tooltip></Popconfirm>}
     {deactivationAvailable && <Popconfirm title="Deactivate this account?" description="All active API sessions will be revoked." okText="Deactivate" okButtonProps={{ danger: true }} onConfirm={() => onDeactivate(managedUser)}><Tooltip title="Deactivate user"><button type="button" className="danger" aria-label={`Deactivate ${managedUser.name}`}><Trash2 size={15} /></button></Tooltip></Popconfirm>}
   </div>
 }
@@ -306,14 +347,21 @@ function UserDetailDrawer({ user, canEdit, onClose, onEdit }: { user: ManagedUse
           <p><span>Last authenticated session</span><time>{formatLastLogin(user.last_login_at)}</time></p>
         </div>
       </SectionCard>
+      {user.invitation && <SectionCard title="Account activation" subtitle="Secure invitation lifecycle for this employee.">
+        <div className="user-history">
+          <p><span>Activation status</span><UserStatus status={employeeLifecycleStatus(user)} /></p>
+          <p><span>Last invitation sent</span><time>{formatDate(user.invitation.last_sent_at)}</time></p>
+          <p><span>Invitation expires</span><time>{formatDate(user.invitation.expires_at)}</time></p>
+          {user.invitation.accepted_at && <p><span>Account activated</span><time>{formatDate(user.invitation.accepted_at)}</time></p>}
+          {user.invitation.cancelled_at && <p><span>Invitation cancelled</span><time>{formatDate(user.invitation.cancelled_at)}</time></p>}
+        </div>
+      </SectionCard>}
       {canEdit && <Button className="users-drawer-edit" type="primary" onClick={() => onEdit(user)}>Edit user</Button>}
     </div>}
   </Drawer>
 }
 
-interface UserFormValues extends ManagedUserPayload {
-  password?: string
-}
+type UserFormValues = ManagedUserPayload
 
 function UserEditorModal({ user, submitting, onClose, onSubmit }: { user: ManagedUser | null; submitting: boolean; onClose: () => void; onSubmit: (payload: ManagedUserPayload) => void }) {
   const [form] = Form.useForm<UserFormValues>()
@@ -326,28 +374,29 @@ function UserEditorModal({ user, submitting, onClose, onSubmit }: { user: Manage
     address: user.address,
     status: user.status as ManagedUserStatus,
     role: user.roles[0],
-  } : { status: 'active', role: 'operator', team: 'Network Operations' }
+  } : { role: 'operator', team: 'Network Operations' }
 
   const submit = (values: UserFormValues) => {
-    const payload: ManagedUserPayload = { ...values }
-    if (!payload.password) delete payload.password
-    onSubmit(payload)
+    onSubmit(values)
   }
 
-  return <Modal className="user-editor-modal" width={680} open title={<div><strong>{user ? `Edit ${user.name}` : 'Add employee'}</strong><small>Organization administrators create operators and technicians only.</small></div>} footer={null} onCancel={onClose} destroyOnHidden>
+  const invitationPending = user?.status === 'pending' && user.invitation?.status === 'pending'
+
+  return <Modal className="user-editor-modal" width={680} open title={<div><strong>{user ? `Edit ${user.name}` : 'Invite employee'}</strong><small>{user ? 'Update organization employee information.' : 'The employee will receive a secure link to choose a password.'}</small></div>} footer={null} onCancel={onClose} destroyOnHidden>
     <Form form={form} layout="vertical" initialValues={initialValues} onFinish={submit}>
+      {!user && <Alert className="employee-invitation-note" type="info" showIcon title="No temporary password" description="The account remains pending until the operator or technician activates it from the email invitation." />}
+      {invitationPending && <Alert className="employee-invitation-note" type="warning" showIcon title="Activation pending" description="Cancel the current invitation before changing the employee email or role." />}
       <div className="user-form-grid">
         <Form.Item name="name" label="Full name" rules={[{ required: true, message: 'Enter the full name.' }]}><Input placeholder="New Organization User" /></Form.Item>
-        <Form.Item name="email" label="Email" rules={[{ required: true }, { type: 'email' }]}><Input placeholder="new.user@chargetrackr.tn" /></Form.Item>
-        <Form.Item name="role" label="Role" rules={[{ required: true }]}><Select options={manageableRoleOptions} /></Form.Item>
+        <Form.Item name="email" label="Email" rules={[{ required: true }, { type: 'email' }]}><Input disabled={invitationPending} placeholder="new.user@chargetrackr.tn" /></Form.Item>
+        <Form.Item name="role" label="Role" rules={[{ required: true }]}><Select disabled={invitationPending} options={manageableRoleOptions} /></Form.Item>
         <Form.Item name="team" label="Team or department"><Select options={teamOptions.map((value) => ({ value, label: value }))} /></Form.Item>
         <Form.Item name="phone" label="Phone"><Input placeholder="+216 00 000 000" /></Form.Item>
         <Form.Item name="address" label="Address"><Input placeholder="Tunis, Tunisia" /></Form.Item>
-        <Form.Item name="status" label="Status" rules={[{ required: true }]}><Select options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }, { value: 'pending', label: 'Pending' }]} /></Form.Item>
+        {user && <Form.Item name="status" label="Status" rules={[{ required: true }]}><Select disabled={user.status === 'pending'} options={user.status === 'pending' ? [{ value: 'pending', label: 'Pending activation' }] : [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Suspended' }]} /></Form.Item>}
         <Form.Item name="avatar_url" label="Avatar URL"><Input placeholder="/assets/avatar-vendor-1.jpg" /></Form.Item>
-        <Form.Item name="password" label={user ? 'New password' : 'Temporary password'} rules={user ? [{ min: 8 }] : [{ required: true }, { min: 8 }]}><Input.Password placeholder={user ? 'Leave empty to keep current password' : 'Minimum 8 characters'} /></Form.Item>
       </div>
-      <div className="user-modal-actions"><Button onClick={onClose}>Cancel</Button><Button className="users-save-button" type="primary" htmlType="submit" loading={submitting}>{user ? 'Save changes' : 'Create employee'}</Button></div>
+      <div className="user-modal-actions"><Button onClick={onClose}>Cancel</Button><Button className="users-save-button" type="primary" htmlType="submit" loading={submitting}>{user ? 'Save changes' : 'Send invitation'}</Button></div>
     </Form>
   </Modal>
 }
@@ -361,7 +410,15 @@ function UserAvatar({ user, size }: { user: ManagedUser; size: number }) {
 }
 
 function UserStatus({ status }: { status: string }) {
-  return <span className={`user-status user-status--${status}`}><i />{status}</span>
+  const label = {
+    active: 'Active',
+    inactive: 'Suspended',
+    pending: 'Pending activation',
+    expired: 'Invitation expired',
+    revoked: 'Invitation cancelled',
+  }[status] ?? status
+
+  return <span className={`user-status user-status--${status}`}><i />{label}</span>
 }
 
 function InfoPanel({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
@@ -382,6 +439,11 @@ function roleLabel(role?: UserRole): string {
 
 function isOrganizationManagedRole(role?: UserRole): role is 'operator' | 'technician' {
   return role === 'operator' || role === 'technician'
+}
+
+function employeeLifecycleStatus(user: ManagedUser): string {
+  if (user.status !== 'pending') return user.status
+  return user.invitation?.status === 'accepted' ? 'active' : (user.invitation?.status ?? 'pending')
 }
 
 function formatLastLogin(value: string | null): string {

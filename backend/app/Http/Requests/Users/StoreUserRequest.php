@@ -4,7 +4,6 @@ namespace App\Http\Requests\Users;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 class StoreUserRequest extends FormRequest
 {
@@ -32,11 +31,11 @@ class StoreUserRequest extends FormRequest
             'avatar_url' => ['nullable', 'string', 'max:2048'],
             'team' => ['nullable', 'string', 'max:120'],
             'address' => ['nullable', 'string', 'max:255'],
-            'status' => ['required', Rule::in(['active', 'inactive', 'pending'])],
+            'status' => [Rule::prohibitedIf(! $isSuperAdministrator), Rule::requiredIf($isSuperAdministrator), Rule::in(['active', 'inactive', 'pending'])],
             'role' => ['required', Rule::in($isSuperAdministrator
                 ? ['super_admin', 'admin', 'operator', 'technician']
                 : ['operator', 'technician'])],
-            'password' => ['required', 'string', Password::min(8)],
+            'password' => [Rule::prohibitedIf(! $isSuperAdministrator), Rule::requiredIf($isSuperAdministrator), 'string', 'min:8'],
         ];
     }
 }

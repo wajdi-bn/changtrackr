@@ -77,6 +77,56 @@ class AlertInterventionApiTest extends TestCase
             ->assertJsonPath('data.status', 'assigned');
     }
 
+    public function test_admin_manages_only_their_organization_alerts_and_can_cancel_an_intervention(): void
+    {
+        $organization = $this->organization('admin-workflow-network');
+        $admin = $this->user($organization, 'admin');
+        $technician = $this->user($organization, 'technician');
+        $otherOrganization = $this->organization('external-workflow-network');
+        $otherTechnician = $this->user($otherOrganization, 'technician');
+        $alert = $this->alert($this->station($organization, 'CT-ADMIN-WORKFLOW'), 'ALT-ADMIN-WORKFLOW');
+        $hidden = $this->alert($this->station($otherOrganization, 'CT-ADMIN-HIDDEN'), 'ALT-ADMIN-HIDDEN');
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/alerts')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $alert->id)
+            ->assertJsonCount(1, 'technicians')
+            ->assertJsonPath('technicians.0.id', $technician->id);
+
+        $this->getJson("/api/alerts/{$hidden->id}")->assertForbidden();
+        $this->patchJson("/api/alerts/{$alert->id}", ['assigned_technician_id' => $otherTechnician->id])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('assigned_technician_id');
+
+        $interventionId = $this->postJson("/api/alerts/{$alert->id}/interventions", [
+            'assigned_technician_id' => $technician->id,
+            'scheduled_at' => now()->addDay()->toISOString(),
+            'estimated_duration_minutes' => 60,
+        ])->assertCreated()->json('data.id');
+
+        $this->patchJson("/api/interventions/{$interventionId}", ['status' => 'cancelled'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'cancelled')
+            ->assertJsonPath('data.final_status', 'Cancelled');
+
+        $this->assertDatabaseHas('alerts', [
+            'id' => $alert->id,
+            'status' => 'new',
+            'assigned_technician_id' => null,
+        ]);
+        $this->assertDatabaseHas('alert_events', [
+            'alert_id' => $alert->id,
+            'event_type' => 'intervention_cancelled',
+        ]);
+
+        $this->postJson("/api/alerts/{$alert->id}/interventions", [
+            'assigned_technician_id' => $technician->id,
+            'estimated_duration_minutes' => 45,
+        ])->assertCreated()->assertJsonPath('data.status', 'assigned');
+    }
+
     public function test_technician_can_progress_their_intervention_but_not_another_technicians(): void
     {
         $organization = $this->organization('field-network');
@@ -95,6 +145,22 @@ class AlertInterventionApiTest extends TestCase
 
         $this->patchJson("/api/interventions/{$other->id}", ['status' => 'in-progress'])
             ->assertForbidden();
+    }
+
+    public function test_resolved_alert_cannot_be_assigned_or_receive_a_new_intervention(): void
+    {
+        $organization = $this->organization('resolved-alert-network');
+        $admin = $this->user($organization, 'admin');
+        $technician = $this->user($organization, 'technician');
+        $alert = $this->alert($this->station($organization, 'CT-RESOLVED-ALERT'), 'ALT-RESOLVED');
+        $alert->update(['status' => 'resolved', 'resolved_at' => now()]);
+        Sanctum::actingAs($admin);
+
+        $this->patchJson("/api/alerts/{$alert->id}", ['assigned_technician_id' => $technician->id])
+            ->assertForbidden();
+        $this->postJson("/api/alerts/{$alert->id}/interventions", [
+            'assigned_technician_id' => $technician->id,
+        ])->assertForbidden();
     }
 
     private function organization(string $slug): Organization

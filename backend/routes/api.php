@@ -7,9 +7,15 @@ use App\Http\Controllers\Api\ChargingPlanController;
 use App\Http\Controllers\Api\ChargingSessionController;
 use App\Http\Controllers\Api\ConnectorController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DemoRequestController;
+use App\Http\Controllers\Api\EmployeeInvitationController;
 use App\Http\Controllers\Api\Internal\OcppGatewayController;
+use App\Http\Controllers\Api\Internal\PaymentWebhookController;
 use App\Http\Controllers\Api\InterventionController;
+use App\Http\Controllers\Api\InterventionReportController;
+use App\Http\Controllers\Api\MaintenanceController;
+use App\Http\Controllers\Api\OcppSupervisionController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PlanSubscriptionController;
 use App\Http\Controllers\Api\PricingController;
@@ -17,6 +23,7 @@ use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\TariffAssignmentController;
 use App\Http\Controllers\Api\TariffController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\UserNotificationController;
 use App\Http\Middleware\EnsureUserOrganizationScope;
 use App\Http\Middleware\VerifyOcppGatewaySignature;
 use Illuminate\Http\Request;
@@ -28,6 +35,8 @@ Route::post('/account-invitations/inspect', [AccountInvitationController::class,
     ->middleware('throttle:invitation-inspect');
 Route::post('/account-invitations/accept', [AccountInvitationController::class, 'accept'])
     ->middleware('throttle:invitation-accept');
+Route::post('/internal/payments/webhooks', PaymentWebhookController::class)
+    ->middleware('throttle:payment-webhook');
 
 Route::prefix('/internal/ocpp')
     ->middleware([VerifyOcppGatewaySignature::class, 'throttle:ocpp-gateway'])
@@ -39,6 +48,11 @@ Route::prefix('/internal/ocpp')
     });
 
 Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(function (): void {
+    Route::get('/dashboard', DashboardController::class);
+    Route::get('/notifications', [UserNotificationController::class, 'index']);
+    Route::patch('/notifications/{userNotification}/read', [UserNotificationController::class, 'read']);
+    Route::post('/notifications/read-all', [UserNotificationController::class, 'readAll']);
+
     Route::get('/demo-requests', [DemoRequestController::class, 'index']);
     Route::get('/demo-requests/{demoRequest}', [DemoRequestController::class, 'show']);
     Route::patch('/demo-requests/{demoRequest}', [DemoRequestController::class, 'update']);
@@ -54,6 +68,10 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(f
     Route::post('/stations/{station}/connectors', [ConnectorController::class, 'store']);
     Route::put('/stations/{station}/connectors/{connector}', [ConnectorController::class, 'update']);
     Route::delete('/stations/{station}/connectors/{connector}', [ConnectorController::class, 'destroy']);
+    Route::get('/stations/{station}/commands', [OcppSupervisionController::class, 'index']);
+    Route::post('/stations/{station}/commands/reset', [OcppSupervisionController::class, 'reset']);
+    Route::post('/stations/{station}/connectors/{connector}/commands/unlock', [OcppSupervisionController::class, 'unlock']);
+    Route::put('/stations/{station}/maintenance', [OcppSupervisionController::class, 'maintenance']);
 
     Route::apiResource('alerts', AlertController::class)->except('destroy');
     Route::post('/alerts/{alert}/interventions', [InterventionController::class, 'store']);
@@ -61,7 +79,15 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(f
     Route::get('/interventions/{intervention}', [InterventionController::class, 'show']);
     Route::patch('/interventions/{intervention}', [InterventionController::class, 'update']);
     Route::post('/interventions/{intervention}/notes', [InterventionController::class, 'addNote']);
+    Route::post('/interventions/{intervention}/report', [InterventionReportController::class, 'store']);
+    Route::post('/interventions/{intervention}/photos', [InterventionReportController::class, 'storePhoto']);
+    Route::get('/interventions/{intervention}/photos/{photo}', [InterventionReportController::class, 'content']);
+    Route::delete('/interventions/{intervention}/photos/{photo}', [InterventionReportController::class, 'destroyPhoto']);
+    Route::get('/maintenances', [MaintenanceController::class, 'index']);
+    Route::post('/maintenances', [MaintenanceController::class, 'store']);
+    Route::patch('/maintenances/{maintenance}', [MaintenanceController::class, 'update']);
 
+    Route::get('/charging-sessions/export', [ChargingSessionController::class, 'export']);
     Route::get('/charging-sessions', [ChargingSessionController::class, 'index']);
     Route::post('/charging-sessions', [ChargingSessionController::class, 'store']);
     Route::get('/charging-sessions/{chargingSession}', [ChargingSessionController::class, 'show']);
@@ -71,6 +97,7 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(f
     Route::post('/charging-attempts', [ChargingAttemptController::class, 'store']);
     Route::get('/charging-attempts/{chargingAttempt}', [ChargingAttemptController::class, 'show']);
     Route::post('/charging-sessions/{chargingSession}/payments', [PaymentController::class, 'store']);
+    Route::get('/payments/export', [PaymentController::class, 'export']);
     Route::get('/payments', [PaymentController::class, 'index']);
 
     Route::get('/subscription-plans', [PlanSubscriptionController::class, 'catalog']);
@@ -80,6 +107,12 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(f
     Route::delete('/subscriptions/{subscription}', [PlanSubscriptionController::class, 'destroy']);
 
     Route::get('/users/export', [UserController::class, 'export']);
+    Route::post('/users/{user}/invitation/remind', [EmployeeInvitationController::class, 'remind'])
+        ->middleware('throttle:employee-invitation-management');
+    Route::post('/users/{user}/invitation/renew', [EmployeeInvitationController::class, 'renew'])
+        ->middleware('throttle:employee-invitation-management');
+    Route::delete('/users/{user}/invitation', [EmployeeInvitationController::class, 'cancel'])
+        ->middleware('throttle:employee-invitation-management');
     Route::apiResource('users', UserController::class);
     Route::get('/customers/export', [CustomerController::class, 'export']);
     Route::get('/customers', [CustomerController::class, 'index']);

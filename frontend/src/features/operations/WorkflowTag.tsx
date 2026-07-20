@@ -13,6 +13,7 @@ const config: Record<WorkflowValue, { color: string; label: string }> = {
   paused: { color: 'default', label: 'Paused' },
   'waiting-parts': { color: 'warning', label: 'Waiting parts' },
   resolved: { color: 'success', label: 'Resolved' },
+  cancelled: { color: 'default', label: 'Cancelled' },
 }
 
 export function WorkflowTag({ value }: { value: WorkflowValue }) {

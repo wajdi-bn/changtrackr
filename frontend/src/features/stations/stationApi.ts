@@ -2,6 +2,9 @@ import { httpClient } from '../../api/httpClient'
 import type {
   Connector,
   ConnectorPayload,
+  MaintenanceModeResponse,
+  OcppCommand,
+  OcppCommandsResponse,
   Station,
   StationMapFilters,
   StationMapResponse,
@@ -51,4 +54,24 @@ export async function updateConnector(stationId: number, connectorId: number, pa
 
 export async function deleteConnector(stationId: number, connectorId: number): Promise<void> {
   await httpClient.delete(`/stations/${stationId}/connectors/${connectorId}`)
+}
+
+export async function getStationCommands(stationId: number): Promise<OcppCommandsResponse> {
+  const response = await httpClient.get<OcppCommandsResponse>(`/stations/${stationId}/commands`)
+  return response.data
+}
+
+export async function restartStation(stationId: number): Promise<OcppCommand> {
+  const response = await httpClient.post<{ data: OcppCommand }>(`/stations/${stationId}/commands/reset`)
+  return response.data.data
+}
+
+export async function unlockStationConnector(stationId: number, connectorId: number): Promise<OcppCommand> {
+  const response = await httpClient.post<{ data: OcppCommand }>(`/stations/${stationId}/connectors/${connectorId}/commands/unlock`)
+  return response.data.data
+}
+
+export async function setStationMaintenanceMode(stationId: number, enabled: boolean): Promise<MaintenanceModeResponse> {
+  const response = await httpClient.put<MaintenanceModeResponse>(`/stations/${stationId}/maintenance`, { enabled })
+  return response.data
 }

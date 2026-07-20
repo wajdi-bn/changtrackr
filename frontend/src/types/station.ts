@@ -40,6 +40,7 @@ export interface Station {
   remote_start_available: boolean
   remote_start_unavailable_reason: RemoteStartUnavailableReason | null
   availability_override: AvailabilityOverride | null
+  maintenance_intervention_id: number | null
   availability_reason: string | null
   availability_source: string | null
   availability_calculated_at: string | null
@@ -146,6 +147,43 @@ export interface ConnectorPayload {
   max_power_kw: number
   status?: StationStatus
   error_code?: string | null
+}
+
+export type OcppCommandAction = 'Reset' | 'UnlockConnector' | 'ChangeAvailability'
+export type OcppCommandStatus = 'queued' | 'sent' | 'accepted' | 'rejected' | 'failed' | 'timed_out'
+
+export interface OcppCommand {
+  uuid: string
+  action: OcppCommandAction
+  status: OcppCommandStatus
+  station_id: number
+  connector: Pick<Connector, 'id' | 'external_id' | 'ocpp_connector_id'> | null
+  requested_by: { id: number; name: string; avatar_url: string | null } | null
+  result: Record<string, unknown> | null
+  failure_code: string | null
+  failure_message: string | null
+  queued_at: string
+  sent_at: string | null
+  responded_at: string | null
+  expires_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface OcppCommandsResponse {
+  data: OcppCommand[]
+  meta: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+  }
+}
+
+export interface MaintenanceModeResponse {
+  station: Station
+  command: OcppCommand | null
+  ocpp_sync: 'queued' | 'not_connected'
 }
 
 export type RemoteStartUnavailableReason =

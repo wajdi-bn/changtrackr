@@ -27,6 +27,11 @@
     "ocpp:disconnect": "node scripts/ocpp-control.mjs disconnect",
     "ocpp:status": "node scripts/ocpp-control.mjs status",
     "ocpp:fleet-status": "node scripts/ocpp-control.mjs fleet-status",
+    "payment:up": "docker compose -f infra/payment-simulator/compose.yaml up -d",
+    "payment:down": "docker compose -f infra/payment-simulator/compose.yaml down",
+    "payment:status": "docker compose -f infra/payment-simulator/compose.yaml ps",
+    "payment:logs": "docker compose -f infra/payment-simulator/compose.yaml logs -f payment-simulator",
+    "payment:reset": "curl.exe -X POST http://127.0.0.1:9090/__admin/requests/reset",
     "test:ocpp-tools": "node --test infra/ocpp/simulator/read-station-state.test.mjs",
     "test:ocpp-gateway": "docker build --target test -t chargetrackr-ocpp-gateway-test ocpp-gateway && docker run --rm chargetrackr-ocpp-gateway-test"
   },

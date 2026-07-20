@@ -33,12 +33,16 @@ class AlertPolicy
 
     public function assign(User $user, Alert $alert): bool
     {
-        return $user->can('alerts.assign') && $this->belongsToUserScope($user, $alert);
+        return $alert->status !== 'resolved'
+            && $user->can('alerts.assign')
+            && $this->belongsToUserScope($user, $alert);
     }
 
     public function createIntervention(User $user, Alert $alert): bool
     {
-        return $user->can('interventions.manage') && $this->belongsToUserScope($user, $alert);
+        return $alert->status !== 'resolved'
+            && $user->can('interventions.manage')
+            && $this->belongsToUserScope($user, $alert);
     }
 
     private function belongsToUserScope(User $user, Alert $alert): bool

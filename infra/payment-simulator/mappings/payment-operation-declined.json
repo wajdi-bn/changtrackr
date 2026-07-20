@@ -1,0 +1,45 @@
+{
+  "id": "95d0d229-8885-4836-8958-28bbb57a05d6",
+  "name": "Declined payment operation with callback",
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/payment-operations",
+    "headers": {
+      "X-Simulator-Api-Key": {
+        "equalTo": "chargetrackr-local"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": "$[?(@.simulation_outcome == 'declined')]"
+      }
+    ]
+  },
+  "response": {
+    "status": 422,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"event_id\":\"{{jsonPath request.body '$.event_id'}}\",\"operation\":\"{{jsonPath request.body '$.operation'}}\",\"status\":\"declined\",\"payment_reference\":\"{{jsonPath request.body '$.payment_reference'}}\",\"provider_transaction_id\":\"{{jsonPath request.body '$.provider_transaction_id'}}\",\"error\":{\"code\":\"insufficient_funds\",\"message\":\"The simulated provider declined the payment.\"}}"
+  },
+  "serveEventListeners": [
+    {
+      "name": "webhook",
+      "parameters": {
+        "method": "POST",
+        "url": "{{jsonPath originalRequest.body '$.webhook_url'}}",
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-ChargeTrackr-Signature": "{{jsonPath originalRequest.body '$.webhook_signature'}}"
+        },
+        "body": "{\"event_id\":\"{{jsonPath originalRequest.body '$.event_id'}}\",\"type\":\"{{jsonPath originalRequest.body '$.event_type'}}\",\"operation\":\"{{jsonPath originalRequest.body '$.operation'}}\",\"status\":\"declined\",\"payment_reference\":\"{{jsonPath originalRequest.body '$.payment_reference'}}\",\"provider_transaction_id\":\"{{jsonPath originalRequest.body '$.provider_transaction_id'}}\",\"authorization_id\":\"{{jsonPath originalRequest.body '$.authorization_id'}}\",\"amount_millimes\":{{jsonPath originalRequest.body '$.amount_millimes'}},\"currency\":\"{{jsonPath originalRequest.body '$.currency'}}\",\"idempotency_key\":\"{{jsonPath originalRequest.body '$.idempotency_key'}}\",\"failure_code\":\"insufficient_funds\",\"failure_reason\":\"The simulated provider declined the payment.\"}",
+        "delay": {
+          "type": "fixed",
+          "milliseconds": 150
+        }
+      }
+    }
+  ]
+}

@@ -5,12 +5,16 @@ namespace App\Services\Ocpp;
 use App\Contracts\PaymentGateway;
 use App\Events\ChargingAttemptChanged;
 use App\Events\ChargingSessionChanged;
+use App\Events\OcppCommandChanged;
 use App\Models\ChargingAttempt;
 use App\Models\ChargingSession;
+use App\Models\Connector;
+use App\Models\Intervention;
 use App\Models\OcppCommand;
 use App\Models\OcppTransaction;
 use App\Models\Station;
 use App\Models\User;
+use App\Services\Payments\PaymentProviderEventService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -19,7 +23,85 @@ class OcppCommandService
 {
     private const TERMINAL_STATUSES = ['rejected', 'failed', 'timed_out'];
 
-    public function __construct(private readonly PaymentGateway $payments) {}
+    public function __construct(
+        private readonly PaymentGateway $payments,
+        private readonly PaymentProviderEventService $providerEvents,
+    ) {}
+
+    public function queueReset(Station $station, User $requestedBy): OcppCommand
+    {
+        return DB::transaction(function () use ($station, $requestedBy): OcppCommand {
+            $station = Station::query()->lockForUpdate()->findOrFail($station->id);
+            $this->ensureStationCanReceiveSupervisionCommands($station);
+
+            return $this->queueSupervisionCommand(
+                station: $station,
+                requestedBy: $requestedBy,
+                action: 'Reset',
+                payload: ['type' => 'Soft'],
+            );
+        });
+    }
+
+    public function queueUnlock(Station $station, Connector $connector, User $requestedBy): OcppCommand
+    {
+        return DB::transaction(function () use ($station, $connector, $requestedBy): OcppCommand {
+            $station = Station::query()->lockForUpdate()->findOrFail($station->id);
+            $connector = Connector::query()->lockForUpdate()->findOrFail($connector->id);
+            $this->ensureStationCanReceiveSupervisionCommands($station);
+
+            if ($connector->station_id !== $station->id) {
+                throw ValidationException::withMessages(['connector' => ['This connector does not belong to the selected station.']]);
+            }
+            if ($connector->ocpp_connector_id === null) {
+                throw ValidationException::withMessages(['connector' => ['This connector has no OCPP connector identifier.']]);
+            }
+
+            return $this->queueSupervisionCommand(
+                station: $station,
+                requestedBy: $requestedBy,
+                action: 'UnlockConnector',
+                payload: ['connectorId' => $connector->ocpp_connector_id],
+                connector: $connector,
+            );
+        });
+    }
+
+    public function setMaintenanceMode(
+        Station $station,
+        User $requestedBy,
+        bool $enabled,
+        ?Intervention $maintenanceIntervention = null,
+    ): ?OcppCommand {
+        return DB::transaction(function () use ($station, $requestedBy, $enabled, $maintenanceIntervention): ?OcppCommand {
+            $station = Station::query()->lockForUpdate()->findOrFail($station->id);
+            if (! $station->isOcppManaged()) {
+                throw ValidationException::withMessages(['station' => ['Maintenance synchronization requires an OCPP-managed station.']]);
+            }
+            if ($station->maintenance_intervention_id !== null
+                && $station->maintenance_intervention_id !== $maintenanceIntervention?->id) {
+                throw ValidationException::withMessages([
+                    'maintenance' => ['This station is controlled by an active maintenance intervention.'],
+                ]);
+            }
+
+            $station->update(['availability_override' => $enabled ? 'maintenance' : null]);
+
+            if (! $station->hasFreshOcppConnection()) {
+                return null;
+            }
+
+            return $this->queueSupervisionCommand(
+                station: $station,
+                requestedBy: $requestedBy,
+                action: 'ChangeAvailability',
+                payload: [
+                    'connectorId' => 0,
+                    'type' => $enabled ? 'Inoperative' : 'Operative',
+                ],
+            );
+        });
+    }
 
     public function queueRemoteStart(ChargingAttempt $attempt, string $idTag): OcppCommand
     {
@@ -49,6 +131,7 @@ class OcppCommandService
                 'command_queued_at' => now(),
             ]);
             event(ChargingAttemptChanged::fromAttempt($attempt->fresh()));
+            event(OcppCommandChanged::fromCommand($command));
 
             return $command;
         });
@@ -101,6 +184,7 @@ class OcppCommandService
 
             $session->update(['status' => 'stopping', 'lifecycle_reason' => 'remote_stop_queued']);
             event(ChargingSessionChanged::fromSession($session->fresh()));
+            event(OcppCommandChanged::fromCommand($command));
 
             return $command;
         });
@@ -132,6 +216,8 @@ class OcppCommandService
                 $command->chargingAttempt->update(['status' => 'command_sent']);
                 event(ChargingAttemptChanged::fromAttempt($command->chargingAttempt->fresh()));
             }
+
+            event(OcppCommandChanged::fromCommand($command->fresh()));
 
             return $command->fresh();
         });
@@ -187,6 +273,8 @@ class OcppCommandService
                 event(ChargingSessionChanged::fromSession($command->chargingSession->fresh()));
             }
 
+            event(OcppCommandChanged::fromCommand($command->fresh()));
+
             return $command->fresh();
         });
 
@@ -218,16 +306,25 @@ class OcppCommandService
                 'ocpp_transaction_id' => $transaction->id,
                 'confirmed_at' => now(),
             ]);
+            event(OcppCommandChanged::fromCommand($command->fresh()));
         });
     }
 
     public function confirmStop(OcppTransaction $transaction): void
     {
-        OcppCommand::query()
-            ->where('ocpp_transaction_id', $transaction->id)
-            ->where('action', 'RemoteStopTransaction')
-            ->whereIn('status', ['sent', 'accepted'])
-            ->update(['status' => 'confirmed', 'confirmed_at' => now()]);
+        DB::transaction(function () use ($transaction): void {
+            $commands = OcppCommand::query()
+                ->where('ocpp_transaction_id', $transaction->id)
+                ->where('action', 'RemoteStopTransaction')
+                ->whereIn('status', ['sent', 'accepted'])
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($commands as $command) {
+                $command->update(['status' => 'confirmed', 'confirmed_at' => now()]);
+                event(OcppCommandChanged::fromCommand($command->fresh()));
+            }
+        });
     }
 
     public function releaseAuthorization(ChargingAttempt $attempt): void
@@ -241,12 +338,19 @@ class OcppCommandService
             'payment_status' => $result->successful ? 'released' : 'release_failed',
         ]);
         event(ChargingAttemptChanged::fromAttempt($attempt->fresh()));
+        $this->providerEvents->reconcileReference($attempt->provider_authorization_id);
     }
 
     public function expireDue(): int
     {
         $expired = OcppCommand::query()
-            ->whereIn('status', ['queued', 'sent', 'accepted'])
+            ->where(function ($query): void {
+                $query->whereIn('status', ['queued', 'sent'])
+                    ->orWhere(function ($query): void {
+                        $query->where('status', 'accepted')
+                            ->whereIn('action', ['RemoteStartTransaction', 'RemoteStopTransaction']);
+                    });
+            })
             ->where('expires_at', '<=', now())
             ->orderBy('id')
             ->limit(100)
@@ -255,7 +359,7 @@ class OcppCommandService
         foreach ($expired as $command) {
             $attempt = DB::transaction(function () use ($command): ?ChargingAttempt {
                 $command = OcppCommand::query()->with(['chargingAttempt', 'chargingSession'])->lockForUpdate()->find($command->id);
-                if ($command === null || ! in_array($command->status, ['queued', 'sent', 'accepted'], true)) {
+                if ($command === null || ! $this->commandCanExpire($command)) {
                     return null;
                 }
 
@@ -288,6 +392,8 @@ class OcppCommandService
                     event(ChargingSessionChanged::fromSession($command->chargingSession->fresh()));
                 }
 
+                event(OcppCommandChanged::fromCommand($command->fresh()));
+
                 return null;
             });
 
@@ -297,5 +403,73 @@ class OcppCommandService
         }
 
         return $expired->count();
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function queueSupervisionCommand(
+        Station $station,
+        User $requestedBy,
+        string $action,
+        array $payload,
+        ?Connector $connector = null,
+    ): OcppCommand {
+        $active = OcppCommand::query()
+            ->where('station_id', $station->id)
+            ->where('action', $action)
+            ->whereIn('status', ['queued', 'sent'])
+            ->when(
+                $connector === null,
+                fn ($query) => $query->whereNull('connector_id'),
+                fn ($query) => $query->where('connector_id', $connector->id),
+            )
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($active as $command) {
+            if ($command->encrypted_payload === $payload) {
+                return $command;
+            }
+        }
+
+        if ($active->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'command' => ['A conflicting command is already pending for this target.'],
+            ]);
+        }
+
+        $command = OcppCommand::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'organization_id' => $station->organization_id,
+            'user_id' => $requestedBy->id,
+            'station_id' => $station->id,
+            'connector_id' => $connector?->id,
+            'action' => $action,
+            'status' => 'queued',
+            'encrypted_payload' => $payload,
+            'idempotency_key' => (string) Str::uuid(),
+            'queued_at' => now(),
+            'expires_at' => now()->addSeconds(max(30, (int) config('ocpp.gateway.supervision_command_ttl_seconds', 60))),
+        ]);
+
+        event(OcppCommandChanged::fromCommand($command));
+
+        return $command;
+    }
+
+    private function ensureStationCanReceiveSupervisionCommands(Station $station): void
+    {
+        if (! $station->isOcppManaged()) {
+            throw ValidationException::withMessages(['station' => ['This station is not managed through OCPP.']]);
+        }
+        if (! $station->hasFreshOcppConnection()) {
+            throw ValidationException::withMessages(['station' => ['The station is offline and cannot receive this command.']]);
+        }
+    }
+
+    private function commandCanExpire(OcppCommand $command): bool
+    {
+        return in_array($command->status, ['queued', 'sent'], true)
+            || ($command->status === 'accepted'
+                && in_array($command->action, ['RemoteStartTransaction', 'RemoteStopTransaction'], true));
     }
 }

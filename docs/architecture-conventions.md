@@ -18,6 +18,8 @@ frontend/src/
     sessions/
     alerts/
     interventions/
+      reports/
+    maintenance/
     payments/
     reports/
     settings/
@@ -37,6 +39,7 @@ Rules:
 - Use React Hook Form and Zod for forms.
 - Use role-aware routes and menus.
 - Keep profile and settings accessible from the avatar menu, not from the main sidebar.
+- Keep intervention evidence on private storage and expose it only through policy-protected API responses.
 
 ## Backend
 
@@ -55,6 +58,7 @@ backend/app/
     Auth/
     Users/
     Stations/
+    Maintenance/
     Payments/
     Notifications/
     Reports/
@@ -71,6 +75,11 @@ Rules:
 - Authorization should use policies and permissions, not frontend checks.
 - Use jobs for emails, notifications, report generation and station availability checks.
 - Use scheduler tasks for recurring heartbeat/offline detection.
+- Persist one personal notification per recipient and use deterministic deduplication keys before broadcasting or queuing email.
+- Authorize private Reverb channels by authenticated user id; never broadcast an organization-wide notification payload to the whole tenant.
+- Track each asynchronous delivery separately so retries update the same delivery record instead of creating another notification.
+- Keep payment providers behind `PaymentGateway`; provider HTTP, signatures and error mapping stay inside adapters.
+- Treat signed provider webhooks as an idempotent audit and reconciliation channel, never as an unverified frontend callback.
 
 ## Reused Lessons From Previous Projects
 
@@ -80,6 +89,8 @@ Useful patterns:
 - Central HTTP client with timeout and auth handling.
 - Typed frontend services.
 - Admin-created accounts with email activation.
+- Store account invitation tokens only as hashes; reminder emails rotate the token because the original value cannot be recovered.
+- Keep employee accounts pending until the invited user chooses a password. Administrators never set employee passwords.
 - Login history and security status.
 - User settings with token masking.
 - Notification delivery status tracking.

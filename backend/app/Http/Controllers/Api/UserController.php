@@ -7,6 +7,8 @@ use App\Http\Requests\Users\StoreUserRequest;
 use App\Http\Requests\Users\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Notifications\AccountInvitationNotification;
+use App\Services\AccountInvitationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +19,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserController extends Controller
 {
-    private const RELATIONS = ['organization', 'roles.permissions', 'permissions'];
+    private const RELATIONS = ['organization', 'roles.permissions', 'permissions', 'latestAccountInvitation'];
 
     private const COUNTS = ['assignedAlerts', 'assignedInterventions', 'chargingSessions', 'payments'];
 
@@ -54,13 +56,32 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(StoreUserRequest $request): JsonResponse
+    public function store(StoreUserRequest $request, AccountInvitationService $invitations): JsonResponse
     {
         Gate::authorize('create', User::class);
         /** @var User $actor */
         $actor = $request->user();
         $attributes = $request->validated();
         $this->assertRoleCanBeAssigned($actor, $attributes['role']);
+
+        if (! $actor->hasRole('super_admin')) {
+            $actor->loadMissing('organization');
+            $result = $invitations->invite(
+                $actor->organization,
+                $actor,
+                $attributes['name'],
+                $attributes['email'],
+                $attributes['role'],
+                null,
+                $attributes,
+            );
+            $result['user']->notify(new AccountInvitationNotification($result['invitation'], $result['token']));
+
+            return (new UserResource($this->loadUser($result['user'])))
+                ->response()
+                ->setStatusCode(201);
+        }
+
         $role = $attributes['role'];
         unset($attributes['role']);
         $attributes['organization_id'] = $role === 'super_admin'
@@ -100,12 +121,25 @@ class UserController extends Controller
         if (isset($attributes['role'])) {
             $this->assertRoleCanBeAssigned($actor, $attributes['role']);
         }
-        if (array_key_exists('password', $attributes) && ! $attributes['password']) {
-            unset($attributes['password']);
-        }
         $role = $attributes['role'] ?? null;
         unset($attributes['role']);
         $nextRole = $role ?? $currentRole;
+        $latestInvitation = $user->latestAccountInvitation()->first();
+        if (! $actor->hasRole('super_admin') && $user->status === 'pending') {
+            if (isset($attributes['status']) && $attributes['status'] !== 'pending') {
+                throw ValidationException::withMessages([
+                    'status' => ['A pending employee must activate the account from the invitation link.'],
+                ]);
+            }
+            if ($latestInvitation?->effectiveStatus() === 'pending' && (
+                (isset($attributes['email']) && mb_strtolower($attributes['email']) !== mb_strtolower($user->email))
+                || ($role !== null && $role !== $currentRole)
+            )) {
+                throw ValidationException::withMessages([
+                    'invitation' => ['Cancel the pending invitation before changing its email or role.'],
+                ]);
+            }
+        }
         $organizationId = $nextRole === 'super_admin'
             ? null
             : ($actor->hasRole('super_admin')
@@ -179,7 +213,7 @@ class UserController extends Controller
         return $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
             'role' => ['nullable', Rule::in(User::EMPLOYEE_ROLES)],
-            'status' => ['nullable', Rule::in(['active', 'inactive', 'pending'])],
+            'status' => ['nullable', Rule::in(['active', 'inactive', 'pending', 'expired', 'revoked'])],
             'team' => ['nullable', 'string', 'max:120'],
             'last_login' => ['nullable', Rule::in(['today', 'week', 'month'])],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
@@ -208,7 +242,23 @@ class UserController extends Controller
                     ->orWhereRaw('LOWER(team) LIKE ?', [$needle]));
             })
             ->when($filters['role'] ?? null, fn (Builder $query, string $role) => $query->whereHas('roles', fn (Builder $query) => $query->where('name', $role)))
-            ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
+            ->when($filters['status'] ?? null, function (Builder $query, string $status): void {
+                if (in_array($status, ['active', 'inactive'], true)) {
+                    $query->where('status', $status);
+
+                    return;
+                }
+
+                $query->where('status', 'pending')->whereHas('latestAccountInvitation', function (Builder $query) use ($status): void {
+                    match ($status) {
+                        'pending' => $query->where('status', 'pending')->where('expires_at', '>=', now()),
+                        'expired' => $query->where(fn (Builder $query) => $query
+                            ->where('status', 'expired')
+                            ->orWhere(fn (Builder $query) => $query->where('status', 'pending')->where('expires_at', '<', now()))),
+                        'revoked' => $query->where('status', 'revoked'),
+                    };
+                });
+            })
             ->when($filters['team'] ?? null, fn (Builder $query, string $team) => $query->where('team', $team))
             ->when($filters['last_login'] ?? null, function (Builder $query, string $period): void {
                 $start = match ($period) {

@@ -49,6 +49,12 @@ class Organization extends Model
         return $this->hasMany(Intervention::class);
     }
 
+    /** @return HasMany<MaintenancePlan, $this> */
+    public function maintenancePlans(): HasMany
+    {
+        return $this->hasMany(MaintenancePlan::class);
+    }
+
     public function chargingSessions(): HasMany
     {
         return $this->hasMany(ChargingSession::class);

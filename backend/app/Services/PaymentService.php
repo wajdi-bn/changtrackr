@@ -11,13 +11,19 @@ use App\Models\ChargingSession;
 use App\Models\Payment;
 use App\Models\Station;
 use App\Models\User;
+use App\Services\Notifications\OperationalNotificationService;
+use App\Services\Payments\PaymentProviderEventService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class PaymentService
 {
-    public function __construct(private readonly PaymentGateway $gateway) {}
+    public function __construct(
+        private readonly PaymentGateway $gateway,
+        private readonly PaymentProviderEventService $providerEvents,
+        private readonly OperationalNotificationService $notifications,
+    ) {}
 
     /** @param array{method:string, idempotency_key:string, simulation_outcome?:string} $attributes */
     public function process(User $user, ChargingSession $session, array $attributes): Payment
@@ -79,7 +85,7 @@ class PaymentService
             simulationOutcome: $attributes['simulation_outcome'] ?? 'success',
         ));
 
-        return DB::transaction(function () use ($payment, $result): Payment {
+        $processedPayment = DB::transaction(function () use ($payment, $result): Payment {
             $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
             $session = ChargingSession::query()->lockForUpdate()->findOrFail($payment->charging_session_id);
 
@@ -107,6 +113,15 @@ class PaymentService
 
             return $payment->fresh()->load(['organization', 'chargingSession', 'user']);
         });
+
+        $this->providerEvents->reconcileReference($processedPayment->reference);
+
+        $processedPayment = $processedPayment->fresh()->load(['organization', 'chargingSession', 'user', 'latestProviderEvent']);
+        if ($processedPayment->status === 'failed') {
+            $this->notifications->notifyPaymentFailure($processedPayment);
+        }
+
+        return $processedPayment;
     }
 
     public function captureAuthorized(ChargingSession $session): ?Payment
@@ -167,7 +182,7 @@ class PaymentService
             simulationOutcome: $attempt->simulation_outcome,
         ), $attempt->provider_authorization_id);
 
-        return DB::transaction(function () use ($payment, $attempt, $result): Payment {
+        $processedPayment = DB::transaction(function () use ($payment, $attempt, $result): Payment {
             $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
             $session = ChargingSession::query()->lockForUpdate()->findOrFail($payment->charging_session_id);
             $attempt = ChargingAttempt::query()->lockForUpdate()->findOrFail($attempt->id);
@@ -207,5 +222,14 @@ class PaymentService
 
             return $payment->fresh()->load(['organization', 'chargingSession', 'user']);
         });
+
+        $this->providerEvents->reconcileReference($processedPayment->reference);
+
+        $processedPayment = $processedPayment->fresh()->load(['organization', 'chargingSession', 'user', 'latestProviderEvent']);
+        if ($processedPayment->status === 'failed') {
+            $this->notifications->notifyPaymentFailure($processedPayment);
+        }
+
+        return $processedPayment;
     }
 }

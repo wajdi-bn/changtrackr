@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -49,6 +50,12 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Intervention::class, 'assigned_technician_id');
     }
 
+    /** @return HasMany<MaintenancePlan, $this> */
+    public function assignedMaintenancePlans(): HasMany
+    {
+        return $this->hasMany(MaintenancePlan::class, 'assigned_technician_id');
+    }
+
     public function chargingSessions(): HasMany
     {
         return $this->hasMany(ChargingSession::class, 'client_id');
@@ -84,9 +91,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(AccountInvitation::class);
     }
 
+    public function latestAccountInvitation(): HasOne
+    {
+        return $this->hasOne(AccountInvitation::class)->latestOfMany();
+    }
+
     public function sentAccountInvitations(): HasMany
     {
         return $this->hasMany(AccountInvitation::class, 'invited_by_id');
+    }
+
+    public function operationalNotifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
     }
 
     public function primaryRoleName(): ?string

@@ -12,6 +12,7 @@ use App\Models\Station;
 use App\Models\User;
 use App\Services\Ocpp\OcppCommandService;
 use App\Services\Ocpp\VirtualOcppIdTagService;
+use App\Services\Payments\PaymentProviderEventService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +23,7 @@ class ChargingAttemptService
         private readonly PaymentGateway $payments,
         private readonly VirtualOcppIdTagService $idTags,
         private readonly OcppCommandService $commands,
+        private readonly PaymentProviderEventService $providerEvents,
     ) {}
 
     /** @param array<string, mixed> $attributes */
@@ -77,11 +79,12 @@ class ChargingAttemptService
             $attempt->update([
                 'status' => 'failed',
                 'payment_status' => 'failed',
-                'failure_code' => 'payment_declined',
+                'failure_code' => $result->metadata['error_code'] ?? 'payment_declined',
                 'failure_message' => $result->failureReason,
                 'completed_at' => now(),
             ]);
             event(ChargingAttemptChanged::fromAttempt($attempt->fresh()));
+            $this->providerEvents->reconcileReference('ATT-'.$attempt->uuid);
 
             return $this->load($attempt);
         }
@@ -96,6 +99,7 @@ class ChargingAttemptService
         ]);
         event(ChargingAttemptChanged::fromAttempt($attempt->fresh()));
         $this->commands->queueRemoteStart($attempt->fresh(), $idTag->token_ciphertext);
+        $this->providerEvents->reconcileReference('ATT-'.$attempt->uuid);
 
         return $this->load($attempt->fresh());
     }

@@ -59,6 +59,10 @@ Les critères ci-dessous supposent que les valeurs suivantes seront configurable
 - **CA-04.2** - Étant donné des informations valides, lorsque l'administrateur crée un opérateur ou un technicien, alors l'organisation de l'administrateur est affectée automatiquement.
 - **CA-04.3** - Étant donné un administrateur, lorsqu'il tente de créer un administrateur, un client, un super administrateur ou d'injecter une autre organisation, alors la requête est rejetée.
 - **CA-04.4** - Étant donné un opérateur ou technicien de la même organisation, lorsque l'administrateur le désactive, alors ses nouveaux accès sont bloqués et l'action reste traçable.
+- **CA-04.5** - Étant donné une invitation d'employé, lorsque l'administrateur la crée, alors le compte reste en attente, aucun mot de passe initial n'est choisi et un lien à usage unique est envoyé en file.
+- **CA-04.6** - Étant donné un lien valide, lorsque l'employé définit un mot de passe conforme, alors l'email est vérifié, l'invitation est consommée et le compte devient actif dans le rôle attribué.
+- **CA-04.7** - Étant donné une invitation en attente, expirée ou annulée, lorsque l'administrateur agit, alors seules les actions rappel, annulation ou renouvellement compatibles avec cet état sont acceptées.
+- **CA-04.8** - Étant donné un autre administrateur ou une autre organisation, lorsque l'une des routes d'invitation est appelée directement, alors l'accès est refusé sans révéler le jeton.
 
 ## US-05 - Audit et statistiques globales
 
@@ -128,6 +132,7 @@ Les critères ci-dessous supposent que les valeurs suivantes seront configurable
 - **CA-14.2** - Étant donné un message BootNotification, Heartbeat, StatusNotification ou de transaction valide, lorsqu'il est reçu, alors il est horodaté, normalisé et transmis au traitement métier.
 - **CA-14.3** - Étant donné un message mal formé, dupliqué ou provenant d'une borne inconnue, lorsqu'il est reçu, alors il est rejeté ou ignoré de manière idempotente et journalisé.
 - **CA-14.4** - Étant donné le simulateur OCPP retenu, lorsqu'un scénario minimal connexion-changement d'état-session est exécuté, alors l'application reçoit les événements attendus sans modification manuelle en base.
+- **CA-14.5** - Étant donné un administrateur ou un opérateur autorisé, lorsqu'il demande un Soft Reset, un déverrouillage ou un changement de disponibilité, alors la commande est transmise à la borne, auditée et son résultat est actualisé sans exposer de Hard Reset.
 
 ## US-15 - Calcul des états de disponibilité
 
@@ -185,6 +190,9 @@ Les critères ci-dessous supposent que les valeurs suivantes seront configurable
 - **CA-22.2** - Étant donné des photos valides, lorsque le technicien les joint, alors elles sont stockées de manière sécurisée et associées uniquement à l'intervention concernée.
 - **CA-22.3** - Étant donné des champs obligatoires manquants, lorsque la résolution est demandée, alors la clôture est refusée avec les erreurs correspondantes.
 - **CA-22.4** - Étant donné une intervention résolue, lorsque le rapport est consulté, alors son contenu final et sa chronologie ne peuvent pas être altérés sans trace d'audit.
+- **CA-22.5** - Étant donné une intervention active, lorsque le technicien tente de soumettre le rapport sans au moins une photo avant et une photo après, alors la clôture est refusée.
+- **CA-22.6** - Étant donné une preuve photo, lorsqu'un utilisateur la consulte ou tente de la supprimer, alors l'organisation, l'affectation, l'état de l'intervention et la présence d'un rapport final sont contrôlés.
+- **CA-22.7** - Étant donné un résultat nécessitant un suivi, lorsque le rapport est soumis, alors l'intervention est terminée mais l'alerte liée retourne dans la file d'affectation.
 
 ## US-23 - Maintenance préventive et corrective
 
@@ -192,6 +200,8 @@ Les critères ci-dessous supposent que les valeurs suivantes seront configurable
 - **CA-23.2** - Étant donné une maintenance préventive récurrente, lorsque son échéance arrive, alors la prochaine intervention est créée sans doublon.
 - **CA-23.3** - Étant donné une maintenance active, lorsque l'état de disponibilité est calculé, alors la maintenance est prise en compte selon la matrice métier.
 - **CA-23.4** - Étant donné une maintenance replanifiée, annulée ou terminée, lorsque son statut change, alors la chronologie et les calendriers concernés sont mis à jour.
+- **CA-23.5** - Étant donné une maintenance simplement planifiée, lorsque sa date approche sans démarrage du technicien, alors la borne reste disponible et aucun override de maintenance n'est appliqué.
+- **CA-23.6** - Étant donné une maintenance démarrée par son technicien, lorsque la borne est gérée par OCPP, alors l'override local est appliqué immédiatement et une commande `ChangeAvailability(Inoperative)` est mise en file ; la clôture applique le comportement inverse.
 
 ## US-24 - Démarrage d'une recharge
 

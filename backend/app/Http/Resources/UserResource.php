@@ -14,6 +14,12 @@ class UserResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $invitation = $this->relationLoaded('latestAccountInvitation')
+            ? $this->latestAccountInvitation
+            : null;
+        $invitationStatus = $invitation?->effectiveStatus();
+        $lastSentAt = $invitation?->last_sent_at ?? $invitation?->created_at;
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -33,6 +39,17 @@ class UserResource extends JsonResource
                 'charging_sessions' => (int) ($this->charging_sessions_count ?? 0),
                 'payments' => (int) ($this->payments_count ?? 0),
             ],
+            'invitation' => $this->when($this->relationLoaded('latestAccountInvitation'), fn () => $invitation ? [
+                'status' => $invitationStatus,
+                'expires_at' => $invitation->expires_at?->toISOString(),
+                'last_sent_at' => $lastSentAt?->toISOString(),
+                'accepted_at' => $invitation->accepted_at?->toISOString(),
+                'cancelled_at' => $invitation->revoked_at?->toISOString(),
+                'can_remind' => $invitationStatus === 'pending'
+                    && $lastSentAt?->isBefore(now()->subMinutes((int) config('invitations.reminder_cooldown_minutes', 10))),
+                'can_cancel' => $invitationStatus === 'pending',
+                'can_renew' => in_array($invitationStatus, ['expired', 'revoked'], true),
+            ] : null),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

@@ -22,6 +22,7 @@ const StationsPage = lazy(() => import('../pages/StationsPage').then((module) =>
 const StationDetailPage = lazy(() => import('../pages/StationDetailPage').then((module) => ({ default: module.StationDetailPage })))
 const AlertsPage = lazy(() => import('../pages/AlertsPage').then((module) => ({ default: module.AlertsPage })))
 const InterventionsPage = lazy(() => import('../pages/InterventionsPage').then((module) => ({ default: module.InterventionsPage })))
+const MaintenancePage = lazy(() => import('../pages/MaintenancePage').then((module) => ({ default: module.MaintenancePage })))
 const SessionsPage = lazy(() => import('../pages/SessionsPage').then((module) => ({ default: module.SessionsPage })))
 const FindStationPage = lazy(() => import('../pages/FindStationPage').then((module) => ({ default: module.FindStationPage })))
 const PaymentsPage = lazy(() => import('../pages/PaymentsPage').then((module) => ({ default: module.PaymentsPage })))
@@ -82,8 +83,12 @@ export function AppRouter() {
             <Route path="/assigned-alerts" element={<AlertsPage />} />
           </Route>
           <Route element={<PermissionProtectedRoute permission="interventions.view" />}>
+            <Route path="/interventions" element={<InterventionsPage />} />
             <Route path="/my-interventions" element={<InterventionsPage />} />
             <Route path="/maintenance-reports" element={<WorkspacePage title="Maintenance Reports" subtitle="Maintenance history and technician submitted reports." />} />
+          </Route>
+          <Route element={<PermissionProtectedRoute permission="maintenances.view" />}>
+            <Route path="/maintenance" element={<MaintenancePage />} />
           </Route>
           <Route element={<PermissionProtectedRoute permission="sessions.view" />}>
             <Route path="/sessions" element={<SessionsPage />} />

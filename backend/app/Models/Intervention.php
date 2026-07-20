@@ -6,9 +6,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
-    'organization_id', 'alert_id', 'station_id', 'connector_id',
+    'organization_id', 'alert_id', 'maintenance_plan_id', 'maintenance_occurrence_number', 'station_id', 'connector_id',
     'assigned_technician_id', 'created_by_id', 'reference', 'status', 'priority',
     'scheduled_at', 'started_at', 'ended_at', 'estimated_duration_minutes',
     'problem', 'diagnosis', 'resolution', 'final_status', 'comments', 'parts',
@@ -25,6 +26,12 @@ class Intervention extends Model
     public function alert(): BelongsTo
     {
         return $this->belongsTo(Alert::class);
+    }
+
+    /** @return BelongsTo<MaintenancePlan, $this> */
+    public function maintenancePlan(): BelongsTo
+    {
+        return $this->belongsTo(MaintenancePlan::class);
     }
 
     /** @return BelongsTo<Station, $this> */
@@ -57,6 +64,18 @@ class Intervention extends Model
         return $this->hasMany(InterventionEvent::class)->orderBy('occurred_at');
     }
 
+    /** @return HasOne<InterventionReport, $this> */
+    public function report(): HasOne
+    {
+        return $this->hasOne(InterventionReport::class);
+    }
+
+    /** @return HasMany<InterventionPhoto, $this> */
+    public function photos(): HasMany
+    {
+        return $this->hasMany(InterventionPhoto::class)->orderBy('created_at');
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {
@@ -65,6 +84,7 @@ class Intervention extends Model
             'started_at' => 'datetime',
             'ended_at' => 'datetime',
             'estimated_duration_minutes' => 'integer',
+            'maintenance_occurrence_number' => 'integer',
             'parts' => 'array',
         ];
     }

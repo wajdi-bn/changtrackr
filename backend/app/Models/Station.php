@@ -12,7 +12,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'organization_id', 'name', 'reference', 'ocpp_identity', 'location_name', 'city', 'address',
     'latitude', 'longitude', 'status', 'max_power_kw', 'model', 'manufacturer',
-    'availability_override', 'availability_reason', 'availability_source',
+    'availability_override', 'maintenance_intervention_id', 'status_before_maintenance',
+    'availability_reason', 'availability_source',
     'availability_calculated_at', 'availability_monitoring_started_at',
     'ocpp_version', 'ocpp_auth_secret_hash', 'ocpp_registration_status', 'ocpp_status',
     'ocpp_error_code', 'ocpp_connected_at', 'ocpp_disconnected_at', 'ocpp_last_message_at',
@@ -39,6 +40,11 @@ class Station extends Model
         return $this->hasMany(Connector::class);
     }
 
+    public function ocppCommands(): HasMany
+    {
+        return $this->hasMany(OcppCommand::class);
+    }
+
     /** @return HasMany<Alert, $this> */
     public function alerts(): HasMany
     {
@@ -49,6 +55,18 @@ class Station extends Model
     public function interventions(): HasMany
     {
         return $this->hasMany(Intervention::class);
+    }
+
+    /** @return HasMany<MaintenancePlan, $this> */
+    public function maintenancePlans(): HasMany
+    {
+        return $this->hasMany(MaintenancePlan::class);
+    }
+
+    /** @return BelongsTo<Intervention, $this> */
+    public function activeMaintenanceIntervention(): BelongsTo
+    {
+        return $this->belongsTo(Intervention::class, 'maintenance_intervention_id');
     }
 
     public function chargingSessions(): HasMany

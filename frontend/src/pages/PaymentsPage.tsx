@@ -1,20 +1,22 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Button, Card, Empty, Input, Select, Table } from 'antd'
+import { Alert, App, Button, Card, Dropdown, Empty, Input, Select, Table } from 'antd'
 import axios from 'axios'
 import dayjs from 'dayjs'
-import { CircleDollarSign, CreditCard, ReceiptText, RefreshCw, Search } from 'lucide-react'
+import { CircleDollarSign, CreditCard, Download, ReceiptText, RefreshCw, Search } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
 import { MountainBanner } from '../components/MountainBanner'
-import { getChargingSessions, getPayments, processPayment } from '../features/charging/chargingApi'
+import { exportPayments, getChargingSessions, getPayments, processPayment } from '../features/charging/chargingApi'
 import { ChargingStatusTag } from '../features/charging/ChargingStatusTag'
 import { PaymentDrawer } from '../features/charging/PaymentDrawer'
 import { useAuth } from '../features/auth/useAuth'
 import type { ChargingSession, Payment, PaymentPayload, PaymentStatus } from '../types/charging'
+import { downloadBlob } from '../utils/downloadBlob'
 
 export function PaymentsPage() {
-  const { primaryRole } = useAuth()
+  const { primaryRole, user } = useAuth()
   const clientMode = primaryRole === 'client'
+  const canExport = user?.permissions.includes('reports.export') ?? false
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const [status, setStatus] = useState<'all' | PaymentStatus>('all')
@@ -40,7 +42,15 @@ export function PaymentsPage() {
         void message.warning(payment.failure_reason ?? 'The simulated payment was declined.')
       }
     },
-    onError: () => void message.error('Payment processing failed.'),
+    onError: (error) => void message.error(paymentErrorMessage(error)),
+  })
+  const exportMutation = useMutation({
+    mutationFn: (format: 'csv' | 'json') => exportPayments(filters, format),
+    onSuccess: (blob, format) => {
+      downloadBlob(blob, `organization-payments.${format}`)
+      void message.success(`Payment export generated as ${format.toUpperCase()}.`)
+    },
+    onError: () => void message.error('The payment export could not be generated.'),
   })
 
   const columns: ColumnsType<Payment> = [
@@ -48,9 +58,9 @@ export function PaymentsPage() {
     ...(!clientMode ? [{ title: 'Client', key: 'client', render: (_: unknown, item: Payment) => item.client?.name ?? 'Deleted user' }] : []),
     { title: 'Session', key: 'session', render: (_: unknown, item) => <span className="payment-reference"><strong>{item.session?.reference}</strong><small>{item.session?.station_name} · {item.session?.connector_external_id}</small></span> },
     { title: 'Method', dataIndex: 'method', key: 'method', render: (value: string) => value.replace('simulated_', '').replace('_', ' ') },
-    { title: 'Provider', dataIndex: 'provider', key: 'provider' },
+    { title: 'Provider', dataIndex: 'provider', key: 'provider', render: (value: string) => value === 'wiremock' ? 'External sandbox' : value },
     { title: 'Status', dataIndex: 'status', key: 'status', render: (value: PaymentStatus) => <ChargingStatusTag value={value} /> },
-    { title: 'Transaction', dataIndex: 'provider_transaction_id', key: 'transaction', render: (value: string | null) => value ?? '—' },
+    { title: 'Transaction', dataIndex: 'provider_transaction_id', key: 'transaction', render: (value: string | null, item) => <span className="payment-reference"><strong>{value ?? 'Pending'}</strong>{item.provider_event && <small>Webhook: {item.provider_event.processing_status.replaceAll('_', ' ')}</small>}</span> },
     { title: 'Amount', key: 'amount', align: 'right', render: (_: unknown, item) => <strong>{item.amount} {item.currency}</strong> },
   ]
 
@@ -73,7 +83,10 @@ export function PaymentsPage() {
       </article>)}</div>
     </section>}
 
-    <Card className="payments-table-card" title={clientMode ? 'Payment history' : 'All transactions'}>
+    <Card className="payments-table-card" title={clientMode ? 'Payment history' : 'All transactions'} extra={!clientMode && canExport && <Dropdown menu={{ items: [
+      { key: 'csv', label: 'Export CSV', onClick: () => exportMutation.mutate('csv') },
+      { key: 'json', label: 'Export JSON', onClick: () => exportMutation.mutate('json') },
+    ] }}><Button icon={<Download size={14} />} loading={exportMutation.isPending}>Export</Button></Dropdown>}>
       <div className="sessions-toolbar"><Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={14} />} placeholder="Search payment or session" allowClear /><Select value={status} onChange={(value) => setStatus(value)} options={['all', 'paid', 'failed', 'pending'].map((value) => ({ value, label: value === 'all' ? 'All statuses' : value }))} /></div>
       <Table rowKey="id" columns={columns} dataSource={paymentsQuery.data?.data ?? []} loading={paymentsQuery.isLoading} pagination={{ pageSize: 8, hideOnSinglePage: true }} scroll={{ x: 900 }} locale={{ emptyText: <Empty description="No payment transactions found" /> }} />
     </Card>
@@ -83,4 +96,12 @@ export function PaymentsPage() {
 
 function PaymentKpi({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
   return <div><span>{icon}</span><small>{label}</small><strong>{value}</strong></div>
+}
+
+function paymentErrorMessage(error: unknown) {
+  if (!axios.isAxiosError(error)) return 'Payment processing failed.'
+  const data = error.response?.data as { message?: string; errors?: Record<string, string[]> } | undefined
+  const validationMessage = data?.errors ? Object.values(data.errors).flat()[0] : undefined
+
+  return validationMessage ?? data?.message ?? 'Payment processing failed.'
 }

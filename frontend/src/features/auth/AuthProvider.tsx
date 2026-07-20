@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { AuthUser } from '../../types/auth'
+import { queryClient } from '../../app/queryClient'
 import { loginRequest, logoutRequest, sessionRequest } from './authApi'
 import { AuthContext } from './authContext'
 import type { AuthContextValue } from './authContext'
@@ -10,6 +11,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   const clearSession = useCallback(() => {
+    queryClient.clear()
     setUser(null)
   }, [])
 
@@ -46,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const response = await loginRequest({ email, password })
+    queryClient.clear()
     setUser(response.user)
     return response.user
   }, [])

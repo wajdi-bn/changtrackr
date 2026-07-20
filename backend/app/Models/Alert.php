@@ -49,7 +49,13 @@ class Alert extends Model
     /** @return HasOne<Intervention, $this> */
     public function intervention(): HasOne
     {
-        return $this->hasOne(Intervention::class);
+        return $this->hasOne(Intervention::class)->latestOfMany();
+    }
+
+    /** @return HasMany<Intervention, $this> */
+    public function interventions(): HasMany
+    {
+        return $this->hasMany(Intervention::class);
     }
 
     /** @return array<string, string> */
