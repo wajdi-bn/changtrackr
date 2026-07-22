@@ -7,8 +7,6 @@ export interface ProfileData {
     phone: string | null
     job_title: string | null
     bio: string | null
-    locale: 'en' | 'fr' | 'ar'
-    timezone: string
   }
   address: {
     address_line_1: string | null
@@ -43,8 +41,6 @@ export interface UpdateProfilePayload {
   region?: string | null
   postal_code?: string | null
   country_code?: string | null
-  locale?: 'en' | 'fr' | 'ar'
-  timezone?: string | null
   linkedin_url?: string | null
   website_url?: string | null
 }

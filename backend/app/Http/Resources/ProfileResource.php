@@ -19,8 +19,6 @@ class ProfileResource extends JsonResource
                 'phone' => $this->phone,
                 'job_title' => $this->job_title,
                 'bio' => $this->bio,
-                'locale' => $this->locale ?? 'en',
-                'timezone' => $this->timezone ?? config('app.timezone'),
             ],
             'address' => [
                 'address_line_1' => $this->address_line_1 ?? $this->address,

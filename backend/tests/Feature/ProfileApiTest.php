@@ -52,8 +52,6 @@ class ProfileApiTest extends TestCase
             'city' => 'Tunis',
             'region' => 'Tunis',
             'country_code' => 'tn',
-            'locale' => 'fr',
-            'timezone' => 'Africa/Tunis',
             'linkedin_url' => 'https://www.linkedin.com/in/operator',
             'website_url' => 'https://example.com',
             'status' => 'inactive',
@@ -91,6 +89,30 @@ class ProfileApiTest extends TestCase
     {
         $this->getJson('/api/profile')->assertUnauthorized();
         $this->putJson('/api/profile', ['name' => 'Guest'])->assertUnauthorized();
+    }
+
+    public function test_user_can_choose_a_time_zone_or_follow_its_device_time_zone(): void
+    {
+        $user = User::factory()->create(['status' => 'active', 'timezone' => null]);
+        $user->assignRole('client');
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/account-preferences')
+            ->assertOk()
+            ->assertJsonPath('data.timezone', null);
+
+        $this->putJson('/api/account-preferences', ['timezone' => 'Africa/Tunis'])
+            ->assertOk()
+            ->assertJsonPath('data.timezone', 'Africa/Tunis');
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'timezone' => 'Africa/Tunis']);
+
+        $this->putJson('/api/account-preferences', ['timezone' => null])
+            ->assertOk()
+            ->assertJsonPath('data.timezone', null);
+        $this->assertDatabaseHas('platform_audit_logs', [
+            'actor_id' => $user->id,
+            'event_type' => 'account.timezone_updated',
+        ]);
     }
 
     public function test_user_can_replace_and_remove_only_its_local_profile_avatar(): void

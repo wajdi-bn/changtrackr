@@ -6955,6 +6955,19 @@ body {
 .notification-preference-row:last-child { border-bottom: 0; }
 .notification-preference-row strong { color: #1b3529; font-size: 13px; }
 .notification-preference-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 9px; background: #f1eafe; color: #7c3aed; }
+.settings-intro--timezone { color: #237a52; }
+.timezone-preference { display: grid; gap: 15px; }
+.timezone-preference .ant-radio-group { display: grid; gap: 12px; }
+.timezone-preference .ant-radio-wrapper { align-items: flex-start; margin-inline-end: 0; }
+.timezone-preference .ant-radio-wrapper strong,
+.timezone-preference .ant-radio-wrapper small { display: block; }
+.timezone-preference .ant-radio-wrapper strong { color: #1b3529; font-size: 13px; }
+.timezone-preference .ant-radio-wrapper small { margin-top: 3px; color: #748178; font-size: 12px; line-height: 1.45; }
+.timezone-preference > .ant-select { width: min(100%, 380px); }
+.timezone-preview { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px; padding: 12px 14px; border: 1px solid #e6eee9; border-radius: 8px; background: #f7fbf8; }
+.timezone-preview span { color: #75837a; font-size: 12px; }
+.timezone-preview strong { color: #1b3529; font-size: 13px; }
+.timezone-preview small { color: #748178; font-size: 11px; }
 @media (max-width: 640px) {
   .notification-preference-row { grid-template-columns: 34px minmax(0, 1fr); }
   .notification-preference-row .ant-switch { grid-column: 2; justify-self: start; }

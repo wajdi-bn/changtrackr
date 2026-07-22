@@ -29,6 +29,7 @@ class UserResource extends JsonResource
             'avatar_url' => $this->avatar_url,
             'team' => $this->team,
             'address' => $this->address,
+            'timezone' => $this->timezone,
             'status' => $this->status,
             'roles' => $this->getRoleNames()->values(),
             'permissions' => $this->getAllPermissions()->pluck('name')->values(),

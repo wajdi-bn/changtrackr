@@ -32,15 +32,12 @@ import { getAuthErrorMessage } from '../features/auth/authApi'
 import { useAuth } from '../features/auth/useAuth'
 import { getProfile, removeProfileAvatar, updateProfile, uploadProfileAvatar } from '../features/profile/profileApi'
 import type { UpdateProfilePayload } from '../types/profile'
+import { formatDateTime } from '../utils/dateTime'
 
 type ProfileFormValues = Required<Pick<UpdateProfilePayload, 'name'>> & Omit<UpdateProfilePayload, 'name'>
 
 function initials(name: string): string {
   return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
-}
-
-function formatDate(value: string | null): string {
-  return value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'Not recorded yet'
 }
 
 function roleLabel(role: string | undefined): string {
@@ -54,6 +51,21 @@ function LinkedInMark({ size = 15 }: { size?: number }) {
     </svg>
   )
 }
+
+const countryOptions = [
+  { value: 'TN', label: 'Tunisia (TN)' },
+  { value: 'DZ', label: 'Algeria (DZ)' },
+  { value: 'EG', label: 'Egypt (EG)' },
+  { value: 'FR', label: 'France (FR)' },
+  { value: 'DE', label: 'Germany (DE)' },
+  { value: 'IT', label: 'Italy (IT)' },
+  { value: 'LY', label: 'Libya (LY)' },
+  { value: 'MA', label: 'Morocco (MA)' },
+  { value: 'SA', label: 'Saudi Arabia (SA)' },
+  { value: 'AE', label: 'United Arab Emirates (AE)' },
+  { value: 'GB', label: 'United Kingdom (GB)' },
+  { value: 'US', label: 'United States (US)' },
+]
 
 export function ProfilePage() {
   const { message } = App.useApp()
@@ -106,7 +118,11 @@ export function ProfilePage() {
 
   const { user, metadata } = profile
   const role = user.roles[0]
-  const organizationName = user.organization?.name ?? 'Independent client account'
+  const accessScope = role === 'super_admin'
+    ? 'Platform-wide access'
+    : role === 'client'
+      ? 'Driver account'
+      : user.organization?.name ?? 'Organization assignment missing'
   const uploadBusy = avatarMutation.isPending || removeAvatarMutation.isPending
 
   return (
@@ -139,7 +155,7 @@ export function ProfilePage() {
         </div>
         <div className="profile-identity-copy">
           <div className="profile-title-row"><h2>{user.name}</h2><Tag color="green">{user.status}</Tag></div>
-          <p>{profile.personal.job_title || roleLabel(role)} · {organizationName}</p>
+          <p>{profile.personal.job_title || roleLabel(role)} · {accessScope}</p>
           <span><Mail size={15} /> {user.email}</span>
         </div>
         <div className="profile-identity-actions">
@@ -154,10 +170,8 @@ export function ProfilePage() {
             <div className="profile-section-heading"><span><UserRound size={19} /></span><div><h2>Personal information</h2><p>Information used for your account identity and direct contact.</p></div></div>
             <div className="profile-form-grid two">
               <Form.Item name="name" label="Full name" rules={[{ required: true, message: 'Your name is required.' }]}><Input /></Form.Item>
-              <Form.Item name="phone" label="Phone number"><Input prefix={<Phone size={15} />} placeholder="+216 ..." /></Form.Item>
+              <Form.Item name="phone" label="Phone number"><Input type="tel" inputMode="tel" prefix={<Phone size={15} />} placeholder="+216 20 000 000" /></Form.Item>
               <Form.Item name="job_title" label="Professional title"><Input placeholder="e.g. Network operations specialist" /></Form.Item>
-              <Form.Item name="locale" label="Preferred language"><Select options={[{ value: 'en', label: 'English' }, { value: 'fr', label: 'French' }, { value: 'ar', label: 'Arabic' }]} /></Form.Item>
-              <Form.Item name="timezone" label="Time zone"><Input placeholder="Africa/Tunis" /></Form.Item>
             </div>
             <Form.Item name="bio" label="Professional summary"><Input.TextArea rows={4} maxLength={500} showCount placeholder="A short professional description for internal collaboration." /></Form.Item>
 
@@ -169,14 +183,14 @@ export function ProfilePage() {
               <Form.Item name="city" label="City"><Input /></Form.Item>
               <Form.Item name="region" label="Region / governorate"><Input /></Form.Item>
               <Form.Item name="postal_code" label="Postal code"><Input /></Form.Item>
-              <Form.Item name="country_code" label="Country code" normalize={(value) => typeof value === 'string' ? value.toUpperCase().slice(0, 2) : value}><Input placeholder="TN" maxLength={2} /></Form.Item>
+              <Form.Item name="country_code" label="Country"><Select showSearch optionFilterProp="label" options={countryOptions} placeholder="Select a country" /></Form.Item>
             </div>
 
             <Divider />
             <div className="profile-section-heading"><span><Globe2 size={19} /></span><div><h2>Professional links</h2><p>Optional business-facing links only. Personal social profiles are not requested.</p></div></div>
             <div className="profile-form-grid two">
-              <Form.Item name="linkedin_url" label="LinkedIn"><Input prefix={<LinkedInMark />} placeholder="https://www.linkedin.com/in/..." /></Form.Item>
-              <Form.Item name="website_url" label="Professional website"><Input prefix={<Globe2 size={15} />} placeholder="https://..." /></Form.Item>
+              <Form.Item name="linkedin_url" label="LinkedIn"><Input type="url" prefix={<LinkedInMark />} placeholder="https://www.linkedin.com/in/..." /></Form.Item>
+              <Form.Item name="website_url" label="Professional website"><Input type="url" prefix={<Globe2 size={15} />} placeholder="https://..." /></Form.Item>
             </div>
             <div className="profile-savebar"><span>Changes are recorded in the platform audit log.</span><Button type="primary" htmlType="submit" icon={<Save size={16} />} loading={saveMutation.isPending}>Save profile</Button></div>
           </section>
@@ -187,10 +201,11 @@ export function ProfilePage() {
               <div><dt><Mail size={15} /> Email</dt><dd>{user.email}</dd></div>
               <div><dt><BadgeCheck size={15} /> Verification</dt><dd>{metadata.email_verified_at ? 'Verified' : 'Pending verification'}</dd></div>
               <div><dt><UserRound size={15} /> Role</dt><dd>{roleLabel(role)}</dd></div>
-              <div><dt><Building2 size={15} /> Organization</dt><dd>{organizationName}</dd></div>
-              {user.team && <div><dt><Building2 size={15} /> Team</dt><dd>{user.team}</dd></div>}
-              <div><dt><Clock3 size={15} /> Last sign-in</dt><dd>{formatDate(metadata.last_login_at)}</dd></div>
-              <div><dt><CalendarDays size={15} /> Account created</dt><dd>{formatDate(metadata.account_created_at)}</dd></div>
+              {role === 'super_admin' && <div><dt><ShieldCheck size={15} /> Access scope</dt><dd>Platform-wide access</dd></div>}
+              {role === 'client' && <div><dt><UserRound size={15} /> Account type</dt><dd>Driver account</dd></div>}
+              {!['super_admin', 'client'].includes(role ?? '') && <><div><dt><Building2 size={15} /> Organization</dt><dd>{user.organization?.name ?? 'Not assigned'}</dd></div>{user.team && <div><dt><Building2 size={15} /> Team</dt><dd>{user.team}</dd></div>}</>}
+              <div><dt><Clock3 size={15} /> Last sign-in</dt><dd>{formatDateTime(metadata.last_login_at, user.timezone)}</dd></div>
+              <div><dt><CalendarDays size={15} /> Account created</dt><dd>{formatDateTime(metadata.account_created_at, user.timezone)}</dd></div>
               <div><dt><ShieldCheck size={15} /> Sign-in methods</dt><dd>{[metadata.local_password_configured ? 'Password' : null, ...metadata.sign_in_providers.map((provider) => provider[0].toUpperCase() + provider.slice(1))].filter(Boolean).join(' · ') || 'Not recorded'}</dd></div>
             </dl>
             <p className="profile-metadata-note">To protect access control, your role, organization, team and account status are maintained by the authorized administrator.</p>

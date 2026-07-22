@@ -21,6 +21,7 @@ export interface AuthUser {
   avatar_url: string | null
   team: string | null
   address: string | null
+  timezone: string | null
   status: string
   roles: UserRole[]
   permissions: string[]
