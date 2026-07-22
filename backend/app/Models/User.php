@@ -17,7 +17,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['organization_id', 'name', 'email', 'email_verified_at', 'phone', 'avatar_url', 'team', 'address', 'status', 'password', 'last_login_at', 'notification_preferences'])]
+#[Fillable(['organization_id', 'name', 'email', 'email_verified_at', 'phone', 'avatar_url', 'team', 'address', 'job_title', 'bio', 'address_line_1', 'address_line_2', 'city', 'region', 'postal_code', 'country_code', 'locale', 'timezone', 'linkedin_url', 'website_url', 'status', 'password', 'last_login_at', 'notification_preferences'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {

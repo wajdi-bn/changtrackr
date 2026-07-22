@@ -63,6 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearSession, user])
 
+  const updateCurrentUser = useCallback((nextUser: AuthUser) => {
+    setUser(nextUser)
+  }, [])
+
   const primaryRole = user?.roles[0] ?? null
 
   const value = useMemo<AuthContextValue>(
@@ -73,9 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       primaryRole,
       login,
       logout,
+      updateCurrentUser,
       hasRole: (roles) => Boolean(primaryRole && roles.includes(primaryRole)),
     }),
-    [isLoading, login, logout, primaryRole, user],
+    [isLoading, login, logout, primaryRole, updateCurrentUser, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

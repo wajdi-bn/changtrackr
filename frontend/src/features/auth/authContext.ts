@@ -8,6 +8,7 @@ export interface AuthContextValue {
   primaryRole: UserRole | null
   login: (email: string, password: string) => Promise<AuthUser>
   logout: () => Promise<void>
+  updateCurrentUser: (user: AuthUser) => void
   hasRole: (roles: UserRole[]) => boolean
 }
 

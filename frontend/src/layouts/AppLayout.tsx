@@ -11,6 +11,17 @@ import { useAuth } from '../features/auth/useAuth'
 import { getRoleConfig } from '../features/auth/roleConfig'
 import { AvailabilityRealtimeSync } from '../features/realtime/AvailabilityRealtimeSync'
 import { NotificationCenter } from '../features/notifications/NotificationCenter'
+import { AnimatedSidebarIcon } from '../components/AnimatedIcon'
+
+function initials(name: string | undefined): string {
+  return (name ?? 'User')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+}
 
 const { Header, Content } = Layout
 
@@ -70,7 +81,7 @@ export function AppLayout() {
           selectedKeys={[selectedKey]}
           items={roleConfig.navItems.map((item) => ({
             key: item.path,
-            icon: item.icon,
+            icon: <AnimatedSidebarIcon active={selectedKey === item.path}>{item.icon}</AnimatedSidebarIcon>,
             label: item.label,
             onClick: () => navigate(item.path),
           }))}
@@ -94,7 +105,7 @@ export function AppLayout() {
             <NotificationCenter />
             <Dropdown menu={{ items: avatarMenu }} trigger={['click']}>
               <button className="avatar-button">
-                <Avatar src={user?.avatar_url ?? '/assets/avatar-vendor-1.jpg'} icon={<UserOutlined />} />
+                <Avatar src={user?.avatar_url ?? undefined} icon={!user?.avatar_url ? <UserOutlined /> : undefined}>{!user?.avatar_url ? initials(user?.name) : null}</Avatar>
                 <span className="avatar-copy">
                   <strong>{user?.name}</strong>
                   <small>{roleConfig.label}</small>

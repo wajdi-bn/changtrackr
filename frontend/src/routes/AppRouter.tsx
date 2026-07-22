@@ -16,6 +16,7 @@ import { VerifyEmailPage } from '../pages/VerifyEmailPage'
 import { ActivateInvitationPage } from '../pages/ActivateInvitationPage'
 import { WorkspacePage } from '../pages/WorkspacePage'
 import { SettingsPage } from '../pages/SettingsPage'
+import { ProfilePage } from '../pages/ProfilePage'
 
 const LandingPage = lazy(() => import('../pages/LandingPage').then((module) => ({ default: module.LandingPage })))
 const HomePage = lazy(() => import('../pages/HomePage').then((module) => ({ default: module.HomePage })))
@@ -118,7 +119,7 @@ export function AppRouter() {
           <Route element={<PermissionProtectedRoute permission="reports.view" />}>
             <Route path="/reports" element={<WorkspacePage title="Reports" subtitle="Exports and operational reporting." />} />
           </Route>
-          <Route path="/profile" element={<WorkspacePage title="Profile" subtitle="Personal information, organization and account metadata." />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/help" element={<WorkspacePage title="Help" subtitle="Internal user guidance and support." />} />
         </Route>

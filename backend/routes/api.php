@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\PlatformAuditLogController;
 use App\Http\Controllers\Api\PlatformIntegrationController;
 use App\Http\Controllers\Api\PlatformSettingController;
 use App\Http\Controllers\Api\PricingController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RolePermissionController;
 use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\TariffAssignmentController;
@@ -55,6 +56,10 @@ Route::prefix('/internal/ocpp')
     });
 
 Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(function (): void {
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::put('/profile', [ProfileController::class, 'update']);
+    Route::post('/profile/avatar', [ProfileController::class, 'storeAvatar']);
+    Route::delete('/profile/avatar', [ProfileController::class, 'destroyAvatar']);
     Route::get('/dashboard', DashboardController::class);
     Route::apiResource('organizations', OrganizationController::class)->only(['index', 'show', 'store', 'update']);
     Route::get('/platform/roles-permissions', [RolePermissionController::class, 'index']);

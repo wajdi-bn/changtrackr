@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Badge, Button, Empty, Popover, Spin, Tooltip } from 'antd'
 import {
@@ -16,12 +16,15 @@ import type { UserNotification } from '../../types/notification'
 import { useAuth } from '../auth/useAuth'
 import { createRealtimeClient } from '../realtime/echo'
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from './notificationApi'
+import { AnimatedBellIcon } from '../../components/AnimatedIcon'
 
 export function NotificationCenter() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
+  const [bellSignal, setBellSignal] = useState(0)
+  const previousUnread = useRef<number | null>(null)
   const notificationsQuery = useQuery({
     queryKey: ['notifications'],
     queryFn: () => getNotifications(),
@@ -67,6 +70,12 @@ export function NotificationCenter() {
   }
 
   const unread = notificationsQuery.data?.summary.unread ?? 0
+  useEffect(() => {
+    if (previousUnread.current !== null && unread > previousUnread.current) {
+      setBellSignal((current) => current + 1)
+    }
+    previousUnread.current = unread
+  }, [unread])
   const content = <div className="notification-panel">
     <header>
       <span><strong>Notifications</strong><small>{unread > 0 ? `${unread} unread` : 'You are up to date'}</small></span>
@@ -98,7 +107,7 @@ export function NotificationCenter() {
   >
     <Tooltip title="Notifications" placement="bottom">
       <Badge count={unread} size="small" overflowCount={99} offset={[-2, 3]}>
-        <Button className="notification-trigger" type="text" aria-label="Notifications" icon={<BellRing size={19} />} />
+        <Button className="notification-trigger" type="text" aria-label="Notifications" icon={<AnimatedBellIcon signal={bellSignal}><BellRing size={19} /></AnimatedBellIcon>} />
       </Badge>
     </Tooltip>
   </Popover>
