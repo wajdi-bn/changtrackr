@@ -1921,9 +1921,12 @@ html {
   border-radius: 9px;
 }
 
-.app-sidebar .app-menu .ant-menu-item .ant-menu-item-icon {
+.app-sidebar .app-menu .animated-sidebar-icon {
   min-width: 18px;
-  margin-inline-end: 11px;
+}
+
+.app-sidebar:hover .app-menu .animated-sidebar-icon {
+  margin-inline-end: 12px;
 }
 
 .app-main-layout {
