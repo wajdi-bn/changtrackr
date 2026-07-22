@@ -6,12 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use App\Models\PlatformAuditLog;
 use App\Models\User;
+use App\Services\Reports\ReportExportService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class PlatformAuditLogController extends Controller
 {
@@ -38,38 +39,47 @@ class PlatformAuditLogController extends Controller
         ]);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, ReportExportService $exports): Response
     {
         $this->authorizeView($request);
         $filters = $this->validatedFilters($request);
+        $format = $request->validate(['format' => ['nullable', Rule::in(['csv', 'json', 'pdf'])]])['format'] ?? 'csv';
         $logs = $this->applyFilters(PlatformAuditLog::query(), $filters)
             ->with(['actor.roles', 'organization'])
             ->latest()
             ->limit(10000)
             ->get();
 
-        return response()->streamDownload(function () use ($logs): void {
-            $output = fopen('php://output', 'w');
-            if ($output === false) {
-                return;
-            }
-            fputcsv($output, ['Date/time', 'Actor', 'Email', 'Role', 'Event', 'Organization', 'Subject', 'IP address', 'Description']);
-            foreach ($logs as $log) {
-                $payload = $this->payload($log);
-                fputcsv($output, [
-                    $log->created_at?->toIso8601String(),
-                    $payload['actor']['name'] ?? 'System',
-                    $payload['actor']['email'] ?? '',
-                    $payload['actor']['roles'][0] ?? '',
-                    $log->event_type,
-                    $payload['organization']['name'] ?? 'Platform',
-                    trim(($payload['subject']['type'] ?? '').' #'.($payload['subject']['id'] ?? '')),
-                    $payload['ip_address'],
-                    $log->description,
-                ]);
-            }
-            fclose($output);
-        }, 'platform-audit-logs.csv', ['Content-Type' => 'text/csv']);
+        $rows = $logs->map(function (PlatformAuditLog $log): array {
+            $payload = $this->payload($log);
+
+            return [
+                'created_at' => $log->created_at?->toIso8601String(),
+                'actor' => $payload['actor']['name'] ?? 'System',
+                'email' => $payload['actor']['email'] ?? '',
+                'role' => $payload['actor']['roles'][0] ?? '',
+                'event' => $log->event_type,
+                'organization' => $payload['organization']['name'] ?? 'Platform',
+                'subject' => trim(($payload['subject']['type'] ?? '').' #'.($payload['subject']['id'] ?? '')),
+                'ip_address' => $payload['ip_address'],
+                'description' => $log->description,
+            ];
+        });
+
+        return $exports->dataset(
+            $format,
+            'platform-audit-logs',
+            'Platform audit log',
+            'Traceable administrative and security-sensitive activity across ChargeTrackr.',
+            [
+                'created_at' => 'Date/time', 'actor' => 'Actor', 'email' => 'Email', 'role' => 'Role',
+                'event' => 'Event', 'organization' => 'Organization', 'subject' => 'Subject',
+                'ip_address' => 'IP address', 'description' => 'Description',
+            ],
+            $rows,
+            $request->user(),
+            $filters,
+        );
     }
 
     /** @return array<string, mixed> */

@@ -17,7 +17,6 @@ import { ActivateInvitationPage } from '../pages/ActivateInvitationPage'
 import { WorkspacePage } from '../pages/WorkspacePage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { ProfilePage } from '../pages/ProfilePage'
-const VehiclesPage = lazy(() => import('../pages/VehiclesPage').then((module) => ({ default: module.VehiclesPage })))
 
 const LandingPage = lazy(() => import('../pages/LandingPage').then((module) => ({ default: module.LandingPage })))
 const HomePage = lazy(() => import('../pages/HomePage').then((module) => ({ default: module.HomePage })))
@@ -40,6 +39,10 @@ const RolesPermissionsPage = lazy(() => import('../pages/RolesPermissionsPage').
 const PlatformAuditLogsPage = lazy(() => import('../pages/PlatformAuditLogsPage').then((module) => ({ default: module.PlatformAuditLogsPage })))
 const IntegrationsPage = lazy(() => import('../pages/IntegrationsPage').then((module) => ({ default: module.IntegrationsPage })))
 const SystemSettingsPage = lazy(() => import('../pages/SystemSettingsPage').then((module) => ({ default: module.SystemSettingsPage })))
+const SuperAdminReportsPage = lazy(() => import('../pages/SuperAdminReportsPage').then((module) => ({ default: module.SuperAdminReportsPage })))
+const AdministratorReportsPage = lazy(() => import('../pages/AdministratorReportsPage').then((module) => ({ default: module.AdministratorReportsPage })))
+const OperatorReportsPage = lazy(() => import('../pages/OperatorReportsPage').then((module) => ({ default: module.OperatorReportsPage })))
+const TechnicianReportsPage = lazy(() => import('../pages/TechnicianReportsPage').then((module) => ({ default: module.TechnicianReportsPage })))
 
 function DefaultRedirect() {
   const { primaryRole } = useAuth()
@@ -69,6 +72,7 @@ export function AppRouter() {
             <Route path="/demo-requests" element={<DemoRequestsPage />} />
             <Route path="/admin-users" element={<PlatformUsersPage />} />
             <Route path="/roles-permissions" element={<RolesPermissionsPage />} />
+            <Route path="/platform-reports" element={<SuperAdminReportsPage />} />
             <Route path="/audit-logs" element={<PlatformAuditLogsPage />} />
             <Route path="/integrations" element={<IntegrationsPage />} />
             <Route path="/system-settings" element={<SystemSettingsPage />} />
@@ -77,7 +81,7 @@ export function AppRouter() {
             <Route path="/users" element={<Navigate to="/users/employees" replace />} />
             <Route path="/users/employees" element={<UsersPage />} />
             <Route path="/users/customers" element={<CustomersPage />} />
-            <Route path="/analytics-reports" element={<WorkspacePage title="Analytics & Reports" subtitle="Organization KPIs, trends and report generation." />} />
+            <Route path="/analytics-reports" element={<AdministratorReportsPage />} />
           </Route>
           <Route element={<PermissionProtectedRoute permission="tariffs.view" />}>
             <Route path="/tariffs" element={<TariffsPage />} />
@@ -94,7 +98,6 @@ export function AppRouter() {
           <Route element={<PermissionProtectedRoute permission="interventions.view" />}>
             <Route path="/interventions" element={<InterventionsPage />} />
             <Route path="/my-interventions" element={<InterventionsPage />} />
-            <Route path="/maintenance-reports" element={<WorkspacePage title="Maintenance Reports" subtitle="Maintenance history and technician submitted reports." />} />
           </Route>
           <Route element={<PermissionProtectedRoute permission="maintenances.view" />}>
             <Route path="/maintenance" element={<MaintenancePage />} />
@@ -102,9 +105,6 @@ export function AppRouter() {
           <Route element={<PermissionProtectedRoute permission="sessions.view" />}>
             <Route path="/sessions" element={<SessionsPage />} />
             <Route path="/my-sessions" element={<SessionsPage />} />
-          </Route>
-          <Route element={<PermissionProtectedRoute permission="vehicles.manage" />}>
-            <Route path="/vehicles" element={<VehiclesPage />} />
           </Route>
           <Route element={<RoleProtectedRoute allowedRoles={['client']} />}>
             <Route path="/find-station" element={<FindStationPage />} />
@@ -117,8 +117,11 @@ export function AppRouter() {
           <Route element={<PermissionProtectedRoute permission="payments.view" />}>
             <Route path="/payments" element={<PaymentsPage />} />
           </Route>
-          <Route element={<PermissionProtectedRoute permission="reports.view" />}>
-            <Route path="/reports" element={<WorkspacePage title="Reports" subtitle="Exports and operational reporting." />} />
+          <Route element={<RoleProtectedRoute allowedRoles={['operator']} />}>
+            <Route path="/reports" element={<OperatorReportsPage />} />
+          </Route>
+          <Route element={<RoleProtectedRoute allowedRoles={['technician']} />}>
+            <Route path="/maintenance-reports" element={<TechnicianReportsPage />} />
           </Route>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />

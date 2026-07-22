@@ -61,11 +61,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ChargingSession::class, 'client_id');
     }
 
-    public function vehicles(): HasMany
-    {
-        return $this->hasMany(Vehicle::class);
-    }
-
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
@@ -109,6 +104,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function operationalNotifications(): HasMany
     {
         return $this->hasMany(UserNotification::class);
+    }
+
+    public function sentInternalReports(): HasMany
+    {
+        return $this->hasMany(InternalReport::class, 'sender_id');
+    }
+
+    public function receivedInternalReports(): HasMany
+    {
+        return $this->hasMany(InternalReport::class, 'recipient_id');
     }
 
     public function primaryRoleName(): ?string

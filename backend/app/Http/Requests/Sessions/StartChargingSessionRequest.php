@@ -16,7 +16,6 @@ class StartChargingSessionRequest extends FormRequest
         return [
             'station_id' => ['required', 'integer', 'exists:stations,id'],
             'connector_id' => ['required', 'integer', 'exists:connectors,id'],
-            'vehicle_id' => ['nullable', 'integer', 'exists:vehicles,id'],
         ];
     }
 }

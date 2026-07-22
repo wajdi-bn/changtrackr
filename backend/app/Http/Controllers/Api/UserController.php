@@ -10,13 +10,14 @@ use App\Models\User;
 use App\Notifications\AccountInvitationNotification;
 use App\Services\AccountInvitationService;
 use App\Services\PlatformAuditService;
+use App\Services\Reports\ReportExportService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class UserController extends Controller
 {
@@ -219,11 +220,11 @@ class UserController extends Controller
         return response()->json(['data' => new UserResource($this->loadUser($user->refresh()))]);
     }
 
-    public function export(Request $request): JsonResponse|StreamedResponse
+    public function export(Request $request, ReportExportService $exports): Response
     {
         Gate::authorize('viewAny', User::class);
         $filters = $this->validateFilters($request);
-        $format = $request->validate(['format' => ['required', Rule::in(['csv', 'json'])]])['format'];
+        $format = $request->validate(['format' => ['nullable', Rule::in(['csv', 'json', 'pdf'])]])['format'] ?? 'csv';
         /** @var User $actor */
         $actor = $request->user();
         $users = $this->applyFilters($this->scopedQuery($actor), $filters)
@@ -231,21 +232,20 @@ class UserController extends Controller
             ->orderBy('name')
             ->get();
 
-        if ($format === 'json') {
-            return response()->json(['data' => $users->map(fn (User $user) => $this->exportRow($user))]);
-        }
-
-        return response()->streamDownload(function () use ($users): void {
-            $output = fopen('php://output', 'w');
-            if ($output === false) {
-                return;
-            }
-            fputcsv($output, ['Name', 'Email', 'Phone', 'Role', 'Organization', 'Team', 'Status', 'Last login']);
-            foreach ($users as $user) {
-                fputcsv($output, array_values($this->exportRow($user)));
-            }
-            fclose($output);
-        }, 'organization-employees.csv', ['Content-Type' => 'text/csv']);
+        return $exports->dataset(
+            $format,
+            $actor->hasRole('super_admin') ? 'platform-users' : 'organization-employees',
+            $actor->hasRole('super_admin') ? 'Platform users' : 'Organization employees',
+            'Account status, role assignment and operational team directory.',
+            [
+                'name' => 'Name', 'email' => 'Email', 'phone' => 'Phone', 'role' => 'Role',
+                'organization' => 'Organization', 'team' => 'Team', 'status' => 'Status',
+                'last_login_at' => 'Last login',
+            ],
+            $users->map(fn (User $user) => $this->exportRow($user)),
+            $actor,
+            $filters,
+        );
     }
 
     /** @return array<string, mixed> */

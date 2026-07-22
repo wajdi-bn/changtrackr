@@ -1,4 +1,5 @@
 import { httpClient } from '../../api/httpClient'
+import type { ExportFormat } from '../../components/ExportDropdown'
 import type { ManagedUser, ManagedUserFilters, ManagedUserPayload, ManagedUsersResponse } from '../../types/user'
 
 export async function getManagedUsers(filters: ManagedUserFilters): Promise<ManagedUsersResponse> {
@@ -36,7 +37,7 @@ export async function cancelEmployeeInvitation(userId: number): Promise<ManagedU
   return response.data.data
 }
 
-export async function exportManagedUsers(filters: ManagedUserFilters, format: 'csv' | 'json'): Promise<Blob> {
+export async function exportManagedUsers(filters: ManagedUserFilters, format: ExportFormat): Promise<Blob> {
   const response = await httpClient.get<Blob>('/users/export', {
     params: { ...filters, format, page: undefined, per_page: undefined },
     responseType: 'blob',

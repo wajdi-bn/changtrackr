@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'uuid', 'organization_id', 'user_id', 'vehicle_id', 'station_id', 'connector_id', 'ocpp_id_tag_id',
+    'uuid', 'organization_id', 'user_id', 'station_id', 'connector_id', 'ocpp_id_tag_id',
     'charging_session_id', 'status', 'payment_provider', 'payment_method', 'payment_status',
     'preauthorized_amount_millimes', 'currency', 'payment_idempotency_key',
     'capture_idempotency_key', 'provider_authorization_id', 'simulation_outcome',
@@ -31,11 +31,6 @@ class ChargingAttempt extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function vehicle(): BelongsTo
-    {
-        return $this->belongsTo(Vehicle::class);
     }
 
     public function station(): BelongsTo

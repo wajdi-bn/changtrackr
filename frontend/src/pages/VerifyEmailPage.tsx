@@ -35,7 +35,7 @@ export function VerifyEmailPage() {
     <AuthPageShell
       eyebrow="Verified client identity"
       title="Keep every charging account trusted and recoverable."
-      description="Email verification protects charging history, saved vehicles, subscriptions and payment activity."
+      description="Email verification protects charging history, subscriptions and payment activity."
     >
       <header className="prototype-login-card-heading">
         <h1>{status === 'verified' ? 'Email verified' : 'Verify your email'}</h1>

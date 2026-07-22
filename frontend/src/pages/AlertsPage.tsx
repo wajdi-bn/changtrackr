@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ClipboardCheck,
   Filter,
+  FileDown,
   MoreHorizontal,
   Plus,
   Search,
@@ -24,7 +25,9 @@ import {
 } from '../features/operations/operationsApi'
 import { WorkflowTag } from '../features/operations/WorkflowTag'
 import { useAuth } from '../features/auth/useAuth'
+import { downloadOperationalDocument } from '../features/reports/reportingApi'
 import type { AlertItem, AlertSeverity, AlertStatus, InterventionPayload } from '../types/operations'
+import { downloadBlob } from '../utils/downloadBlob'
 
 export function AlertsPage() {
   const { primaryRole, user } = useAuth()
@@ -90,6 +93,11 @@ export function AlertsPage() {
     },
     onError: () => void message.error('The alert could not be created.'),
   })
+  const documentMutation = useMutation({
+    mutationFn: (alert: AlertItem) => downloadOperationalDocument('alert', alert.id),
+    onSuccess: (blob, alert) => downloadBlob(blob, `alert-${alert.reference}.pdf`),
+    onError: () => void message.error('The alert report could not be generated.'),
+  })
 
   return (
     <div className="alerts-page">
@@ -141,10 +149,12 @@ export function AlertsPage() {
               canAssignAlerts={canAssignAlerts}
               canManageInterventions={canManageInterventions}
               updating={updateMutation.isPending}
+              downloading={documentMutation.isPending}
               onAssign={() => setDrawer('assign')}
               onCreateIntervention={() => setDrawer('intervention')}
               onStatus={(nextStatus) => updateMutation.mutate({ alertId: selectedAlert.id, payload: { status: nextStatus } })}
               onOpenIntervention={() => navigate(technicianMode ? '/my-interventions' : '/interventions')}
+              onDownload={() => documentMutation.mutate(selectedAlert)}
             />
           )}
         </section>
@@ -178,17 +188,19 @@ export function AlertsPage() {
   )
 }
 
-function AlertDetails({ alert, technicianMode, canManageAlerts, canAssignAlerts, canManageInterventions, updating, onAssign, onCreateIntervention, onStatus, onOpenIntervention }: {
+function AlertDetails({ alert, technicianMode, canManageAlerts, canAssignAlerts, canManageInterventions, updating, downloading, onAssign, onCreateIntervention, onStatus, onOpenIntervention, onDownload }: {
   alert: AlertItem
   technicianMode: boolean
   canManageAlerts: boolean
   canAssignAlerts: boolean
   canManageInterventions: boolean
   updating: boolean
+  downloading: boolean
   onAssign: () => void
   onCreateIntervention: () => void
   onStatus: (status: AlertStatus) => void
   onOpenIntervention: () => void
+  onDownload: () => void
 }) {
   const hasActiveIntervention = alert.intervention
     && ['assigned', 'in-progress', 'paused', 'waiting-parts'].includes(alert.intervention.status)
@@ -206,6 +218,7 @@ function AlertDetails({ alert, technicianMode, canManageAlerts, canAssignAlerts,
     {(alert.suggested_cause || alert.recommended_action) && <section className="field-suggestion"><strong>Diagnostic suggestion</strong><p>{alert.suggested_cause} {alert.recommended_action}</p></section>}
     <section className="workflow-timeline"><h3>Timeline</h3>{alert.events.map((event) => <div key={event.id}><span><CheckCircle2 size={13} /></span><p>{event.description}<small>{event.occurred_relative}</small></p></div>)}</section>
     <div className="alert-actions">
+      <Button icon={<FileDown size={15} />} loading={downloading} onClick={onDownload}>Alert report</Button>
       {technicianMode ? (
         alert.intervention
           ? <Button type="primary" onClick={onOpenIntervention}>Open intervention</Button>

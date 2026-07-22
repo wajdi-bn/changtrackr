@@ -10,7 +10,6 @@ use App\Models\ChargingSession;
 use App\Models\Connector;
 use App\Models\Station;
 use App\Models\User;
-use App\Models\Vehicle;
 use App\Services\Ocpp\OcppCommandService;
 use App\Services\Ocpp\VirtualOcppIdTagService;
 use App\Services\Payments\PaymentProviderEventService;
@@ -42,13 +41,10 @@ class ChargingAttemptService
             $station = Station::query()->with('organization')->lockForUpdate()->findOrFail($attributes['station_id']);
             $connector = Connector::query()->lockForUpdate()->findOrFail($attributes['connector_id']);
             $this->assertCanStart($client, $station, $connector);
-            $vehicle = $this->resolveVehicle($client, $connector, $attributes['vehicle_id'] ?? null);
-
             return ChargingAttempt::query()->create([
                 'uuid' => (string) Str::uuid(),
                 'organization_id' => $station->organization_id,
                 'user_id' => $client->id,
-                'vehicle_id' => $vehicle?->id,
                 'station_id' => $station->id,
                 'connector_id' => $connector->id,
                 'status' => 'payment_pending',
@@ -109,7 +105,7 @@ class ChargingAttemptService
 
     public function load(ChargingAttempt $attempt): ChargingAttempt
     {
-        return $attempt->load(['organization', 'station', 'connector', 'vehicle', 'chargingSession', 'commands' => fn ($query) => $query->latest('id')]);
+        return $attempt->load(['organization', 'station', 'connector', 'chargingSession', 'commands' => fn ($query) => $query->latest('id')]);
     }
 
     private function assertCanStart(User $client, Station $station, Connector $connector): void
@@ -143,20 +139,4 @@ class ChargingAttemptService
         }
     }
 
-    private function resolveVehicle(User $client, Connector $connector, ?int $vehicleId): ?Vehicle
-    {
-        if ($vehicleId === null) {
-            return null;
-        }
-
-        $vehicle = Vehicle::query()->where('user_id', $client->id)->find($vehicleId);
-        if ($vehicle === null) {
-            throw ValidationException::withMessages(['vehicle_id' => ['The selected vehicle does not belong to this account.']]);
-        }
-        if (! $vehicle->supportsConnector($connector->type)) {
-            throw ValidationException::withMessages(['vehicle_id' => ['The selected vehicle is not compatible with this connector type.']]);
-        }
-
-        return $vehicle;
-    }
 }

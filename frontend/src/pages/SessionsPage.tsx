@@ -1,10 +1,11 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { App, Button, Card, Dropdown, Empty, Input, Popconfirm, Select, Skeleton, Table } from 'antd'
+import { App, Button, Card, Empty, Input, Popconfirm, Select, Skeleton, Table } from 'antd'
 import dayjs from 'dayjs'
-import { BatteryCharging, Clock3, CreditCard, Download, Gauge, Play, Search, Square, Zap } from 'lucide-react'
+import { BatteryCharging, Clock3, CreditCard, Gauge, Play, Search, Square, Zap } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
 import { MountainBanner } from '../components/MountainBanner'
+import { ExportDropdown, type ExportFormat } from '../components/ExportDropdown'
 import { MetricItem, MetricStrip, type MetricTone } from '../components/MetricStrip'
 import {
   getChargingSessions,
@@ -64,7 +65,7 @@ export function SessionsPage() {
     onError: () => void message.error('The session could not be stopped.'),
   })
   const exportMutation = useMutation({
-    mutationFn: (format: 'csv' | 'json') => exportChargingSessions(filters, format),
+    mutationFn: (format: ExportFormat) => exportChargingSessions(filters, format),
     onSuccess: (blob, format) => {
       downloadBlob(blob, `organization-charging-sessions.${format}`)
       void message.success(`Session export generated as ${format.toUpperCase()}.`)
@@ -151,10 +152,7 @@ export function SessionsPage() {
 
     <Card className="sessions-table-card" title={clientMode ? 'Session history' : 'Network sessions'} extra={clientMode
       ? <Button type="primary" icon={<Play size={14} />} disabled={Boolean(activeSession || activeAttempt)} onClick={() => { setResumeAttemptUuid(null); setStartOpen(true) }}>Start session</Button>
-      : canExport && <Dropdown menu={{ items: [
-        { key: 'csv', label: 'Export CSV', onClick: () => exportMutation.mutate('csv') },
-        { key: 'json', label: 'Export JSON', onClick: () => exportMutation.mutate('json') },
-      ] }}><Button icon={<Download size={14} />} loading={exportMutation.isPending}>Export</Button></Dropdown>}>
+      : canExport && <ExportDropdown loading={exportMutation.isPending} onExport={(format) => exportMutation.mutate(format)} />}>
       <div className="sessions-toolbar">
         <Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={14} />} placeholder="Search sessions" allowClear />
         <Select value={status} onChange={(value) => setStatus(value)} options={['all', 'pending', 'charging', 'stopping', 'completed', 'interrupted', 'failed', 'cancelled'].map((value) => ({ value, label: value === 'all' ? 'All statuses' : value }))} />

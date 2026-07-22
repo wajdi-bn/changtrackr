@@ -1,4 +1,5 @@
 import { httpClient } from '../../api/httpClient'
+import type { ExportFormat } from '../../components/ExportDropdown'
 import type { PlatformAuditFilters, PlatformAuditResponse, PlatformIntegrationResponse, PlatformRole, PlatformSettingResponse, RolePermissionResponse } from '../../types/platform'
 
 export async function getRolePermissions(): Promise<RolePermissionResponse> {
@@ -13,8 +14,8 @@ export async function getPlatformAuditLogs(filters: PlatformAuditFilters): Promi
   return (await httpClient.get<PlatformAuditResponse>('/platform/audit-logs', { params: filters })).data
 }
 
-export async function exportPlatformAuditLogs(filters: PlatformAuditFilters): Promise<Blob> {
-  return (await httpClient.get<Blob>('/platform/audit-logs/export', { params: filters, responseType: 'blob' })).data
+export async function exportPlatformAuditLogs(filters: PlatformAuditFilters, format: ExportFormat): Promise<Blob> {
+  return (await httpClient.get<Blob>('/platform/audit-logs/export', { params: { ...filters, format, page: undefined, per_page: undefined }, responseType: 'blob' })).data
 }
 
 export async function getPlatformIntegrations(): Promise<PlatformIntegrationResponse> {

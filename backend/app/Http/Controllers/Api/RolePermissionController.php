@@ -42,7 +42,7 @@ class RolePermissionController extends Controller
         ],
         'client' => [
             'label' => 'Client',
-            'description' => 'Finds stations and manages personal charging sessions, payments, vehicles and subscriptions.',
+            'description' => 'Finds stations and manages personal charging sessions, payments and subscriptions.',
             'boundary' => 'Personal account',
             'immutable' => false,
         ],

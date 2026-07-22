@@ -45,7 +45,6 @@ export interface ChargingSession {
   organization_id: number
   organization: OrganizationSummary | null
   client: { id: number | null; name: string }
-  vehicle: { id: number; name: string; make: string | null; model: string | null } | null
   station: { id: number; name: string; city: string | null }
   connector: { id: number | null; external_id: string; type: string | null; max_power_kw: number | null }
   status: ChargingSessionStatus
@@ -104,7 +103,6 @@ export interface ChargingAttempt {
   currency: string
   station: { id: number; name: string; city: string | null }
   connector: { id: number; external_id: string; type: string; max_power_kw: number }
-  vehicle: { id: number; name: string; make: string | null; model: string | null } | null
   limits: { energy_kwh: number | null; amount_millimes: number | null; duration_minutes: number | null }
   failure_code: string | null
   failure_message: string | null
@@ -120,7 +118,6 @@ export interface ChargingAttempt {
 export interface ChargingAttemptPayload {
   station_id: number
   connector_id: number
-  vehicle_id?: number
   method: SimulatedPaymentMethod
   simulation_outcome: PaymentSimulationOutcome
   idempotency_key: string

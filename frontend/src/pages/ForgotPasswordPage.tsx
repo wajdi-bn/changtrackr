@@ -28,7 +28,7 @@ export function ForgotPasswordPage() {
     <AuthPageShell
       eyebrow="Secure account recovery"
       title="Recover access without interrupting your journey."
-      description="Use a short-lived reset link to restore access to your charging sessions, vehicles and payments."
+      description="Use a short-lived reset link to restore access to your charging sessions and payments."
     >
       <header className="prototype-login-card-heading">
         <h1>Reset your password</h1>

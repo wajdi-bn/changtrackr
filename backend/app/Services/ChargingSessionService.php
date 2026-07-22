@@ -11,7 +11,6 @@ use App\Models\OcppTransaction;
 use App\Models\PlanSubscription;
 use App\Models\Station;
 use App\Models\User;
-use App\Models\Vehicle;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -31,8 +30,6 @@ class ChargingSessionService
             if ($connector->station_id !== $station->id) {
                 throw ValidationException::withMessages(['connector_id' => ['The connector does not belong to the selected station.']]);
             }
-            $vehicle = $this->resolveVehicle($client, $connector, $attributes['vehicle_id'] ?? null);
-
             if (! $station->organization()->where('status', 'active')->exists()) {
                 throw ValidationException::withMessages(['station_id' => ['The station organization is not active.']]);
             }
@@ -69,7 +66,6 @@ class ChargingSessionService
             $session = ChargingSession::query()->create([
                 'organization_id' => $station->organization_id,
                 'client_id' => $client->id,
-                'vehicle_id' => $vehicle?->id,
                 'station_id' => $station->id,
                 'connector_id' => $connector->id,
                 'tariff_id' => $tariff->id,
@@ -100,7 +96,7 @@ class ChargingSessionService
                 }
             }
 
-            return $session->load(['organization', 'station', 'connector', 'client', 'vehicle', 'payment']);
+            return $session->load(['organization', 'station', 'connector', 'client', 'payment']);
         });
     }
 
@@ -162,7 +158,7 @@ class ChargingSessionService
                 ]);
             }
 
-            return $session->fresh()->load(['organization', 'station', 'connector', 'client', 'vehicle', 'payment']);
+            return $session->fresh()->load(['organization', 'station', 'connector', 'client', 'payment']);
         });
     }
 
@@ -197,7 +193,6 @@ class ChargingSessionService
             $session = ChargingSession::query()->create([
                 'organization_id' => $station->organization_id,
                 'client_id' => $client->id,
-                'vehicle_id' => $attempt?->vehicle_id,
                 'station_id' => $station->id,
                 'connector_id' => $connector->id,
                 'tariff_id' => $tariff->id,
@@ -226,7 +221,7 @@ class ChargingSessionService
                 'idle_fee_per_minute_millimes' => $tariff->idleFeePerMinuteMillimes,
                 'minimum_charge_millimes' => $tariff->minimumChargeMillimes,
                 'currency' => $tariff->currency,
-            ])->load(['organization', 'station', 'connector', 'client', 'vehicle', 'payment']);
+            ])->load(['organization', 'station', 'connector', 'client', 'payment']);
 
             if ($attempt !== null) {
                 $attempt->update([
@@ -285,7 +280,7 @@ class ChargingSessionService
                 ...($stateOfChargePercent !== null ? ['state_of_charge_percent' => min(100, max(0, $stateOfChargePercent))] : []),
             ]);
 
-            $session = $session->fresh()->load(['organization', 'station', 'connector', 'client', 'vehicle', 'payment']);
+            $session = $session->fresh()->load(['organization', 'station', 'connector', 'client', 'payment']);
             event(ChargingSessionChanged::fromSession($session));
 
             return $session;
@@ -308,7 +303,7 @@ class ChargingSessionService
 
             if (! $awaitingReconciliation
                 && in_array($session->status, ['completed', 'interrupted', 'failed', 'cancelled'], true)) {
-                return $session->load(['organization', 'station', 'connector', 'client', 'vehicle', 'payment']);
+                return $session->load(['organization', 'station', 'connector', 'client', 'payment']);
             }
 
             $meterStopWh = max($transaction->meter_start_wh, (int) $transaction->meter_stop_wh);
@@ -336,7 +331,7 @@ class ChargingSessionService
                 ]);
             }
 
-            $session = $session->fresh()->load(['organization', 'station', 'connector', 'client', 'vehicle', 'payment']);
+            $session = $session->fresh()->load(['organization', 'station', 'connector', 'client', 'payment']);
             event(ChargingSessionChanged::fromSession($session));
 
             return $session;
@@ -386,23 +381,6 @@ class ChargingSessionService
             ->with('chargingPlan')
             ->latest('id')
             ->first();
-    }
-
-    private function resolveVehicle(User $client, Connector $connector, ?int $vehicleId): ?Vehicle
-    {
-        if ($vehicleId === null) {
-            return null;
-        }
-
-        $vehicle = Vehicle::query()->where('user_id', $client->id)->find($vehicleId);
-        if ($vehicle === null) {
-            throw ValidationException::withMessages(['vehicle_id' => ['The selected vehicle does not belong to this account.']]);
-        }
-        if (! $vehicle->supportsConnector($connector->type)) {
-            throw ValidationException::withMessages(['vehicle_id' => ['The selected vehicle is not compatible with this connector type.']]);
-        }
-
-        return $vehicle;
     }
 
     /** @return array{discount_millimes: int, total_millimes: int} */

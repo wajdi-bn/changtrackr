@@ -21,7 +21,7 @@ class ChargingAttemptController extends Controller
         $user = $request->user();
         $attempts = ChargingAttempt::query()
             ->where('user_id', $user->id)
-            ->with(['organization', 'station', 'connector', 'vehicle', 'chargingSession', 'commands' => fn ($query) => $query->latest('id')])
+            ->with(['organization', 'station', 'connector', 'chargingSession', 'commands' => fn ($query) => $query->latest('id')])
             ->latest('id')
             ->limit(20)
             ->get();

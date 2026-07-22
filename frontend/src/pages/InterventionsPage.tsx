@@ -11,6 +11,7 @@ import {
   Clock3,
   Eye,
   FileCheck2,
+  FileDown,
   Grid2X2,
   ImagePlus,
   List,
@@ -37,7 +38,9 @@ import {
 } from '../features/operations/operationsApi'
 import { WorkflowTag } from '../features/operations/WorkflowTag'
 import { useAuth } from '../features/auth/useAuth'
+import { downloadOperationalDocument } from '../features/reports/reportingApi'
 import type { InterventionItem, InterventionOutcome, InterventionReportPayload, InterventionStatus } from '../types/operations'
+import { downloadBlob } from '../utils/downloadBlob'
 
 export function InterventionsPage() {
   const { primaryRole, user } = useAuth()
@@ -121,6 +124,11 @@ export function InterventionsPage() {
     },
     onError: (error) => void message.error(apiErrorMessage(error, 'The report could not be submitted. Check every step and the required photos.')),
   })
+  const documentMutation = useMutation({
+    mutationFn: (intervention: InterventionItem) => downloadOperationalDocument('intervention', intervention.id),
+    onSuccess: (blob, intervention) => downloadBlob(blob, `intervention-${intervention.reference}.pdf`),
+    onError: () => void message.error('The intervention document could not be generated.'),
+  })
 
   return <div className="interventions-page">
     <MountainBanner
@@ -153,6 +161,7 @@ export function InterventionsPage() {
         canManage={canManage}
         canReport={canReport}
         updating={updateMutation.isPending}
+        downloading={documentMutation.isPending}
         onStatus={(nextStatus, extra = {}) => selected && updateMutation.mutate({ id: selected.id, payload: { status: nextStatus, ...extra } })}
         onAddNote={() => setNoteOpen(true)}
         onManage={() => setManagementOpen(true)}
@@ -164,6 +173,7 @@ export function InterventionsPage() {
             void message.error('The private photo could not be opened.')
           }
         }}
+        onDownload={() => selected && documentMutation.mutate(selected)}
       />
     </div>
 
@@ -209,17 +219,19 @@ function InterventionSummary({ intervention }: { intervention: InterventionItem 
   </div>
 }
 
-function InterventionDetails({ intervention, technicianMode, canManage, canReport, updating, onStatus, onAddNote, onManage, onCompleteReport, onViewPhoto }: {
+function InterventionDetails({ intervention, technicianMode, canManage, canReport, updating, downloading, onStatus, onAddNote, onManage, onCompleteReport, onViewPhoto, onDownload }: {
   intervention: InterventionItem | null
   technicianMode: boolean
   canManage: boolean
   canReport: boolean
   updating: boolean
+  downloading: boolean
   onStatus: (status: InterventionStatus, extra?: Parameters<typeof updateIntervention>[1]) => void
   onAddNote: () => void
   onManage: () => void
   onCompleteReport: () => void
   onViewPhoto: (photoId: number) => void
+  onDownload: () => void
 }) {
   if (!intervention) return <Card title="Intervention detail"><Empty description="Select an intervention" /></Card>
   const maintenanceStartBlockedReason = intervention.maintenance_plan_id === null
@@ -244,6 +256,7 @@ function InterventionDetails({ intervention, technicianMode, canManage, canRepor
     <section className="workflow-timeline"><h3>Timeline and notes</h3>{intervention.events.map((event) => <div key={event.id}><span><CheckCircle2 size={13} /></span><p>{event.description}<small>{event.occurred_relative}</small></p></div>)}</section>
     <ReportSummary intervention={intervention} onViewPhoto={onViewPhoto} />
     <div className="intervention-actions">
+      <Button icon={<FileDown size={14} />} loading={downloading} onClick={onDownload}>Download report</Button>
       {canManage && !isTerminal(intervention.status) && <Button icon={<UserRoundCog size={14} />} onClick={onManage}>Assignment & schedule</Button>}
       {technicianMode && intervention.status === 'assigned' && <Button type="primary" icon={<Play size={14} />} loading={updating} disabled={Boolean(maintenanceStartBlockedReason)} title={maintenanceStartBlockedReason ?? undefined} onClick={() => onStatus('in-progress')}>Start</Button>}
       {technicianMode && intervention.status === 'in-progress' && <Button icon={<Pause size={14} />} loading={updating} onClick={() => onStatus('paused')}>Pause</Button>}

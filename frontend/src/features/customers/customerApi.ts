@@ -1,4 +1,5 @@
 import { httpClient } from '../../api/httpClient'
+import type { ExportFormat } from '../../components/ExportDropdown'
 import type { Customer, CustomerFilters, CustomersResponse } from '../../types/customer'
 
 export async function getCustomers(filters: CustomerFilters): Promise<CustomersResponse> {
@@ -11,7 +12,7 @@ export async function getCustomer(customerId: number): Promise<Customer> {
   return response.data.data
 }
 
-export async function exportCustomers(filters: CustomerFilters, format: 'csv' | 'json'): Promise<Blob> {
+export async function exportCustomers(filters: CustomerFilters, format: ExportFormat): Promise<Blob> {
   const response = await httpClient.get<Blob>('/customers/export', {
     params: { ...filters, format, page: undefined, per_page: undefined },
     responseType: 'blob',

@@ -9,12 +9,13 @@ use App\Models\ChargingSession;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\PaymentService;
+use App\Services\Reports\ReportExportService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class PaymentController extends Controller
 {
@@ -43,11 +44,11 @@ class PaymentController extends Controller
         ]);
     }
 
-    public function export(Request $request): JsonResponse|StreamedResponse
+    public function export(Request $request, ReportExportService $exports): Response
     {
         Gate::authorize('export', Payment::class);
         $filters = $this->validateFilters($request);
-        $format = $request->validate(['format' => ['required', Rule::in(['csv', 'json'])]])['format'];
+        $format = $request->validate(['format' => ['nullable', Rule::in(['csv', 'json', 'pdf'])]])['format'] ?? 'csv';
         /** @var User $user */
         $user = $request->user();
         $rows = $this->applyFilters($this->scopedQuery($user), $filters)
@@ -70,21 +71,22 @@ class PaymentController extends Controller
                 'created_at' => $payment->created_at?->toISOString(),
             ]);
 
-        if ($format === 'json') {
-            return response()->json(['data' => $rows]);
-        }
-
-        return response()->streamDownload(function () use ($rows): void {
-            $output = fopen('php://output', 'w');
-            if ($output === false) {
-                return;
-            }
-            fputcsv($output, ['Reference', 'Organization', 'Client', 'Session', 'Station', 'Method', 'Provider', 'Provider transaction', 'Status', 'Amount (millimes)', 'Currency', 'Failure reason', 'Created at']);
-            foreach ($rows as $row) {
-                fputcsv($output, array_values($row));
-            }
-            fclose($output);
-        }, 'organization-payments.csv', ['Content-Type' => 'text/csv']);
+        return $exports->dataset(
+            $format,
+            'payments',
+            'Payment transactions',
+            'Provider outcomes, settlement references and charging-session billing records.',
+            [
+                'reference' => 'Reference', 'organization' => 'Organization', 'client' => 'Client',
+                'session' => 'Session', 'station' => 'Station', 'method' => 'Method',
+                'provider' => 'Provider', 'provider_transaction_id' => 'Provider transaction',
+                'status' => 'Status', 'amount_millimes' => 'Amount (millimes)', 'currency' => 'Currency',
+                'failure_reason' => 'Failure reason', 'created_at' => 'Created at',
+            ],
+            $rows,
+            $user,
+            $filters,
+        );
     }
 
     public function store(

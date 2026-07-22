@@ -27,6 +27,7 @@ import {
   CalendarRange,
   CheckCircle2,
   Clock3,
+  FileDown,
   List,
   Plus,
   Repeat2,
@@ -40,6 +41,7 @@ import { useNavigate } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
 import { MetricItem, MetricStrip, type MetricTone } from '../components/MetricStrip'
 import { useAuth } from '../features/auth/useAuth'
+import { downloadOperationalDocument } from '../features/reports/reportingApi'
 import {
   createMaintenancePlan,
   getMaintenances,
@@ -57,6 +59,7 @@ import type {
   MaintenanceType,
   TechnicianOption,
 } from '../types/operations'
+import { downloadBlob } from '../utils/downloadBlob'
 
 type MaintenanceView = 'table' | 'calendar'
 type MaintenanceFilterStatus = 'all' | InterventionStatus
@@ -121,6 +124,11 @@ export function MaintenancePage() {
     },
     onError: () => void message.error('The maintenance occurrence could not be cancelled.'),
   })
+  const documentMutation = useMutation({
+    mutationFn: (occurrence: InterventionItem) => downloadOperationalDocument('maintenance', occurrence.id),
+    onSuccess: (blob, occurrence) => downloadBlob(blob, `maintenance-${occurrence.reference}.pdf`),
+    onError: () => void message.error('The maintenance report could not be generated.'),
+  })
 
   const columns: ColumnsType<InterventionItem> = [
     {
@@ -168,15 +176,16 @@ export function MaintenancePage() {
       width: 100,
       render: (value: InterventionStatus) => <MaintenanceStatusTag status={value} />,
     },
-    ...(canManage ? [{
+    {
       title: '',
       key: 'actions',
-      width: 100,
-      render: (_: unknown, occurrence: InterventionItem) => occurrence.status === 'assigned' ? <div className="maintenance-row-actions">
-        <Button type="text" size="small" onClick={() => setSelectedOccurrence(occurrence)}>Edit</Button>
-        <Popconfirm title="Cancel this occurrence?" description="A recurring plan will continue to generate its next occurrences." okText="Cancel occurrence" okButtonProps={{ danger: true }} onConfirm={() => cancelMutation.mutate(occurrence.id)}><Button type="text" size="small" danger>Cancel</Button></Popconfirm>
-      </div> : null,
-    }] : []),
+      width: 150,
+      render: (_: unknown, occurrence: InterventionItem) => <div className="maintenance-row-actions">
+        <Button type="text" size="small" aria-label={`Download report ${occurrence.reference}`} icon={<FileDown size={14} />} loading={documentMutation.isPending && documentMutation.variables?.id === occurrence.id} onClick={() => documentMutation.mutate(occurrence)} />
+        {canManage && occurrence.status === 'assigned' && <Button type="text" size="small" onClick={() => setSelectedOccurrence(occurrence)}>Edit</Button>}
+        {canManage && occurrence.status === 'assigned' && <Popconfirm title="Cancel this occurrence?" description="A recurring plan will continue to generate its next occurrences." okText="Cancel occurrence" okButtonProps={{ danger: true }} onConfirm={() => cancelMutation.mutate(occurrence.id)}><Button type="text" size="small" danger>Cancel</Button></Popconfirm>}
+      </div>,
+    },
   ]
 
   const summary = maintenanceQuery.data?.summary

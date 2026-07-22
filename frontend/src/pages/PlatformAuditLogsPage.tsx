@@ -4,8 +4,9 @@ import { App, Avatar, Button, DatePicker, Drawer, Input, Select, Table, Tag, Too
 import type { ColumnsType } from 'antd/es/table'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
-import { Building2, CalendarClock, Download, Eye, Fingerprint, Search, ShieldCheck, Users } from 'lucide-react'
+import { Building2, CalendarClock, Eye, Fingerprint, Search, ShieldCheck, Users } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
+import { ExportDropdown, type ExportFormat } from '../components/ExportDropdown'
 import { AdminDataPanel, AdminEmpty, AdminLoading, AdminMetric, AdminMetricGrid } from '../components/admin/AdminSurface'
 import { exportPlatformAuditLogs, getPlatformAuditLogs } from '../features/platform/platformApi'
 import type { PlatformAuditFilters, PlatformAuditLog } from '../types/platform'
@@ -45,8 +46,8 @@ export function PlatformAuditLogsPage() {
   }), [actorId, dateRange, deferredSearch, eventType, module, organizationId, page, role])
   const logsQuery = useQuery({ queryKey: ['platform-audit-logs', filters], queryFn: () => getPlatformAuditLogs(filters) })
   const exportMutation = useMutation({
-    mutationFn: () => exportPlatformAuditLogs(filters),
-    onSuccess: (blob) => downloadBlob(blob, `platform-audit-${dayjs().format('YYYY-MM-DD')}.csv`),
+    mutationFn: (format: ExportFormat) => exportPlatformAuditLogs(filters, format),
+    onSuccess: (blob, format) => downloadBlob(blob, `platform-audit-${dayjs().format('YYYY-MM-DD')}.${format}`),
     onError: () => void message.error('The audit export could not be generated.'),
   })
   const logs = logsQuery.data?.data ?? []
@@ -73,7 +74,7 @@ export function PlatformAuditLogsPage() {
       <AdminMetric icon={Users} label="Active actors" value={logsQuery.data?.summary.actors ?? 0} helper="Distinct recorded identities" tone="purple" />
       <AdminMetric icon={Building2} label="Organizations" value={logsQuery.data?.summary.organizations ?? 0} helper="Tenants represented in history" tone="orange" />
     </AdminMetricGrid>
-    <AdminDataPanel title="Platform activity" subtitle="Filter auditable actions and inspect their complete security context." extra={<Button icon={<Download size={15} />} loading={exportMutation.isPending} onClick={() => exportMutation.mutate()}>Export CSV</Button>}>
+    <AdminDataPanel title="Platform activity" subtitle="Filter auditable actions and inspect their complete security context." extra={<ExportDropdown loading={exportMutation.isPending} onExport={(format) => exportMutation.mutate(format)} />}>
       <div className="audit-filter-toolbar">
         <Input value={search} onChange={(event) => { setSearch(event.target.value); resetPage() }} prefix={<Search size={15} />} placeholder="Search actor, event or organization" allowClear />
         <DatePicker.RangePicker value={dateRange} onChange={(value) => { setDateRange(value); resetPage() }} format="DD MMM YYYY" />

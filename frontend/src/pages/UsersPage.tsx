@@ -6,7 +6,6 @@ import {
   Avatar,
   Button,
   Drawer,
-  Dropdown,
   Empty,
   Form,
   Input,
@@ -19,8 +18,6 @@ import {
 } from 'antd'
 import dayjs from 'dayjs'
 import {
-  ChevronDown,
-  Download,
   Eye,
   Grid2X2,
   List,
@@ -38,6 +35,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
+import { ExportDropdown, type ExportFormat } from '../components/ExportDropdown'
 import { UserDirectoryTabs } from '../components/UserDirectoryTabs'
 import { useAuth } from '../features/auth/useAuth'
 import {
@@ -157,7 +155,7 @@ export function UsersPage() {
     },
   })
   const exportUsers = useMutation({
-    mutationFn: (format: 'csv' | 'json') => exportManagedUsers(filters, format),
+    mutationFn: (format: ExportFormat) => exportManagedUsers(filters, format),
     onSuccess: (blob, format) => {
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
@@ -215,12 +213,7 @@ export function UsersPage() {
         { value: 'month', label: 'This month' },
       ]} onChange={(value) => updateFilter(setLastLogin, value)} />
       <ViewMode value={view} onChange={setView} />
-      <Dropdown menu={{
-        items: [{ key: 'csv', label: 'Export CSV' }, { key: 'json', label: 'Export JSON' }],
-        onClick: ({ key }) => exportUsers.mutate(key as 'csv' | 'json'),
-      }}>
-        <Button className="users-export-button" loading={exportUsers.isPending}><Download size={14} />Export<ChevronDown size={13} /></Button>
-      </Dropdown>
+      <ExportDropdown className="users-export-button" loading={exportUsers.isPending} onExport={(format) => exportUsers.mutate(format)} />
       {canCreate && <Button className="users-add-button" type="primary" onClick={() => setEditor(null)}><Plus size={15} />Add employee</Button>}
     </div>
 

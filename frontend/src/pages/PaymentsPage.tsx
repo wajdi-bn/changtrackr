@@ -1,16 +1,18 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Button, Card, Dropdown, Empty, Input, Select, Table } from 'antd'
+import { Alert, App, Button, Card, Empty, Input, Select, Table } from 'antd'
 import axios from 'axios'
 import dayjs from 'dayjs'
-import { CircleDollarSign, CreditCard, Download, ReceiptText, RefreshCw, Search } from 'lucide-react'
+import { CircleDollarSign, CreditCard, FileDown, ReceiptText, RefreshCw, Search } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
 import { MountainBanner } from '../components/MountainBanner'
+import { ExportDropdown, type ExportFormat } from '../components/ExportDropdown'
 import { MetricItem, MetricStrip } from '../components/MetricStrip'
 import { exportPayments, getChargingSessions, getPayments, processPayment } from '../features/charging/chargingApi'
 import { ChargingStatusTag } from '../features/charging/ChargingStatusTag'
 import { PaymentDrawer } from '../features/charging/PaymentDrawer'
 import { useAuth } from '../features/auth/useAuth'
+import { downloadOperationalDocument } from '../features/reports/reportingApi'
 import type { ChargingSession, Payment, PaymentPayload, PaymentStatus } from '../types/charging'
 import { downloadBlob } from '../utils/downloadBlob'
 
@@ -46,12 +48,17 @@ export function PaymentsPage() {
     onError: (error) => void message.error(paymentErrorMessage(error)),
   })
   const exportMutation = useMutation({
-    mutationFn: (format: 'csv' | 'json') => exportPayments(filters, format),
+    mutationFn: (format: ExportFormat) => exportPayments(filters, format),
     onSuccess: (blob, format) => {
       downloadBlob(blob, `organization-payments.${format}`)
       void message.success(`Payment export generated as ${format.toUpperCase()}.`)
     },
     onError: () => void message.error('The payment export could not be generated.'),
+  })
+  const receiptMutation = useMutation({
+    mutationFn: (payment: Payment) => downloadOperationalDocument('receipt', payment.id),
+    onSuccess: (blob, payment) => downloadBlob(blob, `receipt-${payment.reference}.pdf`),
+    onError: () => void message.error('The payment receipt could not be generated.'),
   })
 
   const columns: ColumnsType<Payment> = [
@@ -63,6 +70,7 @@ export function PaymentsPage() {
     { title: 'Status', dataIndex: 'status', key: 'status', render: (value: PaymentStatus) => <ChargingStatusTag value={value} /> },
     { title: 'Transaction', dataIndex: 'provider_transaction_id', key: 'transaction', render: (value: string | null, item) => <span className="payment-reference"><strong>{value ?? 'Pending'}</strong>{item.provider_event && <small>Webhook: {item.provider_event.processing_status.replaceAll('_', ' ')}</small>}</span> },
     { title: 'Amount', key: 'amount', align: 'right', render: (_: unknown, item) => <strong>{item.amount} {item.currency}</strong> },
+    { title: '', key: 'receipt', width: 54, align: 'right', render: (_: unknown, item) => <Button type="text" aria-label={`Download receipt ${item.reference}`} icon={<FileDown size={15} />} loading={receiptMutation.isPending && receiptMutation.variables?.id === item.id} onClick={() => receiptMutation.mutate(item)} /> },
   ]
 
   return <div className="payments-page">
@@ -84,10 +92,7 @@ export function PaymentsPage() {
       </article>)}</div>
     </section>}
 
-    <Card className="payments-table-card" title={clientMode ? 'Payment history' : 'All transactions'} extra={!clientMode && canExport && <Dropdown menu={{ items: [
-      { key: 'csv', label: 'Export CSV', onClick: () => exportMutation.mutate('csv') },
-      { key: 'json', label: 'Export JSON', onClick: () => exportMutation.mutate('json') },
-    ] }}><Button icon={<Download size={14} />} loading={exportMutation.isPending}>Export</Button></Dropdown>}>
+    <Card className="payments-table-card" title={clientMode ? 'Payment history' : 'All transactions'} extra={!clientMode && canExport && <ExportDropdown loading={exportMutation.isPending} onExport={(format) => exportMutation.mutate(format)} />}>
       <div className="sessions-toolbar"><Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={14} />} placeholder="Search payment or session" allowClear /><Select value={status} onChange={(value) => setStatus(value)} options={['all', 'paid', 'failed', 'pending'].map((value) => ({ value, label: value === 'all' ? 'All statuses' : value }))} /></div>
       <Table rowKey="id" columns={columns} dataSource={paymentsQuery.data?.data ?? []} loading={paymentsQuery.isLoading} pagination={{ pageSize: 8, hideOnSinglePage: true }} scroll={{ x: 900 }} locale={{ emptyText: <Empty description="No payment transactions found" /> }} />
     </Card>

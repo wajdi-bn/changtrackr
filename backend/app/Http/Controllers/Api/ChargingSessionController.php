@@ -9,16 +9,17 @@ use App\Models\ChargingSession;
 use App\Models\User;
 use App\Services\ChargingSessionService;
 use App\Services\Ocpp\OcppCommandService;
+use App\Services\Reports\ReportExportService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class ChargingSessionController extends Controller
 {
-    private const RELATIONS = ['organization', 'station', 'connector', 'client', 'vehicle', 'payment', 'ocppTransaction'];
+    private const RELATIONS = ['organization', 'station', 'connector', 'client', 'payment', 'ocppTransaction'];
 
     public function index(Request $request): JsonResponse
     {
@@ -47,11 +48,11 @@ class ChargingSessionController extends Controller
         ]);
     }
 
-    public function export(Request $request): JsonResponse|StreamedResponse
+    public function export(Request $request, ReportExportService $exports): Response
     {
         Gate::authorize('export', ChargingSession::class);
         $filters = $this->validateFilters($request);
-        $format = $request->validate(['format' => ['required', Rule::in(['csv', 'json'])]])['format'];
+        $format = $request->validate(['format' => ['nullable', Rule::in(['csv', 'json', 'pdf'])]])['format'] ?? 'csv';
         /** @var User $user */
         $user = $request->user();
         $rows = $this->applyFilters($this->scopedQuery($user), $filters)
@@ -74,21 +75,22 @@ class ChargingSessionController extends Controller
                 'payment_status' => $session->payment_status,
             ]);
 
-        if ($format === 'json') {
-            return response()->json(['data' => $rows]);
-        }
-
-        return response()->streamDownload(function () use ($rows): void {
-            $output = fopen('php://output', 'w');
-            if ($output === false) {
-                return;
-            }
-            fputcsv($output, ['Reference', 'Organization', 'Client', 'Station', 'Connector', 'Status', 'Started at', 'Ended at', 'Duration (seconds)', 'Energy (kWh)', 'Total (millimes)', 'Currency', 'Payment status']);
-            foreach ($rows as $row) {
-                fputcsv($output, array_values($row));
-            }
-            fclose($output);
-        }, 'organization-charging-sessions.csv', ['Content-Type' => 'text/csv']);
+        return $exports->dataset(
+            $format,
+            'charging-sessions',
+            'Charging sessions',
+            'Measured charging activity, lifecycle status, energy and billing outcome.',
+            [
+                'reference' => 'Reference', 'organization' => 'Organization', 'client' => 'Client',
+                'station' => 'Station', 'connector' => 'Connector', 'status' => 'Status',
+                'started_at' => 'Started at', 'ended_at' => 'Ended at', 'duration_seconds' => 'Duration (s)',
+                'energy_kwh' => 'Energy (kWh)', 'total_millimes' => 'Total (millimes)',
+                'currency' => 'Currency', 'payment_status' => 'Payment status',
+            ],
+            $rows,
+            $user,
+            $filters,
+        );
     }
 
     public function store(StartChargingSessionRequest $request, ChargingSessionService $service): JsonResponse

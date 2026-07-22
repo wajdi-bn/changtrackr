@@ -53,7 +53,7 @@ export function RegisterPage() {
     <AuthPageShell
       eyebrow="Client charging access"
       title="Create one account for every charging journey."
-      description="Find compatible stations, manage your vehicles, follow sessions and keep payments together in one secure client space."
+      description="Find compatible stations, follow charging sessions and keep payments together in one secure client space."
     >
       <header className="prototype-login-card-heading">
         <h1>Create your account</h1>

@@ -1,12 +1,10 @@
 import { useDeferredValue, useMemo, useState, type ReactNode } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Alert, App, Avatar, Button, Drawer, Dropdown, Empty, Input, Pagination, Select, Skeleton, Tooltip } from 'antd'
+import { Alert, App, Avatar, Button, Drawer, Empty, Input, Pagination, Select, Skeleton, Tooltip } from 'antd'
 import dayjs from 'dayjs'
 import {
   BatteryCharging,
   CalendarClock,
-  ChevronDown,
-  Download,
   Eye,
   Grid2X2,
   List,
@@ -19,6 +17,7 @@ import {
   WalletCards,
 } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
+import { ExportDropdown, type ExportFormat } from '../components/ExportDropdown'
 import { MetricItem, MetricStrip } from '../components/MetricStrip'
 import { UserDirectoryTabs } from '../components/UserDirectoryTabs'
 import { exportCustomers, getCustomer, getCustomers } from '../features/customers/customerApi'
@@ -62,7 +61,7 @@ export function CustomersPage() {
     enabled: selectedCustomerId !== null,
   })
   const exportQuery = useMutation({
-    mutationFn: (format: 'csv' | 'json') => exportCustomers(filters, format),
+    mutationFn: (format: ExportFormat) => exportCustomers(filters, format),
     onSuccess: (blob, format) => {
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
@@ -123,12 +122,7 @@ export function CustomersPage() {
         { value: 'spent', label: 'Highest revenue' },
       ]} onChange={(value) => { setSort(value); setPage(1) }} />
       <ViewMode value={view} onChange={setView} />
-      <Dropdown menu={{
-        items: [{ key: 'csv', label: 'Export CSV' }, { key: 'json', label: 'Export JSON' }],
-        onClick: ({ key }) => exportQuery.mutate(key as 'csv' | 'json'),
-      }}>
-        <Button className="users-export-button" loading={exportQuery.isPending}><Download size={14} />Export<ChevronDown size={13} /></Button>
-      </Dropdown>
+      <ExportDropdown className="users-export-button" loading={exportQuery.isPending} onExport={(format) => exportQuery.mutate(format)} />
     </div>
 
     {customersQuery.isError && <Alert className="users-api-error" type="error" showIcon title="Unable to load customers" description="Make sure the Laravel API is running, then retry." action={<Button size="small" onClick={() => void customersQuery.refetch()}>Retry</Button>} />}

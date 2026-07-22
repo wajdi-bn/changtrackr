@@ -11,6 +11,7 @@ import type {
   PaymentStatus,
   SessionPaymentStatus,
 } from '../../types/charging'
+import type { ExportFormat } from '../../components/ExportDropdown'
 
 export interface SessionFilters {
   search?: string
@@ -23,7 +24,7 @@ export async function getChargingSessions(filters: SessionFilters = {}): Promise
   return response.data
 }
 
-export async function exportChargingSessions(filters: SessionFilters, format: 'csv' | 'json'): Promise<Blob> {
+export async function exportChargingSessions(filters: SessionFilters, format: ExportFormat): Promise<Blob> {
   const response = await httpClient.get<Blob>('/charging-sessions/export', {
     params: { ...filters, format },
     responseType: 'blob',
@@ -66,7 +67,7 @@ export async function getPayments(filters: { search?: string; status?: PaymentSt
   return response.data
 }
 
-export async function exportPayments(filters: { search?: string; status?: PaymentStatus }, format: 'csv' | 'json'): Promise<Blob> {
+export async function exportPayments(filters: { search?: string; status?: PaymentStatus }, format: ExportFormat): Promise<Blob> {
   const response = await httpClient.get<Blob>('/payments/export', {
     params: { ...filters, format },
     responseType: 'blob',

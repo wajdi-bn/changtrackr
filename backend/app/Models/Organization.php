@@ -90,6 +90,11 @@ class Organization extends Model
         return $this->hasMany(AccountInvitation::class);
     }
 
+    public function internalReports(): HasMany
+    {
+        return $this->hasMany(InternalReport::class);
+    }
+
     protected function slug(): Attribute
     {
         return Attribute::make(

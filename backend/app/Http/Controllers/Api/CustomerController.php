@@ -6,13 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\CustomerResource;
 use App\Models\ChargingSession;
 use App\Models\User;
+use App\Services\Reports\ReportExportService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class CustomerController extends Controller
 {
@@ -56,34 +57,34 @@ class CustomerController extends Controller
         return new CustomerResource($customer);
     }
 
-    public function export(Request $request): JsonResponse|StreamedResponse
+    public function export(Request $request, ReportExportService $exports): Response
     {
         Gate::authorize('exportCustomers', User::class);
         $filters = $this->validateFilters($request);
         $format = $request->validate([
-            'format' => ['required', Rule::in(['csv', 'json'])],
-        ])['format'];
+            'format' => ['nullable', Rule::in(['csv', 'json', 'pdf'])],
+        ])['format'] ?? 'csv';
         /** @var User $actor */
         $actor = $request->user();
         $customers = $this->applyFilters($this->customerQuery($actor), $actor, $filters);
         $this->applySorting($customers, $filters['sort'] ?? 'latest');
         $rows = $customers->get()->map(fn (User $customer) => $this->exportRow($customer));
 
-        if ($format === 'json') {
-            return response()->json(['data' => $rows]);
-        }
-
-        return response()->streamDownload(function () use ($rows): void {
-            $output = fopen('php://output', 'w');
-            if ($output === false) {
-                return;
-            }
-            fputcsv($output, ['Name', 'Email', 'Phone', 'Status', 'Sessions', 'Stations', 'Energy (kWh)', 'Paid (millimes)', 'Outstanding (millimes)', 'Last session']);
-            foreach ($rows as $row) {
-                fputcsv($output, array_values($row));
-            }
-            fclose($output);
-        }, 'organization-customers.csv', ['Content-Type' => 'text/csv']);
+        return $exports->dataset(
+            $format,
+            'organization-customers',
+            'Organization customers',
+            'Charging activity and financial relationship for customers who used this network.',
+            [
+                'name' => 'Name', 'email' => 'Email', 'phone' => 'Phone', 'status' => 'Status',
+                'sessions' => 'Sessions', 'stations' => 'Stations', 'energy_kwh' => 'Energy (kWh)',
+                'paid_millimes' => 'Paid (millimes)', 'outstanding_millimes' => 'Outstanding (millimes)',
+                'last_session_at' => 'Last session',
+            ],
+            $rows,
+            $actor,
+            $filters,
+        );
     }
 
     /** @return array<string, mixed> */

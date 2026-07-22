@@ -17,8 +17,10 @@ use App\Http\Controllers\Api\Internal\OcppGatewayController;
 use App\Http\Controllers\Api\Internal\PaymentWebhookController;
 use App\Http\Controllers\Api\InterventionController;
 use App\Http\Controllers\Api\InterventionReportController;
+use App\Http\Controllers\Api\InternalReportController;
 use App\Http\Controllers\Api\MaintenanceController;
 use App\Http\Controllers\Api\NotificationPreferenceController;
+use App\Http\Controllers\Api\OperationalDocumentController;
 use App\Http\Controllers\Api\OcppSupervisionController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\PaymentController;
@@ -27,6 +29,7 @@ use App\Http\Controllers\Api\PlatformAuditLogController;
 use App\Http\Controllers\Api\PlatformIntegrationController;
 use App\Http\Controllers\Api\PlatformSettingController;
 use App\Http\Controllers\Api\PricingController;
+use App\Http\Controllers\Api\ReportAnalyticsController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RolePermissionController;
 use App\Http\Controllers\Api\StationController;
@@ -34,7 +37,6 @@ use App\Http\Controllers\Api\TariffAssignmentController;
 use App\Http\Controllers\Api\TariffController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserNotificationController;
-use App\Http\Controllers\Api\VehicleController;
 use App\Http\Middleware\EnsureUserOrganizationScope;
 use App\Http\Middleware\VerifyOcppGatewaySignature;
 use Illuminate\Http\Request;
@@ -82,8 +84,6 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(f
     Route::get('/account-security', [AccountSecurityController::class, 'show']);
     Route::put('/account-security/password', [AccountSecurityController::class, 'changePassword'])
         ->middleware('throttle:5,1');
-    Route::apiResource('vehicles', VehicleController::class)->only(['index', 'store', 'update', 'destroy']);
-
     Route::get('/demo-requests', [DemoRequestController::class, 'index']);
     Route::get('/demo-requests/{demoRequest}', [DemoRequestController::class, 'show']);
     Route::patch('/demo-requests/{demoRequest}', [DemoRequestController::class, 'update']);
@@ -106,18 +106,21 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(f
     Route::put('/stations/{station}/maintenance', [OcppSupervisionController::class, 'maintenance']);
 
     Route::apiResource('alerts', AlertController::class)->except('destroy');
+    Route::get('/alerts/{alert}/report', [OperationalDocumentController::class, 'alert']);
     Route::post('/alerts/{alert}/interventions', [InterventionController::class, 'store']);
     Route::get('/interventions', [InterventionController::class, 'index']);
     Route::get('/interventions/{intervention}', [InterventionController::class, 'show']);
     Route::patch('/interventions/{intervention}', [InterventionController::class, 'update']);
     Route::post('/interventions/{intervention}/notes', [InterventionController::class, 'addNote']);
     Route::post('/interventions/{intervention}/report', [InterventionReportController::class, 'store']);
+    Route::get('/interventions/{intervention}/document', [OperationalDocumentController::class, 'intervention']);
     Route::post('/interventions/{intervention}/photos', [InterventionReportController::class, 'storePhoto']);
     Route::get('/interventions/{intervention}/photos/{photo}', [InterventionReportController::class, 'content']);
     Route::delete('/interventions/{intervention}/photos/{photo}', [InterventionReportController::class, 'destroyPhoto']);
     Route::get('/maintenances', [MaintenanceController::class, 'index']);
     Route::post('/maintenances', [MaintenanceController::class, 'store']);
     Route::patch('/maintenances/{maintenance}', [MaintenanceController::class, 'update']);
+    Route::get('/maintenances/{maintenance}/report', [OperationalDocumentController::class, 'maintenance']);
 
     Route::get('/charging-sessions/export', [ChargingSessionController::class, 'export']);
     Route::get('/charging-sessions', [ChargingSessionController::class, 'index']);
@@ -131,6 +134,24 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(f
     Route::post('/charging-sessions/{chargingSession}/payments', [PaymentController::class, 'store']);
     Route::get('/payments/export', [PaymentController::class, 'export']);
     Route::get('/payments', [PaymentController::class, 'index']);
+    Route::get('/payments/{payment}/receipt', [OperationalDocumentController::class, 'receipt']);
+
+    Route::get('/internal-reports/recipients', [InternalReportController::class, 'recipients']);
+    Route::get('/internal-reports', [InternalReportController::class, 'index']);
+    Route::post('/internal-reports', [InternalReportController::class, 'store']);
+    Route::patch('/internal-reports/{internalReport}', [InternalReportController::class, 'update']);
+    Route::post('/internal-reports/{internalReport}/send', [InternalReportController::class, 'send']);
+    Route::post('/internal-reports/{internalReport}/read', [InternalReportController::class, 'read']);
+    Route::post('/internal-reports/{internalReport}/archive', [InternalReportController::class, 'archive']);
+    Route::get('/internal-reports/{internalReport}/document', [InternalReportController::class, 'document']);
+    Route::delete('/internal-reports/{internalReport}', [InternalReportController::class, 'destroy']);
+
+    Route::get('/reporting/platform', [ReportAnalyticsController::class, 'platform']);
+    Route::get('/reporting/organization', [ReportAnalyticsController::class, 'organization']);
+    Route::get('/reporting/operations', [ReportAnalyticsController::class, 'operations']);
+    Route::get('/reporting/field', [ReportAnalyticsController::class, 'field']);
+    Route::get('/reporting/{scope}/export', [ReportAnalyticsController::class, 'export'])
+        ->whereIn('scope', ['platform', 'organization', 'operations', 'field']);
 
     Route::get('/subscription-plans', [PlanSubscriptionController::class, 'catalog']);
     Route::get('/subscriptions', [PlanSubscriptionController::class, 'index']);

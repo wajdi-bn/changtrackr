@@ -106,17 +106,21 @@ class ChargingSessionPaymentApiTest extends TestCase
         $session = $this->completedSession($client, $station, $connector);
         Sanctum::actingAs($client);
 
-        $this->postJson("/api/charging-sessions/{$session->id}/payments", [
+        $paymentId = $this->postJson("/api/charging-sessions/{$session->id}/payments", [
             'method' => 'simulated_card',
             'simulation_outcome' => 'success',
             'idempotency_key' => '10000000-0000-4000-8000-000000000001',
         ])
             ->assertSuccessful()
             ->assertJsonPath('data.status', 'paid')
-            ->assertJsonPath('data.provider', 'simulated');
+            ->assertJsonPath('data.provider', 'simulated')
+            ->json('data.id');
 
         $this->assertDatabaseHas('charging_sessions', ['id' => $session->id, 'payment_status' => 'paid']);
         $this->assertDatabaseHas('payments', ['charging_session_id' => $session->id, 'amount_millimes' => 9000, 'status' => 'paid']);
+        $this->get("/api/payments/{$paymentId}/receipt")
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_failed_simulated_payment_can_be_retried_successfully(): void
