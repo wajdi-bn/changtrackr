@@ -267,6 +267,7 @@ class AccountInvitationService
 
             $invitation->user->forceFill([
                 'password' => $password,
+                'password_login_enabled' => true,
                 'email_verified_at' => now(),
                 'status' => 'active',
             ])->save();

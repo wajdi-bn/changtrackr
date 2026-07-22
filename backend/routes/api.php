@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AccountInvitationController;
 use App\Http\Controllers\Api\AccountPreferenceController;
+use App\Http\Controllers\Api\AccountSecurityController;
 use App\Http\Controllers\Api\AlertController;
 use App\Http\Controllers\Api\ChargingAttemptController;
 use App\Http\Controllers\Api\ChargingPlanController;
@@ -77,6 +78,9 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(f
     Route::put('/notification-preferences', [NotificationPreferenceController::class, 'update']);
     Route::get('/account-preferences', [AccountPreferenceController::class, 'show']);
     Route::put('/account-preferences', [AccountPreferenceController::class, 'update']);
+    Route::get('/account-security', [AccountSecurityController::class, 'show']);
+    Route::put('/account-security/password', [AccountSecurityController::class, 'changePassword'])
+        ->middleware('throttle:5,1');
 
     Route::get('/demo-requests', [DemoRequestController::class, 'index']);
     Route::get('/demo-requests/{demoRequest}', [DemoRequestController::class, 'show']);

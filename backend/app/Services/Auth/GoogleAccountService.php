@@ -85,6 +85,7 @@ class GoogleAccountService
                     'avatar_url' => $googleUser->getAvatar(),
                     'status' => 'active',
                     'password' => Str::random(64),
+                    'password_login_enabled' => false,
                 ]);
                 $user->assignRole('client');
             }

@@ -41,7 +41,7 @@ class ProfileResource extends JsonResource
                     ->pluck('provider')
                     ->unique()
                     ->values()),
-                'local_password_configured' => $this->password !== null,
+                'local_password_configured' => $this->hasLocalPasswordLogin(),
             ],
         ];
     }

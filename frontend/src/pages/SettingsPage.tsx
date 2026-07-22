@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { App, Card, Divider, Radio, Select, Skeleton, Switch } from 'antd'
-import { BellRing, CalendarClock, Clock3, CreditCard, ShieldAlert, Wrench } from 'lucide-react'
+import { useState } from 'react'
+import { App, Button, Card, Divider, Form, Input, Modal, Radio, Select, Skeleton, Switch } from 'antd'
+import { BellRing, CalendarClock, Clock3, CreditCard, KeyRound, LockKeyhole, MailCheck, ShieldAlert, Wrench } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
 import { getAccountPreferences, updateAccountPreferences } from '../features/account/accountPreferenceApi'
+import { changeAccountPassword, getAccountSecurity, type ChangePasswordPayload } from '../features/account/accountSecurityApi'
 import { useAuth } from '../features/auth/useAuth'
 import {
   getNotificationPreferences,
@@ -36,6 +38,8 @@ export function SettingsPage() {
   const queryClient = useQueryClient()
   const { message } = App.useApp()
   const { user, updateCurrentUser } = useAuth()
+  const [passwordForm] = Form.useForm<ChangePasswordPayload>()
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const preferencesQuery = useQuery({
     queryKey: ['notification-preferences'],
     queryFn: getNotificationPreferences,
@@ -60,6 +64,19 @@ export function SettingsPage() {
       void message.success('Time zone preference updated.')
     },
     onError: () => void message.error('Time zone preference could not be updated.'),
+  })
+  const accountSecurityQuery = useQuery({
+    queryKey: ['account-security'],
+    queryFn: getAccountSecurity,
+  })
+  const passwordMutation = useMutation({
+    mutationFn: changeAccountPassword,
+    onSuccess: () => {
+      passwordForm.resetFields()
+      setPasswordModalOpen(false)
+      void message.success('Password updated successfully.')
+    },
+    onError: () => void message.error('Password could not be updated. Check your current password and try again.'),
   })
 
   const preferences = preferencesQuery.data
@@ -129,6 +146,55 @@ export function SettingsPage() {
           <div className="timezone-preview"><span>Preview</span><strong>{formatDateTime(new Date().toISOString(), effectiveTimeZone)}</strong><small>{effectiveTimeZone}</small></div>
         </div>}
       </Card>
+
+      <Card className="settings-card" title="Account security">
+        <div className="settings-intro settings-intro--security">
+          <LockKeyhole size={20} />
+          <div><strong>Sign-in and access protection</strong><p>Your email identity and authentication methods are protected server-side. Role and organization access are managed by authorized administrators.</p></div>
+        </div>
+        <Divider />
+        {accountSecurityQuery.isLoading || !accountSecurityQuery.data ? <Skeleton active paragraph={{ rows: 3 }} /> : (() => {
+          const security = accountSecurityQuery.data
+          const providerLabel = security.sign_in_providers.map((provider) => provider[0].toUpperCase() + provider.slice(1)).join(' · ')
+          return <div className="account-security-summary">
+            <div className="account-security-row">
+              <span className="account-security-icon"><MailCheck size={18} /></span>
+              <div><strong>Account email</strong><p>{security.email} · {security.email_verified ? 'Verified' : 'Pending verification'}</p></div>
+            </div>
+            <div className="account-security-row">
+              <span className="account-security-icon"><KeyRound size={18} /></span>
+              <div>
+                <strong>{security.password_login_enabled ? 'Password sign-in' : 'Google sign-in'}</strong>
+                <p>{security.password_login_enabled ? 'Use a private password to access your account.' : `${providerLabel || 'Google'} manages access to this account.`}</p>
+              </div>
+              {security.password_login_enabled && <Button onClick={() => setPasswordModalOpen(true)}>Change password</Button>}
+            </div>
+          </div>
+        })()}
+      </Card>
+
+      <Modal
+        title="Change password"
+        open={passwordModalOpen}
+        onCancel={() => { if (!passwordMutation.isPending) setPasswordModalOpen(false) }}
+        okText="Update password"
+        okButtonProps={{ loading: passwordMutation.isPending }}
+        onOk={() => passwordForm.submit()}
+        destroyOnHidden
+      >
+        <p className="password-modal-copy">Confirm your current password before choosing a new one. The new password must contain at least eight characters, including uppercase letters and numbers.</p>
+        <Form form={passwordForm} layout="vertical" onFinish={(values) => passwordMutation.mutate(values)}>
+          <Form.Item name="current_password" label="Current password" rules={[{ required: true, message: 'Enter your current password.' }]}>
+            <Input.Password autoComplete="current-password" />
+          </Form.Item>
+          <Form.Item name="password" label="New password" rules={[{ required: true, min: 8, message: 'Use at least eight characters.' }]}>
+            <Input.Password autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item name="password_confirmation" label="Confirm new password" dependencies={['password']} rules={[{ required: true, message: 'Confirm your new password.' }, ({ getFieldValue }) => ({ validator(_, value) { return !value || getFieldValue('password') === value ? Promise.resolve() : Promise.reject(new Error('Passwords do not match.')) } })]}>
+            <Input.Password autoComplete="new-password" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 }

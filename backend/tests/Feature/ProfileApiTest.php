@@ -7,6 +7,7 @@ use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -113,6 +114,54 @@ class ProfileApiTest extends TestCase
             'actor_id' => $user->id,
             'event_type' => 'account.timezone_updated',
         ]);
+    }
+
+    public function test_local_account_can_change_its_password_but_google_only_account_cannot(): void
+    {
+        $localUser = User::factory()->create([
+            'status' => 'active',
+            'password' => Hash::make('CurrentPass1'),
+            'password_login_enabled' => true,
+        ]);
+        $localUser->assignRole('client');
+        Sanctum::actingAs($localUser);
+
+        $this->getJson('/api/account-security')
+            ->assertOk()
+            ->assertJsonPath('data.password_login_enabled', true);
+
+        $this->putJson('/api/account-security/password', [
+            'current_password' => 'CurrentPass1',
+            'password' => 'UpdatedPass2',
+            'password_confirmation' => 'UpdatedPass2',
+        ])->assertOk();
+        $this->assertTrue(Hash::check('UpdatedPass2', $localUser->fresh()->password));
+        $this->assertDatabaseHas('platform_audit_logs', [
+            'actor_id' => $localUser->id,
+            'event_type' => 'account.password_changed',
+        ]);
+
+        $googleOnlyUser = User::factory()->create([
+            'status' => 'active',
+            'password_login_enabled' => false,
+        ]);
+        $googleOnlyUser->assignRole('client');
+        $googleOnlyUser->socialAccounts()->create([
+            'provider' => 'google',
+            'provider_user_id' => 'google-only-profile-test',
+            'provider_email' => $googleOnlyUser->email,
+        ]);
+        Sanctum::actingAs($googleOnlyUser);
+
+        $this->getJson('/api/account-security')
+            ->assertOk()
+            ->assertJsonPath('data.password_login_enabled', false)
+            ->assertJsonPath('data.sign_in_providers.0', 'google');
+        $this->putJson('/api/account-security/password', [
+            'current_password' => 'AnyPassword1',
+            'password' => 'UpdatedPass2',
+            'password_confirmation' => 'UpdatedPass2',
+        ])->assertForbidden();
     }
 
     public function test_user_can_replace_and_remove_only_its_local_profile_avatar(): void

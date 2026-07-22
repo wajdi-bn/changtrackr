@@ -17,7 +17,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['organization_id', 'name', 'email', 'email_verified_at', 'phone', 'avatar_url', 'team', 'address', 'job_title', 'bio', 'address_line_1', 'address_line_2', 'city', 'region', 'postal_code', 'country_code', 'locale', 'timezone', 'linkedin_url', 'website_url', 'status', 'password', 'last_login_at', 'notification_preferences'])]
+#[Fillable(['organization_id', 'name', 'email', 'email_verified_at', 'phone', 'avatar_url', 'team', 'address', 'job_title', 'bio', 'address_line_1', 'address_line_2', 'city', 'region', 'postal_code', 'country_code', 'locale', 'timezone', 'linkedin_url', 'website_url', 'status', 'password', 'password_login_enabled', 'last_login_at', 'notification_preferences'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -147,6 +147,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasRole('client') && ! $this->hasVerifiedEmail();
     }
 
+    public function hasLocalPasswordLogin(): bool
+    {
+        return $this->password_login_enabled ?? true;
+    }
+
     public function sendEmailVerificationNotification(): void
     {
         $this->notify(new VerifyClientEmail);
@@ -168,6 +173,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'notification_preferences' => 'array',
+            'password_login_enabled' => 'boolean',
             'password' => 'hashed',
         ];
     }

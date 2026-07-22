@@ -23,6 +23,7 @@ class RegisteredClientController extends Controller
                 'name' => $attributes['name'],
                 'email' => $attributes['email'],
                 'password' => $attributes['password'],
+                'password_login_enabled' => true,
                 'status' => 'active',
             ]);
             $user->assignRole('client');

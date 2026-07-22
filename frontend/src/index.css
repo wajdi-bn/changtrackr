@@ -6966,6 +6966,20 @@ body {
 .timezone-preference > .ant-select { width: min(100%, 380px); }
 .timezone-preview { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px; padding: 12px 14px; border: 1px solid #e6eee9; border-radius: 8px; background: #f7fbf8; }
 .timezone-preview span { color: #75837a; font-size: 12px; }
+.settings-intro--security { color: #c07a17; }
+.account-security-summary { display: grid; gap: 10px; }
+.account-security-row { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 0; }
+.account-security-row + .account-security-row { border-top: 1px solid #edf0ee; }
+.account-security-icon { display: grid; flex: 0 0 auto; width: 34px; height: 34px; place-items: center; border-radius: 9px; background: #fff5e6; color: #c47a13; }
+.account-security-row > div { min-width: 0; }
+.account-security-row strong { display: block; color: #1b3529; font-size: 13px; }
+.account-security-row p { margin: 3px 0 0; color: #738078; font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.account-security-row .ant-btn { margin-left: auto; border-color: #bcd8c9; color: #137a4b; font-weight: 650; }
+.password-modal-copy { margin: 0 0 18px; color: #69786f; font-size: 13px; line-height: 1.55; }
+@media (max-width: 560px) {
+  .account-security-row { align-items: flex-start; flex-wrap: wrap; }
+  .account-security-row .ant-btn { margin-left: 46px; }
+}
 .timezone-preview strong { color: #1b3529; font-size: 13px; }
 .timezone-preview small { color: #748178; font-size: 11px; }
 @media (max-width: 640px) {

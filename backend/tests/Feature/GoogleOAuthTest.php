@@ -46,6 +46,7 @@ class GoogleOAuthTest extends TestCase
         $this->assertAuthenticatedAs($client);
         $this->assertNull($client->organization_id);
         $this->assertTrue($client->hasRole('client'));
+        $this->assertFalse($client->hasLocalPasswordLogin());
         $this->assertNotNull($client->email_verified_at);
         $this->assertNotNull($client->last_login_at);
         $this->assertDatabaseHas('social_accounts', [

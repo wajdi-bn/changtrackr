@@ -17,7 +17,10 @@ class PasswordResetController extends Controller
 {
     public function sendLink(EmailRequest $request): JsonResponse
     {
-        Password::sendResetLink($request->validated());
+        $user = User::query()->where('email', $request->validated('email'))->first();
+        if ($user?->hasLocalPasswordLogin()) {
+            Password::sendResetLink($request->validated());
+        }
 
         return response()->json([
             'message' => 'If an account exists for this email, a password reset link has been sent.',
@@ -29,6 +32,10 @@ class PasswordResetController extends Controller
         $status = Password::reset(
             $request->validated(),
             function (User $user, string $password): void {
+                if (! $user->hasLocalPasswordLogin()) {
+                    return;
+                }
+
                 $user->forceFill([
                     'password' => Hash::make($password),
                     'remember_token' => Str::random(60),
