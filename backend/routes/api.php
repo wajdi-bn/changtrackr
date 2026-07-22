@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\TariffAssignmentController;
 use App\Http\Controllers\Api\TariffController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserNotificationController;
+use App\Http\Controllers\Api\VehicleController;
 use App\Http\Middleware\EnsureUserOrganizationScope;
 use App\Http\Middleware\VerifyOcppGatewaySignature;
 use Illuminate\Http\Request;
@@ -81,6 +82,7 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(f
     Route::get('/account-security', [AccountSecurityController::class, 'show']);
     Route::put('/account-security/password', [AccountSecurityController::class, 'changePassword'])
         ->middleware('throttle:5,1');
+    Route::apiResource('vehicles', VehicleController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::get('/demo-requests', [DemoRequestController::class, 'index']);
     Route::get('/demo-requests/{demoRequest}', [DemoRequestController::class, 'show']);

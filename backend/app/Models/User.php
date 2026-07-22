@@ -61,6 +61,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ChargingSession::class, 'client_id');
     }
 
+    public function vehicles(): HasMany
+    {
+        return $this->hasMany(Vehicle::class);
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);

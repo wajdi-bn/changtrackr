@@ -32,6 +32,12 @@ class ChargingAttemptResource extends JsonResource
                 'type' => $this->whenLoaded('connector', fn () => $this->connector?->type),
                 'max_power_kw' => $this->whenLoaded('connector', fn () => $this->connector?->max_power_kw),
             ],
+            'vehicle' => $this->whenLoaded('vehicle', fn () => $this->vehicle ? [
+                'id' => $this->vehicle->id,
+                'name' => $this->vehicle->name,
+                'make' => $this->vehicle->make,
+                'model' => $this->vehicle->model,
+            ] : null),
             'limits' => [
                 'energy_kwh' => $this->limit_energy_kwh,
                 'amount_millimes' => $this->limit_amount_millimes,
@@ -46,7 +52,7 @@ class ChargingAttemptResource extends JsonResource
                 'failure_message' => $latestCommand->failure_message,
             ] : null,
             'charging_session' => $this->whenLoaded('chargingSession', fn () => $this->chargingSession
-                ? new ChargingSessionResource($this->chargingSession->loadMissing(['organization', 'station', 'connector', 'client', 'payment', 'ocppTransaction']))
+                ? new ChargingSessionResource($this->chargingSession->loadMissing(['organization', 'station', 'connector', 'client', 'vehicle', 'payment', 'ocppTransaction']))
                 : null),
             'authorized_at' => $this->authorized_at?->toISOString(),
             'started_at' => $this->started_at?->toISOString(),

@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ChargingSessionController extends Controller
 {
-    private const RELATIONS = ['organization', 'station', 'connector', 'client', 'payment', 'ocppTransaction'];
+    private const RELATIONS = ['organization', 'station', 'connector', 'client', 'vehicle', 'payment', 'ocppTransaction'];
 
     public function index(Request $request): JsonResponse
     {

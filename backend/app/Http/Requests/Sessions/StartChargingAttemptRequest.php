@@ -18,6 +18,7 @@ class StartChargingAttemptRequest extends FormRequest
         return [
             'station_id' => ['required', 'integer', 'exists:stations,id'],
             'connector_id' => ['required', 'integer', 'exists:connectors,id'],
+            'vehicle_id' => ['nullable', 'integer', 'exists:vehicles,id'],
             'method' => ['required', Rule::in(['simulated_card', 'simulated_edinar', 'simulated_d17'])],
             'simulation_outcome' => ['sometimes', Rule::in(['success', 'declined', 'timeout', 'provider_error'])],
             'idempotency_key' => ['required', 'uuid'],

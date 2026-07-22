@@ -17,6 +17,7 @@ import { ActivateInvitationPage } from '../pages/ActivateInvitationPage'
 import { WorkspacePage } from '../pages/WorkspacePage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { ProfilePage } from '../pages/ProfilePage'
+const VehiclesPage = lazy(() => import('../pages/VehiclesPage').then((module) => ({ default: module.VehiclesPage })))
 
 const LandingPage = lazy(() => import('../pages/LandingPage').then((module) => ({ default: module.LandingPage })))
 const HomePage = lazy(() => import('../pages/HomePage').then((module) => ({ default: module.HomePage })))
@@ -103,7 +104,7 @@ export function AppRouter() {
             <Route path="/my-sessions" element={<SessionsPage />} />
           </Route>
           <Route element={<PermissionProtectedRoute permission="vehicles.manage" />}>
-            <Route path="/vehicles" element={<WorkspacePage title="My Vehicles" subtitle="Client vehicle profiles and connector compatibility." />} />
+            <Route path="/vehicles" element={<VehiclesPage />} />
           </Route>
           <Route element={<RoleProtectedRoute allowedRoles={['client']} />}>
             <Route path="/find-station" element={<FindStationPage />} />

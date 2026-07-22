@@ -324,6 +324,7 @@ class DashboardService
         $subscriptions = PlanSubscription::query()->where('user_id', $user->id)->current()->count();
         $activeSessionRecord = (clone $sessionsQuery)->with(['station', 'connector', 'chargingPlan', 'payment'])->whereIn('status', ['charging', 'stopping'])->latest('started_at')->first();
         $identifier = OcppIdTag::query()->where('user_id', $user->id)->where('status', 'active')->latest('last_used_at')->first();
+        $defaultVehicle = $user->vehicles()->where('is_default', true)->first();
         $currentSubscription = PlanSubscription::query()->with(['organization', 'chargingPlan'])->where('user_id', $user->id)->current()->latest('starts_at')->first();
         $allPayments = Payment::query()->where('user_id', $user->id)->get();
         $recentSessions = (clone $sessionsQuery)->with('station')->latest('started_at')->limit(5)->get();
@@ -383,7 +384,14 @@ class DashboardService
                     'discount_basis_points' => $currentSubscription->discount_basis_points,
                     'current_period_ends_at' => $currentSubscription->current_period_ends_at->toIso8601String(),
                 ] : null,
-                'vehicle' => null,
+                'vehicle' => $defaultVehicle ? [
+                    'id' => $defaultVehicle->id,
+                    'name' => $defaultVehicle->name,
+                    'make' => $defaultVehicle->make,
+                    'model' => $defaultVehicle->model,
+                    'connector_types' => $defaultVehicle->connector_types,
+                    'battery_capacity_kwh' => $defaultVehicle->battery_capacity_kwh,
+                ] : null,
                 'recent_sessions' => $recentSessions->map(fn (ChargingSession $session) => [
                     'id' => $session->id,
                     'reference' => $session->reference,

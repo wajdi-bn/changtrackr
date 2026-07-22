@@ -160,6 +160,15 @@ export interface DashboardSubscriptionWidget {
   current_period_ends_at: string
 }
 
+export interface DashboardVehicleWidget {
+  id: number
+  name: string
+  make: string | null
+  model: string | null
+  connector_types: string[]
+  battery_capacity_kwh: number | null
+}
+
 export interface DashboardRecentSessionWidget {
   id: number
   reference: string
@@ -183,7 +192,7 @@ export interface DashboardWidgets {
   active_session?: DashboardActiveSessionWidget | null
   identifier?: DashboardIdentifierWidget | null
   subscription?: DashboardSubscriptionWidget | null
-  vehicle?: null
+  vehicle?: DashboardVehicleWidget | null
   recent_sessions?: DashboardRecentSessionWidget[]
 }
 

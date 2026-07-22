@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
-    'organization_id', 'client_id', 'station_id', 'connector_id', 'tariff_id', 'charging_plan_id',
+    'organization_id', 'client_id', 'vehicle_id', 'station_id', 'connector_id', 'tariff_id', 'charging_plan_id',
     'ocpp_transaction_id', 'reference', 'source', 'client_name', 'station_name',
     'connector_external_id', 'status', 'lifecycle_reason', 'payment_status',
     'started_at', 'ended_at', 'duration_seconds', 'meter_start_kwh', 'meter_stop_kwh',
@@ -29,6 +29,11 @@ class ChargingSession extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(User::class, 'client_id');
+    }
+
+    public function vehicle(): BelongsTo
+    {
+        return $this->belongsTo(Vehicle::class);
     }
 
     public function station(): BelongsTo

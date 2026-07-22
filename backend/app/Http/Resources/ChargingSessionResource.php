@@ -19,6 +19,12 @@ class ChargingSessionResource extends JsonResource
                 'id' => $this->client_id,
                 'name' => $this->client_name,
             ],
+            'vehicle' => $this->whenLoaded('vehicle', fn () => $this->vehicle ? [
+                'id' => $this->vehicle->id,
+                'name' => $this->vehicle->name,
+                'make' => $this->vehicle->make,
+                'model' => $this->vehicle->model,
+            ] : null),
             'station' => [
                 'id' => $this->station_id,
                 'name' => $this->station_name,

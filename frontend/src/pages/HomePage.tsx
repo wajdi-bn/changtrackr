@@ -306,6 +306,7 @@ function ClientDashboard({ data, map, ...props }: RoleDashboardProps & { map: Da
   const session = data.widgets.active_session
   const identifier = data.widgets.identifier
   const subscription = data.widgets.subscription
+  const vehicle = data.widgets.vehicle
   const paymentStatus = breakdown(data, 'payments')
   const availableStations = map.stations.filter((station) => station.available_connectors_count > 0).slice(0, 4)
 
@@ -315,7 +316,7 @@ function ClientDashboard({ data, map, ...props }: RoleDashboardProps & { map: Da
       <DashboardCard title="Current charging session" subtitle={session?.reference ?? 'No active session'}><CurrentSessionWidget session={session} onOpen={navigate} /></DashboardCard>
       <DashboardCard title="Vehicle and identifier" subtitle="Default vehicle and charging access">
         <div className="client-access-widget">
-          <div className="client-vehicle-empty"><CarFront size={25} /><span><strong>No vehicle profile yet</strong><small>The vehicle module will store connector compatibility.</small></span></div>
+          <button type="button" className="client-vehicle-empty" onClick={() => navigate('/vehicles')}><CarFront size={25} /><span><strong>{vehicle?.name ?? 'No vehicle profile yet'}</strong><small>{vehicle ? `${vehicle.connector_types.join(', ')}${vehicle.battery_capacity_kwh ? ` - ${vehicle.battery_capacity_kwh} kWh` : ''}` : 'Add a vehicle to filter compatible connectors.'}</small></span></button>
           <div className="client-identifier"><KeyRound size={18} /><span><small>OCPP / RFID IDENTIFIER</small><strong>{identifier?.masked_token ?? 'No active identifier'}</strong><b>{identifier?.label ?? identifier?.status ?? 'Not configured'}</b></span></div>
           <div className="client-subscription"><ShieldCheck size={18} /><span><small>CURRENT PLAN</small><strong>{subscription?.plan ?? 'No active plan'}</strong><b>{subscription ? `${subscription.organization} - ${subscription.discount_basis_points / 100}% discount` : 'Choose a plan from subscriptions'}</b></span></div>
         </div>

@@ -10,8 +10,10 @@ import type { Connector, Station } from '../../types/station'
 import { getStation } from '../stations/stationApi'
 import { getEffectivePricing } from '../tariffs/tariffApi'
 import { getChargingAttempt, startChargingAttempt } from './chargingApi'
+import { getVehicles } from '../vehicles/vehicleApi'
 import { ConnectorTypeIcon } from './ConnectorTypeIcon'
 import { createIdempotencyKey } from '../../lib/idempotency'
+import type { Vehicle } from '../../types/vehicle'
 
 type ChargeableStation = Pick<Station, 'id' | 'name' | 'city' | 'location' | 'model_image' | 'available_connectors_count' | 'remote_start_available'> & {
   connectors: Connector[]
@@ -20,6 +22,7 @@ type ChargeableStation = Pick<Station, 'id' | 'name' | 'city' | 'location' | 'mo
 type FormValues = {
   station_id: number
   connector_id: number
+  vehicle_id?: number
   method: SimulatedPaymentMethod
   simulation_outcome: PaymentSimulationOutcome
   limit_type: 'none' | 'energy' | 'amount' | 'duration'
@@ -57,6 +60,7 @@ export function StartSessionDrawer({
   const { message } = App.useApp()
   const stationId = Form.useWatch('station_id', { form, preserve: true })
   const connectorId = Form.useWatch('connector_id', { form, preserve: true })
+  const vehicleId = Form.useWatch('vehicle_id', { form, preserve: true })
   const limitType = Form.useWatch('limit_type', { form, preserve: true })
   const effectiveStationId = stationId ?? initialStationId ?? null
   const effectiveConnectorId = connectorId ?? initialConnectorId ?? null
@@ -65,7 +69,10 @@ export function StartSessionDrawer({
     [stations],
   )
   const selectedStation = stations.find((station) => station.id === effectiveStationId)
-  const availableConnectors = selectedStation?.connectors.filter((connector) => connector.status === 'available' && connector.ocpp_status === 'Available') ?? []
+  const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: getVehicles, enabled: open })
+  const selectedVehicle = vehiclesQuery.data?.find((vehicle) => vehicle.id === vehicleId)
+  const availableConnectors = (selectedStation?.connectors.filter((connector) => connector.status === 'available' && connector.ocpp_status === 'Available') ?? [])
+    .filter((connector) => !selectedVehicle || selectedVehicle.connector_types.includes(connector.type))
   const selectedConnector = selectedStation?.connectors.find((connector) => connector.id === effectiveConnectorId)
   const pricingQuery = useQuery({
     queryKey: ['effective-pricing', effectiveStationId, effectiveConnectorId],
@@ -130,8 +137,14 @@ export function StartSessionDrawer({
       simulation_outcome: 'success',
       limit_type: 'none',
       limit_value: undefined,
+      vehicle_id: undefined,
     })
   }, [availableStations, form, initialAttemptUuid, initialConnectorId, initialStationId, open, stations.length])
+
+  useEffect(() => {
+    if (!open || form.getFieldValue('vehicle_id') || !vehiclesQuery.data?.length) return
+    form.setFieldValue('vehicle_id', vehiclesQuery.data.find((vehicle) => vehicle.is_default)?.id)
+  }, [form, open, vehiclesQuery.data])
 
   useEffect(() => {
     if (current !== 2 || liveConnector?.ocpp_status !== 'Preparing') return
@@ -164,6 +177,7 @@ export function StartSessionDrawer({
     const payload: ChargingAttemptPayload = {
       station_id: values.station_id,
       connector_id: values.connector_id,
+      ...(values.vehicle_id ? { vehicle_id: values.vehicle_id } : {}),
       method: values.method,
       simulation_outcome: values.simulation_outcome,
       idempotency_key: idempotencyKey.current,
@@ -190,7 +204,7 @@ export function StartSessionDrawer({
       <Form form={form} layout="vertical" requiredMark="optional" className="charging-workflow-form">
         <motion.div key={current} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>
           {current === 0 && <StationStep stations={availableStations} selectedStation={selectedStation} form={form} />}
-          {current === 1 && <ConnectorStep connectors={availableConnectors} selectedConnector={selectedConnector} form={form} />}
+          {current === 1 && <ConnectorStep connectors={availableConnectors} vehicles={vehiclesQuery.data ?? []} selectedVehicle={selectedVehicle} selectedConnector={selectedConnector} form={form} />}
           {current === 2 && <ConnectionStep connector={selectedConnector} liveConnector={liveConnector} loading={connectorConnectionQuery.isLoading || connectorConnectionQuery.isFetching} error={connectorConnectionQuery.isError} />}
           {current === 3 && <PaymentStep pricing={pricingQuery.data} limitType={limitType} />}
           {current === 4 && <AttemptStep attempt={attemptQuery.data} loading={attemptQuery.isLoading || startMutation.isPending} />}
@@ -219,8 +233,10 @@ function StationStep({ stations, selectedStation, form }: { stations: Chargeable
   </section>
 }
 
-function ConnectorStep({ connectors, selectedConnector, form }: { connectors: Connector[]; selectedConnector?: Connector; form: FormInstance<FormValues> }) {
+function ConnectorStep({ connectors, vehicles, selectedVehicle, selectedConnector, form }: { connectors: Connector[]; vehicles: Vehicle[]; selectedVehicle?: Vehicle; selectedConnector?: Connector; form: FormInstance<FormValues> }) {
   return <section className="charging-workflow-step"><header><PlugZap size={20} /><span><h2>Select the plug that matches your vehicle</h2><p>The connector type and maximum power are confirmed before charging.</p></span></header>
+    {vehicles.length > 0 && <Form.Item label="Vehicle" name="vehicle_id" extra="Your default vehicle is selected automatically. It filters incompatible connectors."><Select allowClear placeholder="Charge without selecting a vehicle" onChange={() => form.setFieldValue('connector_id', undefined)} options={vehicles.map((vehicle) => ({ value: vehicle.id, label: `${vehicle.name}${vehicle.is_default ? ' (default)' : ''} - ${vehicle.connector_types.join(', ')}` }))} /></Form.Item>}
+    {selectedVehicle && <div className="selected-vehicle-context"><BatteryCharging size={17} /><span><strong>{selectedVehicle.name}</strong><small>Compatible with {selectedVehicle.connector_types.join(', ')}</small></span></div>}
     <Form.Item name="connector_id" rules={[{ required: true, message: 'Choose a connector' }]}>
       <Radio.Group className="connector-choice-grid">
         {connectors.map((connector) => <Radio.Button value={connector.id} key={connector.id} onClick={() => form.setFieldValue('connector_id', connector.id)}>
