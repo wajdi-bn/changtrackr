@@ -20,7 +20,6 @@ import {
   Camera,
   Clock3,
   Globe2,
-  Link2,
   Mail,
   MapPin,
   Phone,
@@ -46,6 +45,14 @@ function formatDate(value: string | null): string {
 
 function roleLabel(role: string | undefined): string {
   return (role ?? 'user').split('_').map((value) => value[0].toUpperCase() + value.slice(1)).join(' ')
+}
+
+function LinkedInMark({ size = 15 }: { size?: number }) {
+  return (
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M20.45 3H3.55C3.25 3 3 3.25 3 3.55v16.9c0 .3.25.55.55.55h16.9c.3 0 .55-.25.55-.55V3.55c0-.3-.25-.55-.55-.55ZM8.34 18.34H5.66V9.75h2.68v8.59ZM7 8.58A1.55 1.55 0 1 1 7 5.5a1.55 1.55 0 0 1 0 3.08Zm11.35 9.76h-2.67v-4.18c0-1 0-2.28-1.39-2.28-1.39 0-1.6 1.08-1.6 2.2v4.26h-2.67V9.75h2.56v1.17h.04c.36-.67 1.23-1.39 2.54-1.39 2.71 0 3.21 1.78 3.21 4.1v4.71Z" />
+    </svg>
+  )
 }
 
 export function ProfilePage() {
@@ -168,7 +175,7 @@ export function ProfilePage() {
             <Divider />
             <div className="profile-section-heading"><span><Globe2 size={19} /></span><div><h2>Professional links</h2><p>Optional business-facing links only. Personal social profiles are not requested.</p></div></div>
             <div className="profile-form-grid two">
-              <Form.Item name="linkedin_url" label="LinkedIn"><Input prefix={<Link2 size={15} />} placeholder="https://www.linkedin.com/in/..." /></Form.Item>
+              <Form.Item name="linkedin_url" label="LinkedIn"><Input prefix={<LinkedInMark />} placeholder="https://www.linkedin.com/in/..." /></Form.Item>
               <Form.Item name="website_url" label="Professional website"><Input prefix={<Globe2 size={15} />} placeholder="https://..." /></Form.Item>
             </div>
             <div className="profile-savebar"><span>Changes are recorded in the platform audit log.</span><Button type="primary" htmlType="submit" icon={<Save size={16} />} loading={saveMutation.isPending}>Save profile</Button></div>

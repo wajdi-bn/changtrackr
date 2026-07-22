@@ -230,9 +230,9 @@
   right: -3px;
   bottom: -3px;
   display: grid;
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
   place-items: center;
   padding: 0;
   border-color: #fff;
@@ -1923,6 +1923,7 @@ html {
 
 .app-sidebar .app-menu .ant-menu-item .ant-menu-item-icon {
   min-width: 18px;
+  margin-inline-end: 11px;
 }
 
 .app-main-layout {
