@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState, type ReactNode } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Button, Empty, Input, Modal, Popconfirm, Select, Skeleton, Switch } from 'antd'
 import dayjs from 'dayjs'
@@ -15,6 +15,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
+import { MetricItem, MetricStrip } from '../components/MetricStrip'
 import {
   cancelSubscription,
   getSubscriptionPlans,
@@ -86,12 +87,12 @@ export function SubscriptionsPage() {
       subtitle="Choose plans independently from each charging network. Charging alone never creates a subscription."
     />
 
-    <div className="subscription-kpis">
-      <SubscriptionKpi icon={<ShieldCheck size={17} />} label="Active subscriptions" value={activeSubscriptions.length} tone="green" />
-      <SubscriptionKpi icon={<Building2 size={17} />} label="Networks covered" value={activeByOrganization.size} tone="blue" />
-      <SubscriptionKpi icon={<BadgePercent size={17} />} label="Best charging discount" value={formatDiscount(bestDiscount)} tone="purple" />
-      <SubscriptionKpi icon={<CreditCard size={17} />} label="Simulated monthly total" value={formatMoney(monthlyTotal)} tone="orange" />
-    </div>
+    <MetricStrip className="subscription-kpis">
+      <MetricItem icon={<ShieldCheck size={18} />} label="Active subscriptions" value={activeSubscriptions.length} tone="green" />
+      <MetricItem icon={<Building2 size={18} />} label="Networks covered" value={activeByOrganization.size} tone="blue" />
+      <MetricItem icon={<BadgePercent size={18} />} label="Best charging discount" value={formatDiscount(bestDiscount)} tone="purple" />
+      <MetricItem icon={<CreditCard size={18} />} label="Simulated monthly total" value={formatMoney(monthlyTotal)} tone="orange" />
+    </MetricStrip>
 
     <section className="subscription-section">
       <header><div><small>My subscriptions</small><h2>Current benefits</h2><p>One active plan is allowed per organization; plans from different networks can coexist.</p></div></header>
@@ -172,10 +173,6 @@ function SubscriptionModal({ plan, currentSubscription, autoRenew, submitting, o
       <div className="subscription-modal-actions"><Button onClick={onClose}>Cancel</Button><Button type="primary" loading={submitting} onClick={onConfirm}>{switching ? 'Confirm switch' : 'Activate plan'}</Button></div>
     </div>}
   </Modal>
-}
-
-function SubscriptionKpi({ icon, label, value, tone }: { icon: ReactNode; label: string; value: string | number; tone: string }) {
-  return <article className={`subscription-kpi subscription-kpi--${tone}`}><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></article>
 }
 
 function formatMoney(millimes: number): string {

@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState, type ReactNode } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Alert,
@@ -34,6 +34,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
+import { MetricItem, MetricStrip } from '../components/MetricStrip'
 import { CompactInputNumber } from '../components/CompactInputNumber'
 import {
   getDemoRequests,
@@ -206,12 +207,12 @@ export function DemoRequestsPage() {
       subtitle="Review organization access requests and create isolated trial workspaces for approved administrators."
     />
 
-    <section className="demo-summary-grid">
-      <SummaryTile icon={<Inbox size={18} />} label="Submitted" value={summary?.submitted ?? 0} tone="blue" />
-      <SummaryTile icon={<ClipboardCheck size={18} />} label="Under review" value={summary?.under_review ?? 0} tone="gold" />
-      <SummaryTile icon={<CheckCircle2 size={18} />} label="Provisioned" value={summary?.provisioned ?? 0} tone="green" />
-      <SummaryTile icon={<XCircle size={18} />} label="Rejected" value={summary?.rejected ?? 0} tone="red" />
-    </section>
+    <MetricStrip className="demo-summary-grid">
+      <MetricItem icon={<Inbox size={18} />} label="Submitted" value={summary?.submitted ?? 0} helper="Awaiting review" tone="blue" />
+      <MetricItem icon={<ClipboardCheck size={18} />} label="Under review" value={summary?.under_review ?? 0} helper="Assigned to the platform team" tone="amber" />
+      <MetricItem icon={<CheckCircle2 size={18} />} label="Provisioned" value={summary?.provisioned ?? 0} helper="Workspace created" tone="green" />
+      <MetricItem icon={<XCircle size={18} />} label="Rejected" value={summary?.rejected ?? 0} helper="Closed requests" tone="red" />
+    </MetricStrip>
 
     <section className="admin-list-panel">
       <div className="admin-list-toolbar">
@@ -241,10 +242,6 @@ export function DemoRequestsPage() {
     <RejectModal request={rejecting} loading={rejectMutation.isPending} onClose={() => setRejecting(null)} onSubmit={(values) => rejecting && rejectMutation.mutate({ requestId: rejecting.id, values })} />
     <ProvisionModal request={provisioning} loading={provisionMutation.isPending} onClose={() => setProvisioning(null)} onSubmit={(values) => provisioning && provisionMutation.mutate({ requestId: provisioning.id, values })} />
   </div>
-}
-
-function SummaryTile({ icon, label, value, tone }: { icon: ReactNode; label: string; value: number; tone: string }) {
-  return <article className={`demo-summary-tile demo-summary-tile--${tone}`}><span>{icon}</span><div><strong>{value}</strong><small>{label}</small></div></article>
 }
 
 function DemoStatus({ status }: { status: DemoRequestStatus }) {

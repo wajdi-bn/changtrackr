@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 import { BatteryCharging, Clock3, CreditCard, Download, Gauge, Play, Search, Square, Zap } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
 import { MountainBanner } from '../components/MountainBanner'
+import { MetricItem, MetricStrip, type MetricTone } from '../components/MetricStrip'
 import {
   getChargingSessions,
   getChargingAttempts,
@@ -111,12 +112,12 @@ export function SessionsPage() {
       subtitle={clientMode ? 'Start, monitor, stop, and pay for your charging sessions from one workflow.' : 'Monitor active charging, delivered energy, client activity, and payment completion.'}
     />
 
-    <div className="session-kpis">
+    <MetricStrip className="session-kpis">
       <SessionKpi icon={<BatteryCharging size={18} />} label="Active" value={sessionsQuery.data?.summary.active ?? 0} tone="purple" />
       <SessionKpi icon={<Gauge size={18} />} label="Completed" value={sessionsQuery.data?.summary.completed ?? 0} tone="green" />
       <SessionKpi icon={<Zap size={18} />} label="Energy delivered" value={`${sessionsQuery.data?.summary.energy_kwh ?? 0} kWh`} tone="blue" />
-      <SessionKpi icon={<CreditCard size={18} />} label={clientMode ? 'Paid value' : 'Revenue'} value={`${((sessionsQuery.data?.summary.revenue_millimes ?? 0) / 1000).toFixed(3)} TND`} tone="gold" />
-    </div>
+      <SessionKpi icon={<CreditCard size={18} />} label={clientMode ? 'Paid value' : 'Revenue'} value={`${((sessionsQuery.data?.summary.revenue_millimes ?? 0) / 1000).toFixed(3)} TND`} tone="amber" />
+    </MetricStrip>
 
     {clientMode && (sessionsQuery.isLoading ? <Skeleton active /> : activeSession ? (
       <section className="active-session-card">
@@ -166,8 +167,8 @@ export function SessionsPage() {
   </div>
 }
 
-function SessionKpi({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string | number; tone: string }) {
-  return <div className="session-kpi"><span className={tone}>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>
+function SessionKpi({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string | number; tone: MetricTone }) {
+  return <MetricItem icon={icon} label={label} value={value} tone={tone} />
 }
 
 function isActiveSession(session: ChargingSession) {

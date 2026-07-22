@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { App, Button, Card, Empty, Progress, Select, Skeleton, Statistic, Tag } from 'antd'
+import { App, Button, Card, Empty, Progress, Select, Skeleton, Tag } from 'antd'
 import {
   Activity,
   AlertTriangle,
@@ -46,6 +46,7 @@ import {
 } from 'recharts'
 import { useNavigate } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
+import { MetricItem, MetricStrip } from '../components/MetricStrip'
 import { useAuth } from '../features/auth/useAuth'
 import { getDashboard } from '../features/dashboard/dashboardApi'
 import { copyCoordinates } from '../features/maps/mapUtils'
@@ -339,7 +340,15 @@ function PanelTitle({ title, subtitle }: { title: string; subtitle?: string }) {
 }
 
 function KpiStrip({ kpis }: { kpis: DashboardKpi[] }) {
-  return <section className="role-kpi-strip" data-count={kpis.length}>{kpis.map((kpi) => <Card key={kpi.key} className="role-kpi-card"><span className={`role-kpi-icon tone-${kpiTone(kpi.key)}`}>{kpiIcon(kpi.key)}</span><Statistic title={kpi.label} value={formatKpi(kpi)} /><small>{kpi.context}</small>{kpi.change_percent !== null && <Tag color={kpi.change_percent >= 0 ? 'green' : 'red'}>{kpi.change_percent >= 0 ? '+' : ''}{kpi.change_percent}%</Tag>}</Card>)}</section>
+  return <MetricStrip className="role-kpi-strip">{kpis.map((kpi) => <MetricItem
+    key={kpi.key}
+    icon={kpiIcon(kpi.key)}
+    label={kpi.label}
+    value={formatKpi(kpi)}
+    helper={kpi.context}
+    tone={kpiTone(kpi.key)}
+    badge={kpi.change_percent !== null ? <Tag color={kpi.change_percent >= 0 ? 'green' : 'red'}>{kpi.change_percent >= 0 ? '+' : ''}{kpi.change_percent}%</Tag> : undefined}
+  />)}</MetricStrip>
 }
 
 function ChartFrame({ children, large = false }: { children: ReactNode; large?: boolean }) {
@@ -458,7 +467,7 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle: string }
 }
 
 function DashboardSkeleton() {
-  return <div className="page-stack role-dashboard"><Skeleton.Node active className="dashboard-hero-skeleton" /><div className="role-kpi-strip">{Array.from({ length: 6 }, (_, index) => <Card key={index}><Skeleton active paragraph={{ rows: 2 }} /></Card>)}</div><Card><Skeleton active paragraph={{ rows: 10 }} /></Card></div>
+  return <div className="page-stack role-dashboard"><Skeleton.Node active className="dashboard-hero-skeleton" /><MetricStrip className="role-kpi-strip metric-strip--loading">{Array.from({ length: 6 }, (_, index) => <article className="metric-strip__item" key={index}><Skeleton active paragraph={{ rows: 2 }} title={false} /></article>)}</MetricStrip><Card><Skeleton active paragraph={{ rows: 10 }} /></Card></div>
 }
 
 function breakdown(data: DashboardData, key: string): DashboardBreakdown | null {
@@ -481,7 +490,7 @@ function kpiIcon(key: string): ReactNode {
   return <Activity size={18} />
 }
 
-function kpiTone(key: string): string {
+function kpiTone(key: string): 'green' | 'blue' | 'purple' | 'orange' | 'amber' | 'red' | 'gray' {
   if (key.includes('critical') || key.includes('alert') || key.includes('overdue')) return 'red'
   if (key.includes('revenue') || key.includes('spend') || key.includes('session')) return 'purple'
   if (key.includes('unavailable')) return 'gray'

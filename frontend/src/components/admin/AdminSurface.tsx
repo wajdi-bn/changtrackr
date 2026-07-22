@@ -1,16 +1,14 @@
 import type { ReactNode } from 'react'
 import { Button, Empty, Skeleton } from 'antd'
 import type { LucideIcon } from 'lucide-react'
+import { MetricItem, MetricStrip, type MetricTone } from '../MetricStrip'
 
 export function AdminMetricGrid({ children }: { children: ReactNode }) {
-  return <section className="admin-metric-grid">{children}</section>
+  return <MetricStrip className="admin-metric-grid">{children}</MetricStrip>
 }
 
-export function AdminMetric({ icon: Icon, label, value, helper, tone = 'green' }: { icon: LucideIcon; label: string; value: ReactNode; helper: string; tone?: 'green' | 'blue' | 'purple' | 'orange' }) {
-  return <article className={`admin-metric admin-metric--${tone}`}>
-    <span><Icon size={18} /></span>
-    <div><small>{label}</small><strong>{value}</strong><p>{helper}</p></div>
-  </article>
+export function AdminMetric({ icon: Icon, label, value, helper, tone = 'green' }: { icon: LucideIcon; label: string; value: ReactNode; helper: string; tone?: MetricTone }) {
+  return <MetricItem icon={<Icon size={18} />} label={label} value={value} helper={helper} tone={tone} />
 }
 
 export function AdminDataPanel({ title, subtitle, extra, children }: { title: string; subtitle: string; extra?: ReactNode; children: ReactNode }) {

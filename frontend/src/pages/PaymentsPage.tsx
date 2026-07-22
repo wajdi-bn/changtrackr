@@ -6,6 +6,7 @@ import dayjs from 'dayjs'
 import { CircleDollarSign, CreditCard, Download, ReceiptText, RefreshCw, Search } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
 import { MountainBanner } from '../components/MountainBanner'
+import { MetricItem, MetricStrip } from '../components/MetricStrip'
 import { exportPayments, getChargingSessions, getPayments, processPayment } from '../features/charging/chargingApi'
 import { ChargingStatusTag } from '../features/charging/ChargingStatusTag'
 import { PaymentDrawer } from '../features/charging/PaymentDrawer'
@@ -66,12 +67,12 @@ export function PaymentsPage() {
 
   return <div className="payments-page">
     <MountainBanner color="purple" breadcrumb={[clientMode ? 'Driver' : 'Operations', clientMode ? 'Payments & invoices' : 'Payments']} title={clientMode ? 'Payments & invoices' : 'Payment monitoring'} count={paymentsQuery.data?.summary.total ?? 0} subtitle={clientMode ? 'Pay completed charging sessions and keep a traceable receipt history.' : 'Monitor simulated provider outcomes, failed attempts, transaction references, and collected revenue.'} />
-    <div className="payment-kpis">
-      <PaymentKpi icon={<ReceiptText size={18} />} label="Transactions" value={paymentsQuery.data?.summary.total ?? 0} />
-      <PaymentKpi icon={<CircleDollarSign size={18} />} label="Paid" value={paymentsQuery.data?.summary.paid ?? 0} />
-      <PaymentKpi icon={<RefreshCw size={18} />} label="Failed" value={paymentsQuery.data?.summary.failed ?? 0} />
-      <PaymentKpi icon={<CreditCard size={18} />} label={clientMode ? 'Total paid' : 'Revenue'} value={`${((paymentsQuery.data?.summary.revenue_millimes ?? 0) / 1000).toFixed(3)} TND`} />
-    </div>
+    <MetricStrip className="payment-kpis">
+      <MetricItem icon={<ReceiptText size={18} />} label="Transactions" value={paymentsQuery.data?.summary.total ?? 0} tone="blue" />
+      <MetricItem icon={<CircleDollarSign size={18} />} label="Paid" value={paymentsQuery.data?.summary.paid ?? 0} tone="green" />
+      <MetricItem icon={<RefreshCw size={18} />} label="Failed" value={paymentsQuery.data?.summary.failed ?? 0} tone="red" />
+      <MetricItem icon={<CreditCard size={18} />} label={clientMode ? 'Total paid' : 'Revenue'} value={`${((paymentsQuery.data?.summary.revenue_millimes ?? 0) / 1000).toFixed(3)} TND`} tone="purple" />
+    </MetricStrip>
 
     {paymentsQuery.isError && <Alert className="payments-api-error" type="error" showIcon title="Unable to load payments" description={axios.isAxiosError(paymentsQuery.error) ? `The API returned status ${paymentsQuery.error.response?.status ?? 'unknown'}.` : 'Check the API connection and retry.'} action={<Button size="small" onClick={() => void paymentsQuery.refetch()}>Retry</Button>} />}
 
@@ -92,10 +93,6 @@ export function PaymentsPage() {
     </Card>
     <PaymentDrawer open={Boolean(paymentSession)} session={paymentSession} submitting={paymentMutation.isPending} onClose={() => setPaymentSession(null)} onSubmit={(payload) => paymentSession && paymentMutation.mutate({ sessionId: paymentSession.id, payload })} />
   </div>
-}
-
-function PaymentKpi({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
-  return <div><span>{icon}</span><small>{label}</small><strong>{value}</strong></div>
 }
 
 function paymentErrorMessage(error: unknown) {

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Alert, Button, Tag } from 'antd'
+import { Button, Tag } from 'antd'
 import { CheckCircle2, Clock3, CreditCard, KeyRound, Mail, MapPinned, PlugZap, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
@@ -33,7 +33,6 @@ export function IntegrationsPage() {
         <div className="integration-grid">{integrationsQuery.data?.data.map((integration) => <IntegrationCard key={integration.id} integration={integration} />)}</div>
       </>}
     </AdminDataPanel>
-    <Alert className="integration-security-note" type="info" showIcon title="Configuration boundary" description="This page exposes provider names, modes and health indicators only. OAuth secrets, API keys, station credentials and webhook signatures remain in environment variables or secure hashes." />
   </div>
 }
 

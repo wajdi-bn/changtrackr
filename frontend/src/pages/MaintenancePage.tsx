@@ -38,6 +38,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
+import { MetricItem, MetricStrip, type MetricTone } from '../components/MetricStrip'
 import { useAuth } from '../features/auth/useAuth'
 import {
   createMaintenancePlan,
@@ -188,12 +189,12 @@ export function MaintenancePage() {
       subtitle="Schedule preventive and corrective work, assign technicians, and coordinate station availability from one operational calendar."
     />
 
-    <div className="maintenance-summary-grid">
-      <SummaryCard icon={CalendarRange} label="Planned" value={summary?.planned ?? 0} tone="violet" />
-      <SummaryCard icon={Wrench} label="In progress" value={summary?.in_progress ?? 0} tone="blue" />
-      <SummaryCard icon={CheckCircle2} label="Completed" value={summary?.completed ?? 0} tone="green" />
-      <SummaryCard icon={XCircle} label="Cancelled" value={summary?.cancelled ?? 0} tone="gray" />
-    </div>
+    <MetricStrip className="maintenance-summary-grid">
+      <SummaryMetric icon={CalendarRange} label="Planned" value={summary?.planned ?? 0} tone="purple" />
+      <SummaryMetric icon={Wrench} label="In progress" value={summary?.in_progress ?? 0} tone="blue" />
+      <SummaryMetric icon={CheckCircle2} label="Completed" value={summary?.completed ?? 0} tone="green" />
+      <SummaryMetric icon={XCircle} label="Cancelled" value={summary?.cancelled ?? 0} tone="gray" />
+    </MetricStrip>
 
     <div className="maintenance-toolbar">
       <Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={15} />} placeholder="Search plan, station or reference" allowClear />
@@ -253,8 +254,8 @@ function maintenanceErrorMessage(error: unknown) {
   return 'Maintenance planning could not be loaded.'
 }
 
-function SummaryCard({ icon: Icon, label, value, tone }: { icon: typeof Wrench; label: string; value: number; tone: string }) {
-  return <Card className={`maintenance-summary-card ${tone}`}><span><Icon size={17} /></span><div><strong>{value}</strong><small>{label}</small></div></Card>
+function SummaryMetric({ icon: Icon, label, value, tone }: { icon: typeof Wrench; label: string; value: number; tone: MetricTone }) {
+  return <MetricItem icon={<Icon size={18} />} label={label} value={value} tone={tone} />
 }
 
 function MaintenanceStatusTag({ status }: { status: InterventionStatus }) {

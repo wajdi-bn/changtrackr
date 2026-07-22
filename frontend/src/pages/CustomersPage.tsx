@@ -19,6 +19,7 @@ import {
   WalletCards,
 } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
+import { MetricItem, MetricStrip } from '../components/MetricStrip'
 import { UserDirectoryTabs } from '../components/UserDirectoryTabs'
 import { exportCustomers, getCustomer, getCustomers } from '../features/customers/customerApi'
 import type {
@@ -95,12 +96,12 @@ export function CustomersPage() {
 
     <UserDirectoryTabs />
 
-    <div className="customer-kpis">
-      <CustomerKpi icon={<UsersRound size={16} />} label="Organization customers" value={summary?.total ?? 0} tone="green" />
-      <CustomerKpi icon={<CalendarClock size={16} />} label="Active in 30 days" value={summary?.active_30_days ?? 0} tone="blue" />
-      <CustomerKpi icon={<BatteryCharging size={16} />} label="Charging activity" value={`${summary?.sessions ?? 0} sessions - ${formatEnergy(summary?.energy_kwh ?? 0)}`} tone="purple" />
-      <CustomerKpi icon={<WalletCards size={16} />} label="Paid revenue" value={formatMoney(summary?.revenue_millimes ?? 0)} tone="orange" />
-    </div>
+    <MetricStrip className="customer-kpis">
+      <MetricItem icon={<UsersRound size={18} />} label="Organization customers" value={summary?.total ?? 0} tone="green" />
+      <MetricItem icon={<CalendarClock size={18} />} label="Active in 30 days" value={summary?.active_30_days ?? 0} tone="blue" />
+      <MetricItem icon={<BatteryCharging size={18} />} label="Charging activity" value={`${summary?.sessions ?? 0} sessions - ${formatEnergy(summary?.energy_kwh ?? 0)}`} tone="purple" />
+      <MetricItem icon={<WalletCards size={18} />} label="Paid revenue" value={formatMoney(summary?.revenue_millimes ?? 0)} tone="orange" />
+    </MetricStrip>
 
     <div className="users-toolbar customers-toolbar">
       <Input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} prefix={<Search size={14} />} placeholder="Search customers" allowClear />
@@ -159,10 +160,6 @@ function ViewMode({ value, onChange }: { value: CustomerView; onChange: (value: 
     { value: 'grid', label: 'Grid view', icon: <Grid2X2 size={16} /> },
   ]
   return <div className="users-view-mode">{items.map((item) => <Tooltip key={item.value} title={item.label}><button type="button" className={value === item.value ? 'active' : ''} aria-label={item.label} onClick={() => onChange(item.value)}>{item.icon}</button></Tooltip>)}</div>
-}
-
-function CustomerKpi({ icon, label, value, tone }: { icon: ReactNode; label: string; value: string | number; tone: string }) {
-  return <article className={`customer-kpi customer-kpi--${tone}`}><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></article>
 }
 
 function CustomerTable({ customers, onSelect }: CustomerViewProps) {
