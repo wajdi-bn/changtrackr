@@ -35,6 +35,7 @@ const SubscriptionsPage = lazy(() => import('../pages/SubscriptionsPage').then((
 const DemoRequestsPage = lazy(() => import('../pages/DemoRequestsPage').then((module) => ({ default: module.DemoRequestsPage })))
 const OrganizationsPage = lazy(() => import('../pages/OrganizationsPage').then((module) => ({ default: module.OrganizationsPage })))
 const PlatformUsersPage = lazy(() => import('../pages/PlatformUsersPage').then((module) => ({ default: module.PlatformUsersPage })))
+const RolesPermissionsPage = lazy(() => import('../pages/RolesPermissionsPage').then((module) => ({ default: module.RolesPermissionsPage })))
 const PlatformAuditLogsPage = lazy(() => import('../pages/PlatformAuditLogsPage').then((module) => ({ default: module.PlatformAuditLogsPage })))
 
 function DefaultRedirect() {
@@ -64,7 +65,7 @@ export function AppRouter() {
             <Route path="/organizations" element={<OrganizationsPage />} />
             <Route path="/demo-requests" element={<DemoRequestsPage />} />
             <Route path="/admin-users" element={<PlatformUsersPage />} />
-            <Route path="/roles-permissions" element={<PlatformControlPage section="roles" />} />
+            <Route path="/roles-permissions" element={<RolesPermissionsPage />} />
             <Route path="/audit-logs" element={<PlatformAuditLogsPage />} />
             <Route path="/integrations" element={<PlatformControlPage section="integrations" />} />
             <Route path="/system-settings" element={<PlatformControlPage section="settings" />} />

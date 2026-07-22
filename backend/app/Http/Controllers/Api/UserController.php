@@ -9,6 +9,7 @@ use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Notifications\AccountInvitationNotification;
 use App\Services\AccountInvitationService;
+use App\Services\PlatformAuditService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -56,7 +57,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(StoreUserRequest $request, AccountInvitationService $invitations): JsonResponse
+    public function store(StoreUserRequest $request, AccountInvitationService $invitations, PlatformAuditService $audit): JsonResponse
     {
         Gate::authorize('create', User::class);
         /** @var User $actor */
@@ -75,6 +76,13 @@ class UserController extends Controller
                 null,
                 $attributes,
             );
+            $audit->record(
+                $actor,
+                'user.created',
+                $result['user'],
+                "Invited {$result['user']->name} as {$attributes['role']}.",
+                ['role' => $attributes['role'], 'invitation' => true],
+            );
             $result['user']->notify(new AccountInvitationNotification($result['invitation'], $result['token']));
 
             return (new UserResource($this->loadUser($result['user'])))
@@ -92,6 +100,13 @@ class UserController extends Controller
 
         $user = User::query()->create($attributes);
         $user->syncRoles([$role]);
+        $audit->record(
+            $actor,
+            'user.created',
+            $user,
+            "Created platform user {$user->name}.",
+            ['role' => $role],
+        );
 
         return (new UserResource($this->loadUser($user)))
             ->response()
@@ -105,13 +120,14 @@ class UserController extends Controller
         return new UserResource($this->loadUser($user));
     }
 
-    public function update(UpdateUserRequest $request, User $user): UserResource
+    public function update(UpdateUserRequest $request, User $user, PlatformAuditService $audit): UserResource
     {
         Gate::authorize('update', $user);
         /** @var User $actor */
         $actor = $request->user();
         $attributes = $request->validated();
         $currentRole = $user->primaryRoleName();
+        $before = $user->only(['name', 'email', 'phone', 'team', 'address', 'status', 'organization_id']);
         if ($actor->is($user) && (
             (isset($attributes['status']) && $attributes['status'] !== 'active')
             || (isset($attributes['role']) && $attributes['role'] !== $currentRole)
@@ -160,10 +176,28 @@ class UserController extends Controller
             $user->tokens()->delete();
         }
 
+        $changedFields = collect($before)
+            ->filter(fn ($value, string $key) => $user->getAttribute($key) !== $value)
+            ->keys()
+            ->values()
+            ->all();
+        if ($role !== null && $role !== $currentRole) {
+            $changedFields[] = 'role';
+        }
+        if ($changedFields !== []) {
+            $audit->record(
+                $actor,
+                'user.updated',
+                $user,
+                "Updated user account {$user->name}.",
+                ['changed_fields' => array_values(array_unique($changedFields))],
+            );
+        }
+
         return new UserResource($this->loadUser($user->refresh()));
     }
 
-    public function destroy(Request $request, User $user): JsonResponse
+    public function destroy(Request $request, User $user, PlatformAuditService $audit): JsonResponse
     {
         Gate::authorize('delete', $user);
         /** @var User $actor */
@@ -174,6 +208,13 @@ class UserController extends Controller
         $this->assertCanDeactivate($user);
         $user->update(['status' => 'inactive']);
         $user->tokens()->delete();
+        $audit->record(
+            $actor,
+            'user.deactivated',
+            $user,
+            "Deactivated user account {$user->name}.",
+            ['changed_fields' => ['status']],
+        );
 
         return response()->json(['data' => new UserResource($this->loadUser($user->refresh()))]);
     }

@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PlatformAuditLogController;
 use App\Http\Controllers\Api\PlanSubscriptionController;
 use App\Http\Controllers\Api\PricingController;
+use App\Http\Controllers\Api\RolePermissionController;
 use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\TariffAssignmentController;
 use App\Http\Controllers\Api\TariffController;
@@ -54,6 +55,9 @@ Route::prefix('/internal/ocpp')
 Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(function (): void {
     Route::get('/dashboard', DashboardController::class);
     Route::apiResource('organizations', OrganizationController::class)->only(['index', 'show', 'store', 'update']);
+    Route::get('/platform/roles-permissions', [RolePermissionController::class, 'index']);
+    Route::put('/platform/roles/{roleName}/permissions', [RolePermissionController::class, 'update']);
+    Route::get('/platform/audit-logs/export', [PlatformAuditLogController::class, 'export']);
     Route::get('/platform/audit-logs', [PlatformAuditLogController::class, 'index']);
     Route::get('/notifications', [UserNotificationController::class, 'index']);
     Route::patch('/notifications/{userNotification}/read', [UserNotificationController::class, 'read']);
