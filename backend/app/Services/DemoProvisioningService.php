@@ -12,7 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class DemoProvisioningService
 {
-    public function __construct(private readonly AccountInvitationService $invitations) {}
+    public function __construct(
+        private readonly AccountInvitationService $invitations,
+        private readonly OrganizationBillingService $billing,
+    ) {}
 
     /** @return array{demo_request: DemoRequest, invitation: AccountInvitation, user: User, token: string} */
     public function provision(
@@ -43,11 +46,11 @@ class DemoProvisioningService
                 'contact_phone' => $lockedRequest->phone,
                 'status' => 'active',
                 'settings' => [
-                    'subscription_status' => 'trial',
-                    'trial_ends_at' => now()->addDays($trialDays)->toISOString(),
                     'source' => 'demo_request',
                 ],
             ]);
+
+            $this->billing->createTrial($organization, $actor, $trialDays);
 
             $invitationResult = $this->invitations->invite(
                 $organization,

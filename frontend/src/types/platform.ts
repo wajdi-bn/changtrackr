@@ -82,7 +82,7 @@ export interface PlatformIntegrationResponse {
 
 export interface PlatformSetting {
   key: string
-  group: 'access' | 'invitations' | 'communications' | 'governance'
+  group: 'access' | 'invitations' | 'commercial' | 'communications' | 'governance'
   label: string
   description: string
   type: 'boolean' | 'integer' | 'string'

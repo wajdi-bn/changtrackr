@@ -11,6 +11,14 @@ export interface Organization extends OrganizationSummary {
   contact_phone: string | null
   status: string
   settings: Record<string, unknown> | null
+  commercial: {
+    status: string
+    plan: string | null
+    trial_ends_at: string | null
+    current_period_ends_at: string | null
+    grace_ends_at: string | null
+    operations_blocked: boolean
+  } | null
 }
 
 export interface AuthUser {

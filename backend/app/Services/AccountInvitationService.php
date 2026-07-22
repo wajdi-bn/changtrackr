@@ -13,7 +13,10 @@ use Illuminate\Validation\ValidationException;
 
 class AccountInvitationService
 {
-    public function __construct(private readonly PlatformSettingService $settings) {}
+    public function __construct(
+        private readonly PlatformSettingService $settings,
+        private readonly OrganizationEntitlementService $entitlements,
+    ) {}
 
     /** @return array{invitation: AccountInvitation, user: User, token: string} */
     public function invite(
@@ -33,6 +36,10 @@ class AccountInvitationService
 
         if (User::query()->whereRaw('LOWER(email) = ?', [$email])->exists()) {
             throw ValidationException::withMessages(['email' => ['An account already exists with this email address.']]);
+        }
+
+        if (in_array($role, ['operator', 'technician'], true)) {
+            $this->entitlements->assertCanInviteEmployee($organization, $role);
         }
 
         return DB::transaction(function () use ($organization, $inviter, $name, $email, $role, $demoRequest, $profile): array {

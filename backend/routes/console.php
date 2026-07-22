@@ -34,3 +34,7 @@ Schedule::command('notifications:check-sla')
 Schedule::command('audit:prune')
     ->dailyAt('02:30')
     ->withoutOverlapping(10);
+
+Schedule::command('commercial:sync')
+    ->hourly()
+    ->withoutOverlapping(10);

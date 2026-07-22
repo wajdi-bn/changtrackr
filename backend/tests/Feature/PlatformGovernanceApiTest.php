@@ -134,7 +134,7 @@ class PlatformGovernanceApiTest extends TestCase
 
         $this->getJson('/api/platform/system-settings')
             ->assertOk()
-            ->assertJsonPath('summary.settings', 7)
+            ->assertJsonPath('summary.settings', 13)
             ->assertJsonPath('data.settings.0.key', 'client_registration_enabled');
 
         $this->putJson('/api/platform/system-settings', [

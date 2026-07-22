@@ -19,6 +19,8 @@ class RolePermissionSeeder extends Seeder
         $permissions = [
             'organizations.view',
             'organizations.manage',
+            'commercial.view',
+            'commercial.manage',
             'demo_requests.view',
             'demo_requests.manage',
             'users.view',
@@ -103,6 +105,8 @@ class RolePermissionSeeder extends Seeder
                 'reports.export',
                 'reports.exchange',
                 'settings.manage',
+                'commercial.view',
+                'commercial.manage',
             ],
             'operator' => [
                 'stations.view',

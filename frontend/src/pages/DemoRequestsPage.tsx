@@ -341,7 +341,7 @@ function RejectModal({ request, loading, onClose, onSubmit }: { request: DemoReq
 
 function ProvisionModal({ request, loading, onClose, onSubmit }: { request: DemoRequest | null; loading: boolean; onClose: () => void; onSubmit: (values: ProvisionDemoRequestPayload) => void }) {
   return <Modal open={Boolean(request)} title="Approve and create workspace" footer={null} onCancel={onClose} destroyOnHidden>
-    {request && <Form<ProvisionDemoRequestPayload> layout="vertical" initialValues={{ organization_name: request.company_name, admin_name: request.full_name, trial_days: 30 }} onFinish={onSubmit}>
+    {request && <Form<ProvisionDemoRequestPayload> layout="vertical" initialValues={{ organization_name: request.company_name, admin_name: request.full_name, trial_days: 14 }} onFinish={onSubmit}>
       <Alert className="provision-alert" type="info" showIcon title="One approval, one transaction" description={`An isolated trial organization and pending administrator account will be created. The activation link will be sent to ${request.email}.`} />
       <Form.Item name="organization_name" label="Organization name" rules={[{ required: true }]}><Input /></Form.Item>
       <Form.Item name="admin_name" label="Administrator name" rules={[{ required: true }]}><Input /></Form.Item>

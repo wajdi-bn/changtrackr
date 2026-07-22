@@ -77,6 +77,7 @@ class PlatformSettingController extends Controller
                 'groups' => [
                     ['id' => 'access', 'label' => 'Public access', 'description' => 'Control public account and organization onboarding entry points.'],
                     ['id' => 'invitations', 'label' => 'Invitations', 'description' => 'Set activation link validity and reminder behavior.'],
+                    ['id' => 'commercial', 'label' => 'Commercial lifecycle', 'description' => 'Configure organization trials, grace periods and evaluation quotas.'],
                     ['id' => 'communications', 'label' => 'Communications', 'description' => 'Maintain the public support contact used by the platform.'],
                     ['id' => 'governance', 'label' => 'Governance', 'description' => 'Apply platform-wide audit retention rules.'],
                 ],

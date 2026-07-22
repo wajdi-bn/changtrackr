@@ -8,9 +8,11 @@ use App\Http\Requests\Stations\UpdateStationRequest;
 use App\Http\Resources\StationMapResource;
 use App\Http\Resources\StationResource;
 use App\Models\Connector;
+use App\Models\Organization;
 use App\Models\Station;
 use App\Models\User;
 use App\Services\Availability\AvailabilityProjectionService;
+use App\Services\OrganizationEntitlementService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +23,10 @@ class StationController extends Controller
 {
     private const STATUSES = ['available', 'charging', 'faulted', 'offline', 'maintenance', 'reserved', 'unavailable'];
 
-    public function __construct(private readonly AvailabilityProjectionService $availabilityProjector) {}
+    public function __construct(
+        private readonly AvailabilityProjectionService $availabilityProjector,
+        private readonly OrganizationEntitlementService $entitlements,
+    ) {}
 
     private const CONNECTOR_TYPES = ['CCS2', 'Type 2', 'CHAdeMO'];
 
@@ -137,6 +142,9 @@ class StationController extends Controller
             ? $attributes['organization_id']
             : $user->organization_id;
         $attributes['ocpp_identity'] = $attributes['reference'];
+
+        $organization = Organization::query()->findOrFail($attributes['organization_id']);
+        $this->entitlements->assertCanCreateStation($organization);
 
         $station = Station::query()->create($attributes);
 

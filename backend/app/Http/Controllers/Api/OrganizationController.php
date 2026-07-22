@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
+use App\Services\OrganizationBillingService;
 use App\Services\PlatformAuditService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 class OrganizationController extends Controller
 {
@@ -69,11 +69,12 @@ class OrganizationController extends Controller
         ]]);
     }
 
-    public function store(Request $request, PlatformAuditService $audit): JsonResponse
+    public function store(Request $request, PlatformAuditService $audit, OrganizationBillingService $billing): JsonResponse
     {
         $this->authorizeSuperAdmin($request);
         $attributes = $this->validatedAttributes($request);
         $organization = Organization::query()->create($attributes);
+        $billing->createTrial($organization, $request->user());
         $audit->record($request->user(), 'organization.created', $organization, "Created organization {$organization->name}.");
 
         return response()->json(['data' => $this->summary($organization)], 201);

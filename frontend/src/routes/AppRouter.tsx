@@ -43,6 +43,8 @@ const SuperAdminReportsPage = lazy(() => import('../pages/SuperAdminReportsPage'
 const AdministratorReportsPage = lazy(() => import('../pages/AdministratorReportsPage').then((module) => ({ default: module.AdministratorReportsPage })))
 const OperatorReportsPage = lazy(() => import('../pages/OperatorReportsPage').then((module) => ({ default: module.OperatorReportsPage })))
 const TechnicianReportsPage = lazy(() => import('../pages/TechnicianReportsPage').then((module) => ({ default: module.TechnicianReportsPage })))
+const CommercialManagementPage = lazy(() => import('../pages/CommercialManagementPage').then((module) => ({ default: module.CommercialManagementPage })))
+const OrganizationBillingPage = lazy(() => import('../pages/OrganizationBillingPage').then((module) => ({ default: module.OrganizationBillingPage })))
 
 function DefaultRedirect() {
   const { primaryRole } = useAuth()
@@ -69,6 +71,7 @@ export function AppRouter() {
           <Route element={<RoleProtectedRoute allowedRoles={['super_admin']} />}>
             <Route path="/admin-home" element={<HomePage />} />
             <Route path="/organizations" element={<OrganizationsPage />} />
+            <Route path="/commercial" element={<CommercialManagementPage />} />
             <Route path="/demo-requests" element={<DemoRequestsPage />} />
             <Route path="/admin-users" element={<PlatformUsersPage />} />
             <Route path="/roles-permissions" element={<RolesPermissionsPage />} />
@@ -82,6 +85,7 @@ export function AppRouter() {
             <Route path="/users/employees" element={<UsersPage />} />
             <Route path="/users/customers" element={<CustomersPage />} />
             <Route path="/analytics-reports" element={<AdministratorReportsPage />} />
+            <Route path="/organization-billing" element={<OrganizationBillingPage />} />
           </Route>
           <Route element={<PermissionProtectedRoute permission="tariffs.view" />}>
             <Route path="/tariffs" element={<TariffsPage />} />
@@ -126,6 +130,7 @@ export function AppRouter() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/help" element={<WorkspacePage title="Help" subtitle="Internal user guidance and support." />} />
+          <Route path="/subscription-required" element={<WorkspacePage title="Organization access suspended" subtitle="Operational modules are unavailable until your organization administrator renews the ChargeTrackr subscription." />} />
         </Route>
       </Route>
 

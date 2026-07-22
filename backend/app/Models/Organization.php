@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 #[Fillable(['name', 'slug', 'contact_email', 'contact_phone', 'status', 'settings'])]
@@ -93,6 +94,16 @@ class Organization extends Model
     public function internalReports(): HasMany
     {
         return $this->hasMany(InternalReport::class);
+    }
+
+    public function commercialSubscription(): HasOne
+    {
+        return $this->hasOne(OrganizationSubscription::class);
+    }
+
+    public function commercialInvoices(): HasMany
+    {
+        return $this->hasMany(OrganizationInvoice::class);
     }
 
     protected function slug(): Attribute

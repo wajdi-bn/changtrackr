@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { App, Button, Input, InputNumber, Switch, Tag } from 'antd'
-import { DatabaseZap, Globe2, Mail, RotateCcw, Save, Settings2, ShieldCheck, SlidersHorizontal, UserPlus } from 'lucide-react'
+import { BadgeDollarSign, DatabaseZap, Globe2, Mail, RotateCcw, Save, Settings2, ShieldCheck, SlidersHorizontal, UserPlus } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
 import { AdminDataPanel, AdminEmpty, AdminLoading, AdminMetric, AdminMetricGrid, AdminStatus } from '../components/admin/AdminSurface'
@@ -14,6 +14,7 @@ type SettingDraft = Record<string, SettingValue>
 const groupIcons: Record<PlatformSetting['group'], LucideIcon> = {
   access: Globe2,
   invitations: UserPlus,
+  commercial: BadgeDollarSign,
   communications: Mail,
   governance: ShieldCheck,
 }

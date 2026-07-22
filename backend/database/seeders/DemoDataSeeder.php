@@ -9,8 +9,10 @@ use App\Models\Intervention;
 use App\Models\MaintenancePlan;
 use App\Models\OcppIdTag;
 use App\Models\Organization;
+use App\Models\OrganizationSubscription;
 use App\Models\Payment;
 use App\Models\PlanSubscription;
+use App\Models\SaasPlan;
 use App\Models\Station;
 use App\Models\Tariff;
 use App\Models\TariffAssignment;
@@ -45,6 +47,21 @@ class DemoDataSeeder extends Seeder
                 'status' => 'active',
             ],
         );
+
+        $businessPlan = SaasPlan::query()->where('code', 'BUSINESS')->firstOrFail();
+        foreach ([$organization, $sahelOrganization] as $demoOrganization) {
+            OrganizationSubscription::query()->updateOrCreate(
+                ['organization_id' => $demoOrganization->id],
+                [
+                    'saas_plan_id' => $businessPlan->id,
+                    'status' => 'active',
+                    'billing_cycle' => 'annual',
+                    'source' => 'demo_seed',
+                    'current_period_starts_at' => now()->startOfYear(),
+                    'current_period_ends_at' => now()->addYear(),
+                ],
+            );
+        }
 
         $users = [
             ['name' => 'Meriem Haddad', 'email' => 'superadmin@chargetrackr.local', 'role' => 'super_admin', 'organization_id' => null, 'phone' => '+216 20 100 100', 'team' => 'Platform Administration', 'address' => 'Tunis, Tunisia'],

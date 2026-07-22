@@ -15,6 +15,9 @@ class UserResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        if ($this->relationLoaded('organization') && $this->organization !== null) {
+            $this->organization->loadMissing('commercialSubscription.plan');
+        }
         $invitation = $this->relationLoaded('latestAccountInvitation')
             ? $this->latestAccountInvitation
             : null;

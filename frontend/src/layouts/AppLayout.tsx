@@ -6,7 +6,7 @@ import {
 } from '@ant-design/icons'
 import { Avatar, Dropdown, Input, Layout, Menu, Space } from 'antd'
 import type { MenuProps } from 'antd'
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { getRoleConfig } from '../features/auth/roleConfig'
 import { AvailabilityRealtimeSync } from '../features/realtime/AvailabilityRealtimeSync'
@@ -30,9 +30,19 @@ export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const roleConfig = getRoleConfig(primaryRole)
+  const commercialBlocked = Boolean(user?.organization?.commercial?.operations_blocked)
+  const allowedDuringSuspension = ['/profile', '/settings', '/help', '/organization-billing', '/subscription-required'].includes(location.pathname)
+
+  if (commercialBlocked && !allowedDuringSuspension) {
+    return <Navigate to={primaryRole === 'admin' ? '/organization-billing' : '/subscription-required'} replace />
+  }
+
+  const visibleNavItems = commercialBlocked
+    ? roleConfig.navItems.filter((item) => primaryRole === 'admin' && item.path === '/organization-billing')
+    : roleConfig.navItems
 
   const selectedKey =
-    roleConfig.navItems.find((item) => location.pathname.startsWith(item.path))?.path ??
+    visibleNavItems.find((item) => location.pathname.startsWith(item.path))?.path ??
     roleConfig.defaultPath
 
   const avatarMenu: MenuProps['items'] = [
@@ -79,7 +89,7 @@ export function AppLayout() {
           className="app-menu"
           mode="inline"
           selectedKeys={[selectedKey]}
-          items={roleConfig.navItems.map((item) => ({
+          items={visibleNavItems.map((item) => ({
             key: item.path,
             icon: <AnimatedSidebarIcon active={selectedKey === item.path}>{item.icon}</AnimatedSidebarIcon>,
             label: item.label,

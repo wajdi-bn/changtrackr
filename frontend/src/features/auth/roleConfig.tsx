@@ -44,6 +44,7 @@ export const roleConfigs: Record<UserRole, RoleConfig> = {
     navItems: [
       { icon: <LayoutDashboard size={iconSize} />, path: '/admin-home', label: 'Admin Home' },
       { icon: <Building2 size={iconSize} />, path: '/organizations', label: 'Organizations' },
+      { icon: <BadgePercent size={iconSize} />, path: '/commercial', label: 'Commercial Management' },
       { icon: <Inbox size={iconSize} />, path: '/demo-requests', label: 'Demo Requests' },
       { icon: <Users size={iconSize} />, path: '/admin-users', label: 'Users' },
       { icon: <ShieldCheck size={iconSize} />, path: '/roles-permissions', label: 'Roles & Permissions' },
@@ -66,6 +67,7 @@ export const roleConfigs: Record<UserRole, RoleConfig> = {
       { icon: <CalendarRange size={iconSize} />, path: '/maintenance', label: 'Maintenance' },
       { icon: <ReceiptText size={iconSize} />, path: '/sessions', label: 'Sessions' },
       { icon: <CreditCard size={iconSize} />, path: '/payments', label: 'Payments' },
+      { icon: <BadgePercent size={iconSize} />, path: '/organization-billing', label: 'Subscription & Billing' },
       { icon: <Tags size={iconSize} />, path: '/tariffs', label: 'Tariffs & Pricing' },
       { icon: <BarChart3 size={iconSize} />, path: '/analytics-reports', label: 'Analytics & Reports' },
     ],

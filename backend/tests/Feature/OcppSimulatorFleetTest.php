@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Station;
 use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Database\Seeders\SaasPlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,8 +15,7 @@ class OcppSimulatorFleetTest extends TestCase
 
     public function test_demo_fleet_matches_the_multi_station_simulator_manifest(): void
     {
-        $this->seed(RolePermissionSeeder::class);
-        $this->seed(DemoDataSeeder::class);
+        $this->seed([RolePermissionSeeder::class, SaasPlanSeeder::class, DemoDataSeeder::class]);
 
         $manifest = json_decode(
             file_get_contents(base_path('../infra/ocpp/simulator/stations.json')),
