@@ -116,6 +116,7 @@ export function SettingsPage() {
         )}
       </Card>
 
+      <div className="settings-support-grid">
       <Card className="settings-card" title="Regional display">
         <div className="settings-intro settings-intro--timezone">
           <Clock3 size={20} />
@@ -172,6 +173,7 @@ export function SettingsPage() {
           </div>
         })()}
       </Card>
+      </div>
 
       <Modal
         title="Change password"

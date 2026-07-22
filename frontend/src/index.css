@@ -6982,6 +6982,12 @@ body {
 }
 .timezone-preview strong { color: #1b3529; font-size: 13px; }
 .timezone-preview small { color: #748178; font-size: 11px; }
+@media (min-width: 920px) {
+  .notification-preference-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; }
+  .notification-preference-row:nth-last-child(-n + 2) { border-bottom: 0; }
+  .settings-support-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+  .settings-support-grid .settings-card { height: 100%; }
+}
 @media (max-width: 640px) {
   .notification-preference-row { grid-template-columns: 34px minmax(0, 1fr); }
   .notification-preference-row .ant-switch { grid-column: 2; justify-self: start; }
