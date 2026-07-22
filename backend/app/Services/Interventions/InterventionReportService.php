@@ -32,6 +32,7 @@ class InterventionReportService
             }
 
             $photoCounts = $intervention->photos()
+                ->reorder()
                 ->selectRaw('phase, count(*) as aggregate')
                 ->whereIn('phase', ['before', 'after'])
                 ->groupBy('phase')

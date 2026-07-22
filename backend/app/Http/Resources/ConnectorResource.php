@@ -13,6 +13,7 @@ class ConnectorResource extends JsonResource
         return [
             'id' => $this->id,
             'external_id' => $this->external_id,
+            'qr_token' => $this->qr_token,
             'ocpp_connector_id' => $this->ocpp_connector_id,
             'type' => $this->type,
             'current_type' => $this->current_type,

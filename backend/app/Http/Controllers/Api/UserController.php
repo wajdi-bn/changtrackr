@@ -186,7 +186,7 @@ class UserController extends Controller
         /** @var User $actor */
         $actor = $request->user();
         $users = $this->applyFilters($this->scopedQuery($actor), $filters)
-            ->with('roles')
+            ->with(['roles', 'organization'])
             ->orderBy('name')
             ->get();
 
@@ -199,7 +199,7 @@ class UserController extends Controller
             if ($output === false) {
                 return;
             }
-            fputcsv($output, ['Name', 'Email', 'Phone', 'Role', 'Team', 'Status', 'Last login']);
+            fputcsv($output, ['Name', 'Email', 'Phone', 'Role', 'Organization', 'Team', 'Status', 'Last login']);
             foreach ($users as $user) {
                 fputcsv($output, array_values($this->exportRow($user)));
             }
@@ -213,6 +213,7 @@ class UserController extends Controller
         return $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
             'role' => ['nullable', Rule::in(User::EMPLOYEE_ROLES)],
+            'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
             'status' => ['nullable', Rule::in(['active', 'inactive', 'pending', 'expired', 'revoked'])],
             'team' => ['nullable', 'string', 'max:120'],
             'last_login' => ['nullable', Rule::in(['today', 'week', 'month'])],
@@ -242,6 +243,7 @@ class UserController extends Controller
                     ->orWhereRaw('LOWER(team) LIKE ?', [$needle]));
             })
             ->when($filters['role'] ?? null, fn (Builder $query, string $role) => $query->whereHas('roles', fn (Builder $query) => $query->where('name', $role)))
+            ->when(array_key_exists('organization_id', $filters), fn (Builder $query) => $query->where('organization_id', $filters['organization_id']))
             ->when($filters['status'] ?? null, function (Builder $query, string $status): void {
                 if (in_array($status, ['active', 'inactive'], true)) {
                     $query->where('status', $status);
@@ -273,7 +275,7 @@ class UserController extends Controller
     /** @return array<string, int> */
     private function roleSummary(Builder $query): array
     {
-        return collect(['admin', 'operator', 'technician'])
+        return collect(User::EMPLOYEE_ROLES)
             ->mapWithKeys(fn (string $role) => [$role => (clone $query)->whereHas('roles', fn (Builder $query) => $query->where('name', $role))->count()])
             ->all();
     }
@@ -342,6 +344,7 @@ class UserController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'role' => $user->getRoleNames()->first(),
+            'organization' => $user->organization?->name,
             'team' => $user->team,
             'status' => $user->status,
             'last_login_at' => $user->last_login_at?->toISOString(),

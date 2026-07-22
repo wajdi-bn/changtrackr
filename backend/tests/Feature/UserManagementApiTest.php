@@ -245,6 +245,12 @@ class UserManagementApiTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.organization.id', $secondOrganization->id);
 
+        $this->getJson('/api/users?organization_id='.$secondOrganization->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $administratorId)
+            ->assertJsonPath('summary.by_role.super_admin', 1);
+
         $this->assertDatabaseHas('users', [
             'id' => $administratorId,
             'organization_id' => $secondOrganization->id,

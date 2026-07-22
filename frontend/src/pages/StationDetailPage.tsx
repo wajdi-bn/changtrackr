@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Avatar, Button, Card, Drawer, Empty, Form, Input, InputNumber, Modal, Popconfirm, Select, Skeleton, Table, Tag, Tabs, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
@@ -12,6 +12,8 @@ import {
   LockOpen,
   MapPin,
   PencilLine,
+  Download,
+  Printer,
   Plus,
   Power,
   QrCode,
@@ -239,7 +241,7 @@ export function StationDetailPage() {
                 <div className={`connector-fault ${connector.error_code ? 'has-error' : ''}`}><AlertTriangle size={14} />{connector.error_code ?? 'No active connector faults'}</div>
                 {station.ocpp_managed && <div className="connector-availability-note"><Activity size={14} />{availabilityReasonLabel(connector.availability_reason)}</div>}
                 <div className="connector-actions">
-                  {station.ocpp_managed && <Button type="text" icon={<QrCode size={15} />} onClick={() => setQrConnector(connector)}>Charging QR</Button>}
+                  {canManageConnectors && <Button type="text" icon={<QrCode size={15} />} onClick={() => setQrConnector(connector)}>QR label</Button>}
                   {canExecuteCommands && station.ocpp_managed && (
                     <Tooltip title={!station.ocpp_is_connected ? 'The station must be online.' : connector.ocpp_connector_id === null ? 'No OCPP connector identifier is configured.' : undefined}>
                       <span>
@@ -359,6 +361,8 @@ export function StationDetailPage() {
         <InfoFact label="Model" value={station.model} />
         <InfoFact label="Manufacturer" value={station.manufacturer} />
         <InfoFact label="OCPP version" value={station.ocpp_version} />
+        <InfoFact label="OCPP identity" value={station.ocpp_identity ?? 'Not configured'} />
+        <InfoFact label="OCPP connection" value={station.ocpp_is_connected ? 'Connected' : 'Offline'} />
         <InfoFact label="Power" value={`${station.max_power_kw} kW`} />
         <InfoFact label="Last heartbeat" value={station.last_heartbeat_relative} />
         <InfoFact label="Availability rule" value={availabilityReasonLabel(station.availability_reason)} />
@@ -382,13 +386,39 @@ export function StationDetailPage() {
 
 function ConnectorQrModal({ station, connector, onClose }: { station: Station; connector: Connector | null; onClose: () => void }) {
   const { message } = App.useApp()
-  const url = connector ? `${window.location.origin}/charge/${station.id}/${connector.id}` : ''
+  const labelRef = useRef<HTMLDivElement | null>(null)
+  const configuredAppOrigin = import.meta.env.VITE_QR_APP_URL?.trim()
+  const appOrigin = (configuredAppOrigin || window.location.origin).replace(/\/$/, '')
+  const url = connector?.qr_token ? `${appOrigin}/charge/scan/${connector.qr_token}` : ''
 
-  return <Modal open={Boolean(connector)} title="Charging QR code" footer={<Button type="primary" onClick={onClose}>Done</Button>} onCancel={onClose} width={420}>
-    {connector && <div className="connector-qr-card">
+  const downloadLabel = () => {
+    const svg = labelRef.current?.querySelector('svg')
+    if (!svg || !connector) return
+    const blob = new Blob([svg.outerHTML], { type: 'image/svg+xml;charset=utf-8' })
+    const downloadUrl = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = downloadUrl
+    anchor.download = `chargetrackr-${station.reference}-${connector.external_id}-qr.svg`
+    anchor.click()
+    URL.revokeObjectURL(downloadUrl)
+  }
+
+  const printLabel = () => {
+    if (!labelRef.current) return
+    const printWindow = window.open('', '_blank', 'width=480,height=620')
+    if (!printWindow) {
+      void message.error('Allow pop-ups to print this QR label.')
+      return
+    }
+    printWindow.document.write(`<html><head><title>ChargeTrackr connector label</title><style>body{font-family:Arial,sans-serif;padding:28px}.connector-qr-card{text-align:center}.connector-qr-brand{display:flex;gap:12px;align-items:center;text-align:left;margin-bottom:20px}.connector-qr-brand span{display:flex;flex-direction:column;gap:4px}.connector-qr-code{display:inline-block;padding:14px;border:1px solid #d9dfdb;border-radius:8px}.connector-qr-card p{font-size:13px;color:#506057}</style></head><body>${labelRef.current.outerHTML}<script>window.onload=()=>window.print()</script></body></html>`)
+    printWindow.document.close()
+  }
+
+  return <Modal open={Boolean(connector)} title="Connector QR label" footer={<><Button icon={<Download size={15} />} onClick={downloadLabel}>Download SVG</Button><Button icon={<Printer size={15} />} onClick={printLabel}>Print label</Button><Button type="primary" onClick={onClose}>Done</Button></>} onCancel={onClose} width={420}>
+    {connector && <div ref={labelRef} className="connector-qr-card">
       <div className="connector-qr-brand"><ConnectorTypeIcon type={connector.type} /><span><strong>{station.name}</strong><small>Connector {connector.external_id} · {connector.type} · {connector.max_power_kw} kW</small></span></div>
       <div className="connector-qr-code"><QRCodeSVG value={url} size={210} level="M" marginSize={2} /></div>
-      <p>Scan to open the secure client charging workflow for this connector.</p>
+      <p>Print and attach this label to the physical connector. Clients scan it to start at this exact connector.</p>
       <Button icon={<QrCode size={15} />} onClick={async () => { await navigator.clipboard.writeText(url); void message.success('Charging link copied.') }}>Copy charging link</Button>
     </div>}
   </Modal>
@@ -475,6 +505,7 @@ function ConnectorDrawer({ open, connector, managed, submitting, onClose, onSubm
         if (!visible) return
         form.setFieldsValue(connector ? {
           external_id: connector.external_id,
+          ocpp_connector_id: connector.ocpp_connector_id ?? undefined,
           type: connector.type,
           current_type: connector.current_type,
           max_power_kw: connector.max_power_kw,
@@ -494,7 +525,8 @@ function ConnectorDrawer({ open, connector, managed, submitting, onClose, onSubm
         delete payload.error_code
         onSubmit(payload)
       }} requiredMark="optional">
-        <Form.Item label="Connector identifier" name="external_id" rules={[{ required: true }]}><Input placeholder="A1" /></Form.Item>
+      <Form.Item label="Connector identifier" name="external_id" rules={[{ required: true }]}><Input placeholder="A1" /></Form.Item>
+      <Form.Item label="OCPP connector ID" name="ocpp_connector_id" extra="Must match the connectorId sent by the physical station or simulator. Leave blank to assign the next available ID."><InputNumber min={1} max={65535} style={{ width: '100%' }} placeholder="1" /></Form.Item>
         <Form.Item label="Connector type" name="type" rules={[{ required: true }]}><Select options={['CCS2', 'Type 2', 'CHAdeMO'].map((value) => ({ value }))} /></Form.Item>
         <Form.Item label="Current type" name="current_type" rules={[{ required: true }]}><Select options={[{ value: 'AC' }, { value: 'DC' }]} /></Form.Item>
         <Form.Item label="Maximum power (kW)" name="max_power_kw" rules={[{ required: true }]}><InputNumber min={1} max={1000} style={{ width: '100%' }} /></Form.Item>

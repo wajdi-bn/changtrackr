@@ -232,6 +232,28 @@ class StationApiTest extends TestCase
         $this->getJson("/api/stations/{$hiddenStation->id}")->assertForbidden();
     }
 
+    public function test_client_can_resolve_an_opaque_connector_qr_code(): void
+    {
+        [$client, $organization] = $this->userWithRole('client');
+        $client->update(['organization_id' => null]);
+        $station = $this->station($organization, 'CT-QR-001');
+        $connector = Connector::query()->create([
+            'station_id' => $station->id,
+            'external_id' => 'A1',
+            'type' => 'CCS2',
+            'current_type' => 'DC',
+            'max_power_kw' => 120,
+            'status' => 'available',
+        ]);
+        Sanctum::actingAs($client);
+
+        $this->getJson("/api/connector-qr/{$connector->qr_token}")
+            ->assertOk()
+            ->assertJsonPath('data.station_id', $station->id)
+            ->assertJsonPath('data.connector_id', $connector->id)
+            ->assertJsonPath('data.connector_external_id', 'A1');
+    }
+
     public function test_map_endpoint_scopes_stations_to_the_operator_organization(): void
     {
         [$operator, $organization] = $this->userWithRole('operator');

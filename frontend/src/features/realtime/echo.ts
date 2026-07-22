@@ -9,8 +9,9 @@ export function createRealtimeClient(): ReverbEcho {
   if (realtimeClient) return realtimeClient
 
   const scheme = import.meta.env.VITE_REVERB_SCHEME ?? 'http'
-  const host = import.meta.env.VITE_REVERB_HOST ?? window.location.hostname
+  const host = import.meta.env.DEV ? window.location.hostname : (import.meta.env.VITE_REVERB_HOST ?? window.location.hostname)
   const port = Number(import.meta.env.VITE_REVERB_PORT ?? 8080)
+  const forceTLS = scheme === 'https' && window.location.protocol === 'https:'
 
   realtimeClient = new Echo<'reverb'>({
     broadcaster: 'reverb',
@@ -18,8 +19,8 @@ export function createRealtimeClient(): ReverbEcho {
     wsHost: host,
     wsPort: port,
     wssPort: port,
-    forceTLS: scheme === 'https',
-    enabledTransports: ['ws', 'wss'],
+    forceTLS,
+    enabledTransports: forceTLS ? ['wss'] : ['ws'],
     Pusher,
     channelAuthorization: {
       customHandler: async (params, callback) => {

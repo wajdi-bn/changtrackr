@@ -1,6 +1,7 @@
 import { Alert, Button, Drawer, Form, Select } from 'antd'
 import { CreditCard, FlaskConical, LockKeyhole } from 'lucide-react'
 import type { ChargingSession, PaymentPayload, PaymentSimulationOutcome, SimulatedPaymentMethod } from '../../types/charging'
+import { createIdempotencyKey } from '../../lib/idempotency'
 
 interface PaymentDrawerProps {
   open: boolean
@@ -38,7 +39,7 @@ export function PaymentDrawer({ open, session, submitting, onClose, onSubmit }: 
           form={form}
           layout="vertical"
           requiredMark="optional"
-          onFinish={(values) => onSubmit({ ...values, idempotency_key: crypto.randomUUID() })}
+          onFinish={(values) => onSubmit({ ...values, idempotency_key: createIdempotencyKey() })}
         >
           <Form.Item label="Simulated payment method" name="method" rules={[{ required: true }]}>
             <Select options={[

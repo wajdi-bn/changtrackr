@@ -18,6 +18,7 @@ export type ManagedUserFilterStatus = ManagedUserStatus | 'expired' | 'revoked'
 export type LastLoginFilter = 'today' | 'week' | 'month'
 
 export interface ManagedUserPayload {
+  organization_id?: number | null
   name: string
   email: string
   phone?: string | null
@@ -29,6 +30,7 @@ export interface ManagedUserPayload {
 }
 
 export interface ManagedUserFilters {
+  organization_id?: number
   search?: string
   role?: EmployeeRole
   status?: ManagedUserFilterStatus
@@ -45,7 +47,7 @@ export interface ManagedUsersResponse {
     active: number
     inactive: number
     pending: number
-    by_role: Record<Exclude<EmployeeRole, 'super_admin'>, number>
+    by_role: Record<EmployeeRole, number>
   }
   meta: {
     current_page: number

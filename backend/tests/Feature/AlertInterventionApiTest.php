@@ -9,6 +9,7 @@ use App\Models\Station;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -66,7 +67,8 @@ class AlertInterventionApiTest extends TestCase
 
         $this->patchJson("/api/alerts/{$alert->id}", ['assigned_technician_id' => $technician->id])
             ->assertOk()
-            ->assertJsonPath('data.assigned_technician.id', $technician->id);
+            ->assertJsonPath('data.assigned_technician.id', $technician->id)
+            ->assertJsonPath('data.status', 'in-progress');
 
         $this->postJson("/api/alerts/{$alert->id}/interventions", [
             'assigned_technician_id' => $technician->id,
@@ -161,6 +163,46 @@ class AlertInterventionApiTest extends TestCase
         $this->postJson("/api/alerts/{$alert->id}/interventions", [
             'assigned_technician_id' => $technician->id,
         ])->assertForbidden();
+    }
+
+    public function test_operator_cannot_resolve_an_alert_while_its_intervention_is_active(): void
+    {
+        $organization = $this->organization('active-intervention-alert');
+        $operator = $this->user($organization, 'operator');
+        $technician = $this->user($organization, 'technician');
+        $alert = $this->alert($this->station($organization, 'CT-ACTIVE-INTERVENTION'), 'ALT-ACTIVE');
+        $this->intervention($alert, $technician, 'INT-ACTIVE');
+        Sanctum::actingAs($operator);
+
+        $this->patchJson("/api/alerts/{$alert->id}", ['status' => 'resolved'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
+    }
+
+    public function test_operator_alert_uses_the_default_sla_when_no_due_date_is_given(): void
+    {
+        $now = Carbon::parse('2026-07-22 09:00:00');
+        Carbon::setTestNow($now);
+        try {
+            $organization = $this->organization('default-sla-alert');
+            $operator = $this->user($organization, 'operator');
+            $station = $this->station($organization, 'CT-DEFAULT-SLA');
+            Sanctum::actingAs($operator);
+
+            $alertId = $this->postJson('/api/alerts', [
+                'station_id' => $station->id,
+                'title' => 'Connector needs inspection',
+                'problem_type' => 'Connector warning',
+                'severity' => 'warning',
+                'description' => 'A technician should inspect the connector.',
+                'source' => 'operator',
+            ])->assertCreated()->json('data.id');
+
+            $alert = Alert::query()->findOrFail($alertId);
+            $this->assertTrue($alert->due_at->equalTo($now->copy()->addHour()));
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     private function organization(string $slug): Organization

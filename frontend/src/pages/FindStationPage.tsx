@@ -1,16 +1,18 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { App, Button, Empty, Input, Segmented, Skeleton, Tooltip } from 'antd'
-import { Copy, Gauge, Grid2X2, Map as MapIcon, MapPin, Navigation, Search, Zap } from 'lucide-react'
+import { Alert, App, Button, Empty, Input, Segmented, Skeleton, Tooltip } from 'antd'
+import { Copy, Gauge, Grid2X2, Map as MapIcon, MapPin, Navigation, QrCode, Search, Zap } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
 import { StartSessionDrawer } from '../features/charging/StartSessionDrawer'
 import { ConnectorTypeIcon } from '../features/charging/ConnectorTypeIcon'
 import { copyCoordinates, distanceInKilometers, formatCoordinates, googleMapsDirectionsUrl, stationStatusColors } from '../features/maps/mapUtils'
 import { StationMap } from '../features/maps/StationMap'
-import { getStationMap } from '../features/stations/stationApi'
+import { getStationMap, resolveConnectorQr } from '../features/stations/stationApi'
 import { StationStatusTag } from '../features/stations/StationStatusTag'
 import type { StationMapMarker } from '../types/station'
+
+const QrScannerModal = lazy(() => import('../features/charging/QrScannerModal').then((module) => ({ default: module.QrScannerModal })))
 
 export function FindStationPage() {
   const [search, setSearch] = useState('')
@@ -20,7 +22,8 @@ export function FindStationPage() {
   const [mapSelectedStationId, setMapSelectedStationId] = useState<number | null>(null)
   const [userPosition, setUserPosition] = useState<{ latitude: number; longitude: number } | null>(null)
   const [locating, setLocating] = useState(false)
-  const params = useParams<{ stationId?: string; connectorId?: string }>()
+  const [scannerOpen, setScannerOpen] = useState(false)
+  const params = useParams<{ stationId?: string; connectorId?: string; qrToken?: string }>()
   const navigate = useNavigate()
   const { message } = App.useApp()
   const stationsQuery = useQuery({
@@ -37,10 +40,20 @@ export function FindStationPage() {
   const mapSelectedStation = stations.find((station) => station.id === mapSelectedStationId) ?? null
   const deepLinkedStationId = params.stationId ? Number(params.stationId) : null
   const deepLinkedConnectorId = params.connectorId ? Number(params.connectorId) : null
+  const qrTargetQuery = useQuery({
+    queryKey: ['connector-qr', params.qrToken],
+    queryFn: () => resolveConnectorQr(params.qrToken ?? ''),
+    enabled: Boolean(params.qrToken),
+    retry: false,
+  })
 
   useEffect(() => {
     if (deepLinkedStationId && Number.isFinite(deepLinkedStationId)) setSelectedStationId(deepLinkedStationId)
   }, [deepLinkedStationId])
+
+  useEffect(() => {
+    if (qrTargetQuery.data) setSelectedStationId(qrTargetQuery.data.station_id)
+  }, [qrTargetQuery.data])
 
   function locateUser() {
     if (!navigator.geolocation) {
@@ -74,7 +87,8 @@ export function FindStationPage() {
 
   return <div className="find-station-page">
     <MountainBanner color="green" breadcrumb={['Driver', 'Find station']} title="Find an available station" count={stations.length} subtitle="Compare connector availability and power, then start charging without leaving the platform." />
-    <div className="station-finder-toolbar"><Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={15} />} placeholder="Search by station, city, or location" allowClear /><Button icon={<Navigation size={15} />} loading={locating} onClick={locateUser}>{userPosition ? 'Location active' : 'Near me'}</Button><Segmented className="finder-view-switcher" value={view} onChange={(value) => setView(value as 'cards' | 'map')} options={[{ value: 'cards', icon: <Grid2X2 size={15} />, label: 'Cards' }, { value: 'map', icon: <MapIcon size={15} />, label: 'Map' }]} /></div>
+    <div className="station-finder-toolbar"><Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={15} />} placeholder="Search by station, city, or location" allowClear /><Button icon={<QrCode size={15} />} onClick={() => setScannerOpen(true)}>Scan QR</Button><Button icon={<Navigation size={15} />} loading={locating} onClick={locateUser}>{userPosition ? 'Location active' : 'Near me'}</Button><Segmented className="finder-view-switcher" value={view} onChange={(value) => setView(value as 'cards' | 'map')} options={[{ value: 'cards', icon: <Grid2X2 size={15} />, label: 'Cards' }, { value: 'map', icon: <MapIcon size={15} />, label: 'Map' }]} /></div>
+    {qrTargetQuery.isError && <Alert className="qr-target-error" type="error" showIcon title="This connector QR code is invalid or no longer available." />}
     {!stationsQuery.isLoading && stations.length > 0 && view === 'map' && <section className="client-map-view">
       <div className="network-map-workspace client-network-map-workspace">
         <div className="network-map-canvas">
@@ -113,7 +127,8 @@ export function FindStationPage() {
         </div>
       </article>)}</div>
     )}
-    <StartSessionDrawer open={selectedStationId !== null} stations={stationsQuery.data?.data ?? []} initialStationId={selectedStationId} initialConnectorId={deepLinkedStationId === selectedStationId ? deepLinkedConnectorId : null} onClose={() => setSelectedStationId(null)} onSessionStarted={() => navigate('/my-sessions')} />
+    <StartSessionDrawer open={selectedStationId !== null} stations={stationsQuery.data?.data ?? []} initialStationId={selectedStationId} initialConnectorId={qrTargetQuery.data?.station_id === selectedStationId ? qrTargetQuery.data.connector_id : deepLinkedStationId === selectedStationId ? deepLinkedConnectorId : null} onClose={() => setSelectedStationId(null)} onSessionStarted={() => navigate('/my-sessions')} />
+    <Suspense fallback={null}><QrScannerModal open={scannerOpen} onClose={() => setScannerOpen(false)} onScan={(token) => { setScannerOpen(false); navigate(`/charge/scan/${token}`) }} /></Suspense>
   </div>
 }
 

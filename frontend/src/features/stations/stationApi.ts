@@ -13,6 +13,13 @@ import type {
   StationsResponse,
 } from '../../types/station'
 
+export interface ConnectorQrTarget {
+  station_id: number
+  connector_id: number
+  station_name: string
+  connector_external_id: string
+}
+
 export async function getStations(filters: { search?: string; status?: StationStatus }): Promise<StationsResponse> {
   const response = await httpClient.get<StationsResponse>('/stations', { params: filters })
   return response.data
@@ -25,6 +32,11 @@ export async function getStationMap(filters: StationMapFilters): Promise<Station
 
 export async function getStation(stationId: number): Promise<Station> {
   const response = await httpClient.get<{ data: Station }>(`/stations/${stationId}`)
+  return response.data.data
+}
+
+export async function resolveConnectorQr(token: string): Promise<ConnectorQrTarget> {
+  const response = await httpClient.get<{ data: ConnectorQrTarget }>(`/connector-qr/${encodeURIComponent(token)}`)
   return response.data.data
 }
 

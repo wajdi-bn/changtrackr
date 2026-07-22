@@ -78,6 +78,8 @@ class InterventionResource extends JsonResource
                 'id' => $this->station->id,
                 'name' => $this->station->name,
                 'city' => $this->station->city,
+                'availability_override' => $this->station->availability_override,
+                'maintenance_intervention_id' => $this->station->maintenance_intervention_id,
             ]),
             'connector' => $this->whenLoaded('connector', fn () => $this->connector ? [
                 'id' => $this->connector->id,

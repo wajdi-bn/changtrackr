@@ -1,6 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { App, Button, Card, Checkbox, DatePicker, Drawer, Empty, Form, Input, InputNumber, Popconfirm, Segmented, Select, Skeleton, Steps, Tag, Upload } from 'antd'
+import { Alert, App, Button, Card, Checkbox, DatePicker, Drawer, Empty, Form, Input, InputNumber, Popconfirm, Segmented, Select, Skeleton, Steps, Tag, Upload } from 'antd'
+import { isAxiosError } from 'axios'
 import dayjs from 'dayjs'
 import {
   CheckCircle2,
@@ -75,7 +76,7 @@ export function InterventionsPage() {
       await queryClient.invalidateQueries({ queryKey: ['alerts'] })
       void message.success('Intervention updated.')
     },
-    onError: () => void message.error('The intervention could not be updated.'),
+    onError: (error) => void message.error(apiErrorMessage(error, 'The intervention could not be updated.')),
   })
 
   const noteMutation = useMutation({
@@ -118,7 +119,7 @@ export function InterventionsPage() {
       setReportOpen(false)
       void message.success('Final report submitted. The intervention is now read-only.')
     },
-    onError: () => void message.error('The report could not be submitted. Check every step and the required photos.'),
+    onError: (error) => void message.error(apiErrorMessage(error, 'The report could not be submitted. Check every step and the required photos.')),
   })
 
   return <div className="interventions-page">
@@ -221,6 +222,14 @@ function InterventionDetails({ intervention, technicianMode, canManage, canRepor
   onViewPhoto: (photoId: number) => void
 }) {
   if (!intervention) return <Card title="Intervention detail"><Empty description="Select an intervention" /></Card>
+  const maintenanceStartBlockedReason = intervention.maintenance_plan_id === null
+    ? null
+    : intervention.station.maintenance_intervention_id !== null && intervention.station.maintenance_intervention_id !== intervention.id
+      ? 'Another maintenance intervention is already active for this station. Complete or cancel it before starting this work order.'
+      : intervention.station.availability_override === 'maintenance'
+        ? 'This station is already in manually controlled maintenance mode. Clear the manual maintenance mode before starting this work order.'
+        : null
+
   return <Card className="intervention-detail-card" title="Intervention detail" extra={<WorkflowTag value={intervention.status} />}>
     <header><h2>{intervention.problem}</h2><p>{intervention.reference} - {intervention.station.name}</p></header>
     <div className="intervention-facts">
@@ -230,12 +239,13 @@ function InterventionDetails({ intervention, technicianMode, canManage, canRepor
       <Fact label="Duration" value={`${intervention.estimated_duration_minutes ?? 0} min`} />
     </div>
     <section className="field-suggestion"><strong>Field checklist</strong><p>Compare the current OCPP error with the last successful session, inspect connector pins before replacing hardware, and record the result before resolving.</p></section>
+    {maintenanceStartBlockedReason && <Alert className="intervention-maintenance-block" type="warning" showIcon title="Maintenance start blocked" description={maintenanceStartBlockedReason} />}
     <section className="intervention-section"><h3>Parts</h3><div className="parts-list">{intervention.parts.length ? intervention.parts.map((part) => <span key={part}>{part}</span>) : <small>No parts specified</small>}</div></section>
     <section className="workflow-timeline"><h3>Timeline and notes</h3>{intervention.events.map((event) => <div key={event.id}><span><CheckCircle2 size={13} /></span><p>{event.description}<small>{event.occurred_relative}</small></p></div>)}</section>
     <ReportSummary intervention={intervention} onViewPhoto={onViewPhoto} />
     <div className="intervention-actions">
       {canManage && !isTerminal(intervention.status) && <Button icon={<UserRoundCog size={14} />} onClick={onManage}>Assignment & schedule</Button>}
-      {technicianMode && intervention.status === 'assigned' && <Button type="primary" icon={<Play size={14} />} loading={updating} onClick={() => onStatus('in-progress')}>Start</Button>}
+      {technicianMode && intervention.status === 'assigned' && <Button type="primary" icon={<Play size={14} />} loading={updating} disabled={Boolean(maintenanceStartBlockedReason)} title={maintenanceStartBlockedReason ?? undefined} onClick={() => onStatus('in-progress')}>Start</Button>}
       {technicianMode && intervention.status === 'in-progress' && <Button icon={<Pause size={14} />} loading={updating} onClick={() => onStatus('paused')}>Pause</Button>}
       {technicianMode && (intervention.status === 'paused' || intervention.status === 'waiting-parts') && <Button type="primary" icon={<Play size={14} />} loading={updating} onClick={() => onStatus('in-progress')}>Resume</Button>}
       {technicianMode && intervention.status === 'in-progress' && <Button icon={<PackageOpen size={14} />} loading={updating} onClick={() => onStatus('waiting-parts')}>Waiting parts</Button>}
@@ -365,6 +375,35 @@ function ReportDrawer({ open, intervention, submitting, uploading, deleting, onC
     setCurrent((step) => Math.min(step + 1, 3))
   }
 
+  function submitFinalReport() {
+    const values = form.getFieldsValue(true) as Partial<InterventionReportPayload>
+    const diagnosis = values.diagnosis?.trim() ?? ''
+    if (diagnosis.length < 10) {
+      form.setFields([{ name: 'diagnosis', errors: ['Enter at least 10 characters for the diagnosis.'] }])
+      setCurrent(0)
+      void message.error('Complete the diagnosis before submitting the report.')
+      return
+    }
+
+    const actionsTaken = values.actions_taken?.trim() ?? ''
+    if (actionsTaken.length < 10) {
+      form.setFields([{ name: 'actions_taken', errors: ['Enter at least 10 characters for the work performed.'] }])
+      setCurrent(1)
+      void message.error('Complete the work performed before submitting the report.')
+      return
+    }
+
+    const hasBefore = photos.some((photo) => photo.phase === 'before')
+    const hasAfter = photos.some((photo) => photo.phase === 'after')
+    if (!hasBefore || !hasAfter) {
+      setCurrent(2)
+      void message.error('Add at least one before photo and one after photo before submitting the report.')
+      return
+    }
+
+    onSubmit(normalizeReportPayload(values))
+  }
+
   return <Drawer
     className="intervention-report-drawer"
     title="Complete intervention report"
@@ -383,7 +422,7 @@ function ReportDrawer({ open, intervention, submitting, uploading, deleting, onC
       { title: 'Evidence' },
       { title: 'Review' },
     ]} />
-    <Form form={form} layout="vertical" requiredMark="optional" className="intervention-report-form" onFinish={onSubmit}>
+    <Form form={form} layout="vertical" requiredMark="optional" className="intervention-report-form" onFinish={submitFinalReport}>
       {current === 0 && <div className="report-step">
         <div className="report-step-heading"><span><ClipboardCheck size={18} /></span><div><strong>Document the diagnosis</strong><small>Record what was observed and the confirmed root cause.</small></div></div>
         <Form.Item label="Diagnosis" name="diagnosis" rules={[{ required: true, min: 10, max: 5000 }]}>
@@ -481,6 +520,29 @@ function EvidenceGallery({ photos, readOnly = false, deleting = false, onDelete,
 function formatBytes(size: number) {
   if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`
   return `${(size / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function normalizeReportPayload(payload: Partial<InterventionReportPayload>): InterventionReportPayload {
+  return {
+    diagnosis: payload.diagnosis?.trim() ?? '',
+    actions_taken: payload.actions_taken?.trim() ?? '',
+    final_outcome: payload.final_outcome ?? 'operational',
+    observations: payload.observations?.trim() || null,
+    parts: (payload.parts ?? []).filter((part): part is string => typeof part === 'string').map((part) => part.trim()).filter(Boolean),
+    safety_checks: {
+      work_area_safe: Boolean(payload.safety_checks?.work_area_safe),
+      connector_inspected: Boolean(payload.safety_checks?.connector_inspected),
+      station_status_verified: Boolean(payload.safety_checks?.station_status_verified),
+    },
+  }
+}
+
+function apiErrorMessage(error: unknown, fallback: string): string {
+  if (!isAxiosError<{ message?: string; errors?: Record<string, string[]> }>(error)) return fallback
+  const errors = error.response?.data.errors
+  const validationMessage = errors ? Object.values(errors).flat()[0] : undefined
+
+  return validationMessage ?? error.response?.data.message ?? fallback
 }
 
 function ManagementDrawer({ open, intervention, technicians, submitting, onClose, onSubmit }: {

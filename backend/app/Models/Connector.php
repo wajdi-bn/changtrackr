@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 #[Fillable([
     'station_id', 'external_id', 'ocpp_connector_id', 'type', 'current_type',
@@ -16,6 +17,13 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 ])]
 class Connector extends Model
 {
+    protected static function booted(): void
+    {
+        static::creating(function (self $connector): void {
+            $connector->qr_token ??= (string) Str::uuid();
+        });
+    }
+
     /** @return BelongsTo<Station, $this> */
     public function station(): BelongsTo
     {

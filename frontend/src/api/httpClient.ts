@@ -1,8 +1,13 @@
 import axios from 'axios'
 
-const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api'
+const localBackendUrl = `${window.location.protocol}//${window.location.hostname}:8000`
+const baseURL = import.meta.env.DEV
+  ? `${localBackendUrl}/api`
+  : (import.meta.env.VITE_API_URL ?? `${localBackendUrl}/api`)
 export const backendUrl = (
-  import.meta.env.VITE_BACKEND_URL ?? baseURL.replace(/\/api\/?$/, '')
+  import.meta.env.DEV
+    ? localBackendUrl
+    : (import.meta.env.VITE_BACKEND_URL ?? baseURL.replace(/\/api\/?$/, ''))
 ).replace(/\/$/, '')
 
 export const httpClient = axios.create({

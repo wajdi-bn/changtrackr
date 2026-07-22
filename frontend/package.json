@@ -13,6 +13,7 @@
     "@ant-design/icons": "^6.3.2",
     "@hookform/resolvers": "^5.4.0",
     "@tanstack/react-query": "^5.101.2",
+    "@zxing/browser": "^0.1.5",
     "antd": "^6.5.0",
     "axios": "^1.18.1",
     "clsx": "^2.1.1",

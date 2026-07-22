@@ -23,6 +23,9 @@ class OperationalNotificationService
         if ($user->status !== 'active') {
             return null;
         }
+        if (in_array('email', $channels, true) && ! $this->wantsEmailFor($user, $attributes['category'])) {
+            $channels = array_values(array_diff($channels, ['email']));
+        }
 
         $notification = DB::transaction(function () use ($user, $attributes, $channels): UserNotification {
             $notification = UserNotification::query()->firstOrCreate(
@@ -282,5 +285,19 @@ class OperationalNotificationService
         }
 
         return $users->unique('id')->values();
+    }
+
+    private function wantsEmailFor(User $user, string $category): bool
+    {
+        $key = match ($category) {
+            'assignment' => 'email_assignments',
+            'intervention' => 'email_interventions',
+            'maintenance' => 'email_maintenance',
+            'sla' => 'email_sla',
+            'payment' => 'email_payments',
+            default => 'email_alerts',
+        };
+
+        return (bool) data_get($user->notification_preferences, $key, true);
     }
 }

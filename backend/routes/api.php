@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ChargingAttemptController;
 use App\Http\Controllers\Api\ChargingPlanController;
 use App\Http\Controllers\Api\ChargingSessionController;
 use App\Http\Controllers\Api\ConnectorController;
+use App\Http\Controllers\Api\ConnectorQrController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DemoRequestController;
@@ -15,8 +16,11 @@ use App\Http\Controllers\Api\Internal\PaymentWebhookController;
 use App\Http\Controllers\Api\InterventionController;
 use App\Http\Controllers\Api\InterventionReportController;
 use App\Http\Controllers\Api\MaintenanceController;
+use App\Http\Controllers\Api\NotificationPreferenceController;
 use App\Http\Controllers\Api\OcppSupervisionController;
+use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PlatformAuditLogController;
 use App\Http\Controllers\Api\PlanSubscriptionController;
 use App\Http\Controllers\Api\PricingController;
 use App\Http\Controllers\Api\StationController;
@@ -49,9 +53,13 @@ Route::prefix('/internal/ocpp')
 
 Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(function (): void {
     Route::get('/dashboard', DashboardController::class);
+    Route::apiResource('organizations', OrganizationController::class)->only(['index', 'show', 'store', 'update']);
+    Route::get('/platform/audit-logs', [PlatformAuditLogController::class, 'index']);
     Route::get('/notifications', [UserNotificationController::class, 'index']);
     Route::patch('/notifications/{userNotification}/read', [UserNotificationController::class, 'read']);
     Route::post('/notifications/read-all', [UserNotificationController::class, 'readAll']);
+    Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show']);
+    Route::put('/notification-preferences', [NotificationPreferenceController::class, 'update']);
 
     Route::get('/demo-requests', [DemoRequestController::class, 'index']);
     Route::get('/demo-requests/{demoRequest}', [DemoRequestController::class, 'show']);
@@ -64,6 +72,7 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class])->group(f
     Route::post('/demo-requests/{demoRequest}/invitation/revoke', [DemoRequestController::class, 'revokeInvitation']);
 
     Route::get('/stations/map', [StationController::class, 'map']);
+    Route::get('/connector-qr/{token}', [ConnectorQrController::class, 'show']);
     Route::apiResource('stations', StationController::class);
     Route::post('/stations/{station}/connectors', [ConnectorController::class, 'store']);
     Route::put('/stations/{station}/connectors/{connector}', [ConnectorController::class, 'update']);

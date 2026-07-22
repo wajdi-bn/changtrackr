@@ -15,6 +15,8 @@ import { ResetPasswordPage } from '../pages/ResetPasswordPage'
 import { VerifyEmailPage } from '../pages/VerifyEmailPage'
 import { ActivateInvitationPage } from '../pages/ActivateInvitationPage'
 import { WorkspacePage } from '../pages/WorkspacePage'
+import { SettingsPage } from '../pages/SettingsPage'
+import { PlatformControlPage } from '../pages/PlatformControlPage'
 
 const LandingPage = lazy(() => import('../pages/LandingPage').then((module) => ({ default: module.LandingPage })))
 const HomePage = lazy(() => import('../pages/HomePage').then((module) => ({ default: module.HomePage })))
@@ -31,6 +33,9 @@ const UsersPage = lazy(() => import('../pages/UsersPage').then((module) => ({ de
 const CustomersPage = lazy(() => import('../pages/CustomersPage').then((module) => ({ default: module.CustomersPage })))
 const SubscriptionsPage = lazy(() => import('../pages/SubscriptionsPage').then((module) => ({ default: module.SubscriptionsPage })))
 const DemoRequestsPage = lazy(() => import('../pages/DemoRequestsPage').then((module) => ({ default: module.DemoRequestsPage })))
+const OrganizationsPage = lazy(() => import('../pages/OrganizationsPage').then((module) => ({ default: module.OrganizationsPage })))
+const PlatformUsersPage = lazy(() => import('../pages/PlatformUsersPage').then((module) => ({ default: module.PlatformUsersPage })))
+const PlatformAuditLogsPage = lazy(() => import('../pages/PlatformAuditLogsPage').then((module) => ({ default: module.PlatformAuditLogsPage })))
 
 function DefaultRedirect() {
   const { primaryRole } = useAuth()
@@ -56,13 +61,13 @@ export function AppRouter() {
           <Route path="/overview" element={<HomePage />} />
           <Route element={<RoleProtectedRoute allowedRoles={['super_admin']} />}>
             <Route path="/admin-home" element={<HomePage />} />
-            <Route path="/organizations" element={<WorkspacePage title="Organizations" subtitle="Global tenant management for the super administrator." />} />
+            <Route path="/organizations" element={<OrganizationsPage />} />
             <Route path="/demo-requests" element={<DemoRequestsPage />} />
-            <Route path="/admin-users" element={<WorkspacePage title="Platform users" subtitle="Global users, administrators and role assignments." />} />
-            <Route path="/roles-permissions" element={<WorkspacePage title="Roles & Permissions" subtitle="Permission matrix inspired by admin panel content." />} />
-            <Route path="/audit-logs" element={<WorkspacePage title="Audit Logs" subtitle="Security-sensitive actions and traceability." />} />
-            <Route path="/integrations" element={<WorkspacePage title="Integrations" subtitle="OAuth, email, payment and OCPP integration status." />} />
-            <Route path="/system-settings" element={<WorkspacePage title="System Settings" subtitle="Platform-level settings and environment diagnostics." />} />
+            <Route path="/admin-users" element={<PlatformUsersPage />} />
+            <Route path="/roles-permissions" element={<PlatformControlPage section="roles" />} />
+            <Route path="/audit-logs" element={<PlatformAuditLogsPage />} />
+            <Route path="/integrations" element={<PlatformControlPage section="integrations" />} />
+            <Route path="/system-settings" element={<PlatformControlPage section="settings" />} />
           </Route>
           <Route element={<RoleProtectedRoute allowedRoles={['admin']} />}>
             <Route path="/users" element={<Navigate to="/users/employees" replace />} />
@@ -99,6 +104,7 @@ export function AppRouter() {
           </Route>
           <Route element={<RoleProtectedRoute allowedRoles={['client']} />}>
             <Route path="/find-station" element={<FindStationPage />} />
+            <Route path="/charge/scan/:qrToken" element={<FindStationPage />} />
             <Route path="/charge/:stationId/:connectorId" element={<FindStationPage />} />
           </Route>
           <Route element={<RoleProtectedRoute allowedRoles={['client']} />}>
@@ -111,7 +117,7 @@ export function AppRouter() {
             <Route path="/reports" element={<WorkspacePage title="Reports" subtitle="Exports and operational reporting." />} />
           </Route>
           <Route path="/profile" element={<WorkspacePage title="Profile" subtitle="Personal information, organization and account metadata." />} />
-          <Route path="/settings" element={<WorkspacePage title="Settings" subtitle="Personal preferences, password and activity history." />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/help" element={<WorkspacePage title="Help" subtitle="Internal user guidance and support." />} />
         </Route>
       </Route>

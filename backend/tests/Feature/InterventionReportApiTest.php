@@ -108,6 +108,20 @@ class InterventionReportApiTest extends TestCase
         $this->assertDatabaseCount('intervention_photos', 2);
     }
 
+    public function test_report_defaults_an_omitted_parts_list_to_an_empty_array(): void
+    {
+        [$technician, $intervention] = $this->activeIntervention('report-without-parts');
+        Sanctum::actingAs($technician);
+        $this->uploadPhoto($intervention, 'before');
+        $this->uploadPhoto($intervention, 'after');
+        $payload = $this->reportPayload();
+        unset($payload['parts']);
+
+        $this->postJson("/api/interventions/{$intervention->id}/report", $payload)
+            ->assertOk()
+            ->assertJsonPath('data.report.parts', []);
+    }
+
     public function test_follow_up_outcome_returns_the_alert_to_the_assignment_queue(): void
     {
         [$technician, $intervention, $alert] = $this->activeIntervention('follow-up-report');

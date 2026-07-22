@@ -95,6 +95,38 @@ class OperationalNotificationApiTest extends TestCase
         Queue::assertPushed(SendOperationalNotificationEmail::class, 1);
     }
 
+    public function test_user_can_disable_email_alerts_while_keeping_in_app_alerts(): void
+    {
+        Queue::fake([SendOperationalNotificationEmail::class]);
+        $organization = $this->organization('notification-preferences');
+        $operator = $this->user($organization, 'operator');
+        $alert = $this->alert($organization, null, now()->addMinutes(15));
+        Sanctum::actingAs($operator);
+
+        $this->getJson('/api/notification-preferences')
+            ->assertOk()
+            ->assertJsonPath('data.email_alerts', true);
+        $this->putJson('/api/notification-preferences', ['email_alerts' => false])
+            ->assertOk()
+            ->assertJsonPath('data.email_alerts', false);
+
+        app(OperationalNotificationService::class)->notifyAlertOpened($alert->load('station'), 202);
+
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $operator->id,
+            'entity_id' => $alert->id,
+            'category' => 'alert',
+        ]);
+        $this->assertDatabaseHas('notification_deliveries', [
+            'channel' => 'in_app',
+            'status' => 'delivered',
+        ]);
+        $this->assertDatabaseMissing('notification_deliveries', [
+            'channel' => 'email',
+        ]);
+        Queue::assertNothingPushed();
+    }
+
     public function test_sla_scan_is_idempotent_for_all_alert_stakeholders(): void
     {
         Queue::fake([SendOperationalNotificationEmail::class]);

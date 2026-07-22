@@ -7,6 +7,14 @@ use Illuminate\Validation\Rule;
 
 class StoreInterventionReportRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'parts' => $this->input('parts', []),
+            'observations' => blank($this->input('observations')) ? null : $this->input('observations'),
+        ]);
+    }
+
     public function authorize(): bool
     {
         return true;

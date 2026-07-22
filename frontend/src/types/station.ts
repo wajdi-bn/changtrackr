@@ -7,6 +7,7 @@ export type ConnectorType = 'CCS2' | 'Type 2' | 'CHAdeMO'
 export interface Connector {
   id: number
   external_id: string
+  qr_token: string
   ocpp_connector_id: number | null
   type: ConnectorType
   current_type: 'AC' | 'DC'
@@ -142,6 +143,7 @@ export interface StationMapResponse {
 
 export interface ConnectorPayload {
   external_id: string
+  ocpp_connector_id?: number
   type: ConnectorType
   current_type: 'AC' | 'DC'
   max_power_kw: number

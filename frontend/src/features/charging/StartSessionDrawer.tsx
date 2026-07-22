@@ -11,6 +11,7 @@ import { getStation } from '../stations/stationApi'
 import { getEffectivePricing } from '../tariffs/tariffApi'
 import { getChargingAttempt, startChargingAttempt } from './chargingApi'
 import { ConnectorTypeIcon } from './ConnectorTypeIcon'
+import { createIdempotencyKey } from '../../lib/idempotency'
 
 type ChargeableStation = Pick<Station, 'id' | 'name' | 'city' | 'location' | 'model_image' | 'available_connectors_count' | 'remote_start_available'> & {
   connectors: Connector[]
@@ -51,7 +52,7 @@ export function StartSessionDrawer({
   const [attemptUuid, setAttemptUuid] = useState<string | null>(initialAttemptUuid ?? null)
   const notifiedSessionId = useRef<number | null>(null)
   const initializedKey = useRef<string | null>(null)
-  const idempotencyKey = useRef(crypto.randomUUID())
+  const idempotencyKey = useRef(createIdempotencyKey())
   const queryClient = useQueryClient()
   const { message } = App.useApp()
   const stationId = Form.useWatch('station_id', { form, preserve: true })
@@ -111,7 +112,7 @@ export function StartSessionDrawer({
       return
     }
     setAttemptUuid(null)
-    idempotencyKey.current = crypto.randomUUID()
+    idempotencyKey.current = createIdempotencyKey()
     const initialStation = initialStationId != null
       ? availableStations.find((station) => station.id === initialStationId)
       : undefined

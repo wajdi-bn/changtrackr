@@ -80,7 +80,7 @@ export function HomePage() {
     refetchInterval: 30_000,
   })
   const dashboard = dashboardQuery.data
-  const needsMap = dashboard ? ['operator', 'technician', 'client'].includes(dashboard.role) : false
+  const needsMap = dashboard ? ['admin', 'operator', 'technician', 'client'].includes(dashboard.role) : false
   const mapQuery = useQuery({
     queryKey: ['stations', 'role-dashboard-map', user?.id, dashboard?.role],
     queryFn: () => getStationMap({}),
@@ -101,7 +101,7 @@ export function HomePage() {
   }
 
   if (dashboard.role === 'super_admin') return <SuperAdminDashboard data={dashboard} period={period} onPeriodChange={setPeriod} />
-  if (dashboard.role === 'admin') return <AdministratorDashboard data={dashboard} period={period} onPeriodChange={setPeriod} />
+  if (dashboard.role === 'admin') return <AdministratorDashboard data={dashboard} map={mapState} period={period} onPeriodChange={setPeriod} />
   if (dashboard.role === 'technician') return <TechnicianDashboard data={dashboard} map={mapState} period={period} onPeriodChange={setPeriod} />
   if (dashboard.role === 'client') return <ClientDashboard data={dashboard} map={mapState} period={period} onPeriodChange={setPeriod} />
   return <OperatorDashboard data={dashboard} map={mapState} period={period} onPeriodChange={setPeriod} />
@@ -140,7 +140,7 @@ function DashboardFrame({ data, period, onPeriodChange, color, breadcrumb, title
 
 function PeriodPicker({ data, period, onChange }: { data: DashboardData; period: DashboardPeriodKey; onChange: (period: DashboardPeriodKey) => void }) {
   return <div className="role-period-picker">
-    <CalendarDays size={15} />
+    <CalendarDays size={27} />
     <Select aria-label="Reporting period" value={period} options={periodOptions} onChange={onChange} popupMatchSelectWidth={false} />
     <small>{data.period.start} - {data.period.end}</small>
   </div>
@@ -200,13 +200,14 @@ function SuperAdminDashboard(props: RoleDashboardProps) {
   </DashboardFrame>
 }
 
-function AdministratorDashboard(props: RoleDashboardProps) {
+function AdministratorDashboard({ data, map, ...props }: RoleDashboardProps & { map: DashboardMapState }) {
   const navigate = useNavigate()
-  const organization = props.data.widgets.organization
-  const health = props.data.widgets.health
-  const usersByRole = breakdown(props.data, 'users_by_role')
+  const organization = data.widgets.organization
+  const health = data.widgets.health
+  const usersByRole = breakdown(data, 'users_by_role')
+  const alertActivities = data.recent_activity.filter((activity) => activity.type === 'alert').slice(0, 5)
 
-  return <DashboardFrame {...props} color="teal" breadcrumb="Administrator" title="Organization Overview" className="administrator-dashboard">
+  return <DashboardFrame data={data} {...props} color="teal" breadcrumb="Administrator" title="Organization Overview" className="administrator-dashboard">
     <div className="administrator-intro-grid">
       <DashboardCard className="organization-identity-card">
         <img src="/assets/Logo.png" alt="" />
@@ -218,7 +219,7 @@ function AdministratorDashboard(props: RoleDashboardProps) {
         </div>
       </DashboardCard>
     </div>
-    <KpiStrip kpis={props.data.kpis} />
+    <KpiStrip kpis={data.kpis} />
     <div className="administrator-health-grid">
       <DashboardCard title="Organization Health Score" subtitle="Availability, alert control, resolution and session success">
         <div className="organization-health">
@@ -232,13 +233,19 @@ function AdministratorDashboard(props: RoleDashboardProps) {
     </div>
     <div className="administrator-chart-grid">
       <DashboardCard title="Revenue trend" subtitle="Settled revenue in TND">
-        <ChartFrame><AreaChart data={props.data.trend.points}><ChartGrid /><ChartAxes /><ChartTooltip /><Area type="monotone" dataKey="revenue_tnd" name="Revenue (TND)" stroke="#22c55e" fill="#dcfce7" strokeWidth={2.3} /></AreaChart></ChartFrame>
+        <ChartFrame><AreaChart data={data.trend.points}><ChartGrid /><ChartAxes /><ChartTooltip /><Area type="monotone" dataKey="revenue_tnd" name="Revenue (TND)" stroke="#22c55e" fill="#dcfce7" strokeWidth={2.3} /></AreaChart></ChartFrame>
       </DashboardCard>
       <DashboardCard title="Energy delivered trend" subtitle="Delivered energy in kWh">
-        <ChartFrame><AreaChart data={props.data.trend.points}><ChartGrid /><ChartAxes /><ChartTooltip /><Area type="monotone" dataKey="energy_kwh" name="Energy (kWh)" stroke="#0ea5e9" fill="#e0f2fe" strokeWidth={2.3} /></AreaChart></ChartFrame>
+        <ChartFrame><AreaChart data={data.trend.points}><ChartGrid /><ChartAxes /><ChartTooltip /><Area type="monotone" dataKey="energy_kwh" name="Energy (kWh)" stroke="#0ea5e9" fill="#e0f2fe" strokeWidth={2.3} /></AreaChart></ChartFrame>
       </DashboardCard>
     </div>
-    <section className="dashboard-role-section"><SectionHeading title="Performance summary" subtitle="Real organization rankings for the selected period" /><div className="administrator-ranking-grid">{props.data.rankings.map((ranking) => <RankingCard key={ranking.key} ranking={ranking} onOpen={navigate} />)}</div></section>
+    <div className="administrator-live-grid">
+      <DashboardMapPanel map={map} role="admin" title="Organization station map" subtitle="Live availability across your stations" />
+      <DashboardCard title="Open operational attention" subtitle="Recent alert events">
+        <ActivityList activities={alertActivities} onOpen={navigate} compact />
+      </DashboardCard>
+    </div>
+    <section className="dashboard-role-section"><SectionHeading title="Performance summary" subtitle="Real organization rankings for the selected period" /><div className="administrator-ranking-grid">{data.rankings.map((ranking) => <RankingCard key={ranking.key} ranking={ranking} onOpen={navigate} />)}</div></section>
   </DashboardFrame>
 }
 
@@ -427,7 +434,7 @@ function PerformanceList({ items }: { items: NonNullable<DashboardData['widgets'
 }
 
 function CurrentSessionWidget({ session, onOpen }: { session: DashboardData['widgets']['active_session']; onOpen: (url: string) => void }) {
-  if (!session) return <div className="client-no-session"><BatteryCharging size={28} /><strong>No charging session in progress</strong><span>Choose an available station to start charging.</span><Button type="primary" onClick={() => onOpen('/find-station')}>Find a station</Button></div>
+  if (!session) return <div className="client-no-session"><BatteryCharging size={28} /><strong>No charging session in progress</strong><span>Choose an available station to start charging.</span><Button className="client-find-station-button" type="primary" onClick={() => onOpen('/find-station')}>Find a station</Button></div>
   return <div className="client-current-session"><div><span className="session-pulse"><Zap size={18} /></span><span><StatusTag status={session.status} /><h3>{session.station}</h3><p>Connector {session.connector} - {session.reference}</p></span></div><div className="client-session-metrics"><span><small>Energy</small><strong>{session.energy_kwh} kWh</strong></span><span><small>Power</small><strong>{session.current_power_kw ?? 0} kW</strong></span><span><small>Estimated total</small><strong>{formatMoney(session.total_millimes)}</strong></span></div>{session.state_of_charge_percent !== null && <Progress percent={session.state_of_charge_percent} strokeColor="#22c55e" />}<Button type="primary" onClick={() => onOpen(session.action_url)}>Open session</Button></div>
 }
 

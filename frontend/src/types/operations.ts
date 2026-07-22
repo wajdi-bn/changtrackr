@@ -71,7 +71,13 @@ export interface InterventionItem {
   photos: InterventionPhoto[]
   alert: { id: number; reference: string; title: string } | null
   maintenance_plan: MaintenancePlanSummary | null
-  station: { id: number; name: string; city: string }
+  station: {
+    id: number
+    name: string
+    city: string
+    availability_override: 'maintenance' | 'disabled' | null
+    maintenance_intervention_id: number | null
+  }
   connector: { id: number; external_id: string; type: string } | null
   assigned_technician: TechnicianOption | null
   events: WorkflowEvent[]

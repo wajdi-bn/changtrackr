@@ -190,7 +190,8 @@ function AlertDetails({ alert, technicianMode, canManageAlerts, canAssignAlerts,
   onStatus: (status: AlertStatus) => void
   onOpenIntervention: () => void
 }) {
-  const hasActiveIntervention = alert.intervention && alert.intervention.status !== 'cancelled'
+  const hasActiveIntervention = alert.intervention
+    && ['assigned', 'in-progress', 'paused', 'waiting-parts'].includes(alert.intervention.status)
 
   return <div className="alert-detail-content">
     <header><div><h2>{alert.title}</h2><p>{alert.reference} - {alert.station.name}</p></div><Button type="text" icon={<MoreHorizontal size={17} />} /></header>
@@ -214,7 +215,11 @@ function AlertDetails({ alert, technicianMode, canManageAlerts, canAssignAlerts,
         {canManageAlerts && alert.status === 'new' && <Button className="violet-button" loading={updating} onClick={() => onStatus('in-progress')}>Acknowledge alert</Button>}
         {canManageInterventions && alert.status !== 'resolved' && !hasActiveIntervention && <Button icon={<ClipboardCheck size={15} />} onClick={onCreateIntervention}>Create intervention</Button>}
         {canManageInterventions && hasActiveIntervention && <Button icon={<ClipboardCheck size={15} />} onClick={onOpenIntervention}>Open intervention</Button>}
-        {canManageAlerts && alert.status !== 'resolved' && <Button type="primary" loading={updating} onClick={() => onStatus('resolved')}>Resolve</Button>}
+        {canManageAlerts && alert.status !== 'resolved' && (
+          hasActiveIntervention
+            ? <Tooltip title="Complete or cancel the active intervention before resolving this alert."><span><Button type="primary" disabled>Resolve</Button></span></Tooltip>
+            : <Button type="primary" loading={updating} onClick={() => onStatus('resolved')}>Resolve</Button>
+        )}
       </>}
     </div>
   </div>
@@ -246,7 +251,11 @@ function CreateAlertDrawer({ open, stations, technicians, submitting, onClose, o
       <Form.Item label="Title" name="title" rules={[{ required: true }]}><Input placeholder="Station disconnected" /></Form.Item>
       <Form.Item label="Problem type" name="problem_type" rules={[{ required: true }]}><Input placeholder="No heartbeat received" /></Form.Item>
       <Form.Item label="Severity" name="severity" initialValue="warning" rules={[{ required: true }]}><Select options={['critical', 'warning', 'info'].map((value) => ({ value, label: value }))} /></Form.Item>
-      <Form.Item label="Due date" name="due_at"><DatePicker showTime style={{ width: '100%' }} /></Form.Item>
+      <Form.Item
+        label="Due date"
+        name="due_at"
+        extra="Optional. The platform applies an SLA automatically: critical 15 min, warning 1 h, information 4 h."
+      ><DatePicker showTime style={{ width: '100%' }} /></Form.Item>
       <Form.Item label="Description" name="description" rules={[{ required: true }]}><Input.TextArea rows={5} /></Form.Item>
       <Button type="primary" htmlType="submit" loading={submitting} block>Create alert</Button>
     </Form>

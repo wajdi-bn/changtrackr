@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -93,13 +94,16 @@ class AlertController extends Controller
         $this->assertConnectorScope($attributes['connector_id'] ?? null, $station);
         $this->assertTechnicianScope($attributes['assigned_technician_id'] ?? null, $organizationId);
 
+        $detectedAt = $attributes['detected_at'] ?? now();
+        $attributes['detected_at'] = $detectedAt;
+        $attributes['due_at'] ??= $this->defaultDueAt($attributes['severity'], $detectedAt);
+
         $alert = DB::transaction(function () use ($attributes, $organizationId, $user): Alert {
             $alert = Alert::query()->create([
                 ...$attributes,
                 'organization_id' => $organizationId,
                 'reference' => 'ALT-'.Str::upper(Str::random(8)),
                 'status' => 'new',
-                'detected_at' => $attributes['detected_at'] ?? now(),
             ]);
             $alert->events()->create([
                 'actor_id' => $user->id,
@@ -141,6 +145,20 @@ class AlertController extends Controller
 
         $previousStatus = $alert->status;
         $previousTechnician = $alert->assigned_technician_id;
+
+        if (($attributes['status'] ?? null) === 'resolved'
+            && $alert->interventions()->whereIn('status', ['assigned', 'in-progress', 'paused', 'waiting-parts'])->exists()) {
+            throw ValidationException::withMessages([
+                'status' => ['Complete or cancel the active intervention before resolving this alert.'],
+            ]);
+        }
+
+        if (array_key_exists('assigned_technician_id', $attributes)
+            && $attributes['assigned_technician_id'] !== null
+            && ! array_key_exists('status', $attributes)
+            && $alert->status === 'new') {
+            $attributes['status'] = 'in-progress';
+        }
 
         DB::transaction(function () use ($alert, $attributes, $user, $previousStatus, $previousTechnician): void {
             $attributes['resolved_at'] = ($attributes['status'] ?? null) === 'resolved' ? now() : ($previousStatus === 'resolved' ? null : $alert->resolved_at);
@@ -212,5 +230,16 @@ class AlertController extends Controller
         Station::query()->whereKey($stationId)->update([
             'open_alerts_count' => Alert::query()->where('station_id', $stationId)->where('status', '!=', 'resolved')->count(),
         ]);
+    }
+
+    private function defaultDueAt(string $severity, mixed $detectedAt): Carbon
+    {
+        $minutes = match ($severity) {
+            'critical' => (int) config('availability.critical_alert_due_minutes', 15),
+            'warning' => (int) config('availability.warning_alert_due_minutes', 60),
+            default => (int) config('availability.info_alert_due_minutes', 240),
+        };
+
+        return Carbon::parse($detectedAt)->addMinutes(max(1, $minutes));
     }
 }
