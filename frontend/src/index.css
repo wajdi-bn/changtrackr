@@ -6941,6 +6941,7 @@ body {
 .intervention-maintenance-block { margin: 0 0 16px; }
 
 /* Personal notification delivery preferences */
+.content-frame > .settings-page { padding: 18px; }
 .settings-page { display: grid; gap: 20px; }
 .settings-card.ant-card { border: 1px solid #e7e9e8; box-shadow: 0 10px 24px rgba(30, 52, 42, 0.06); }
 .settings-card .ant-card-head { min-height: 58px; border-bottom-color: #edf0ee; }
@@ -6989,6 +6990,7 @@ body {
   .settings-support-grid .settings-card { height: 100%; }
 }
 @media (max-width: 640px) {
+  .content-frame > .settings-page { padding: 10px; }
   .notification-preference-row { grid-template-columns: 34px minmax(0, 1fr); }
   .notification-preference-row .ant-switch { grid-column: 2; justify-self: start; }
 }
