@@ -41,7 +41,7 @@ function IntegrationCard({ integration }: { integration: PlatformIntegration }) 
   const Icon = integrationIcons[integration.id]
   return <article className={`integration-card integration-card--${integration.status}`}>
     <header>
-      <span><Icon size={20} /></span>
+      <span className="integration-card__icon"><Icon size={20} /></span>
       <div><small>{integration.category}</small><h2>{integration.name}</h2></div>
       <AdminStatus status={integration.status} />
     </header>

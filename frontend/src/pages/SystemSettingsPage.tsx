@@ -60,12 +60,12 @@ export function SystemSettingsPage() {
         <section className="settings-editor">
           <header><div><span>{renderGroupIcon(selectedGroup)}</span><div><h2>{groups.find((group) => group.id === selectedGroup)?.label}</h2><p>{groups.find((group) => group.id === selectedGroup)?.description}</p></div></div><Tag color="gold">Platform-wide</Tag></header>
           <div className="settings-list">{visibleSettings.map((setting) => <SettingControl key={setting.key} setting={setting} value={draft[setting.key]} disabled={saveMutation.isPending} onChange={(value) => setDraft((current) => ({ ...current, [setting.key]: value }))} />)}</div>
-          <footer className="settings-savebar"><div><strong>{dirty ? `${Object.keys(changedValues(saved, draft)).length} unsaved change(s)` : 'All changes saved'}</strong><span>Every update is attributed to your account.</span></div><Button icon={<RotateCcw size={14} />} disabled={!dirty || saveMutation.isPending} onClick={() => setDraft(saved)}>Discard</Button><Button className="admin-primary-action" type="primary" icon={<Save size={14} />} disabled={!dirty} loading={saveMutation.isPending} onClick={() => saveMutation.mutate()}>Save changes</Button></footer>
+          <footer className="settings-savebar"><div><strong>{dirty ? `${Object.keys(changedValues(saved, draft)).length} unsaved change(s)` : 'All changes saved'}</strong><span>Every update is attributed to your account.</span></div><Button className="settings-discard-action" icon={<RotateCcw size={14} />} disabled={!dirty || saveMutation.isPending} onClick={() => setDraft(saved)}>Discard</Button><Button className="admin-primary-action" type="primary" icon={<Save size={14} />} disabled={!dirty} loading={saveMutation.isPending} onClick={() => saveMutation.mutate()}>Save changes</Button></footer>
         </section>
       </div>}
     </AdminDataPanel>
     <AdminDataPanel title="Environment safeguards" subtitle="Read-only deployment posture. Sensitive values cannot be changed from this screen.">
-      <div className="safeguard-grid">{settingsQuery.data?.data.safeguards.map((item) => <article key={item.label}><span><ShieldCheck size={17} /></span><div><small>{item.label}</small><strong>{item.value}</strong></div><AdminStatus status={item.status} /></article>)}</div>
+      <div className="safeguard-grid">{settingsQuery.data?.data.safeguards.map((item) => <article key={item.label}><span className="safeguard-icon"><ShieldCheck size={17} /></span><div><small>{item.label}</small><strong>{item.value}</strong></div><AdminStatus status={item.status} /></article>)}</div>
     </AdminDataPanel>
   </div>
 }
