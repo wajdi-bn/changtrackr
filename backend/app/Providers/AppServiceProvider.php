@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\PaymentGateway;
 use App\Models\User;
+use App\Services\PlatformSettingService;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -18,6 +19,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(PlatformSettingService::class);
+
         $this->app->bind(PaymentGateway::class, function ($app): PaymentGateway {
             $driver = config('payments.default', 'simulated');
             $adapterClass = config("payments.drivers.{$driver}");

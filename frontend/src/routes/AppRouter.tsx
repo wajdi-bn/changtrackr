@@ -16,7 +16,6 @@ import { VerifyEmailPage } from '../pages/VerifyEmailPage'
 import { ActivateInvitationPage } from '../pages/ActivateInvitationPage'
 import { WorkspacePage } from '../pages/WorkspacePage'
 import { SettingsPage } from '../pages/SettingsPage'
-import { PlatformControlPage } from '../pages/PlatformControlPage'
 
 const LandingPage = lazy(() => import('../pages/LandingPage').then((module) => ({ default: module.LandingPage })))
 const HomePage = lazy(() => import('../pages/HomePage').then((module) => ({ default: module.HomePage })))
@@ -37,6 +36,8 @@ const OrganizationsPage = lazy(() => import('../pages/OrganizationsPage').then((
 const PlatformUsersPage = lazy(() => import('../pages/PlatformUsersPage').then((module) => ({ default: module.PlatformUsersPage })))
 const RolesPermissionsPage = lazy(() => import('../pages/RolesPermissionsPage').then((module) => ({ default: module.RolesPermissionsPage })))
 const PlatformAuditLogsPage = lazy(() => import('../pages/PlatformAuditLogsPage').then((module) => ({ default: module.PlatformAuditLogsPage })))
+const IntegrationsPage = lazy(() => import('../pages/IntegrationsPage').then((module) => ({ default: module.IntegrationsPage })))
+const SystemSettingsPage = lazy(() => import('../pages/SystemSettingsPage').then((module) => ({ default: module.SystemSettingsPage })))
 
 function DefaultRedirect() {
   const { primaryRole } = useAuth()
@@ -67,8 +68,8 @@ export function AppRouter() {
             <Route path="/admin-users" element={<PlatformUsersPage />} />
             <Route path="/roles-permissions" element={<RolesPermissionsPage />} />
             <Route path="/audit-logs" element={<PlatformAuditLogsPage />} />
-            <Route path="/integrations" element={<PlatformControlPage section="integrations" />} />
-            <Route path="/system-settings" element={<PlatformControlPage section="settings" />} />
+            <Route path="/integrations" element={<IntegrationsPage />} />
+            <Route path="/system-settings" element={<SystemSettingsPage />} />
           </Route>
           <Route element={<RoleProtectedRoute allowedRoles={['admin']} />}>
             <Route path="/users" element={<Navigate to="/users/employees" replace />} />

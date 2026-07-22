@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\PlatformSettingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -46,7 +47,7 @@ class UserResource extends JsonResource
                 'accepted_at' => $invitation->accepted_at?->toISOString(),
                 'cancelled_at' => $invitation->revoked_at?->toISOString(),
                 'can_remind' => $invitationStatus === 'pending'
-                    && $lastSentAt?->isBefore(now()->subMinutes((int) config('invitations.reminder_cooldown_minutes', 10))),
+                    && $lastSentAt?->isBefore(now()->subMinutes(app(PlatformSettingService::class)->integer('employee_invitation_reminder_minutes'))),
                 'can_cancel' => $invitationStatus === 'pending',
                 'can_renew' => in_array($invitationStatus, ['expired', 'revoked'], true),
             ] : null),

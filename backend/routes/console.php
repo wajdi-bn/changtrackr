@@ -30,3 +30,7 @@ Schedule::job(new GenerateMaintenanceOccurrences)
 Schedule::command('notifications:check-sla')
     ->everyMinute()
     ->withoutOverlapping(2);
+
+Schedule::command('audit:prune')
+    ->dailyAt('02:30')
+    ->withoutOverlapping(10);

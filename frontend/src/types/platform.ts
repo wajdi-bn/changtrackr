@@ -57,3 +57,60 @@ export interface PlatformAuditResponse {
   }
   meta: { current_page: number; last_page: number; per_page: number; total: number }
 }
+
+export type IntegrationStatus = 'operational' | 'configured' | 'attention'
+
+export interface PlatformIntegration {
+  id: 'google-oauth' | 'transactional-email' | 'ocpp-gateway' | 'payment-adapter' | 'mapping'
+  name: string
+  category: string
+  provider: string
+  description: string
+  status: IntegrationStatus
+  mode: string
+  configured: boolean
+  last_activity_at: string | null
+  metrics: Array<{ label: string; value: string | number }>
+  safeguards: string[]
+}
+
+export interface PlatformIntegrationResponse {
+  data: PlatformIntegration[]
+  summary: { total: number; operational: number; attention: number; sandbox: number }
+  checked_at: string
+}
+
+export interface PlatformSetting {
+  key: string
+  group: 'access' | 'invitations' | 'communications' | 'governance'
+  label: string
+  description: string
+  type: 'boolean' | 'integer' | 'string'
+  value: boolean | number | string
+  default_value: boolean | number | string
+  overridden: boolean
+  unit: string | null
+  min: number | null
+  max: number | null
+}
+
+export interface PlatformSettingGroup {
+  id: PlatformSetting['group']
+  label: string
+  description: string
+}
+
+export interface PlatformSafeguard {
+  label: string
+  value: string
+  status: 'operational' | 'development' | 'attention'
+}
+
+export interface PlatformSettingResponse {
+  data: {
+    groups: PlatformSettingGroup[]
+    settings: PlatformSetting[]
+    safeguards: PlatformSafeguard[]
+  }
+  summary: { settings: number; overrides: number; enabled_controls: number; environment: string }
+}

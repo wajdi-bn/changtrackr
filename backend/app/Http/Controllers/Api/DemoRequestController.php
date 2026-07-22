@@ -15,6 +15,7 @@ use App\Notifications\DemoRequestReceivedNotification;
 use App\Notifications\NewDemoRequestNotification;
 use App\Services\AccountInvitationService;
 use App\Services\DemoProvisioningService;
+use App\Services\PlatformSettingService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,8 +29,10 @@ class DemoRequestController extends Controller
 {
     private const RELATIONS = ['handledBy', 'organization', 'invitations'];
 
-    public function store(StoreDemoRequestRequest $request): JsonResponse
+    public function store(StoreDemoRequestRequest $request, PlatformSettingService $settings): JsonResponse
     {
+        abort_unless($settings->boolean('demo_requests_enabled'), 403, 'New demo requests are currently disabled.');
+
         $attributes = $request->validated();
         $duplicateExists = DemoRequest::query()
             ->where('email', $attributes['email'])

@@ -13,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 class AccountInvitationService
 {
+    public function __construct(private readonly PlatformSettingService $settings) {}
+
     /** @return array{invitation: AccountInvitation, user: User, token: string} */
     public function invite(
         Organization $organization,
@@ -52,8 +54,8 @@ class AccountInvitationService
                 $role,
                 $demoRequest,
                 $demoRequest
-                    ? (int) config('demo.invitation_expiration_hours', 48)
-                    : (int) config('invitations.employee_expiration_hours', 72),
+                    ? $this->settings->integer('demo_invitation_expiration_hours')
+                    : $this->settings->integer('employee_invitation_expiration_hours'),
             );
         });
     }
@@ -113,7 +115,7 @@ class AccountInvitationService
                 'role' => $previous->role,
                 'token_hash' => hash('sha256', $token),
                 'status' => 'pending',
-                'expires_at' => now()->addHours((int) config('demo.invitation_expiration_hours', 48)),
+                'expires_at' => now()->addHours($this->settings->integer('demo_invitation_expiration_hours')),
                 'last_sent_at' => now(),
             ]);
 
@@ -159,7 +161,7 @@ class AccountInvitationService
                 ]);
             }
 
-            $cooldown = (int) config('invitations.reminder_cooldown_minutes', 10);
+            $cooldown = $this->settings->integer('employee_invitation_reminder_minutes');
             $lastSentAt = $invitation->last_sent_at ?? $invitation->created_at;
             if ($lastSentAt->isAfter(now()->subMinutes($cooldown))) {
                 throw ValidationException::withMessages([
@@ -203,7 +205,7 @@ class AccountInvitationService
                 $inviter,
                 (string) $role,
                 null,
-                (int) config('invitations.employee_expiration_hours', 72),
+                $this->settings->integer('employee_invitation_expiration_hours'),
             );
         });
     }
