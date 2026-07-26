@@ -100,7 +100,8 @@ class ProfileApiTest extends TestCase
 
         $this->getJson('/api/account-preferences')
             ->assertOk()
-            ->assertJsonPath('data.timezone', null);
+            ->assertJsonPath('data.timezone', null)
+            ->assertJsonPath('data.near_me_radius_km', 25);
 
         $this->putJson('/api/account-preferences', ['timezone' => 'Africa/Tunis'])
             ->assertOk()
@@ -114,6 +115,19 @@ class ProfileApiTest extends TestCase
             'actor_id' => $user->id,
             'event_type' => 'account.timezone_updated',
         ]);
+
+        $this->putJson('/api/account-preferences', ['near_me_radius_km' => 50])
+            ->assertOk()
+            ->assertJsonPath('data.timezone', null)
+            ->assertJsonPath('data.near_me_radius_km', 50);
+        $this->assertDatabaseHas('platform_audit_logs', [
+            'actor_id' => $user->id,
+            'event_type' => 'account.near_me_radius_updated',
+        ]);
+
+        $this->putJson('/api/account-preferences', ['near_me_radius_km' => 7])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('near_me_radius_km');
     }
 
     public function test_local_account_can_change_its_password_but_google_only_account_cannot(): void

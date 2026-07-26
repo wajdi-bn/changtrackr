@@ -1,9 +1,10 @@
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { App, Button, Card, Empty, Input, Popconfirm, Select, Skeleton, Table } from 'antd'
 import dayjs from 'dayjs'
 import { BatteryCharging, Clock3, CreditCard, Gauge, Play, Search, Square, Zap } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
 import { ExportDropdown, type ExportFormat } from '../components/ExportDropdown'
 import { MetricItem, MetricStrip, type MetricTone } from '../components/MetricStrip'
@@ -16,6 +17,7 @@ import {
   stopChargingSession,
 } from '../features/charging/chargingApi'
 import { ChargingStatusTag } from '../features/charging/ChargingStatusTag'
+import { ActiveSessionModal } from '../features/charging/ActiveSessionModal'
 import { PaymentDrawer } from '../features/charging/PaymentDrawer'
 import { StartSessionDrawer } from '../features/charging/StartSessionDrawer'
 import { useAuth } from '../features/auth/useAuth'
@@ -35,19 +37,33 @@ export function SessionsPage() {
   const [startOpen, setStartOpen] = useState(false)
   const [resumeAttemptUuid, setResumeAttemptUuid] = useState<string | null>(null)
   const [paymentSession, setPaymentSession] = useState<ChargingSession | null>(null)
+  const [activeModalOpen, setActiveModalOpen] = useState(false)
   const queryClient = useQueryClient()
   const { message } = App.useApp()
+  const location = useLocation()
+  const navigate = useNavigate()
 
   const filters = useMemo(() => ({
     search: deferredSearch.trim() || undefined,
     status: status === 'all' ? undefined : status,
   }), [deferredSearch, status])
-  const sessionsQuery = useQuery({ queryKey: ['charging-sessions', filters], queryFn: () => getChargingSessions(filters) })
+  const sessionsQuery = useQuery({
+    queryKey: ['charging-sessions', filters],
+    queryFn: () => getChargingSessions(filters),
+    refetchInterval: (query) => query.state.data?.data.some(isActiveSession) ? 2500 : false,
+  })
   const stationsQuery = useQuery({ queryKey: ['stations', 'session-start'], queryFn: () => getStations({}), enabled: clientMode })
   const attemptsQuery = useQuery({ queryKey: ['charging-attempts'], queryFn: getChargingAttempts, enabled: clientMode })
   const sessions = useMemo(() => sessionsQuery.data?.data ?? [], [sessionsQuery.data?.data])
   const activeSession = sessions.find((session) => isActiveSession(session)) ?? null
   const activeAttempt = attemptsQuery.data?.find((attempt) => isActiveAttempt(attempt)) ?? null
+
+  useEffect(() => {
+    const state = location.state as { showActiveSession?: boolean } | null
+    if (!activeSession || !state?.showActiveSession) return
+    setActiveModalOpen(true)
+    navigate(location.pathname, { replace: true, state: null })
+  }, [activeSession, location.pathname, location.state, navigate])
 
   const refreshWorkflow = async () => {
     await queryClient.invalidateQueries({ queryKey: ['charging-sessions'] })
@@ -59,6 +75,7 @@ export function SessionsPage() {
     mutationFn: (session: ChargingSession) => session.source === 'ocpp' ? remoteStopChargingSession(session.id) : stopChargingSession(session.id),
     onSuccess: async (session) => {
       await refreshWorkflow()
+      setActiveModalOpen(false)
       if (session.source !== 'ocpp' && clientMode) setPaymentSession(session)
       void message.success(session.source === 'ocpp' ? 'Stop command sent to the station.' : 'Charging session stopped. The amount is ready for payment.')
     },
@@ -134,9 +151,12 @@ export function SessionsPage() {
           {activeSession.current_power_kw !== null && <div><Gauge size={15} /><span><small>Current power</small><strong>{activeSession.current_power_kw.toFixed(1)} kW</strong></span></div>}
           <div><CreditCard size={15} /><span><small>Current estimate</small><strong>{activeSession.total_amount} {activeSession.currency}</strong></span></div>
         </div>
-        <Popconfirm title="Stop charging now?" description={activeSession.source === 'ocpp' ? 'The station will receive a secure remote stop command.' : 'The final energy and amount will be calculated.'} onConfirm={() => stopMutation.mutate(activeSession)} okText="Stop session">
-          <Button danger icon={<Square size={14} />} loading={stopMutation.isPending}>Stop charging</Button>
-        </Popconfirm>
+        <div className="active-session-actions">
+          <Button type="primary" icon={<Gauge size={14} />} onClick={() => setActiveModalOpen(true)}>Open live view</Button>
+          <Popconfirm title="Stop charging now?" description={activeSession.source === 'ocpp' ? 'The station will receive a secure remote stop command.' : 'The final energy and amount will be calculated.'} onConfirm={() => stopMutation.mutate(activeSession)} okText="Stop session">
+            <Button danger icon={<Square size={14} />} loading={stopMutation.isPending}>Stop charging</Button>
+          </Popconfirm>
+        </div>
       </section>
     ) : activeAttempt ? (
       <section className="no-active-session pending-attempt-card">
@@ -160,7 +180,8 @@ export function SessionsPage() {
       <Table rowKey="id" columns={columns} dataSource={sessions} loading={sessionsQuery.isLoading} pagination={{ pageSize: 8, hideOnSinglePage: true }} scroll={{ x: 1050 }} locale={{ emptyText: <Empty description="No charging sessions found" /> }} />
     </Card>
 
-    <StartSessionDrawer open={startOpen} stations={stationsQuery.data?.data ?? []} initialAttemptUuid={resumeAttemptUuid} onClose={() => setStartOpen(false)} onSessionStarted={() => { void refreshWorkflow(); void message.success('The station confirmed that charging has started.') }} />
+    <StartSessionDrawer open={startOpen} stations={stationsQuery.data?.data ?? []} initialAttemptUuid={resumeAttemptUuid} onClose={() => setStartOpen(false)} onSessionStarted={() => { setStartOpen(false); setActiveModalOpen(true); void refreshWorkflow(); void message.success('The station confirmed that charging has started.') }} />
+    <ActiveSessionModal open={activeModalOpen} session={activeSession} stopping={stopMutation.isPending} onClose={() => setActiveModalOpen(false)} onStop={(session) => stopMutation.mutate(session)} />
     <PaymentDrawer open={Boolean(paymentSession)} session={paymentSession} submitting={paymentMutation.isPending} onClose={() => setPaymentSession(null)} onSubmit={(payload) => paymentSession && paymentMutation.mutate({ sessionId: paymentSession.id, payload })} />
   </div>
 }

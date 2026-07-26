@@ -191,7 +191,7 @@ export function StartSessionDrawer({
         <motion.div key={current} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>
           {current === 0 && <StationStep stations={availableStations} selectedStation={selectedStation} form={form} />}
           {current === 1 && <ConnectorStep connectors={availableConnectors} selectedConnector={selectedConnector} form={form} />}
-          {current === 2 && <ConnectionStep connector={selectedConnector} liveConnector={liveConnector} loading={connectorConnectionQuery.isLoading || connectorConnectionQuery.isFetching} error={connectorConnectionQuery.isError} />}
+          {current === 2 && <ConnectionStep connector={selectedConnector} liveConnector={liveConnector} loading={connectorConnectionQuery.isLoading} error={connectorConnectionQuery.isError} />}
           {current === 3 && <PaymentStep pricing={pricingQuery.data} limitType={limitType} />}
           {current === 4 && <AttemptStep attempt={attemptQuery.data} loading={attemptQuery.isLoading || startMutation.isPending} />}
         </motion.div>
@@ -244,11 +244,10 @@ function ConnectionStep({ connector, liveConnector, loading, error }: { connecto
       <ol><li><b>1</b><span>Park safely and switch off the vehicle.</span></li><li><b>2</b><span>Take the <strong>{connector?.type ?? 'selected'}</strong> cable from connector {connector?.external_id}.</span></li><li><b>3</b><span>Insert it fully into the vehicle until it locks.</span></li></ol>
     </div>
     <div className="connector-detection-status">
-      <Spin spinning={loading} size="small" />
+      {loading ? <Spin size="small" /> : <span className="connector-detection-pulse" aria-hidden="true" />}
       <span><strong>Waiting for the station to detect the cable</strong><small>OCPP connector status: {rawStatus}</small></span>
     </div>
     {error && <Alert type="error" showIcon title="The connector status could not be refreshed" description="The platform will retry automatically while this step remains open." />}
-    <Alert type="warning" showIcon title="No manual confirmation is required" description="This workflow advances automatically when the station reports OCPP status Preparing. No charging session is recorded until StartTransaction is later confirmed." />
   </section>
 }
 

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { App, Button, Card, Divider, Form, Input, Modal, Radio, Select, Skeleton, Switch } from 'antd'
-import { BellRing, CalendarClock, Clock3, CreditCard, KeyRound, LockKeyhole, MailCheck, ShieldAlert, Wrench } from 'lucide-react'
+import { BellRing, CalendarClock, Clock3, CreditCard, KeyRound, LockKeyhole, MailCheck, Navigation, ShieldAlert, Wrench } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
 import { getAccountPreferences, updateAccountPreferences } from '../features/account/accountPreferenceApi'
 import { changeAccountPassword, getAccountSecurity, type ChangePasswordPayload } from '../features/account/accountSecurityApi'
@@ -37,7 +37,7 @@ const preferenceRows: Array<{
 export function SettingsPage() {
   const queryClient = useQueryClient()
   const { message } = App.useApp()
-  const { user, updateCurrentUser } = useAuth()
+  const { user, updateCurrentUser, primaryRole } = useAuth()
   const [passwordForm] = Form.useForm<ChangePasswordPayload>()
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const preferencesQuery = useQuery({
@@ -64,6 +64,14 @@ export function SettingsPage() {
       void message.success('Time zone preference updated.')
     },
     onError: () => void message.error('Time zone preference could not be updated.'),
+  })
+  const nearbyRadiusMutation = useMutation({
+    mutationFn: updateAccountPreferences,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['account-preferences'] })
+      void message.success('Nearby station radius updated.')
+    },
+    onError: () => void message.error('Nearby station radius could not be updated.'),
   })
   const accountSecurityQuery = useQuery({
     queryKey: ['account-security'],
@@ -174,6 +182,28 @@ export function SettingsPage() {
         })()}
       </Card>
       </div>
+
+      {primaryRole === 'client' && <Card className="settings-card settings-nearby-card" title="Station discovery">
+        <div className="settings-intro settings-intro--nearby">
+          <Navigation size={20} />
+          <div><strong>Near me search radius</strong><p>When location access is active, only charging stations inside this distance are shown. You can change it before every trip.</p></div>
+        </div>
+        <Divider />
+        {accountPreferencesQuery.isLoading ? <Skeleton active paragraph={{ rows: 2 }} /> : <div className="nearby-radius-preference">
+          <Radio.Group
+            optionType="button"
+            buttonStyle="solid"
+            value={accountPreferencesQuery.data?.near_me_radius_km ?? 25}
+            disabled={nearbyRadiusMutation.isPending}
+            onChange={(event) => nearbyRadiusMutation.mutate({ near_me_radius_km: Number(event.target.value) })}
+            options={[5, 10, 25, 50, 100].map((radius) => ({ value: radius, label: `${radius} km` }))}
+          />
+          <div>
+            <strong>{accountPreferencesQuery.data?.near_me_radius_km ?? 25} km around your current location</strong>
+            <span>The radius is applied only after you select Near me and authorize browser geolocation.</span>
+          </div>
+        </div>}
+      </Card>}
 
       <Modal
         title="Change password"

@@ -1,5 +1,5 @@
-import { Alert, Button, Drawer, Form, Select } from 'antd'
-import { CreditCard, FlaskConical, LockKeyhole } from 'lucide-react'
+import { Alert, Button, Drawer, Form, Radio, Select } from 'antd'
+import { CreditCard, FlaskConical, LockKeyhole, ShieldCheck, Smartphone, WalletCards } from 'lucide-react'
 import type { ChargingSession, PaymentPayload, PaymentSimulationOutcome, SimulatedPaymentMethod } from '../../types/charging'
 import { createIdempotencyKey } from '../../lib/idempotency'
 
@@ -17,12 +17,17 @@ export function PaymentDrawer({ open, session, submitting, onClose, onSubmit }: 
   return (
     <Drawer
       open={open}
-      title="Pay charging session"
-      size={480}
+      title="Complete payment"
+      size={520}
       onClose={onClose}
       afterOpenChange={(visible) => visible && form.setFieldsValue({ method: 'simulated_card', simulation_outcome: 'success' })}
     >
       {session && <>
+        <div className="payment-checkout-heading">
+          <span><ShieldCheck size={19} /></span>
+          <div><strong>Review and confirm</strong><p>Choose how to settle this completed charging session.</p></div>
+          <b>{session.total_amount} {session.currency}</b>
+        </div>
         <div className="payment-summary-card">
           <div><small>Session</small><strong>{session.reference}</strong></div>
           <div><small>Station</small><strong>{session.station.name}</strong></div>
@@ -39,29 +44,29 @@ export function PaymentDrawer({ open, session, submitting, onClose, onSubmit }: 
           form={form}
           layout="vertical"
           requiredMark="optional"
-          onFinish={(values) => onSubmit({ ...values, idempotency_key: createIdempotencyKey() })}
+          onFinish={(values) => onSubmit({ ...values, simulation_outcome: values.simulation_outcome ?? 'success', idempotency_key: createIdempotencyKey() })}
         >
-          <Form.Item label="Simulated payment method" name="method" rules={[{ required: true }]}>
-            <Select options={[
-              { value: 'simulated_card', label: 'Payment card (simulated)' },
-              { value: 'simulated_edinar', label: 'e-DINAR (simulated)' },
-              { value: 'simulated_d17', label: 'D17 wallet (simulated)' },
-            ]} />
+          <Form.Item label="Payment method" name="method" rules={[{ required: true }]}>
+            <Radio.Group className="payment-checkout-methods">
+              <Radio.Button value="simulated_card"><CreditCard size={18} /><span><strong>Bank card</strong><small>Visa or Mastercard adapter</small></span></Radio.Button>
+              <Radio.Button value="simulated_edinar"><WalletCards size={18} /><span><strong>e-DINAR</strong><small>Postal payment adapter</small></span></Radio.Button>
+              <Radio.Button value="simulated_d17"><Smartphone size={18} /><span><strong>D17 wallet</strong><small>Mobile wallet adapter</small></span></Radio.Button>
+            </Radio.Group>
           </Form.Item>
-          <Form.Item label="External sandbox result" name="simulation_outcome" rules={[{ required: true }]}>
+          {import.meta.env.DEV && <Form.Item label="Sandbox scenario" name="simulation_outcome" rules={[{ required: true }]}>
             <Select options={[
               { value: 'success', label: 'Successful payment' },
               { value: 'declined', label: 'Provider decline' },
               { value: 'timeout', label: 'Provider timeout' },
               { value: 'provider_error', label: 'Provider unavailable' },
             ]} />
-          </Form.Item>
+          </Form.Item>}
           <Alert
-            type="warning"
+            type="info"
             showIcon
             icon={<FlaskConical size={16} />}
-            title="External sandbox only"
-            description="The request is sent to the local WireMock provider. No card number, D17 identifier, credential, or real money is transmitted."
+            title="Payment simulator"
+            description="This checkout follows the future provider flow, but WireMock processes the transaction locally. No credential or real money is transmitted."
           />
           <Button className="payment-submit" type="primary" htmlType="submit" icon={<CreditCard size={16} />} loading={submitting} block>
             Pay {session.total_amount} {session.currency}

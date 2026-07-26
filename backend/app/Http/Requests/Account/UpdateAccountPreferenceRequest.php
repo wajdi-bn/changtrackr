@@ -3,8 +3,9 @@
 namespace App\Http\Requests\Account;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class UpdateTimezonePreferenceRequest extends FormRequest
+class UpdateAccountPreferenceRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -16,6 +17,7 @@ class UpdateTimezonePreferenceRequest extends FormRequest
     {
         return [
             'timezone' => ['nullable', 'timezone:all'],
+            'near_me_radius_km' => ['sometimes', 'integer', Rule::in([5, 10, 25, 50, 100])],
         ];
     }
 }
