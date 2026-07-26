@@ -37,20 +37,7 @@ export function ActiveSessionModal({ open, session, stopping, onClose, onStop }:
       width={680}
       title={null}
       onCancel={onClose}
-      footer={(
-        <div className="active-charging-modal-actions">
-          <Button onClick={onClose}>Continue in background</Button>
-          <Popconfirm
-            title="Stop charging now?"
-            description={session.source === 'ocpp' ? 'A secure RemoteStopTransaction command will be sent to the station.' : 'The final energy and amount will be calculated.'}
-            okText="Stop session"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => onStop(session)}
-          >
-            <Button danger icon={<Square size={14} />} loading={stopping}>Stop charging</Button>
-          </Popconfirm>
-        </div>
-      )}
+      footer={null}
     >
       <div className="active-charging-modal-layout">
         <section className="active-charging-visual" aria-label="Charging in progress">
@@ -59,8 +46,8 @@ export function ActiveSessionModal({ open, session, stopping, onClose, onStop }:
             <span />
             <span />
             <motion.img
-              src="/assets/charger-terra-hp-150.png"
-              alt="Charging station delivering energy"
+              src="/assets/Logo.png"
+              alt="ChargeTrackr"
               animate={{ y: [0, -5, 0] }}
               transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
             />
@@ -95,6 +82,18 @@ export function ActiveSessionModal({ open, session, stopping, onClose, onStop }:
             <span><small>Tariff</small><strong>{session.tariff.name}</strong></span>
             <span><small>Payment</small><strong>{session.payment_status.replaceAll('_', ' ')}</strong></span>
             {session.plan && <span><small>Plan</small><strong>{session.plan.name}</strong></span>}
+          </div>
+          <div className="active-charging-modal-actions">
+            <Button onClick={onClose}>Continue in background</Button>
+            <Popconfirm
+              title="Stop charging now?"
+              description={session.source === 'ocpp' ? 'A secure RemoteStopTransaction command will be sent to the station.' : 'The final energy and amount will be calculated.'}
+              okText="Stop session"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => onStop(session)}
+            >
+              <Button danger icon={<Square size={14} />} loading={stopping}>Stop charging</Button>
+            </Popconfirm>
           </div>
         </section>
       </div>

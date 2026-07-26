@@ -244,7 +244,7 @@ function ConnectionStep({ connector, liveConnector, loading, error }: { connecto
       <ol><li><b>1</b><span>Park safely and switch off the vehicle.</span></li><li><b>2</b><span>Take the <strong>{connector?.type ?? 'selected'}</strong> cable from connector {connector?.external_id}.</span></li><li><b>3</b><span>Insert it fully into the vehicle until it locks.</span></li></ol>
     </div>
     <div className="connector-detection-status">
-      {loading ? <Spin size="small" /> : <span className="connector-detection-pulse" aria-hidden="true" />}
+      <Spin spinning={loading || rawStatus === 'Available' || rawStatus === 'Waiting'} size="small" />
       <span><strong>Waiting for the station to detect the cable</strong><small>OCPP connector status: {rawStatus}</small></span>
     </div>
     {error && <Alert type="error" showIcon title="The connector status could not be refreshed" description="The platform will retry automatically while this step remains open." />}
