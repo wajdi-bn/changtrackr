@@ -13,6 +13,7 @@ import { getRoleConfig } from '../features/auth/roleConfig'
 import { AvailabilityRealtimeSync } from '../features/realtime/AvailabilityRealtimeSync'
 import { NotificationCenter } from '../features/notifications/NotificationCenter'
 import { AnimatedSidebarIcon } from '../components/AnimatedIcon'
+import { WorkspaceCoach } from '../features/onboarding/WorkspaceCoach'
 
 function initials(name: string | undefined): string {
   return (name ?? 'User')
@@ -86,6 +87,7 @@ export function AppLayout() {
   return (
     <Layout className="app-shell">
       <AvailabilityRealtimeSync />
+      <WorkspaceCoach />
       <aside className="app-sidebar">
         <button className="brand-button" onClick={() => navigate(roleConfig.defaultPath)}>
           <img className="brand-mark" src="/assets/Logo.png" alt="" />
@@ -99,7 +101,7 @@ export function AppLayout() {
           items={visibleNavItems.map((item) => ({
             key: item.path,
             icon: <AnimatedSidebarIcon active={selectedKey === item.path}>{item.icon}</AnimatedSidebarIcon>,
-            label: item.label,
+            label: <span data-tour={item.path === roleConfig.navItems[1]?.path ? 'primary-action' : undefined}>{item.label}</span>,
             onClick: () => navigate(item.path),
           }))}
         />
@@ -119,9 +121,9 @@ export function AppLayout() {
           />
 
           <Space size="middle">
-            <NotificationCenter />
+            <span data-tour="notifications"><NotificationCenter /></span>
             <Dropdown menu={{ items: avatarMenu }} trigger={['click']}>
-              <button className="avatar-button">
+              <button className="avatar-button" data-tour="account-menu">
                 <Avatar src={user?.avatar_url ?? undefined} icon={!user?.avatar_url ? <UserOutlined /> : undefined}>{!user?.avatar_url ? initials(user?.name) : null}</Avatar>
                 <span className="avatar-copy">
                   <strong>{user?.name}</strong>

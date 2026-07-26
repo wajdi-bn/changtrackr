@@ -21,13 +21,16 @@ class OnboardingController extends Controller
             'current_step' => ['nullable', 'integer', 'min:0', 'max:10'],
             'completed_steps' => ['nullable', 'array', 'max:10'],
             'completed_steps.*' => ['string', 'max:80'],
+            'tour_completed' => ['nullable', 'boolean'],
         ]);
 
         /** @var User $user */
         $user = $request->user();
+        $existingProgress = $user->onboarding_progress ?? [];
         $progress = [
             'current_step' => (int) ($attributes['current_step'] ?? 0),
             'completed_steps' => array_values(array_unique($attributes['completed_steps'] ?? [])),
+            'tour_completed' => (bool) ($attributes['tour_completed'] ?? $existingProgress['tour_completed'] ?? false),
         ];
 
         $updates = ['onboarding_progress' => $progress];
@@ -37,6 +40,7 @@ class OnboardingController extends Controller
             $updates['onboarding_version'] = User::ONBOARDING_VERSION;
             $updates['onboarding_completed_at'] = now();
             $updates['onboarding_dismissed_at'] = null;
+            $updates['onboarding_progress']['tour_completed'] = false;
         }
 
         $user->forceFill($updates)->save();

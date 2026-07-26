@@ -18,10 +18,11 @@ import { demoObjectiveOptions } from '../features/demoRequests/demoRequestOption
 import type { PublicDemoRequestPayload } from '../types/demoRequest'
 
 const navLinks = [
-  { label: 'Platform', href: '#platform' },
-  { label: 'For teams', href: '#teams' },
-  { label: 'How it works', href: '#workflow' },
-  { label: 'Request a demo', href: '#demo' },
+  { label: 'Network', href: '#network' },
+  { label: 'Operations', href: '#operations' },
+  { label: 'Reports', href: '#reports' },
+  { label: 'Updates', href: '#updates' },
+  { label: 'Contact', href: '#demo' },
 ]
 
 const collageTiles = [
@@ -51,21 +52,21 @@ const operationCards = [
   },
 ]
 
-const workflowSteps = [
+const updates = [
   {
     image: '/assets/ev-charging-hub.png',
-    label: '01 · Connect',
-    title: 'Register each station and receive live OCPP events from its connectors.',
-  },
-  {
-    image: '/assets/ev-operations-desk.png',
-    label: '02 · Operate',
-    title: 'Turn availability signals into alerts, assignments and traceable interventions.',
+    label: 'Network operations',
+    title: 'Lac 1 Fast Hub keeps 99.4% uptime across morning commuter demand.',
   },
   {
     image: '/assets/ev-route-corridor.png',
-    label: '03 · Improve',
-    title: 'Compare sessions, revenue, uptime and field results with role-specific reports.',
+    label: 'Energy impact',
+    title: 'Delivered energy reaches 24.5 MWh while station availability stays above target.',
+  },
+  {
+    image: '/assets/ev-operations-desk.png',
+    label: 'City rollout',
+    title: 'Tunisia coverage dashboard expands live views across coastal and airport stations.',
   },
 ]
 
@@ -256,9 +257,9 @@ export function LandingPage() {
             <div className="landing-hero-content">
               <div className="landing-hero-copy">
                 <p className="landing-eyebrow"><BatteryCharging size={15} /> Real-time EV station supervision</p>
-                <h1>ChargeTrackr.<br />Keep every<br />charger ready.</h1>
+                <h1>Make.<br />Every Day.<br />Better.</h1>
                 <p className="landing-hero-description">
-                  One operating platform for EV station availability, connector health, charging sessions, payments and field response.
+                  ChargeTrackr gives operators one calm place to watch station availability, connector health, sessions, payments, and field response across Tunisia.
                 </p>
               </div>
 
@@ -273,15 +274,15 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="platform" className="landing-section landing-about">
+        <section id="network" className="landing-section landing-about">
           <div data-reveal>
-            <p className="landing-section-label">Built for daily operations</p>
+            <p className="landing-section-label">About ChargeTrackr</p>
             <img src="/assets/ev-technician.png" alt="Technician inspecting an EV charging station" />
           </div>
           <div data-reveal>
-            <h2>Know which station is ready, why another one is not, and who is handling the next action.</h2>
-            <p>Heartbeat events, connector status, charging activity, alerts and intervention evidence stay connected to the same operational history.</p>
-            <Button onClick={() => document.querySelector('#workflow')?.scrollIntoView({ behavior: 'smooth' })}>See the workflow <ArrowUpRight size={15} /></Button>
+            <h2>We design visibility for charging networks that have to stay available, profitable, and ready for the next driver.</h2>
+            <p>From heartbeat monitoring to payment follow-up, ChargeTrackr turns daily station operations into a clear, executive-ready operating picture.</p>
+            <Button onClick={openDashboard}>Learn more about us <ArrowUpRight size={15} /></Button>
           </div>
         </section>
 
@@ -314,11 +315,11 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="teams" className="landing-section landing-operations">
+        <section id="operations" className="landing-section landing-operations">
           <h2 data-reveal>One network, shared visibility, faster resolution.</h2>
           <div data-reveal>
-            <p>Administrators govern their organization. Operators supervise the network. Technicians resolve assigned work. Drivers find, charge and pay without entering operational tools.</p>
-            <Button onClick={() => document.querySelector('#demo')?.scrollIntoView({ behavior: 'smooth' })}>See it for your team <ArrowUpRight size={15} /></Button>
+            <p>Our operating layer helps teams see what changed, what needs attention, and where the next charging session can start.</p>
+            <Button onClick={openDashboard}>Explore active operations <ArrowUpRight size={15} /></Button>
           </div>
         </section>
 
@@ -327,7 +328,7 @@ export function LandingPage() {
             <div className="landing-snapshot-intro">
               <div>
                 <h2>Network Snapshot</h2>
-                <p>An illustrative view of the verified indicators available to authorized users in the dashboard.</p>
+                <p>Live prototype numbers drawn from the same operating dataset used in the dashboard.</p>
               </div>
               <img src="/assets/ev-operations-desk.png" alt="EV charging network dashboard" />
               <Button onClick={openDashboard}>Open overview <ArrowUpRight size={15} /></Button>
@@ -361,13 +362,13 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="workflow" className="landing-section landing-updates">
+        <section id="updates" className="landing-section landing-updates">
           <div className="landing-section-heading" data-reveal>
-            <div><p className="landing-section-label">From signal to resolution</p><h2>How ChargeTrackr works</h2></div>
-            <Button type="link" onClick={() => document.querySelector('#demo')?.scrollIntoView({ behavior: 'smooth' })}>Request a demo <ArrowUpRight size={15} /></Button>
+            <h2>Latest Updates</h2>
+            <Button type="link" onClick={openDashboard}>View all <ArrowUpRight size={15} /></Button>
           </div>
           <div className="landing-updates-grid">
-            {workflowSteps.map((item) => (
+            {updates.map((item) => (
               <article key={item.title} data-reveal>
                 <img src={item.image} alt="" />
                 <small>{item.label}</small>

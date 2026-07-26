@@ -45,6 +45,7 @@ export interface AuthUser {
     progress: {
       current_step: number
       completed_steps: string[]
+      tour_completed?: boolean
     }
   }
   activity: {

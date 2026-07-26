@@ -21,18 +21,18 @@ class OnboardingApiTest extends TestCase
         $this->actingAs($client)
             ->putJson('/api/onboarding', [
                 'action' => 'progress',
-                'current_step' => 2,
-                'completed_steps' => ['welcome', 'workspace'],
+                'current_step' => 1,
+                'completed_steps' => ['welcome'],
             ])
             ->assertOk()
-            ->assertJsonPath('data.onboarding.progress.current_step', 2)
+            ->assertJsonPath('data.onboarding.progress.current_step', 1)
             ->assertJsonPath('data.onboarding.should_show', true);
 
         $this->actingAs($client)
             ->putJson('/api/onboarding', [
                 'action' => 'dismiss',
-                'current_step' => 2,
-                'completed_steps' => ['welcome', 'workspace'],
+                'current_step' => 1,
+                'completed_steps' => ['welcome'],
             ])
             ->assertOk()
             ->assertJsonPath('data.onboarding.dismissed', true)
@@ -41,12 +41,23 @@ class OnboardingApiTest extends TestCase
         $this->actingAs($client)
             ->putJson('/api/onboarding', [
                 'action' => 'complete',
-                'current_step' => 3,
-                'completed_steps' => ['welcome', 'workspace', 'setup', 'ready'],
+                'current_step' => 2,
+                'completed_steps' => ['welcome', 'first-win', 'ready'],
             ])
             ->assertOk()
             ->assertJsonPath('data.onboarding.completed', true)
-            ->assertJsonPath('data.onboarding.dismissed', false);
+            ->assertJsonPath('data.onboarding.dismissed', false)
+            ->assertJsonPath('data.onboarding.progress.tour_completed', false);
+
+        $this->actingAs($client)
+            ->putJson('/api/onboarding', [
+                'action' => 'progress',
+                'current_step' => 2,
+                'completed_steps' => ['welcome', 'first-win', 'ready'],
+                'tour_completed' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.onboarding.progress.tour_completed', true);
     }
 
     public function test_admin_can_update_own_organization_and_upload_its_logo(): void

@@ -71,11 +71,7 @@ export function LoginPage() {
   }
 
   return (
-    <AuthPageShell
-      eyebrow="Secure workspace access"
-      title="Welcome back to your charging operations."
-      description="Sign in to the workspace assigned to your role. Drivers can also continue securely with Google."
-    >
+    <AuthPageShell>
             <header className="prototype-login-card-heading">
               <h1>Sign in</h1>
               <p>Sign in with your account or continue with Google.</p>

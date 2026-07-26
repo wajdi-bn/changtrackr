@@ -1,34 +1,18 @@
 import { useMutation } from '@tanstack/react-query'
-import {
-  App,
-  Avatar,
-  Button,
-  Form,
-  Input,
-  Progress,
-  Steps,
-  Upload,
-} from 'antd'
+import { App, Avatar, Button, Form, Input, Progress, Steps, Upload } from 'antd'
 import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  BadgePercent,
-  BarChart3,
   Building2,
   Check,
-  CircleHelp,
-  ClipboardCheck,
-  CreditCard,
-  LayoutDashboard,
+  Clock3,
   MapPinned,
   PlugZap,
   ShieldCheck,
   Sparkles,
   UploadCloud,
-  Users,
   Wrench,
-  Zap,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -44,93 +28,65 @@ import {
 } from '../features/onboarding/onboardingApi'
 import type { UserRole } from '../types/auth'
 
-interface GuideItem {
-  icon: LucideIcon
-  title: string
-  description: string
-}
-
 interface RoleGuide {
   welcome: string
   mission: string
-  essentials: GuideItem[]
-  firstActions: GuideItem[]
+  firstWinTitle: string
+  firstWinDescription: string
+  firstWinIcon: LucideIcon
+  successSignals: string[]
+  nextAction: string
 }
 
 const roleGuides: Record<UserRole, RoleGuide> = {
   super_admin: {
     welcome: 'Your platform control room is ready.',
-    mission: 'Govern organizations, commercial access and platform-wide security without entering tenant operations.',
-    essentials: [
-      { icon: Building2, title: 'Organizations', description: 'Provision, suspend and inspect isolated customer workspaces.' },
-      { icon: BadgePercent, title: 'Commercial lifecycle', description: 'Follow trials, subscriptions, limits and invoices.' },
-      { icon: ShieldCheck, title: 'Governance', description: 'Review permissions, audit activity and integration posture.' },
-    ],
-    firstActions: [
-      { icon: ClipboardCheck, title: 'Review demo requests', description: 'Qualify a request before provisioning its administrator.' },
-      { icon: Users, title: 'Check platform access', description: 'Confirm roles and organization assignments.' },
-      { icon: BarChart3, title: 'Read platform health', description: 'Use reports to compare adoption and operational risk.' },
-    ],
+    mission: 'Govern organization access and platform health without entering tenant operations.',
+    firstWinTitle: 'Provision one organization correctly',
+    firstWinDescription: 'Start from a qualified demo request, verify the commercial plan, then issue one secure administrator invitation.',
+    firstWinIcon: Building2,
+    successSignals: ['The organization has an active commercial lifecycle.', 'Its administrator invitation is valid and auditable.'],
+    nextAction: 'Open Organizations and verify the first tenant workspace.',
   },
   admin: {
     welcome: 'Let us prepare your organization workspace.',
-    mission: 'Configure the network, invite the right team and define how charging activity will be priced and reported.',
-    essentials: [
-      { icon: Users, title: 'Employees and customers', description: 'Invite operators and technicians while keeping customers separate.' },
-      { icon: PlugZap, title: 'Stations and connectors', description: 'Register organization assets and supervise their OCPP status.' },
-      { icon: BadgePercent, title: 'Tariffs and billing', description: 'Define pricing rules and follow the organization subscription.' },
-    ],
-    firstActions: [
-      { icon: Building2, title: 'Confirm organization identity', description: 'Add reliable contact details and a recognizable logo.' },
-      { icon: Users, title: 'Invite your operations team', description: 'Create operator and technician invitations with scoped access.' },
-      { icon: PlugZap, title: 'Onboard the first station', description: 'Add the station identity before connecting its OCPP simulator.' },
-    ],
+    mission: 'Give your team a recognizable workspace before adding people and charging assets.',
+    firstWinTitle: 'Prepare the organization for its first station',
+    firstWinDescription: 'Confirm the business identity now. Inside the workspace, the product tour will point to employee invitations and station onboarding.',
+    firstWinIcon: PlugZap,
+    successSignals: ['Your team recognizes the organization identity.', 'The next action is inviting an operator or technician.'],
+    nextAction: 'Invite the first employee, then register the first station.',
   },
   operator: {
     welcome: 'Your live operations workspace is ready.',
-    mission: 'Keep stations available by combining network signals, alerts and coordinated field response.',
-    essentials: [
-      { icon: LayoutDashboard, title: 'Live overview', description: 'Track availability, active sessions and incidents at a glance.' },
-      { icon: MapPinned, title: 'Station map', description: 'Locate affected assets and inspect connectors without changing tenant ownership.' },
-      { icon: AlertTriangle, title: 'Alerts', description: 'Acknowledge issues and assign field intervention when needed.' },
-    ],
-    firstActions: [
-      { icon: PlugZap, title: 'Check station connectivity', description: 'Review heartbeat freshness and current connector states.' },
-      { icon: AlertTriangle, title: 'Triage open alerts', description: 'Prioritize critical events and add operational context.' },
-      { icon: BarChart3, title: 'Prepare a handover', description: 'Send a concise shift report to the next operator or administrator.' },
-    ],
+    mission: 'Use verified station signals to identify and coordinate the next operational action.',
+    firstWinTitle: 'Identify the station that needs attention',
+    firstWinDescription: 'Begin with current connectivity and availability, then open the related alert instead of scanning every module.',
+    firstWinIcon: AlertTriangle,
+    successSignals: ['You know which station changed state.', 'The issue is acknowledged or assigned with context.'],
+    nextAction: 'Open Stations, then follow the contextual alert when action is required.',
   },
   technician: {
     welcome: 'Your field workspace is ready.',
-    mission: 'Turn assigned alerts into traceable interventions with evidence, status updates and clear handovers.',
-    essentials: [
-      { icon: AlertTriangle, title: 'Assigned alerts', description: 'See only the issues that require your attention.' },
-      { icon: Wrench, title: 'Interventions', description: 'Follow the expected workflow from assignment to resolution.' },
-      { icon: ClipboardCheck, title: 'Maintenance reports', description: 'Record diagnosis, actions, photos and completion evidence.' },
-    ],
-    firstActions: [
-      { icon: Wrench, title: 'Open your assignment queue', description: 'Confirm priority, station and SLA before travelling.' },
-      { icon: MapPinned, title: 'Locate the station', description: 'Use station details and directions without editing the asset.' },
-      { icon: ClipboardCheck, title: 'Document the result', description: 'Add before/after evidence and submit the field report.' },
-    ],
+    mission: 'Turn assigned work into a traceable intervention with clear evidence.',
+    firstWinTitle: 'Complete one assigned intervention',
+    firstWinDescription: 'Confirm the station, priority and SLA before travelling, then record diagnosis and before/after evidence.',
+    firstWinIcon: Wrench,
+    successSignals: ['The intervention follows its expected status sequence.', 'The report contains enough evidence for review.'],
+    nextAction: 'Open My Alerts and select the highest-priority assignment.',
   },
   client: {
     welcome: 'Your charging companion is ready.',
-    mission: 'Find a compatible available connector, follow the session and keep payments in one secure account.',
-    essentials: [
-      { icon: MapPinned, title: 'Find a station', description: 'Compare nearby locations, availability and connector compatibility.' },
-      { icon: Zap, title: 'Start charging', description: 'Follow the guided physical and digital charging steps.' },
-      { icon: CreditCard, title: 'Sessions and payments', description: 'Monitor live consumption and retrieve payment receipts.' },
-    ],
-    firstActions: [
-      { icon: MapPinned, title: 'Choose your search radius', description: 'Tune nearby results to your usual driving area in Settings.' },
-      { icon: BadgePercent, title: 'Compare plans', description: 'Review organization plans before subscribing.' },
-      { icon: CircleHelp, title: 'Know the charging flow', description: 'Use the guide whenever a connector or payment needs attention.' },
-    ],
+    mission: 'Reach an available compatible connector and follow the session with confidence.',
+    firstWinTitle: 'Start one charging session successfully',
+    firstWinDescription: 'Find a nearby station, choose a compatible available connector and follow the guided connection steps.',
+    firstWinIcon: MapPinned,
+    successSignals: ['The chosen connector is available and compatible.', 'The live session shows energy, time and estimated cost.'],
+    nextAction: 'Open Find Station and choose the most practical available connector.',
   },
 }
 
-const stepIds = ['welcome', 'workspace', 'setup', 'ready']
+const stepIds = ['welcome', 'first-win', 'ready']
 
 export function WelcomePage() {
   const { message } = App.useApp()
@@ -204,6 +160,7 @@ export function WelcomePage() {
       action: 'complete',
       current_step: stepIds.length - 1,
       completed_steps: stepIds,
+      tour_completed: false,
     }, {
       onSuccess: (nextUser) => {
         updateCurrentUser(nextUser)
@@ -220,35 +177,37 @@ export function WelcomePage() {
           <img src="/assets/Logo.png" alt="" />
           <span>ChargeTrackr</span>
         </Link>
+
         <div className="onboarding-rail-copy">
           <span>{getRoleConfig(role).label}</span>
           <h1>{guide.welcome}</h1>
           <p>{guide.mission}</p>
         </div>
+
         <Steps
           direction="vertical"
           current={currentStep}
           items={[
-            { title: 'Welcome', description: 'Your access and mission' },
-            { title: 'Workspace', description: 'The tools that matter' },
-            { title: role === 'admin' ? 'Organization' : 'First actions', description: 'Prepare a useful first session' },
-            { title: 'Ready', description: 'Enter your workspace' },
+            { title: 'Welcome', description: 'Your goal and access' },
+            { title: 'First win', description: role === 'admin' ? 'Confirm organization identity' : 'Focus on one useful result' },
+            { title: 'Enter workspace', description: 'Continue with contextual guidance' },
           ]}
         />
+
         <button
           type="button"
           className="onboarding-later"
           onClick={reviewingCompletedGuide ? () => navigate(defaultPath) : dismiss}
           disabled={progressMutation.isPending}
         >
-          {reviewingCompletedGuide ? 'Return to workspace' : 'Set up later'}
+          {reviewingCompletedGuide ? 'Return to workspace' : 'Skip for now'}
         </button>
       </aside>
 
       <section className="onboarding-content">
         <header className="onboarding-topbar">
           <div>
-            <span>Workspace setup</span>
+            <span>Personalized setup</span>
             <strong>Step {currentStep + 1} of {stepIds.length}</strong>
           </div>
           <Progress percent={Math.round(((currentStep + 1) / stepIds.length) * 100)} showInfo={false} />
@@ -260,8 +219,9 @@ export function WelcomePage() {
             <section className="onboarding-welcome">
               <span className="onboarding-hero-icon"><Sparkles size={28} /></span>
               <p className="onboarding-kicker">Welcome, {user?.name?.split(' ')[0]}</p>
-              <h2>Start with the workflow designed for your role.</h2>
-              <p>ChargeTrackr keeps platform governance, organization operations, field work and driver activity clearly separated. This guide introduces only the actions available to you.</p>
+              <h2>Reach your first useful result, not a tour of every feature.</h2>
+              <p>This short setup is tailored to your role. After it, three contextual tips will appear inside the real workspace exactly when you need them.</p>
+              <div className="onboarding-duration"><Clock3 size={16} /><span>About 2 minutes</span><i />You can skip and return from your account menu</div>
               <div className="onboarding-access-summary">
                 <span><ShieldCheck size={18} /></span>
                 <div><strong>{getRoleConfig(role).label}</strong><small>{user?.organization?.name ?? (role === 'client' ? 'Independent driver account' : 'Platform scope')}</small></div>
@@ -270,31 +230,14 @@ export function WelcomePage() {
             </section>
           )}
 
-          {currentStep === 1 && (
-            <GuideGrid
-              eyebrow="Your workspace"
-              title="Three areas to understand first"
-              description="These modules form the shortest path from information to action for your role."
-              items={guide.essentials}
-            />
-          )}
+          {currentStep === 1 && role !== 'admin' && <FirstWinPanel guide={guide} />}
 
-          {currentStep === 2 && role !== 'admin' && (
-            <GuideGrid
-              eyebrow="Your first session"
-              title="A practical order for your first actions"
-              description="Follow this sequence once you enter the workspace. The Help center remains available from your account menu."
-              items={guide.firstActions}
-              numbered
-            />
-          )}
-
-          {currentStep === 2 && role === 'admin' && user?.organization && (
+          {currentStep === 1 && role === 'admin' && user?.organization && (
             <section className="onboarding-organization">
               <div className="onboarding-section-heading">
-                <p className="onboarding-kicker">Organization identity</p>
+                <p className="onboarding-kicker">One useful setup action</p>
                 <h2>Make the workspace recognizable to your team.</h2>
-                <p>These business details appear in organization-facing views. They can be updated later.</p>
+                <p>Only the organization identity is requested now. Employees, stations and tariffs remain contextual actions inside the application.</p>
               </div>
               <div className="onboarding-organization-layout">
                 <div className="onboarding-logo-field">
@@ -315,7 +258,7 @@ export function WelcomePage() {
                   >
                     <Button icon={<UploadCloud size={16} />} loading={logoMutation.isPending}>Upload logo</Button>
                   </Upload>
-                  <small>PNG, JPG or WebP. 2 MB maximum.</small>
+                  <small>Optional. PNG, JPG or WebP, up to 2 MB.</small>
                 </div>
                 <Form<OrganizationOnboardingPayload>
                   form={organizationForm}
@@ -345,16 +288,15 @@ export function WelcomePage() {
             </section>
           )}
 
-          {currentStep === 3 && (
+          {currentStep === 2 && (
             <section className="onboarding-ready">
               <span className="onboarding-ready-mark"><Check size={34} /></span>
-              <p className="onboarding-kicker">Setup complete</p>
-              <h2>Your {getRoleConfig(role).shortLabel.toLowerCase()} workspace is ready.</h2>
-              <p>You can reopen this guide from your account menu. Your permissions and organization scope remain enforced by the server.</p>
-              <div className="onboarding-ready-list">
-                <span><Check size={16} /> Role-specific navigation prepared</span>
-                <span><Check size={16} /> Secure organization scope confirmed</span>
-                <span><Check size={16} /> Guided first actions available</span>
+              <p className="onboarding-kicker">Ready for the first win</p>
+              <h2>Continue inside the actual workspace.</h2>
+              <p>The guide will now highlight only three relevant controls. It will not block the rest of the application, and you can close it at any time.</p>
+              <div className="onboarding-next-action">
+                <span><guide.firstWinIcon size={21} /></span>
+                <div><small>Recommended next action</small><strong>{guide.nextAction}</strong></div>
               </div>
             </section>
           )}
@@ -373,8 +315,12 @@ export function WelcomePage() {
               Continue <ArrowRight size={16} />
             </Button>
           ) : (
-            <Button type="primary" loading={progressMutation.isPending} onClick={complete}>
-              Enter my workspace <ArrowRight size={16} />
+            <Button
+              type="primary"
+              loading={progressMutation.isPending}
+              onClick={reviewingCompletedGuide ? () => navigate(defaultPath) : complete}
+            >
+              {reviewingCompletedGuide ? 'Return to workspace' : 'Show me in the workspace'} <ArrowRight size={16} />
             </Button>
           )}
         </footer>
@@ -383,33 +329,16 @@ export function WelcomePage() {
   )
 }
 
-function GuideGrid({
-  eyebrow,
-  title,
-  description,
-  items,
-  numbered = false,
-}: {
-  eyebrow: string
-  title: string
-  description: string
-  items: GuideItem[]
-  numbered?: boolean
-}) {
+function FirstWinPanel({ guide }: { guide: RoleGuide }) {
   return (
-    <section>
-      <div className="onboarding-section-heading">
-        <p className="onboarding-kicker">{eyebrow}</p>
-        <h2>{title}</h2>
-        <p>{description}</p>
-      </div>
-      <div className="onboarding-guide-grid">
-        {items.map((item, index) => (
-          <article key={item.title}>
-            <span>{numbered ? index + 1 : <item.icon size={22} />}</span>
-            <div><h3>{item.title}</h3><p>{item.description}</p></div>
-          </article>
-        ))}
+    <section className="onboarding-first-win">
+      <div className="onboarding-first-win-icon"><guide.firstWinIcon size={28} /></div>
+      <p className="onboarding-kicker">Your first win</p>
+      <h2>{guide.firstWinTitle}</h2>
+      <p>{guide.firstWinDescription}</p>
+      <div className="onboarding-success-signals">
+        <span>Success means</span>
+        {guide.successSignals.map((signal) => <p key={signal}><Check size={16} />{signal}</p>)}
       </div>
     </section>
   )

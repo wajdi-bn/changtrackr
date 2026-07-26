@@ -51,6 +51,7 @@ class UserResource extends JsonResource
                 'progress' => $this->onboarding_progress ?? [
                     'current_step' => 0,
                     'completed_steps' => [],
+                    'tour_completed' => true,
                 ],
             ],
             'activity' => [

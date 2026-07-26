@@ -5,6 +5,7 @@ export interface OnboardingProgressPayload {
   action: 'progress' | 'dismiss' | 'complete'
   current_step: number
   completed_steps: string[]
+  tour_completed?: boolean
 }
 
 export interface OrganizationOnboardingPayload {
