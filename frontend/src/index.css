@@ -3819,14 +3819,42 @@ html {
 }
 
 .prototype-login-panel {
+  position: relative;
+  isolation: isolate;
   display: flex;
   min-width: 0;
+  overflow: hidden;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  background: #f7fbf9;
+}
+
+.prototype-login-panel-landscape {
+  position: absolute;
+  z-index: -1;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: min(30vh, 230px);
+  pointer-events: none;
+}
+
+.prototype-login-panel-landscape path:nth-child(1) {
+  fill: #d9f3e7;
+}
+
+.prototype-login-panel-landscape path:nth-child(2) {
+  fill: #c5ead9;
+}
+
+.prototype-login-panel-landscape path:nth-child(3) {
+  fill: #a9dcc5;
 }
 
 .prototype-login-card-shell {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 448px;
 }
@@ -4171,8 +4199,18 @@ html {
 .onboarding-rail .ant-steps-item-wait .ant-steps-item-description { color: #e9f9f0 !important; }
 .onboarding-rail .ant-steps-item-icon { border-color: #addac3 !important; background: transparent !important; }
 .onboarding-rail .ant-steps-item-icon .ant-steps-icon { color: #fff !important; }
-.onboarding-rail .ant-steps-item-process .ant-steps-item-icon { border-color: #fff !important; background: #fff !important; }
+.onboarding-rail .ant-steps-item-wait .ant-steps-item-icon,
+.onboarding-rail .ant-steps-item-wait .ant-steps-item-icon-number { color: #fff !important; }
+.onboarding-rail .ant-steps-item-process .ant-steps-item-icon {
+  border-color: #fff !important;
+  background: #fff !important;
+  color: #125f3d !important;
+}
 .onboarding-rail .ant-steps-item-process .ant-steps-icon { color: #125f3d !important; font-weight: 750; }
+.onboarding-rail .ant-steps-item-process .ant-steps-item-icon-number {
+  color: #125f3d !important;
+  font-weight: 750;
+}
 .onboarding-rail .ant-steps-item-finish .ant-steps-item-icon { border-color: #9ce0bf !important; background: #18784f !important; }
 .onboarding-rail .ant-steps-item-tail::after { background: #87bea3 !important; }
 .onboarding-later {

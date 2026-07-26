@@ -40,6 +40,16 @@ export function AuthPageShell({
       </section>
 
       <section className="prototype-login-panel">
+        <svg
+          className="prototype-login-panel-landscape"
+          viewBox="0 0 900 260"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path d="M0 260V166C118 98 220 198 338 132C463 62 566 181 684 112C767 64 835 78 900 116V260Z" />
+          <path d="M0 260V202C106 142 223 222 341 168C462 112 558 210 681 158C772 120 838 126 900 158V260Z" />
+          <path d="M0 260V226C133 184 235 242 369 204C489 170 582 238 704 202C780 180 844 184 900 205V260Z" />
+        </svg>
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
