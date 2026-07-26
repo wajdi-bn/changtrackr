@@ -5559,7 +5559,9 @@ html {
 }
 
 .active-session-card {
+  position: relative;
   display: grid;
+  overflow: hidden;
   grid-template-columns: auto minmax(220px, 1fr) auto auto;
   align-items: center;
   gap: 18px;
@@ -5568,6 +5570,44 @@ html {
   border: 1px solid #c8eadc;
   border-radius: 9px;
   background: linear-gradient(110deg, #effdf6 0%, #ffffff 62%, #f2edff 100%);
+}
+
+.active-session-card::before,
+.active-session-card::after {
+  position: absolute;
+  z-index: 0;
+  right: -12%;
+  bottom: -72px;
+  width: 130%;
+  height: 125px;
+  border-radius: 46% 54% 0 0 / 58% 64% 0 0;
+  background: rgba(94, 210, 166, 0.15);
+  content: '';
+  pointer-events: none;
+  transform-origin: center bottom;
+  animation: active-session-wave 7s ease-in-out infinite alternate;
+}
+
+.active-session-card::after {
+  right: -20%;
+  bottom: -88px;
+  width: 142%;
+  height: 145px;
+  border-radius: 56% 44% 0 0 / 48% 68% 0 0;
+  background: rgba(128, 92, 246, 0.09);
+  animation-duration: 9s;
+  animation-direction: alternate-reverse;
+}
+
+.active-session-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes active-session-wave {
+  0% { transform: translateX(-4%) scaleY(0.9) skewX(-2deg); }
+  50% { transform: translateX(2%) scaleY(1.08) skewX(1deg); }
+  100% { transform: translateX(5%) scaleY(0.96) skewX(3deg); }
 }
 
 .active-session-pulse {
@@ -5690,7 +5730,7 @@ html {
   position: relative;
   z-index: 1;
   display: grid;
-  width: 190px;
+  width: 238px;
   height: 190px;
   place-items: center;
 }
@@ -5704,7 +5744,7 @@ html {
 }
 
 .active-charging-orbit > span:nth-child(2) { animation-delay: 1.2s; }
-.active-charging-orbit img { position: relative; z-index: 2; width: 132px; height: 132px; padding: 10px; border-radius: 28px; background: #fff; object-fit: contain; filter: drop-shadow(0 14px 15px rgba(29, 91, 65, 0.16)); }
+.active-charging-orbit img { position: relative; z-index: 2; width: 220px; height: 138px; border-radius: 16px; background: #0b0d0c; object-fit: cover; filter: drop-shadow(0 14px 15px rgba(29, 91, 65, 0.18)); }
 .active-charging-bolt { position: absolute; z-index: 3; right: 25px; bottom: 29px; display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; background: #159a63; color: #fff; box-shadow: 0 8px 20px rgba(21, 154, 99, 0.28); }
 .active-charging-visual > p { position: relative; z-index: 2; max-width: 230px; margin: 12px 0 0; color: #527064; font-size: 11px; line-height: 1.5; text-align: center; }
 
@@ -5735,10 +5775,15 @@ html {
 @media (max-width: 600px) {
   .active-charging-modal-layout { grid-template-columns: 1fr; }
   .active-charging-visual { min-height: 250px; }
-  .active-charging-orbit { width: 145px; height: 145px; }
-  .active-charging-orbit img { width: 102px; height: 102px; padding: 8px; border-radius: 22px; }
+  .active-charging-orbit { width: 205px; height: 150px; }
+  .active-charging-orbit img { width: 190px; height: 119px; border-radius: 14px; }
   .active-charging-modal-actions { align-items: stretch; flex-direction: column-reverse; }
   .active-charging-modal-actions .ant-btn { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active-session-card::before,
+  .active-session-card::after { animation: none; }
 }
 
 .no-active-session {
