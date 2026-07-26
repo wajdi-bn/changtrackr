@@ -1,5 +1,6 @@
 import {
   LogoutOutlined,
+  CompassOutlined,
   QuestionCircleOutlined,
   SettingOutlined,
   UserOutlined,
@@ -46,6 +47,12 @@ export function AppLayout() {
     roleConfig.defaultPath
 
   const avatarMenu: MenuProps['items'] = [
+    {
+      key: 'guide',
+      icon: <CompassOutlined />,
+      label: user?.onboarding.completed ? 'Workspace guide' : 'Resume setup guide',
+      onClick: () => navigate('/welcome'),
+    },
     {
       key: 'profile',
       icon: <UserOutlined />,

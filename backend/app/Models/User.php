@@ -17,10 +17,12 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['organization_id', 'name', 'email', 'email_verified_at', 'phone', 'avatar_url', 'team', 'address', 'job_title', 'bio', 'address_line_1', 'address_line_2', 'city', 'region', 'postal_code', 'country_code', 'locale', 'timezone', 'linkedin_url', 'website_url', 'status', 'password', 'password_login_enabled', 'last_login_at', 'notification_preferences'])]
+#[Fillable(['organization_id', 'name', 'email', 'email_verified_at', 'phone', 'avatar_url', 'team', 'address', 'job_title', 'bio', 'address_line_1', 'address_line_2', 'city', 'region', 'postal_code', 'country_code', 'locale', 'timezone', 'linkedin_url', 'website_url', 'status', 'password', 'password_login_enabled', 'last_login_at', 'notification_preferences', 'onboarding_version', 'onboarding_progress', 'onboarding_completed_at', 'onboarding_dismissed_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
+    public const ONBOARDING_VERSION = 1;
+
     public const ORGANIZATION_ROLES = ['admin', 'operator', 'technician'];
 
     public const GLOBAL_ROLES = ['super_admin', 'client'];
@@ -183,6 +185,9 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'notification_preferences' => 'array',
+            'onboarding_progress' => 'array',
+            'onboarding_completed_at' => 'datetime',
+            'onboarding_dismissed_at' => 'datetime',
             'password_login_enabled' => 'boolean',
             'password' => 'hashed',
         ];

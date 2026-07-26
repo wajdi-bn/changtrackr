@@ -78,6 +78,7 @@ export function RegisterPage() {
       <Form<RegisterFormValues>
         className="prototype-login-form"
         layout="vertical"
+        validateTrigger="onBlur"
         requiredMark={false}
         initialValues={{ terms_accepted: false }}
         onFinish={handleSubmit}

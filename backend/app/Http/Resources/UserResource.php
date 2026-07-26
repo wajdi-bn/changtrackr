@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\User;
 use App\Services\PlatformSettingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -38,6 +39,20 @@ class UserResource extends JsonResource
             'permissions' => $this->getAllPermissions()->pluck('name')->values(),
             'organization' => OrganizationResource::make($this->whenLoaded('organization')),
             'last_login_at' => $this->last_login_at?->toISOString(),
+            'onboarding' => [
+                'version' => (int) $this->onboarding_version,
+                'current_version' => User::ONBOARDING_VERSION,
+                'completed' => (int) $this->onboarding_version >= User::ONBOARDING_VERSION
+                    && $this->onboarding_completed_at !== null,
+                'dismissed' => $this->onboarding_dismissed_at !== null,
+                'should_show' => (int) $this->onboarding_version < User::ONBOARDING_VERSION
+                    && $this->onboarding_completed_at === null
+                    && $this->onboarding_dismissed_at === null,
+                'progress' => $this->onboarding_progress ?? [
+                    'current_step' => 0,
+                    'completed_steps' => [],
+                ],
+            ],
             'activity' => [
                 'assigned_alerts' => (int) ($this->assigned_alerts_count ?? 0),
                 'assigned_interventions' => (int) ($this->assigned_interventions_count ?? 0),

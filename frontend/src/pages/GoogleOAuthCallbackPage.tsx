@@ -1,11 +1,11 @@
 import { Space, Spin, Typography } from 'antd'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getRoleConfig } from '../features/auth/roleConfig'
+import { getAuthenticatedEntryPath } from '../features/auth/authNavigation'
 import { useAuth } from '../features/auth/useAuth'
 
 export function GoogleOAuthCallbackPage() {
-  const { isAuthenticated, isLoading, primaryRole } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -15,11 +15,11 @@ export function GoogleOAuthCallbackPage() {
 
     navigate(
       isAuthenticated
-        ? getRoleConfig(primaryRole).defaultPath
+        ? getAuthenticatedEntryPath(user!)
         : '/login?oauth_error=session_not_created',
       { replace: true },
     )
-  }, [isAuthenticated, isLoading, navigate, primaryRole])
+  }, [isAuthenticated, isLoading, navigate, user])
 
   return (
     <div className="auth-loading">

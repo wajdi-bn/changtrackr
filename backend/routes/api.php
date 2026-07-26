@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\InterventionReportController;
 use App\Http\Controllers\Api\MaintenanceController;
 use App\Http\Controllers\Api\NotificationPreferenceController;
 use App\Http\Controllers\Api\OcppSupervisionController;
+use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OperationalDocumentController;
 use App\Http\Controllers\Api\OrganizationCommercialController;
 use App\Http\Controllers\Api\OrganizationController;
@@ -67,6 +68,9 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/avatar', [ProfileController::class, 'storeAvatar']);
     Route::delete('/profile/avatar', [ProfileController::class, 'destroyAvatar']);
+    Route::put('/onboarding', [OnboardingController::class, 'update']);
+    Route::put('/onboarding/organization', [OnboardingController::class, 'updateOrganization']);
+    Route::post('/onboarding/organization-logo', [OnboardingController::class, 'storeOrganizationLogo']);
     Route::get('/dashboard', DashboardController::class);
     Route::apiResource('organizations', OrganizationController::class)->only(['index', 'show', 'store', 'update']);
     Route::get('/commercial/plans', [OrganizationCommercialController::class, 'plans']);

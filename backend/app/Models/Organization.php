@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'slug', 'contact_email', 'contact_phone', 'status', 'settings'])]
+#[Fillable(['name', 'slug', 'contact_email', 'contact_phone', 'logo_url', 'status', 'settings'])]
 class Organization extends Model
 {
     /**

@@ -2,9 +2,10 @@ import { lazy, Suspense } from 'react'
 import { Spin } from 'antd'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from '../features/auth/ProtectedRoute'
+import { GuestRoute } from '../features/auth/GuestRoute'
+import { OnboardingRoute } from '../features/auth/OnboardingRoute'
 import { PermissionProtectedRoute } from '../features/auth/PermissionProtectedRoute'
 import { RoleProtectedRoute } from '../features/auth/RoleProtectedRoute'
-import { getRoleConfig } from '../features/auth/roleConfig'
 import { useAuth } from '../features/auth/useAuth'
 import { AppLayout } from '../layouts/AppLayout'
 import { GoogleOAuthCallbackPage } from '../pages/GoogleOAuthCallbackPage'
@@ -17,6 +18,8 @@ import { ActivateInvitationPage } from '../pages/ActivateInvitationPage'
 import { WorkspacePage } from '../pages/WorkspacePage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { ProfilePage } from '../pages/ProfilePage'
+import { WelcomePage } from '../pages/WelcomePage'
+import { getAuthenticatedEntryPath } from '../features/auth/authNavigation'
 
 const LandingPage = lazy(() => import('../pages/LandingPage').then((module) => ({ default: module.LandingPage })))
 const HomePage = lazy(() => import('../pages/HomePage').then((module) => ({ default: module.HomePage })))
@@ -47,25 +50,29 @@ const CommercialManagementPage = lazy(() => import('../pages/CommercialManagemen
 const OrganizationBillingPage = lazy(() => import('../pages/OrganizationBillingPage').then((module) => ({ default: module.OrganizationBillingPage })))
 
 function DefaultRedirect() {
-  const { primaryRole } = useAuth()
-  return <Navigate to={getRoleConfig(primaryRole).defaultPath} replace />
+  const { user } = useAuth()
+  return <Navigate to={user ? getAuthenticatedEntryPath(user) : '/login'} replace />
 }
 
 export function AppRouter() {
   return (
     <Suspense fallback={<div className="route-loading"><Spin size="large" /></div>}>
       <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route element={<GuestRoute />}>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/activate-invitation" element={<ActivateInvitationPage />} />
+      </Route>
       <Route path="/auth/google/callback" element={<GoogleOAuthCallbackPage />} />
-      <Route path="/activate-invitation" element={<ActivateInvitationPage />} />
 
       <Route element={<ProtectedRoute />}>
-        <Route element={<AppLayout />}>
+        <Route path="/welcome" element={<WelcomePage />} />
+        <Route element={<OnboardingRoute />}>
+          <Route element={<AppLayout />}>
           <Route path="/app" element={<DefaultRedirect />} />
           <Route path="/overview" element={<HomePage />} />
           <Route element={<RoleProtectedRoute allowedRoles={['super_admin']} />}>
@@ -131,6 +138,7 @@ export function AppRouter() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/help" element={<WorkspacePage title="Help" subtitle="Internal user guidance and support." />} />
           <Route path="/subscription-required" element={<WorkspacePage title="Organization access suspended" subtitle="Operational modules are unavailable until your organization administrator renews the ChargeTrackr subscription." />} />
+          </Route>
         </Route>
       </Route>
 

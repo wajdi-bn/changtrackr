@@ -51,6 +51,7 @@ export function ForgotPasswordPage() {
         <Form<{ email: string }>
           className="prototype-login-form"
           layout="vertical"
+          validateTrigger="onBlur"
           requiredMark={false}
           onFinish={handleSubmit}
         >

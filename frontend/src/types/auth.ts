@@ -9,6 +9,7 @@ export interface OrganizationSummary {
 export interface Organization extends OrganizationSummary {
   contact_email: string | null
   contact_phone: string | null
+  logo_url: string | null
   status: string
   settings: Record<string, unknown> | null
   commercial: {
@@ -35,6 +36,17 @@ export interface AuthUser {
   permissions: string[]
   organization: Organization | null
   last_login_at: string | null
+  onboarding: {
+    version: number
+    current_version: number
+    completed: boolean
+    dismissed: boolean
+    should_show: boolean
+    progress: {
+      current_step: number
+      completed_steps: string[]
+    }
+  }
   activity: {
     assigned_alerts: number
     assigned_interventions: number

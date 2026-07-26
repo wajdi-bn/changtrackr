@@ -69,6 +69,7 @@ export function ResetPasswordPage() {
         <Form<ResetFormValues>
           className="prototype-login-form"
           layout="vertical"
+          validateTrigger="onBlur"
           requiredMark={false}
           onFinish={handleSubmit}
         >

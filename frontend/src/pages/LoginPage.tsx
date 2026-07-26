@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { backendUrl } from '../api/httpClient'
 import { AuthPageShell } from '../features/auth/AuthPageShell'
+import { getAuthenticatedEntryPath } from '../features/auth/authNavigation'
 import { getAuthErrorCode } from '../features/auth/authApi'
 import { getRoleConfig } from '../features/auth/roleConfig'
 import { useAuth } from '../features/auth/useAuth'
@@ -49,7 +50,8 @@ export function LoginPage() {
 
     try {
       const user = await login(values.email, values.password)
-      navigate(from === '/login' ? getRoleConfig(user.roles[0] ?? null).defaultPath : from, {
+      const postLoginPath = getAuthenticatedEntryPath(user)
+      navigate(user.onboarding.should_show || from === '/login' ? postLoginPath : from, {
         replace: true,
       })
     } catch (error) {
@@ -69,7 +71,11 @@ export function LoginPage() {
   }
 
   return (
-    <AuthPageShell>
+    <AuthPageShell
+      eyebrow="Secure workspace access"
+      title="Welcome back to your charging operations."
+      description="Sign in to the workspace assigned to your role. Drivers can also continue securely with Google."
+    >
             <header className="prototype-login-card-heading">
               <h1>Sign in</h1>
               <p>Sign in with your account or continue with Google.</p>
@@ -89,6 +95,7 @@ export function LoginPage() {
             <Form<LoginFormValues>
               className="prototype-login-form"
               layout="vertical"
+              validateTrigger="onBlur"
               requiredMark={false}
               onFinish={handleSubmit}
             >

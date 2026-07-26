@@ -20,6 +20,7 @@ class OrganizationResource extends JsonResource
             'slug' => $this->slug,
             'contact_email' => $this->contact_email,
             'contact_phone' => $this->contact_phone,
+            'logo_url' => $this->logo_url,
             'status' => $this->status,
             'settings' => $this->settings,
             'commercial' => $this->when($this->relationLoaded('commercialSubscription'), fn () => $this->commercialSubscription ? [
