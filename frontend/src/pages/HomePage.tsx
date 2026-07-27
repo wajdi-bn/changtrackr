@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { App, Button, Card, Empty, Progress, Select, Skeleton, Tag } from 'antd'
+import { App, Avatar, Button, Card, Empty, Progress, Select, Skeleton, Tag } from 'antd'
 import {
   Activity,
   AlertTriangle,
@@ -210,7 +210,14 @@ function AdministratorDashboard({ data, map, ...props }: RoleDashboardProps & { 
   return <DashboardFrame data={data} {...props} color="teal" breadcrumb="Administrator" title="Organization Overview" className="administrator-dashboard">
     <div className="administrator-intro-grid">
       <DashboardCard className="organization-identity-card">
-        <img src="/assets/Logo.png" alt="" />
+        <Avatar
+          className="organization-identity-logo"
+          shape="square"
+          size={64}
+          src={organization?.logo_url ?? undefined}
+          alt={organization?.name ? `${organization.name} logo` : 'Organization logo'}
+          icon={!organization?.logo_url ? <Building2 size={28} /> : undefined}
+        />
         <div><small>ORGANIZATION</small><h2>{organization?.name ?? 'Organization'}</h2><p>{organization?.contact_email ?? 'No organization contact email configured.'}</p><Tag color={organization?.status === 'active' ? 'green' : 'orange'}>{humanStatus(organization?.status ?? 'unknown')}</Tag></div>
       </DashboardCard>
       <DashboardCard title="Quick actions" subtitle="Common administrator tasks">

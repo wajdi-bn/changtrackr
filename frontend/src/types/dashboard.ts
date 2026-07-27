@@ -84,6 +84,7 @@ export interface DashboardOrganizationWidget {
   name: string | null
   status: string | null
   contact_email: string | null
+  logo_url: string | null
   employees: number
   stations: number
 }

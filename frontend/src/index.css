@@ -12097,14 +12097,17 @@ body {
   background: linear-gradient(120deg, #f5fffc 0%, #fff 58%);
 }
 
-.organization-identity-card img {
+.organization-identity-logo {
   width: 64px;
   height: 64px;
   padding: 10px;
   border: 1px solid #d8ebe4;
   border-radius: 12px;
-  object-fit: contain;
   background: #fff;
+}
+
+.organization-identity-logo img {
+  object-fit: contain;
 }
 
 .organization-identity-card small {

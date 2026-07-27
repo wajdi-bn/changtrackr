@@ -156,6 +156,7 @@ class DashboardService
                     'name' => $user->organization?->name,
                     'status' => $user->organization?->status,
                     'contact_email' => $user->organization?->contact_email,
+                    'logo_url' => $user->organization?->logo_url,
                     'employees' => $employees,
                     'stations' => $stations->count(),
                 ],

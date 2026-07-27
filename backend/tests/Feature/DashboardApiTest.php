@@ -28,6 +28,7 @@ class DashboardApiTest extends TestCase
     public function test_admin_dashboard_aggregates_only_its_organization(): void
     {
         $organization = $this->organization('dashboard-admin');
+        $organization->update(['logo_url' => 'https://cdn.example.test/organizations/dashboard-admin.png']);
         $other = $this->organization('dashboard-other');
         $admin = $this->user('admin', $organization);
         $client = $this->user('client');
@@ -49,7 +50,8 @@ class DashboardApiTest extends TestCase
             ->assertJsonPath('data.kpis.1.value', 1)
             ->assertJsonPath('data.kpis.2.value', 100)
             ->assertJsonPath('data.kpis.3.value', 15)
-            ->assertJsonPath('data.widgets.organization.name', (string) $organization->name);
+            ->assertJsonPath('data.widgets.organization.name', (string) $organization->name)
+            ->assertJsonPath('data.widgets.organization.logo_url', 'https://cdn.example.test/organizations/dashboard-admin.png');
 
         $json = $response->json('data');
         $this->assertStringNotContainsString('OTHER', json_encode($json));
