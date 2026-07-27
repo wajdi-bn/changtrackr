@@ -5,7 +5,7 @@ import {
   SettingOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { Avatar, Badge, Dropdown, Layout, Menu, Space } from 'antd'
+import { Avatar, Dropdown, Layout, Menu, Space } from 'antd'
 import type { MenuProps } from 'antd'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
@@ -101,20 +101,25 @@ export function AppLayout() {
           className="app-menu"
           mode="inline"
           selectedKeys={[selectedKey]}
-          items={visibleNavItems.map((item) => ({
-            key: item.path,
-            icon: <Badge
-              className="nav-notification-badge"
-              count={navigationNotificationCount(item.path, notificationSummary)}
-              size="small"
-              overflowCount={99}
-              offset={[5, -4]}
-            >
-              <AnimatedSidebarIcon active={selectedKey === item.path}>{item.icon}</AnimatedSidebarIcon>
-            </Badge>,
-            label: <span data-tour={item.path === roleConfig.navItems[1]?.path ? 'primary-action' : undefined}>{item.label}</span>,
-            onClick: () => navigate(item.path),
-          }))}
+          items={visibleNavItems.map((item) => {
+            const notificationCount = navigationNotificationCount(item.path, notificationSummary)
+
+            return {
+              key: item.path,
+              icon: <span className="menu-icon-with-count">
+                <AnimatedSidebarIcon active={selectedKey === item.path}>{item.icon}</AnimatedSidebarIcon>
+                {notificationCount > 0 && <span className="nav-notification-count nav-notification-count--compact">{formatNavigationCount(notificationCount)}</span>}
+              </span>,
+              label: <span
+                className="menu-label-with-count"
+                data-tour={item.path === roleConfig.navItems[1]?.path ? 'primary-action' : undefined}
+              >
+                <span>{item.label}</span>
+                {notificationCount > 0 && <span className="nav-notification-count nav-notification-count--expanded">{formatNavigationCount(notificationCount)}</span>}
+              </span>,
+              onClick: () => navigate(item.path),
+            }
+          })}
         />
       </aside>
 
@@ -149,4 +154,8 @@ export function AppLayout() {
       </Layout>
     </Layout>
   )
+}
+
+function formatNavigationCount(count: number): string {
+  return count > 99 ? '99+' : String(count)
 }
