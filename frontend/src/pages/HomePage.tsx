@@ -213,7 +213,7 @@ function AdministratorDashboard({ data, map, ...props }: RoleDashboardProps & { 
         <Avatar
           className="organization-identity-logo"
           shape="square"
-          size={64}
+          size={80}
           src={organization?.logo_url ?? undefined}
           alt={organization?.name ? `${organization.name} logo` : 'Organization logo'}
           icon={!organization?.logo_url ? <Building2 size={28} /> : undefined}

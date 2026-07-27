@@ -12090,7 +12090,7 @@ body {
 
 .organization-identity-card > .ant-card-body {
   display: grid;
-  grid-template-columns: 68px minmax(0, 1fr);
+  grid-template-columns: 84px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   min-height: 132px;
@@ -12098,15 +12098,17 @@ body {
 }
 
 .organization-identity-logo {
-  width: 64px;
-  height: 64px;
-  padding: 10px;
+  width: 80px;
+  height: 80px;
+  padding: 0;
   border: 1px solid #d8ebe4;
   border-radius: 12px;
   background: #fff;
 }
 
 .organization-identity-logo img {
+  width: 80px;
+  height: 80px;
   object-fit: contain;
 }
 
