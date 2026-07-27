@@ -1,9 +1,10 @@
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { App, Avatar, Button, Drawer, Form, Input, Modal, Popconfirm, Select, Space, Table, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { Eye, PencilLine, Search, ShieldCheck, UserCheck, UserRoundX, Users } from 'lucide-react'
 import dayjs from 'dayjs'
+import { useSearchParams } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
 import { ExportDropdown, type ExportFormat } from '../components/ExportDropdown'
 import { AdminDataPanel, AdminEmpty, AdminLoading, AdminMetric, AdminMetricGrid, AdminStatus } from '../components/admin/AdminSurface'
@@ -17,8 +18,9 @@ const roleOptions: Array<{ value: EmployeeRole; label: string }> = [{ value: 'su
 const statusOptions: Array<{ value: ManagedUserFilterStatus; label: string }> = [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Suspended' }, { value: 'pending', label: 'Pending activation' }, { value: 'expired', label: 'Invitation expired' }, { value: 'revoked', label: 'Invitation cancelled' }]
 
 export function PlatformUsersPage() {
+  const [searchParams] = useSearchParams()
   const { user: currentUser } = useAuth()
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => searchParams.get('search') ?? '')
   const [role, setRole] = useState<EmployeeRole | undefined>()
   const [status, setStatus] = useState<ManagedUserFilterStatus | undefined>()
   const [organizationId, setOrganizationId] = useState<number | undefined>()
@@ -39,6 +41,11 @@ export function PlatformUsersPage() {
   const users = usersQuery.data?.data ?? []
   const summary = usersQuery.data?.summary
   const organizations = organizationsQuery.data ?? []
+
+  useEffect(() => {
+    setSearch(searchParams.get('search') ?? '')
+    setPage(1)
+  }, [searchParams])
   const columns: ColumnsType<ManagedUser> = [
     { title: 'User', key: 'user', render: (_, user) => <div className="admin-primary-cell"><Avatar src={user.avatar_url ?? undefined}>{initials(user.name)}</Avatar><span><strong>{user.name}</strong><small>{user.email}</small></span></div> },
     { title: 'Role', key: 'role', render: (_, user) => roleLabel(user.roles[0]) },

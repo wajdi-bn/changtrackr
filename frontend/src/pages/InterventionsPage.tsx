@@ -27,6 +27,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
+import { useSearchParams } from 'react-router-dom'
 import {
   addInterventionNote,
   deleteInterventionPhoto,
@@ -53,6 +54,7 @@ export function InterventionsPage() {
   const [status, setStatus] = useState<'all' | InterventionStatus>('all')
   const [view, setView] = useState<'cards' | 'list'>('cards')
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [searchParams] = useSearchParams()
   const [noteOpen, setNoteOpen] = useState(false)
   const [managementOpen, setManagementOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
@@ -68,9 +70,14 @@ export function InterventionsPage() {
   const selected = interventions.find((intervention) => intervention.id === selectedId) ?? interventions[0] ?? null
 
   useEffect(() => {
+    const requestedId = Number(searchParams.get('intervention'))
+    if (Number.isInteger(requestedId) && interventions.some((intervention) => intervention.id === requestedId)) {
+      if (selectedId !== requestedId) setSelectedId(requestedId)
+      return
+    }
     if (selectedId === null && interventions[0]) setSelectedId(interventions[0].id)
     if (selectedId !== null && interventions.length > 0 && !interventions.some((item) => item.id === selectedId)) setSelectedId(interventions[0].id)
-  }, [interventions, selectedId])
+  }, [interventions, searchParams, selectedId])
 
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Parameters<typeof updateIntervention>[1] }) => updateIntervention(id, payload),

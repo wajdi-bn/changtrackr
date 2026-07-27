@@ -14,7 +14,7 @@ import {
   Search,
   UserRound,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
 import { getStations } from '../features/stations/stationApi'
 import {
@@ -40,6 +40,7 @@ export function AlertsPage() {
   const [severity, setSeverity] = useState<'all' | AlertSeverity>('all')
   const [status, setStatus] = useState<'all' | AlertStatus>('all')
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [searchParams] = useSearchParams()
   const [drawer, setDrawer] = useState<'create' | 'assign' | 'intervention' | null>(null)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -57,9 +58,14 @@ export function AlertsPage() {
   const selectedAlert = alerts.find((alert) => alert.id === selectedId) ?? alerts[0] ?? null
 
   useEffect(() => {
+    const requestedId = Number(searchParams.get('alert'))
+    if (Number.isInteger(requestedId) && alerts.some((alert) => alert.id === requestedId)) {
+      if (selectedId !== requestedId) setSelectedId(requestedId)
+      return
+    }
     if (selectedId === null && alerts[0]) setSelectedId(alerts[0].id)
     if (selectedId !== null && alerts.length > 0 && !alerts.some((alert) => alert.id === selectedId)) setSelectedId(alerts[0].id)
-  }, [alerts, selectedId])
+  }, [alerts, searchParams, selectedId])
 
   const updateMutation = useMutation({
     mutationFn: ({ alertId, payload }: { alertId: number; payload: Parameters<typeof updateAlert>[1] }) => updateAlert(alertId, payload),

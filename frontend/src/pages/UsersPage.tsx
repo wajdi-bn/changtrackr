@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState, type ReactNode } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Alert,
@@ -34,6 +34,7 @@ import {
   UserRound,
   XCircle,
 } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
 import { ExportDropdown, type ExportFormat } from '../components/ExportDropdown'
 import { UserDirectoryTabs } from '../components/UserDirectoryTabs'
@@ -77,8 +78,9 @@ const manageableRoleOptions: Array<{ value: Extract<EmployeeRole, 'operator' | '
 const teamOptions = ['Management', 'Network Operations', 'Field Maintenance']
 
 export function UsersPage() {
+  const [searchParams] = useSearchParams()
   const { user: currentUser } = useAuth()
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => searchParams.get('search') ?? '')
   const [role, setRole] = useState<EmployeeRole | undefined>()
   const [status, setStatus] = useState<ManagedUserFilterStatus | undefined>()
   const [team, setTeam] = useState<string | undefined>()
@@ -93,6 +95,11 @@ export function UsersPage() {
   const canCreate = currentUser?.permissions.includes('users.create') ?? false
   const canUpdate = currentUser?.permissions.includes('users.update') ?? false
   const canDeactivate = currentUser?.permissions.includes('users.delete') ?? false
+
+  useEffect(() => {
+    setSearch(searchParams.get('search') ?? '')
+    setPage(1)
+  }, [searchParams])
 
   const filters = useMemo<ManagedUserFilters>(() => ({
     search: deferredSearch.trim() || undefined,

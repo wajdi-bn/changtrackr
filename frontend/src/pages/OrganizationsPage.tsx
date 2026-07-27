@@ -1,10 +1,11 @@
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { App, Avatar, Button, Drawer, Form, Input, Modal, Select, Space, Table, Tag, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { Key } from 'react'
 import { Building2, CircleDollarSign, Eye, MapPin, PencilLine, Plus, Search, Users, Zap } from 'lucide-react'
 import dayjs from 'dayjs'
+import { useSearchParams } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
 import { AdminDataPanel, AdminEmpty, AdminLoading, AdminMetric, AdminMetricGrid, AdminStatus } from '../components/admin/AdminSurface'
 import { httpClient } from '../api/httpClient'
@@ -19,7 +20,8 @@ const getOrganization = async (id: number) => (await httpClient.get<{ data: Orga
 const saveOrganization = async (id: number | null, values: Partial<OrganizationItem>) => (id === null ? await httpClient.post<{ data: OrganizationItem }>('/organizations', values) : await httpClient.put<{ data: OrganizationItem }>(`/organizations/${id}`, values)).data.data
 
 export function OrganizationsPage() {
-  const [search, setSearch] = useState('')
+  const [searchParams] = useSearchParams()
+  const [search, setSearch] = useState(() => searchParams.get('search') ?? '')
   const [status, setStatus] = useState<OrganizationStatus | undefined>()
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [selectedKeys, setSelectedKeys] = useState<Key[]>([])
@@ -35,6 +37,10 @@ export function OrganizationsPage() {
   const organizations = organizationsQuery.data?.data ?? []
   const summary = organizationsQuery.data?.summary
   const totals = organizations.reduce((result, item) => ({ users: result.users + item.users_count, stations: result.stations + item.stations_count, revenue: result.revenue + item.settled_revenue_millimes }), { users: 0, stations: 0, revenue: 0 })
+
+  useEffect(() => {
+    setSearch(searchParams.get('search') ?? '')
+  }, [searchParams])
 
   const confirmStatus = (organization: OrganizationItem, nextStatus: OrganizationStatus) => modal.confirm({ title: `${nextStatus === 'active' ? 'Activate' : 'Suspend'} ${organization.name}?`, content: nextStatus === 'suspended' ? 'Its users will no longer be able to access organization resources.' : 'Organization access will be restored.', okText: nextStatus === 'active' ? 'Activate' : 'Suspend', okButtonProps: { danger: nextStatus === 'suspended' }, onOk: async () => { await saveOrganization(organization.id, { status: nextStatus }); await refresh(); void message.success(`Organization ${nextStatus === 'active' ? 'activated' : 'suspended'}.`) } })
   const columns: ColumnsType<OrganizationItem> = [

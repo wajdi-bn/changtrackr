@@ -50,6 +50,36 @@ class OperationalNotificationApiTest extends TestCase
         $this->postJson('/api/notifications/read-all')->assertOk()->assertJsonPath('updated', 0);
     }
 
+    public function test_notifications_can_be_filtered_and_read_by_navigation_context(): void
+    {
+        $organization = $this->organization('context-notifications');
+        $operator = $this->user($organization, 'operator');
+        $service = app(OperationalNotificationService::class);
+        $service->notifyUser($operator, [...$this->attributes('alert'), 'category' => 'alert']);
+        $service->notifyUser($operator, [...$this->attributes('sla'), 'category' => 'sla']);
+        $service->notifyUser($operator, [...$this->attributes('payment'), 'category' => 'payment']);
+        Sanctum::actingAs($operator);
+
+        $this->getJson('/api/notifications?category=payment')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.category', 'payment')
+            ->assertJsonPath('summary.unread', 3)
+            ->assertJsonPath('summary.unread_by_category.alert', 1)
+            ->assertJsonPath('summary.unread_by_context.alerts', 2)
+            ->assertJsonPath('summary.unread_by_context.payments', 1);
+
+        $this->postJson('/api/notifications/read-context', ['context' => 'alerts'])
+            ->assertOk()
+            ->assertJsonPath('updated', 2);
+
+        $this->getJson('/api/notifications?status=unread')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.category', 'payment')
+            ->assertJsonPath('summary.unread_by_context.alerts', 0);
+    }
+
     public function test_critical_alert_notifies_only_the_organization_admin_and_operators_once(): void
     {
         Queue::fake([SendOperationalNotificationEmail::class]);

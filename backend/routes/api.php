@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DemoRequestController;
 use App\Http\Controllers\Api\EmployeeInvitationController;
+use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\Internal\OcppGatewayController;
 use App\Http\Controllers\Api\Internal\PaymentWebhookController;
 use App\Http\Controllers\Api\InternalReportController;
@@ -72,6 +73,7 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::put('/onboarding/organization', [OnboardingController::class, 'updateOrganization']);
     Route::post('/onboarding/organization-logo', [OnboardingController::class, 'storeOrganizationLogo']);
     Route::get('/dashboard', DashboardController::class);
+    Route::get('/search', GlobalSearchController::class);
     Route::apiResource('organizations', OrganizationController::class)->only(['index', 'show', 'store', 'update']);
     Route::get('/commercial/plans', [OrganizationCommercialController::class, 'plans']);
     Route::post('/commercial/plans', [OrganizationCommercialController::class, 'storePlan']);
@@ -95,6 +97,7 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::get('/notifications', [UserNotificationController::class, 'index']);
     Route::patch('/notifications/{userNotification}/read', [UserNotificationController::class, 'read']);
     Route::post('/notifications/read-all', [UserNotificationController::class, 'readAll']);
+    Route::post('/notifications/read-context', [UserNotificationController::class, 'readContext']);
     Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show']);
     Route::put('/notification-preferences', [NotificationPreferenceController::class, 'update']);
     Route::get('/account-preferences', [AccountPreferenceController::class, 'show']);

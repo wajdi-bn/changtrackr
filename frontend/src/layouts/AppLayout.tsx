@@ -5,7 +5,7 @@ import {
   SettingOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { Avatar, Dropdown, Input, Layout, Menu, Space } from 'antd'
+import { Avatar, Badge, Dropdown, Layout, Menu, Space } from 'antd'
 import type { MenuProps } from 'antd'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
@@ -14,6 +14,8 @@ import { AvailabilityRealtimeSync } from '../features/realtime/AvailabilityRealt
 import { NotificationCenter } from '../features/notifications/NotificationCenter'
 import { AnimatedSidebarIcon } from '../components/AnimatedIcon'
 import { WorkspaceCoach } from '../features/onboarding/WorkspaceCoach'
+import { GlobalSearch } from '../features/search/GlobalSearch'
+import { navigationNotificationCount, useNotificationNavigation } from '../features/notifications/useNotificationNavigation'
 
 function initials(name: string | undefined): string {
   return (name ?? 'User')
@@ -32,6 +34,7 @@ export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const roleConfig = getRoleConfig(primaryRole)
+  const notificationSummary = useNotificationNavigation(location.pathname)
   const commercialBlocked = Boolean(user?.organization?.commercial?.operations_blocked)
   const allowedDuringSuspension = ['/profile', '/settings', '/help', '/organization-billing', '/subscription-required'].includes(location.pathname)
 
@@ -100,7 +103,15 @@ export function AppLayout() {
           selectedKeys={[selectedKey]}
           items={visibleNavItems.map((item) => ({
             key: item.path,
-            icon: <AnimatedSidebarIcon active={selectedKey === item.path}>{item.icon}</AnimatedSidebarIcon>,
+            icon: <Badge
+              className="nav-notification-badge"
+              count={navigationNotificationCount(item.path, notificationSummary)}
+              size="small"
+              overflowCount={99}
+              offset={[5, -4]}
+            >
+              <AnimatedSidebarIcon active={selectedKey === item.path}>{item.icon}</AnimatedSidebarIcon>
+            </Badge>,
             label: <span data-tour={item.path === roleConfig.navItems[1]?.path ? 'primary-action' : undefined}>{item.label}</span>,
             onClick: () => navigate(item.path),
           }))}
@@ -114,11 +125,7 @@ export function AppLayout() {
             <div><strong>ChargeTrackr</strong><small>{roleConfig.shortLabel} workspace</small></div>
           </div>
 
-          <Input.Search
-            className="global-search"
-            placeholder="Search stations, sessions, alerts"
-            allowClear
-          />
+          <GlobalSearch role={primaryRole} />
 
           <Space size="middle">
             <span data-tour="notifications"><NotificationCenter /></span>

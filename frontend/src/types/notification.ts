@@ -1,5 +1,6 @@
 export type NotificationSeverity = 'info' | 'warning' | 'critical'
 export type NotificationDeliveryStatus = 'pending' | 'processing' | 'delivered' | 'failed'
+export type NotificationContext = 'alerts' | 'interventions' | 'maintenance' | 'payments' | 'reports'
 
 export interface UserNotification {
   id: number
@@ -25,5 +26,12 @@ export interface UserNotification {
 
 export interface UserNotificationsResponse {
   data: UserNotification[]
-  summary: { unread: number; total: number }
+  summary: NotificationSummary
+}
+
+export interface NotificationSummary {
+  unread: number
+  total: number
+  unread_by_category: Record<string, number>
+  unread_by_context: Record<NotificationContext, number>
 }

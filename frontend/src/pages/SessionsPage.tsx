@@ -4,7 +4,7 @@ import { App, Button, Card, Empty, Input, Popconfirm, Select, Skeleton, Table } 
 import dayjs from 'dayjs'
 import { BatteryCharging, Clock3, CreditCard, Gauge, Play, Search, Square, Zap } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
 import { ExportDropdown, type ExportFormat } from '../components/ExportDropdown'
 import { MetricItem, MetricStrip, type MetricTone } from '../components/MetricStrip'
@@ -26,12 +26,13 @@ import type { ChargingAttempt, ChargingSession, ChargingSessionStatus, PaymentPa
 import { downloadBlob } from '../utils/downloadBlob'
 
 export function SessionsPage() {
+  const [searchParams] = useSearchParams()
   const { primaryRole, user } = useAuth()
   const clientMode = primaryRole === 'client'
   const canStopSessions = (clientMode && (user?.permissions.includes('sessions.stop') ?? false))
     || (user?.permissions.includes('sessions.manage') ?? false)
   const canExport = user?.permissions.includes('reports.export') ?? false
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => searchParams.get('search') ?? '')
   const deferredSearch = useDeferredValue(search)
   const [status, setStatus] = useState<'all' | ChargingSessionStatus>('all')
   const [startOpen, setStartOpen] = useState(false)
@@ -57,6 +58,10 @@ export function SessionsPage() {
   const sessions = useMemo(() => sessionsQuery.data?.data ?? [], [sessionsQuery.data?.data])
   const activeSession = sessions.find((session) => isActiveSession(session)) ?? null
   const activeAttempt = attemptsQuery.data?.find((attempt) => isActiveAttempt(attempt)) ?? null
+
+  useEffect(() => {
+    setSearch(searchParams.get('search') ?? '')
+  }, [searchParams])
 
   useEffect(() => {
     const state = location.state as { showActiveSession?: boolean } | null

@@ -1,10 +1,11 @@
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Button, Card, Empty, Input, Select, Table } from 'antd'
 import axios from 'axios'
 import dayjs from 'dayjs'
 import { CircleDollarSign, CreditCard, FileDown, ReceiptText, RefreshCw, Search } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
+import { useSearchParams } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
 import { ExportDropdown, type ExportFormat } from '../components/ExportDropdown'
 import { MetricItem, MetricStrip } from '../components/MetricStrip'
@@ -17,10 +18,11 @@ import type { ChargingSession, Payment, PaymentPayload, PaymentStatus } from '..
 import { downloadBlob } from '../utils/downloadBlob'
 
 export function PaymentsPage() {
+  const [searchParams] = useSearchParams()
   const { primaryRole, user } = useAuth()
   const clientMode = primaryRole === 'client'
   const canExport = user?.permissions.includes('reports.export') ?? false
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => searchParams.get('search') ?? '')
   const deferredSearch = useDeferredValue(search)
   const [status, setStatus] = useState<'all' | PaymentStatus>('all')
   const [paymentSession, setPaymentSession] = useState<ChargingSession | null>(null)
@@ -32,6 +34,10 @@ export function PaymentsPage() {
   const failedQuery = useQuery({ queryKey: ['charging-sessions', 'failed-payment'], queryFn: () => getChargingSessions({ payment_status: 'failed' }), enabled: clientMode })
   const payableSessions = useMemo(() => [...(unpaidQuery.data?.data ?? []), ...(failedQuery.data?.data ?? [])]
     .filter((session) => ['completed', 'interrupted'].includes(session.status)), [failedQuery.data?.data, unpaidQuery.data?.data])
+
+  useEffect(() => {
+    setSearch(searchParams.get('search') ?? '')
+  }, [searchParams])
 
   const paymentMutation = useMutation({
     mutationFn: ({ sessionId, payload }: { sessionId: number; payload: PaymentPayload }) => processPayment(sessionId, payload),
