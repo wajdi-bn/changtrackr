@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use App\Services\OrganizationBillingService;
 use App\Services\PlatformAuditService;
+use App\Services\Reports\ReportExportService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\Response;
 
 class OrganizationController extends Controller
 {
@@ -91,6 +94,106 @@ class OrganizationController extends Controller
         }
 
         return response()->json(['data' => $this->summary($organization->fresh())]);
+    }
+
+    public function bulkStatus(Request $request, PlatformAuditService $audit): JsonResponse
+    {
+        $this->authorizeSuperAdmin($request);
+        $attributes = $request->validate([
+            'organization_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'organization_ids.*' => ['required', 'integer', 'distinct', 'exists:organizations,id'],
+            'status' => ['required', Rule::in(['active', 'suspended'])],
+        ]);
+
+        $updatedIds = DB::transaction(function () use ($attributes, $audit, $request): array {
+            $organizations = Organization::query()
+                ->whereKey($attributes['organization_ids'])
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+            $updatedIds = [];
+
+            foreach ($organizations as $organization) {
+                if ($organization->status === $attributes['status']) {
+                    continue;
+                }
+
+                $previousStatus = $organization->status;
+                $organization->update(['status' => $attributes['status']]);
+                $audit->record(
+                    $request->user(),
+                    'organization.bulk_status_updated',
+                    $organization,
+                    "Changed organization {$organization->name} status from {$previousStatus} to {$attributes['status']}.",
+                    [
+                        'previous_status' => $previousStatus,
+                        'new_status' => $attributes['status'],
+                        'bulk_operation' => true,
+                    ],
+                );
+                $updatedIds[] = $organization->id;
+            }
+
+            return $updatedIds;
+        });
+
+        return response()->json([
+            'data' => [
+                'updated' => count($updatedIds),
+                'organization_ids' => $updatedIds,
+                'status' => $attributes['status'],
+            ],
+        ]);
+    }
+
+    public function export(Request $request, ReportExportService $exports): Response
+    {
+        $this->authorizeSuperAdmin($request);
+        $attributes = $request->validate([
+            'format' => ['nullable', Rule::in(['csv', 'json', 'pdf'])],
+            'organization_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'organization_ids.*' => ['required', 'integer', 'distinct', 'exists:organizations,id'],
+        ]);
+        $format = $attributes['format'] ?? 'csv';
+        $organizations = Organization::query()
+            ->whereKey($attributes['organization_ids'])
+            ->withCount(['users', 'stations', 'chargingSessions'])
+            ->withSum(['payments as settled_revenue_millimes' => fn (Builder $query) => $query->where('status', 'paid')], 'amount_millimes')
+            ->orderBy('name')
+            ->get();
+
+        return $exports->dataset(
+            $format,
+            'selected-organizations',
+            'Selected organizations',
+            'Tenant access, network capacity and recorded charging activity.',
+            [
+                'name' => 'Organization',
+                'slug' => 'Slug',
+                'contact_email' => 'Contact email',
+                'contact_phone' => 'Contact phone',
+                'status' => 'Status',
+                'users' => 'Users',
+                'stations' => 'Stations',
+                'sessions' => 'Sessions',
+                'settled_revenue_tnd' => 'Settled revenue (TND)',
+                'created_at' => 'Created',
+            ],
+            $organizations->map(fn (Organization $organization) => [
+                'name' => $organization->name,
+                'slug' => $organization->slug,
+                'contact_email' => $organization->contact_email,
+                'contact_phone' => $organization->contact_phone,
+                'status' => $organization->status,
+                'users' => (int) $organization->users_count,
+                'stations' => (int) $organization->stations_count,
+                'sessions' => (int) $organization->charging_sessions_count,
+                'settled_revenue_tnd' => number_format(((int) $organization->settled_revenue_millimes) / 1000, 3, '.', ''),
+                'created_at' => $organization->created_at?->toIso8601String(),
+            ]),
+            $request->user(),
+            ['organization_ids' => $attributes['organization_ids']],
+        );
     }
 
     /** @return array<string, mixed> */

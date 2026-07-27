@@ -1,6 +1,17 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
+import {
   App,
   Avatar,
   Button,
@@ -57,6 +68,7 @@ import type {
   InterventionStatus,
   MaintenancePlanPayload,
   MaintenanceRecurrence,
+  MaintenancesResponse,
   MaintenanceStationOption,
   MaintenanceType,
   TechnicianOption,
@@ -77,10 +89,12 @@ export function MaintenancePage() {
   const [view, setView] = useState<MaintenanceView>('table')
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedOccurrence, setSelectedOccurrence] = useState<InterventionItem | null>(null)
+  const [draggedOccurrence, setDraggedOccurrence] = useState<InterventionItem | null>(null)
   const [reportPreview, setReportPreview] = useState<OperationalPreviewTarget | null>(null)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
+  const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
   const filters = useMemo(() => ({
     search: deferredSearch.trim() || undefined,
@@ -119,6 +133,26 @@ export function MaintenancePage() {
     },
     onError: () => void message.error('The maintenance occurrence could not be updated.'),
   })
+  const calendarMoveMutation = useMutation({
+    mutationFn: ({ occurrence, scheduledAt }: { occurrence: InterventionItem; scheduledAt: string }) => updateMaintenanceOccurrence(occurrence.id, { scheduled_at: scheduledAt }),
+    onMutate: async ({ occurrence, scheduledAt }) => {
+      await queryClient.cancelQueries({ queryKey: ['maintenances'] })
+      const previous = queryClient.getQueriesData<MaintenancesResponse>({ queryKey: ['maintenances'] })
+      queryClient.setQueriesData<MaintenancesResponse>({ queryKey: ['maintenances'] }, (current) => current ? {
+        ...current,
+        data: current.data.map((item) => item.id === occurrence.id ? { ...item, scheduled_at: scheduledAt } : item),
+      } : current)
+      return { previous }
+    },
+    onSuccess: () => void message.success('Maintenance moved to the selected day.'),
+    onError: (_error, _variables, context) => {
+      context?.previous.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data))
+      void message.error('The maintenance could not be moved. Its previous date was restored.')
+    },
+    onSettled: async () => {
+      await refresh()
+    },
+  })
   const cancelMutation = useMutation({
     mutationFn: (id: number) => updateIntervention(id, { status: 'cancelled' }),
     onSuccess: async () => {
@@ -132,6 +166,41 @@ export function MaintenancePage() {
     onSuccess: (blob, occurrence) => downloadBlob(blob, `maintenance-${occurrence.reference}.pdf`),
     onError: () => void message.error('The maintenance report could not be generated.'),
   })
+
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    const occurrenceId = Number(String(active.id).replace('maintenance-', ''))
+    setDraggedOccurrence(occurrences.find((occurrence) => occurrence.id === occurrenceId) ?? null)
+  }
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    setDraggedOccurrence(null)
+    if (!over) return
+    const occurrenceId = Number(String(active.id).replace('maintenance-', ''))
+    const targetDate = String(over.id).replace('maintenance-date-', '')
+    const occurrence = occurrences.find((item) => item.id === occurrenceId)
+    if (!occurrence?.scheduled_at || occurrence.status !== 'assigned') return
+
+    const currentSchedule = dayjs(occurrence.scheduled_at)
+    const targetDay = dayjs(targetDate)
+    if (!targetDay.isValid() || targetDay.isSame(currentSchedule, 'day')) return
+    if (targetDay.endOf('day').isBefore(dayjs())) {
+      void message.warning('Planned maintenance cannot be moved to a past day.')
+      return
+    }
+
+    const nextSchedule = targetDay
+      .hour(currentSchedule.hour())
+      .minute(currentSchedule.minute())
+      .second(currentSchedule.second())
+      .millisecond(currentSchedule.millisecond())
+
+    modal.confirm({
+      title: `Move ${occurrence.reference}?`,
+      content: `The start time stays ${currentSchedule.format('HH:mm')}. The new schedule will be ${nextSchedule.format('DD MMM YYYY, HH:mm')}.`,
+      okText: 'Confirm move',
+      onOk: () => calendarMoveMutation.mutateAsync({ occurrence, scheduledAt: nextSchedule.toISOString() }),
+    })
+  }
 
   const columns: ColumnsType<InterventionItem> = [
     {
@@ -237,9 +306,12 @@ export function MaintenancePage() {
         <Table<InterventionItem> rowKey="id" columns={columns} dataSource={occurrences} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1070 }} locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No maintenance occurrence matches these filters" /> }} />
       </Card>
     ) : (
-      <Card className="maintenance-calendar-card" title="Maintenance calendar" extra={<small>Click an event to open its station</small>}>
-        <Calendar cellRender={(date, info) => info.type === 'date' ? <CalendarEvents date={date} occurrences={occurrences} onSelect={(occurrence) => navigate(`/stations/${occurrence.station.id}`)} /> : info.originNode} />
-      </Card>
+      <DndContext sensors={dragSensors} onDragStart={handleDragStart} onDragCancel={() => setDraggedOccurrence(null)} onDragEnd={handleDragEnd}>
+        <Card className="maintenance-calendar-card" title="Maintenance calendar" extra={<small>{canManage ? 'Drag planned work to reschedule it' : 'Click an event to open its station'}</small>}>
+          <Calendar cellRender={(date, info) => info.type === 'date' ? <CalendarEvents date={date} occurrences={occurrences} canManage={canManage} movingId={calendarMoveMutation.variables?.occurrence.id} onSelect={(occurrence) => navigate(`/stations/${occurrence.station.id}`)} /> : info.originNode} />
+        </Card>
+        <DragOverlay>{draggedOccurrence ? <div className="maintenance-drag-overlay"><span />{dayjs(draggedOccurrence.scheduled_at).format('HH:mm')} {draggedOccurrence.station.name}</div> : null}</DragOverlay>
+      </DndContext>
     )}
 
     <MaintenancePlanDrawer
@@ -285,9 +357,29 @@ function RecurrenceTag({ occurrence }: { occurrence: InterventionItem }) {
   return <Tag color="cyan" icon={<Repeat2 size={11} />}>{interval}</Tag>
 }
 
-function CalendarEvents({ date, occurrences, onSelect }: { date: dayjs.Dayjs; occurrences: InterventionItem[]; onSelect: (occurrence: InterventionItem) => void }) {
+function CalendarEvents({ date, occurrences, canManage, movingId, onSelect }: { date: dayjs.Dayjs; occurrences: InterventionItem[]; canManage: boolean; movingId?: number; onSelect: (occurrence: InterventionItem) => void }) {
   const matches = occurrences.filter((occurrence) => occurrence.scheduled_at && dayjs(occurrence.scheduled_at).isSame(date, 'day'))
-  return <div className="maintenance-calendar-events">{matches.slice(0, 3).map((occurrence) => <button key={occurrence.id} type="button" className={`status-${occurrence.status}`} onClick={() => onSelect(occurrence)} title={occurrence.maintenance_plan?.title ?? occurrence.problem}><span />{dayjs(occurrence.scheduled_at).format('HH:mm')} {occurrence.station.name}</button>)}{matches.length > 3 && <small>+{matches.length - 3} more</small>}</div>
+  const { setNodeRef, isOver } = useDroppable({ id: `maintenance-date-${date.format('YYYY-MM-DD')}` })
+  return <div ref={setNodeRef} className={`maintenance-calendar-events${isOver ? ' is-over' : ''}`}>{matches.slice(0, 3).map((occurrence) => <DraggableMaintenanceEvent key={occurrence.id} occurrence={occurrence} disabled={!canManage || occurrence.status !== 'assigned' || movingId === occurrence.id} onSelect={onSelect} />)}{matches.length > 3 && <small>+{matches.length - 3} more</small>}</div>
+}
+
+function DraggableMaintenanceEvent({ occurrence, disabled, onSelect }: { occurrence: InterventionItem; disabled: boolean; onSelect: (occurrence: InterventionItem) => void }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `maintenance-${occurrence.id}`,
+    disabled,
+  })
+  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
+
+  return <button
+    ref={setNodeRef}
+    type="button"
+    className={`status-${occurrence.status}${disabled ? '' : ' is-draggable'}${isDragging ? ' is-dragging' : ''}`}
+    style={style}
+    onClick={() => onSelect(occurrence)}
+    title={disabled ? occurrence.maintenance_plan?.title ?? occurrence.problem : `Drag to reschedule ${occurrence.reference}`}
+    {...attributes}
+    {...listeners}
+  ><span />{dayjs(occurrence.scheduled_at).format('HH:mm')} {occurrence.station.name}</button>
 }
 
 interface MaintenancePlanFormValues {

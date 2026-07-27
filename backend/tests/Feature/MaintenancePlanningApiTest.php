@@ -150,6 +150,11 @@ class MaintenancePlanningApiTest extends TestCase
         $this->patchJson("/api/maintenances/{$occurrence->id}", ['scheduled_at' => $newDate->toISOString()])
             ->assertOk()
             ->assertJsonPath('data.scheduled_at', $newDate->toISOString());
+        $this->assertDatabaseHas('platform_audit_logs', [
+            'organization_id' => $organization->id,
+            'event_type' => 'maintenance.rescheduled',
+            'subject_id' => $occurrence->id,
+        ]);
         $this->patchJson("/api/interventions/{$occurrence->id}", ['status' => 'in-progress'])->assertForbidden();
 
         Sanctum::actingAs($otherTechnician);

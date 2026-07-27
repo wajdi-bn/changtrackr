@@ -13,6 +13,7 @@ use App\Models\MaintenancePlan;
 use App\Models\Station;
 use App\Models\User;
 use App\Services\Maintenance\MaintenancePlanService;
+use App\Services\PlatformAuditService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -29,7 +30,10 @@ class MaintenanceController extends Controller
         'maintenancePlan.station', 'maintenancePlan.connector', 'maintenancePlan.assignedTechnician',
     ];
 
-    public function __construct(private readonly MaintenancePlanService $plans) {}
+    public function __construct(
+        private readonly MaintenancePlanService $plans,
+        private readonly PlatformAuditService $audit,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -137,14 +141,35 @@ class MaintenanceController extends Controller
             $this->assertTechnicianScope((int) $attributes['assigned_technician_id'], $maintenance->organization_id);
         }
 
-        DB::transaction(function () use ($maintenance, $attributes, $request): void {
+        $before = $maintenance->only(array_keys($attributes));
+        DB::transaction(function () use ($maintenance, $attributes, $before, $request): void {
             $maintenance->update($attributes);
+            $description = isset($attributes['scheduled_at'])
+                ? sprintf(
+                    'Rescheduled maintenance from %s to %s.',
+                    $before['scheduled_at']
+                        ? CarbonImmutable::parse($before['scheduled_at'])->toIso8601String()
+                        : 'an unscheduled state',
+                    CarbonImmutable::parse($maintenance->scheduled_at)->toIso8601String(),
+                )
+                : 'Maintenance assignment or schedule updated.';
             $maintenance->events()->create([
                 'actor_id' => $request->user()->id,
                 'event_type' => 'maintenance_rescheduled',
-                'description' => 'Maintenance assignment or schedule updated.',
+                'description' => $description,
                 'occurred_at' => now(),
             ]);
+            $this->audit->record(
+                $request->user(),
+                'maintenance.rescheduled',
+                $maintenance,
+                $description,
+                [
+                    'changed_fields' => array_keys($attributes),
+                    'before' => $before,
+                    'after' => $maintenance->only(array_keys($attributes)),
+                ],
+            );
         });
 
         return new InterventionResource($maintenance->fresh()->load(self::RELATIONS));

@@ -3,12 +3,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { App, Avatar, Button, Drawer, Form, Input, Modal, Select, Space, Table, Tag, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { Key } from 'react'
-import { Building2, CircleDollarSign, Eye, MapPin, PencilLine, Plus, Search, Users, Zap } from 'lucide-react'
+import { Building2, CheckCircle2, CircleDollarSign, Eye, MapPin, PauseCircle, PencilLine, Plus, Search, Users, X, Zap } from 'lucide-react'
 import dayjs from 'dayjs'
 import { useSearchParams } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
 import { AdminDataPanel, AdminEmpty, AdminLoading, AdminMetric, AdminMetricGrid, AdminStatus } from '../components/admin/AdminSurface'
 import { httpClient } from '../api/httpClient'
+import { ExportDropdown, type ExportFormat } from '../components/ExportDropdown'
+import { downloadBlob } from '../utils/downloadBlob'
 
 type OrganizationStatus = 'active' | 'suspended'
 interface OrganizationItem { id: number; name: string; slug: string; contact_email: string | null; contact_phone: string | null; status: OrganizationStatus; users_count: number; stations_count: number; charging_sessions_count: number; settled_revenue_millimes: number; created_at: string | null }
@@ -18,6 +20,8 @@ interface OrganizationsResponse { data: OrganizationItem[]; summary: { total: nu
 const getOrganizations = async (filters: { search?: string; status?: OrganizationStatus }) => (await httpClient.get<OrganizationsResponse>('/organizations', { params: filters })).data
 const getOrganization = async (id: number) => (await httpClient.get<{ data: OrganizationDetail }>(`/organizations/${id}`)).data.data
 const saveOrganization = async (id: number | null, values: Partial<OrganizationItem>) => (id === null ? await httpClient.post<{ data: OrganizationItem }>('/organizations', values) : await httpClient.put<{ data: OrganizationItem }>(`/organizations/${id}`, values)).data.data
+const updateOrganizationsStatus = async (organizationIds: number[], status: OrganizationStatus) => (await httpClient.post<{ data: { updated: number; organization_ids: number[]; status: OrganizationStatus } }>('/organizations/bulk-status', { organization_ids: organizationIds, status })).data.data
+const exportOrganizations = async (organizationIds: number[], format: ExportFormat) => (await httpClient.get<Blob>('/organizations/export', { params: { organization_ids: organizationIds, format }, responseType: 'blob' })).data
 
 export function OrganizationsPage() {
   const [searchParams] = useSearchParams()
@@ -36,6 +40,21 @@ export function OrganizationsPage() {
   const saveMutation = useMutation({ mutationFn: ({ id, values }: { id: number | null; values: Partial<OrganizationItem> }) => saveOrganization(id, values), onSuccess: async () => { await refresh(); setEditor(undefined); void message.success('Organization saved successfully.') }, onError: () => void message.error('The organization could not be saved. Review the entered information.') })
   const organizations = organizationsQuery.data?.data ?? []
   const summary = organizationsQuery.data?.summary
+  const selectedOrganizationIds = selectedKeys.map(Number)
+  const bulkStatusMutation = useMutation({
+    mutationFn: (nextStatus: OrganizationStatus) => updateOrganizationsStatus(selectedOrganizationIds, nextStatus),
+    onSuccess: async (result) => {
+      await refresh()
+      setSelectedKeys([])
+      void message.success(`${result.updated} organization${result.updated === 1 ? '' : 's'} updated.`)
+    },
+    onError: () => void message.error('The selected organizations could not be updated.'),
+  })
+  const exportMutation = useMutation({
+    mutationFn: (format: ExportFormat) => exportOrganizations(selectedOrganizationIds, format),
+    onSuccess: (blob, format) => downloadBlob(blob, `selected-organizations.${format}`),
+    onError: () => void message.error('The selected organizations could not be exported.'),
+  })
   const totals = organizations.reduce((result, item) => ({ users: result.users + item.users_count, stations: result.stations + item.stations_count, revenue: result.revenue + item.settled_revenue_millimes }), { users: 0, stations: 0, revenue: 0 })
 
   useEffect(() => {
@@ -43,6 +62,15 @@ export function OrganizationsPage() {
   }, [searchParams])
 
   const confirmStatus = (organization: OrganizationItem, nextStatus: OrganizationStatus) => modal.confirm({ title: `${nextStatus === 'active' ? 'Activate' : 'Suspend'} ${organization.name}?`, content: nextStatus === 'suspended' ? 'Its users will no longer be able to access organization resources.' : 'Organization access will be restored.', okText: nextStatus === 'active' ? 'Activate' : 'Suspend', okButtonProps: { danger: nextStatus === 'suspended' }, onOk: async () => { await saveOrganization(organization.id, { status: nextStatus }); await refresh(); void message.success(`Organization ${nextStatus === 'active' ? 'activated' : 'suspended'}.`) } })
+  const confirmBulkStatus = (nextStatus: OrganizationStatus) => modal.confirm({
+    title: `${nextStatus === 'active' ? 'Activate' : 'Suspend'} ${selectedOrganizationIds.length} selected organizations?`,
+    content: nextStatus === 'suspended'
+      ? 'Their employees will lose access to organization resources until access is restored.'
+      : 'Organization access will be restored for every selected network.',
+    okText: nextStatus === 'active' ? 'Activate selected' : 'Suspend selected',
+    okButtonProps: { danger: nextStatus === 'suspended' },
+    onOk: () => bulkStatusMutation.mutateAsync(nextStatus),
+  })
   const columns: ColumnsType<OrganizationItem> = [
     { title: 'Organization', key: 'organization', render: (_, item) => <div className="admin-primary-cell"><Avatar shape="square" icon={<Building2 size={17} />} /><span><strong>{item.name}</strong><small>{item.slug}</small></span></div> },
     { title: 'Contact', key: 'contact', render: (_, item) => <div className="admin-stack-cell"><span>{item.contact_email ?? 'No email'}</span><small>{item.contact_phone ?? 'No phone'}</small></div> },
@@ -65,6 +93,15 @@ export function OrganizationsPage() {
     </AdminMetricGrid>
     <AdminDataPanel title="Organization directory" subtitle="Search, inspect and manage every tenant charging network." extra={<Button type="primary" className="admin-primary-action" icon={<Plus size={16} />} onClick={() => setEditor(null)}>Add organization</Button>}>
       <div className="admin-table-toolbar"><Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={15} />} placeholder="Search organization, slug or contact" allowClear /><Select value={status} allowClear placeholder="All statuses" options={[{ value: 'active', label: 'Active' }, { value: 'suspended', label: 'Suspended' }]} onChange={setStatus} /><span>{selectedKeys.length ? `${selectedKeys.length} selected` : `${organizations.length} organizations`}</span></div>
+      {selectedKeys.length > 0 && <div className="admin-selection-bar" role="toolbar" aria-label="Selected organization actions">
+        <div className="admin-selection-copy"><strong>{selectedKeys.length} selected</strong><span>Apply one action to the selected organizations.</span></div>
+        <Space wrap>
+          <Button icon={<CheckCircle2 size={15} />} loading={bulkStatusMutation.isPending && bulkStatusMutation.variables === 'active'} onClick={() => confirmBulkStatus('active')}>Activate</Button>
+          <Button danger icon={<PauseCircle size={15} />} loading={bulkStatusMutation.isPending && bulkStatusMutation.variables === 'suspended'} onClick={() => confirmBulkStatus('suspended')}>Suspend</Button>
+          <ExportDropdown label="Export selected" loading={exportMutation.isPending} onExport={(format) => exportMutation.mutate(format)} />
+          <Button type="text" aria-label="Clear organization selection" icon={<X size={16} />} onClick={() => setSelectedKeys([])}>Clear</Button>
+        </Space>
+      </div>}
       {organizationsQuery.isLoading ? <AdminLoading /> : organizations.length === 0 ? <AdminEmpty description="No organization matches the current filters" actionLabel="Add organization" onAction={() => setEditor(null)} /> : <Table rowKey="id" className="admin-data-table" columns={columns} dataSource={organizations} pagination={{ pageSize: 10, showSizeChanger: false }} rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }} scroll={{ x: 1120 }} onRow={(record) => ({ onDoubleClick: () => setSelectedId(record.id) })} />}
     </AdminDataPanel>
     <OrganizationDrawer detail={detailQuery.data} loading={detailQuery.isLoading} open={selectedId !== null} onClose={() => setSelectedId(null)} onEdit={(organization) => setEditor(organization)} />

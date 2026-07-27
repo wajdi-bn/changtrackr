@@ -38,7 +38,16 @@ class AccountInvitationController extends Controller
         AccountInvitationService $invitations,
     ): JsonResponse {
         $attributes = $request->validated();
-        $invitations->accept($attributes['email'], $attributes['token'], $attributes['password']);
+        $invitations->accept(
+            $attributes['email'],
+            $attributes['token'],
+            $attributes['password'],
+            [
+                'phone' => $attributes['phone'] ?? null,
+                'job_title' => $attributes['job_title'] ?? null,
+            ],
+            $request->file('organization_logo'),
+        );
 
         return response()->json([
             'message' => 'Your account is active. You can now sign in with your new password.',

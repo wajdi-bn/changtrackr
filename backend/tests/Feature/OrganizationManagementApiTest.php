@@ -78,6 +78,53 @@ class OrganizationManagementApiTest extends TestCase
         $this->postJson('/api/organizations', ['name' => 'Unauthorized tenant'])->assertForbidden();
     }
 
+    public function test_super_admin_can_update_and_export_selected_organizations_in_bulk(): void
+    {
+        $superAdmin = $this->user('super_admin');
+        $first = Organization::query()->create(['name' => 'First Network', 'slug' => 'first-network', 'status' => 'active']);
+        $second = Organization::query()->create(['name' => 'Second Network', 'slug' => 'second-network', 'status' => 'active']);
+        $excluded = Organization::query()->create(['name' => 'Excluded Network', 'slug' => 'excluded-network', 'status' => 'active']);
+        Sanctum::actingAs($superAdmin);
+
+        $this->postJson('/api/organizations/bulk-status', [
+            'organization_ids' => [$first->id, $second->id],
+            'status' => 'suspended',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.updated', 2)
+            ->assertJsonPath('data.status', 'suspended');
+
+        $this->assertSame('suspended', $first->fresh()->status);
+        $this->assertSame('suspended', $second->fresh()->status);
+        $this->assertSame('active', $excluded->fresh()->status);
+        $this->assertDatabaseCount('platform_audit_logs', 2);
+        $this->assertDatabaseHas('platform_audit_logs', [
+            'event_type' => 'organization.bulk_status_updated',
+            'organization_id' => $first->id,
+        ]);
+
+        $query = http_build_query([
+            'format' => 'json',
+            'organization_ids' => [$first->id, $second->id],
+        ]);
+        $this->getJson("/api/organizations/export?{$query}")
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonMissing(['name' => 'Excluded Network']);
+    }
+
+    public function test_organization_administrator_cannot_use_bulk_platform_actions(): void
+    {
+        $organization = Organization::query()->create(['name' => 'Restricted Network', 'slug' => 'restricted-network', 'status' => 'active']);
+        Sanctum::actingAs($this->user('admin', $organization));
+
+        $this->postJson('/api/organizations/bulk-status', [
+            'organization_ids' => [$organization->id],
+            'status' => 'suspended',
+        ])->assertForbidden();
+        $this->getJson('/api/organizations/export?format=json&organization_ids[0]='.$organization->id)->assertForbidden();
+    }
+
     private function user(string $role, ?Organization $organization = null): User
     {
         $user = User::factory()->create(['organization_id' => $organization?->id, 'status' => 'active']);

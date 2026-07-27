@@ -75,6 +75,8 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::post('/onboarding/organization-logo', [OnboardingController::class, 'storeOrganizationLogo']);
     Route::get('/dashboard', DashboardController::class);
     Route::get('/search', GlobalSearchController::class);
+    Route::get('/organizations/export', [OrganizationController::class, 'export']);
+    Route::post('/organizations/bulk-status', [OrganizationController::class, 'bulkStatus']);
     Route::apiResource('organizations', OrganizationController::class)->only(['index', 'show', 'store', 'update']);
     Route::get('/commercial/plans', [OrganizationCommercialController::class, 'plans']);
     Route::post('/commercial/plans', [OrganizationCommercialController::class, 'storePlan']);

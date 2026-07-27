@@ -8,8 +8,10 @@ use App\Models\User;
 use App\Notifications\AccountInvitationNotification;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -45,6 +47,7 @@ class UserManagementApiTest extends TestCase
     public function test_administrator_invites_an_employee_who_activates_before_being_managed(): void
     {
         Notification::fake();
+        Storage::fake('public');
         $organization = $this->organization('crud-network');
         $administrator = $this->user($organization, 'admin');
         Sanctum::actingAs($administrator);
@@ -80,6 +83,18 @@ class UserManagementApiTest extends TestCase
         });
         $this->assertIsString($activationUrl);
         parse_str((string) parse_url($activationUrl, PHP_URL_QUERY), $activationQuery);
+
+        $this->post('/api/account-invitations/accept', [
+            'email' => $managedUser->email,
+            'token' => $activationQuery['token'],
+            'password' => 'SecurePass123',
+            'password_confirmation' => 'SecurePass123',
+            'organization_logo' => UploadedFile::fake()->image('forbidden-logo.png'),
+        ], ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('organization_logo');
+        $this->assertSame('pending', $managedUser->fresh()->status);
+        $this->assertNull($organization->fresh()->logo_url);
 
         $this->postJson('/api/account-invitations/accept', [
             'email' => $managedUser->email,

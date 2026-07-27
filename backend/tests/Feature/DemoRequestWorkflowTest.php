@@ -11,8 +11,10 @@ use App\Notifications\DemoRequestReceivedNotification;
 use App\Notifications\NewDemoRequestNotification;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -176,6 +178,7 @@ class DemoRequestWorkflowTest extends TestCase
 
     public function test_invited_administrator_can_activate_once_with_the_exact_token(): void
     {
+        Storage::fake('public');
         $organization = Organization::query()->create([
             'name' => 'Activation Network',
             'slug' => 'activation-network',
@@ -213,13 +216,23 @@ class DemoRequestWorkflowTest extends TestCase
             'password' => 'SecurePass123',
             'password_confirmation' => 'SecurePass123',
         ];
-        $this->postJson('/api/account-invitations/accept', $payload)->assertOk();
+        $this->post('/api/account-invitations/accept', [
+            ...$payload,
+            'phone' => '+216 22 333 444',
+            'job_title' => 'Charging Network Director',
+            'organization_logo' => UploadedFile::fake()->image('activation-logo.png', 240, 240),
+        ])->assertOk();
 
         $administrator->refresh();
+        $organization->refresh();
         $this->assertSame('active', $administrator->status);
+        $this->assertSame('+216 22 333 444', $administrator->phone);
+        $this->assertSame('Charging Network Director', $administrator->job_title);
         $this->assertNotNull($administrator->email_verified_at);
         $this->assertTrue(Hash::check('SecurePass123', $administrator->password));
         $this->assertSame('accepted', $invitation->fresh()->status);
+        $this->assertNotNull($organization->logo_url);
+        Storage::disk('public')->assertExists(str_replace('/storage/', '', $organization->logo_url));
 
         $this->postJson('/api/account-invitations/accept', $payload)
             ->assertUnprocessable()

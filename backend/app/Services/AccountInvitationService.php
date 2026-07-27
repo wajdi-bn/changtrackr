@@ -6,10 +6,13 @@ use App\Models\AccountInvitation;
 use App\Models\DemoRequest;
 use App\Models\Organization;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AccountInvitationService
 {
@@ -243,8 +246,14 @@ class AccountInvitationService
         });
     }
 
-    public function accept(string $email, string $token, string $password): User
-    {
+    /** @param array{phone?: ?string, job_title?: ?string} $profile */
+    public function accept(
+        string $email,
+        string $token,
+        string $password,
+        array $profile = [],
+        ?UploadedFile $organizationLogo = null,
+    ): User {
         $candidate = $this->queryInvitation($email, $token)->first();
         if ($candidate?->status === 'pending' && $candidate->expires_at->isPast()) {
             $candidate->update(['status' => 'expired']);
@@ -254,38 +263,78 @@ class AccountInvitationService
             ]);
         }
 
-        return DB::transaction(function () use ($email, $token, $password): User {
-            $invitation = $this->queryInvitation($email, $token)
-                ->with(['organization', 'user'])
-                ->lockForUpdate()
-                ->first();
+        $storedLogoPath = null;
+        $previousLogoUrl = null;
 
-            if (! $invitation || ! $invitation->isUsable()) {
-                throw ValidationException::withMessages([
-                    'token' => ['This invitation is invalid, expired, or has already been used.'],
+        try {
+            $user = DB::transaction(function () use (
+                $email,
+                $token,
+                $password,
+                $profile,
+                $organizationLogo,
+                &$storedLogoPath,
+                &$previousLogoUrl,
+            ): User {
+                $invitation = $this->queryInvitation($email, $token)
+                    ->with(['organization', 'user'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $invitation || ! $invitation->isUsable()) {
+                    throw ValidationException::withMessages([
+                        'token' => ['This invitation is invalid, expired, or has already been used.'],
+                    ]);
+                }
+
+                if ($invitation->organization->status !== 'active' || $invitation->user->status !== 'pending') {
+                    throw ValidationException::withMessages([
+                        'token' => ['This invitation can no longer activate an account.'],
+                    ]);
+                }
+
+                if ($organizationLogo && $invitation->role !== 'admin') {
+                    throw ValidationException::withMessages([
+                        'organization_logo' => ['Only an invited organization administrator can set the organization logo.'],
+                    ]);
+                }
+
+                if ($organizationLogo) {
+                    $previousLogoUrl = $invitation->organization->logo_url;
+                    $storedLogoPath = $organizationLogo->store("organizations/{$invitation->organization_id}", 'public');
+                    $invitation->organization->update([
+                        'logo_url' => Storage::disk('public')->url($storedLogoPath),
+                    ]);
+                }
+
+                $invitation->user->forceFill([
+                    'password' => $password,
+                    'password_login_enabled' => true,
+                    'email_verified_at' => now(),
+                    'status' => 'active',
+                    ...Arr::only($profile, ['phone', 'job_title']),
+                ])->save();
+
+                $invitation->update([
+                    'status' => 'accepted',
+                    'accepted_at' => now(),
                 ]);
+
+                return $invitation->user->fresh(['organization', 'roles']);
+            });
+        } catch (Throwable $exception) {
+            if ($storedLogoPath) {
+                Storage::disk('public')->delete($storedLogoPath);
             }
 
-            if ($invitation->organization->status !== 'active' || $invitation->user->status !== 'pending') {
-                throw ValidationException::withMessages([
-                    'token' => ['This invitation can no longer activate an account.'],
-                ]);
-            }
+            throw $exception;
+        }
 
-            $invitation->user->forceFill([
-                'password' => $password,
-                'password_login_enabled' => true,
-                'email_verified_at' => now(),
-                'status' => 'active',
-            ])->save();
+        if ($organizationLogo && $previousLogoUrl && str_starts_with($previousLogoUrl, '/storage/organizations/')) {
+            Storage::disk('public')->delete(ltrim(str_replace('/storage/', '', $previousLogoUrl), '/'));
+        }
 
-            $invitation->update([
-                'status' => 'accepted',
-                'accepted_at' => now(),
-            ]);
-
-            return $invitation->user->fresh(['organization', 'roles']);
-        });
+        return $user;
     }
 
     private function queryInvitation(string $email, string $token)

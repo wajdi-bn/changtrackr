@@ -987,6 +987,39 @@
 .admin-table-toolbar .ant-input-affix-wrapper, .admin-table-toolbar .ant-select-selector { min-height: 36px; border-color: #e2e8e4 !important; background: #f9fbfa !important; }
 .admin-table-toolbar .ant-input { background: transparent; font-size: 13px; }
 
+.admin-selection-bar {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: -2px 0 12px;
+  padding: 9px 10px 9px 14px;
+  border: 1px solid #bce8d2;
+  border-radius: 7px;
+  background: #f0faf5;
+}
+
+.admin-selection-copy {
+  display: grid;
+  gap: 1px;
+}
+
+.admin-selection-copy strong {
+  color: #126a48;
+  font-size: 13px;
+}
+
+.admin-selection-copy span {
+  color: #74827a;
+  font-size: 11px;
+}
+
+.admin-selection-bar .ant-btn {
+  min-height: 33px;
+  font-size: 12px;
+}
+
 .admin-data-table .ant-table { color: #4d5c54; font-size: 13px; }
 .admin-data-table .ant-table-container { overflow: hidden; border: 1px solid #e6ebe8; border-radius: 7px; }
 .admin-data-table .ant-table-thead > tr > th { padding: 11px 12px; border-bottom-color: #e6ebe8; background: #f8faf9; color: #6c7871; font-size: 11px; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
@@ -1926,6 +1959,11 @@
 }
 
 @media (max-width: 760px) {
+  .admin-selection-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .permission-workspace { grid-template-columns: 1fr; }
   .permission-role-rail { border-right: 0; border-bottom: 1px solid #e4eae6; }
   .permission-role-rail > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -4770,6 +4808,86 @@ html {
   line-height: 16px;
 }
 
+.activation-optional-section {
+  display: grid;
+  gap: 12px;
+  margin: 22px 0 18px;
+  padding-top: 18px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.activation-optional-section > header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.activation-optional-section > header > span,
+.activation-logo-upload > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 7px;
+  background: #e8f7ef;
+  color: #09865a;
+}
+
+.activation-optional-section > header > div,
+.activation-logo-upload > div {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.activation-optional-section strong {
+  color: #26322c;
+  font-size: 13px;
+}
+
+.activation-optional-section small {
+  color: #7a877f;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.activation-optional-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.activation-optional-grid .ant-form-item {
+  margin-bottom: 0;
+}
+
+.activation-logo-upload {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid #dfe8e3;
+  border-radius: 7px;
+  background: #fbfdfc;
+}
+
+.activation-logo-upload .ant-upload-wrapper {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.activation-logo-upload .ant-upload-list {
+  grid-column: 2;
+  margin: 0;
+}
+
+.activation-logo-upload .ant-btn {
+  min-height: 36px;
+  font-size: 12px;
+}
+
 .prototype-terms-item .ant-checkbox-wrapper {
   align-items: flex-start;
   color: #4b5563;
@@ -4856,6 +4974,16 @@ html {
 
   .prototype-login-mobile-brand {
     display: flex;
+  }
+}
+
+@media (max-width: 560px) {
+  .activation-optional-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .activation-logo-upload .ant-upload-wrapper {
+    grid-column: 1 / -1;
   }
 }
 
@@ -7916,8 +8044,21 @@ html {
 
 .maintenance-calendar-events {
   display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  align-content: start;
   gap: 3px;
-  margin-top: 3px;
+  padding: 2px;
+  box-sizing: border-box;
+  border-radius: 5px;
+  transition: background 160ms ease, box-shadow 160ms ease;
+}
+
+.maintenance-calendar-events.is-over {
+  background: #e7f8ef;
+  box-shadow: inset 0 0 0 1px #75d2a5;
 }
 
 .maintenance-calendar-events button {
@@ -7935,6 +8076,42 @@ html {
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.maintenance-calendar-events button.is-draggable {
+  cursor: grab;
+  touch-action: none;
+}
+
+.maintenance-calendar-events button.is-draggable:active {
+  cursor: grabbing;
+}
+
+.maintenance-calendar-events button.is-dragging {
+  opacity: 0;
+}
+
+.maintenance-drag-overlay {
+  display: flex;
+  max-width: 190px;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  border: 1px solid #9dddbd;
+  border-radius: 6px;
+  background: #fff;
+  color: #33423a;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 10px 26px rgb(15 56 39 / 18%);
+}
+
+.maintenance-drag-overlay > span {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: #7c3aed;
 }
 
 .maintenance-calendar-events button > span {
