@@ -28,6 +28,7 @@ import {
   CheckCircle2,
   Clock3,
   FileDown,
+  Eye,
   List,
   Plus,
   Repeat2,
@@ -42,6 +43,7 @@ import { MountainBanner } from '../components/MountainBanner'
 import { MetricItem, MetricStrip, type MetricTone } from '../components/MetricStrip'
 import { useAuth } from '../features/auth/useAuth'
 import { downloadOperationalDocument } from '../features/reports/reportingApi'
+import { OperationalDocumentPreviewModal, type OperationalPreviewTarget } from '../features/reports/OperationalDocumentPreviewModal'
 import {
   createMaintenancePlan,
   getMaintenances,
@@ -75,6 +77,7 @@ export function MaintenancePage() {
   const [view, setView] = useState<MaintenanceView>('table')
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedOccurrence, setSelectedOccurrence] = useState<InterventionItem | null>(null)
+  const [reportPreview, setReportPreview] = useState<OperationalPreviewTarget | null>(null)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { message } = App.useApp()
@@ -181,6 +184,7 @@ export function MaintenancePage() {
       key: 'actions',
       width: 150,
       render: (_: unknown, occurrence: InterventionItem) => <div className="maintenance-row-actions">
+        <Button type="text" size="small" aria-label={`View report ${occurrence.reference}`} icon={<Eye size={14} />} onClick={() => setReportPreview({ type: 'maintenance', id: occurrence.id, title: `Maintenance report ${occurrence.reference}`, filename: `maintenance-${occurrence.reference}.pdf` })} />
         <Button type="text" size="small" aria-label={`Download report ${occurrence.reference}`} icon={<FileDown size={14} />} loading={documentMutation.isPending && documentMutation.variables?.id === occurrence.id} onClick={() => documentMutation.mutate(occurrence)} />
         {canManage && occurrence.status === 'assigned' && <Button type="text" size="small" onClick={() => setSelectedOccurrence(occurrence)}>Edit</Button>}
         {canManage && occurrence.status === 'assigned' && <Popconfirm title="Cancel this occurrence?" description="A recurring plan will continue to generate its next occurrences." okText="Cancel occurrence" okButtonProps={{ danger: true }} onConfirm={() => cancelMutation.mutate(occurrence.id)}><Button type="text" size="small" danger>Cancel</Button></Popconfirm>}
@@ -253,6 +257,7 @@ export function MaintenancePage() {
       onClose={() => setSelectedOccurrence(null)}
       onSubmit={(payload) => selectedOccurrence && updateMutation.mutate({ id: selectedOccurrence.id, payload })}
     />
+    <OperationalDocumentPreviewModal target={reportPreview} onClose={() => setReportPreview(null)} />
   </div>
 }
 

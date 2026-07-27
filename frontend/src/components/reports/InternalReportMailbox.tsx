@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { App, Avatar, Button, DatePicker, Drawer, Empty, Form, Input, Popconfirm, Select, Spin, Tag, Tooltip } from 'antd'
+import { App, Avatar, Button, DatePicker, Drawer, Empty, Form, Input, Popconfirm, Select, Spin, Tag, Tooltip, Upload } from 'antd'
+import type { UploadFile } from 'antd'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
-import { Archive, Download, FilePenLine, Inbox, Mail, MailOpen, Plus, Reply, Search, Send, Trash2 } from 'lucide-react'
+import { Archive, Download, Eye, FilePenLine, Inbox, Mail, MailOpen, Paperclip, Plus, Reply, Search, Send, Trash2, UploadCloud } from 'lucide-react'
+import { deleteAssetDocument, getAssetDocumentContent, uploadAssetDocument } from '../../features/documents/documentApi'
+import { DocumentPreviewModal } from '../../features/documents/DocumentPreviewModal'
 import {
   archiveInternalReport,
   createInternalReport,
@@ -16,6 +19,7 @@ import {
   updateInternalReport,
 } from '../../features/reports/reportingApi'
 import type { InternalReport, InternalReportCategory, InternalReportPayload, InternalReportPriority, ReportMailbox } from '../../types/reporting'
+import type { AssetDocument } from '../../types/documents'
 import { downloadBlob } from '../../utils/downloadBlob'
 import { humanize } from './reportingUtils'
 
@@ -45,6 +49,8 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
   const [selectedId, setSelectedId] = useState<number>()
   const [composeOpen, setComposeOpen] = useState(false)
   const [editing, setEditing] = useState<InternalReport | null>(null)
+  const [pendingFiles, setPendingFiles] = useState<UploadFile[]>([])
+  const [previewDocument, setPreviewDocument] = useState<AssetDocument | null>(null)
   const [form] = Form.useForm<ComposeValues>()
   const queryClient = useQueryClient()
   const { message } = App.useApp()
@@ -72,17 +78,37 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
         period_end: values.period?.[1].format('YYYY-MM-DD'),
         send_now: sendNow && !editing,
       }
-      if (!editing) return createInternalReport(payload)
-      const updated = await updateInternalReport(editing.id, payload)
-      return sendNow ? sendInternalReport(updated.id, values.recipient_id) : updated
+      const draft = editing
+        ? await updateInternalReport(editing.id, payload)
+        : await createInternalReport({ ...payload, send_now: false })
+      for (const pendingFile of pendingFiles) {
+        const file = pendingFile.originFileObj
+        if (!file) continue
+        await uploadAssetDocument('report', draft.id, {
+          file,
+          category: 'report_attachment',
+          title: file.name.replace(/\.[^.]+$/, ''),
+        })
+      }
+      return sendNow ? sendInternalReport(draft.id, values.recipient_id) : draft
     },
-    onSuccess: async (_, variables) => { await refresh(); setComposeOpen(false); setEditing(null); form.resetFields(); void message.success(variables.sendNow ? 'Report sent securely.' : 'Draft saved.') },
-    onError: () => void message.error('The report could not be saved. Review the required fields and recipient.'),
+    onSuccess: async (_, variables) => { await refresh(); setComposeOpen(false); setEditing(null); setPendingFiles([]); form.resetFields(); void message.success(variables.sendNow ? 'Report and attachments sent securely.' : 'Draft saved.') },
+    onError: () => void message.error('The report could not be saved. Review the fields, recipient and attachments.'),
   })
   const readMutation = useMutation({ mutationFn: readInternalReport, onSuccess: refresh })
   const archiveMutation = useMutation({ mutationFn: archiveInternalReport, onSuccess: async () => { await refresh(); void message.success('Report archived.') } })
   const deleteMutation = useMutation({ mutationFn: deleteInternalReport, onSuccess: async () => { await refresh(); void message.success('Draft deleted.') } })
   const downloadMutation = useMutation({ mutationFn: downloadInternalReport, onSuccess: (blob, id) => downloadBlob(blob, `internal-report-${id}.pdf`), onError: () => void message.error('The PDF could not be generated.') })
+  const attachmentDownloadMutation = useMutation({
+    mutationFn: (document: AssetDocument) => getAssetDocumentContent(document.id, false),
+    onSuccess: (blob, document) => downloadBlob(blob, document.original_name),
+    onError: () => void message.error('The attachment could not be downloaded.'),
+  })
+  const attachmentDeleteMutation = useMutation({
+    mutationFn: deleteAssetDocument,
+    onSuccess: async () => { await refresh(); void message.success('Attachment removed from the draft.') },
+    onError: () => void message.error('The attachment could not be removed.'),
+  })
   const summary = reportsQuery.data?.summary
 
   const recipientOptions = useMemo(() => (recipientsQuery.data ?? []).map((person) => ({ value: person.id, label: `${person.name} - ${humanize(person.role)}` })), [recipientsQuery.data])
@@ -90,6 +116,7 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
   const openCompose = (report?: InternalReport, reply = false) => {
     const isDraft = report?.status === 'draft' && !reply
     setEditing(isDraft ? report : null)
+    setPendingFiles([])
     form.setFieldsValue(report ? {
       recipient_id: reply ? report.sender?.id : report.recipient?.id,
       title: reply ? `Re: ${report.title}` : report.title,
@@ -138,6 +165,16 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
           </div></header>
           {selected.summary && <blockquote>{selected.summary}</blockquote>}
           <div className="report-mailbox__body">{selected.body.split('\n').map((line, index) => <p key={`${line}-${index}`}>{line || <br />}</p>)}</div>
+          {(selected.attachments ?? []).length > 0 && <section className="report-attachments">
+            <h4><Paperclip size={14} />Attachments <span>{selected.attachments?.length ?? 0}</span></h4>
+            <div>{(selected.attachments ?? []).map((document) => <article key={document.id}>
+              <FilePenLine size={17} />
+              <span><strong>{document.title}</strong><small>{document.original_name} · {formatBytes(document.size_bytes)}</small></span>
+              {document.previewable && <Tooltip title="Preview"><Button type="text" icon={<Eye size={14} />} onClick={() => setPreviewDocument(document)} /></Tooltip>}
+              <Tooltip title="Download"><Button type="text" icon={<Download size={14} />} loading={attachmentDownloadMutation.isPending && attachmentDownloadMutation.variables?.id === document.id} onClick={() => attachmentDownloadMutation.mutate(document)} /></Tooltip>
+              {selected.status === 'draft' && <Popconfirm title="Remove this attachment?" onConfirm={() => attachmentDeleteMutation.mutate(document.id)}><Button type="text" danger icon={<Trash2 size={14} />} /></Popconfirm>}
+            </article>)}</div>
+          </section>}
           {(selected.period_start || selected.related) && <footer>{selected.period_start && <span>Period: {dayjs(selected.period_start).format('DD MMM YYYY')} - {dayjs(selected.period_end).format('DD MMM YYYY')}</span>}{selected.related && <span>Linked {humanize(selected.related.type)} #{selected.related.id}</span>}</footer>}
         </>}
       </div>
@@ -149,11 +186,28 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
         <div className="report-compose-grid"><Form.Item name="category" label="Category" rules={[{ required: true }]}><Select options={categoryOptions.map((value) => ({ value, label: humanize(value) }))} /></Form.Item><Form.Item name="period" label="Covered period"><DatePicker.RangePicker style={{ width: '100%' }} /></Form.Item></div>
         <Form.Item name="summary" label="Executive summary"><Input.TextArea rows={3} maxLength={800} showCount placeholder="Decision-ready summary" /></Form.Item>
         <Form.Item name="body" label="Report details" rules={[{ required: true, min: 10 }]}><Input.TextArea rows={10} maxLength={20000} showCount placeholder="Facts, observations, actions and recommendations" /></Form.Item>
+        <div className="report-compose-attachments">
+          <label><Paperclip size={15} />Supporting files <span>Optional · PDF, image, Word or Excel · 10 MB each</span></label>
+          <Upload.Dragger
+            fileList={pendingFiles}
+            multiple
+            maxCount={5}
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
+            beforeUpload={() => false}
+            onChange={({ fileList }) => setPendingFiles(fileList.slice(-5))}
+          >
+            <UploadCloud size={22} />
+            <p>Drop supporting files here or browse your device</p>
+          </Upload.Dragger>
+          {editing && (editing.attachments ?? []).length > 0 && <small>{editing.attachments?.length ?? 0} existing attachment(s) will remain linked to this draft.</small>}
+        </div>
         <div className="report-compose-actions"><Button onClick={() => setComposeOpen(false)}>Cancel</Button><Button icon={<FilePenLine size={15} />} loading={saveMutation.isPending} onClick={() => void save(false)}>Save draft</Button><Button type="primary" icon={<Send size={15} />} loading={saveMutation.isPending} onClick={() => void save(true)}>Send report</Button></div>
       </Form>
     </Drawer>
+    <DocumentPreviewModal document={previewDocument} open={Boolean(previewDocument)} onClose={() => setPreviewDocument(null)} />
   </section>
 }
 
 function priorityColor(priority: InternalReportPriority): string { return priority === 'urgent' ? 'red' : priority === 'important' ? 'gold' : 'blue' }
 function initials(name: string): string { return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() }
+function formatBytes(bytes: number): string { return bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB` }

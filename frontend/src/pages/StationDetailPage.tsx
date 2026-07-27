@@ -30,6 +30,7 @@ import { StationStatusTag } from '../features/stations/StationStatusTag'
 import { availabilityReasonLabel } from '../features/stations/availabilityLabels'
 import { useAuth } from '../features/auth/useAuth'
 import { ConnectorTypeIcon } from '../features/charging/ConnectorTypeIcon'
+import { DocumentManager } from '../features/documents/DocumentManager'
 import { getMaintenances } from '../features/operations/operationsApi'
 import { WorkflowTag } from '../features/operations/WorkflowTag'
 import type { InterventionItem, InterventionStatus } from '../types/operations'
@@ -314,11 +315,16 @@ export function StationDetailPage() {
         />
       </Card>,
     }] : []),
-    ...['Sessions', 'Alerts', 'Documents'].map((label) => ({
+    ...['Sessions', 'Alerts'].map((label) => ({
       key: label.toLowerCase(),
       label,
       children: <Card><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={`${label} will be connected in its dedicated vertical slice.`} /></Card>,
     })),
+    {
+      key: 'documents',
+      label: 'Documents',
+      children: <DocumentManager context="station" recordId={station.id} title="Station documents" subtitle="Manuals, certificates, installation records and maintenance references." />,
+    },
   ]
 
   return (

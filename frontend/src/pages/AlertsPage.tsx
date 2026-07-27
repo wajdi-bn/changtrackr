@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   Filter,
   FileDown,
+  Eye,
   MoreHorizontal,
   Plus,
   Search,
@@ -26,6 +27,7 @@ import {
 import { WorkflowTag } from '../features/operations/WorkflowTag'
 import { useAuth } from '../features/auth/useAuth'
 import { downloadOperationalDocument } from '../features/reports/reportingApi'
+import { OperationalDocumentPreviewModal, type OperationalPreviewTarget } from '../features/reports/OperationalDocumentPreviewModal'
 import type { AlertItem, AlertSeverity, AlertStatus, InterventionPayload } from '../types/operations'
 import { downloadBlob } from '../utils/downloadBlob'
 
@@ -42,6 +44,7 @@ export function AlertsPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [searchParams] = useSearchParams()
   const [drawer, setDrawer] = useState<'create' | 'assign' | 'intervention' | null>(null)
+  const [reportPreview, setReportPreview] = useState<OperationalPreviewTarget | null>(null)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { message } = App.useApp()
@@ -160,6 +163,7 @@ export function AlertsPage() {
               onCreateIntervention={() => setDrawer('intervention')}
               onStatus={(nextStatus) => updateMutation.mutate({ alertId: selectedAlert.id, payload: { status: nextStatus } })}
               onOpenIntervention={() => navigate(technicianMode ? '/my-interventions' : '/interventions')}
+              onPreview={() => setReportPreview({ type: 'alert', id: selectedAlert.id, title: `Alert report ${selectedAlert.reference}`, filename: `alert-${selectedAlert.reference}.pdf` })}
               onDownload={() => documentMutation.mutate(selectedAlert)}
             />
           )}
@@ -190,11 +194,12 @@ export function AlertsPage() {
         onClose={() => setDrawer(null)}
         onSubmit={(payload) => selectedAlert && interventionMutation.mutate({ alertId: selectedAlert.id, payload })}
       />
+      <OperationalDocumentPreviewModal target={reportPreview} onClose={() => setReportPreview(null)} />
     </div>
   )
 }
 
-function AlertDetails({ alert, technicianMode, canManageAlerts, canAssignAlerts, canManageInterventions, updating, downloading, onAssign, onCreateIntervention, onStatus, onOpenIntervention, onDownload }: {
+function AlertDetails({ alert, technicianMode, canManageAlerts, canAssignAlerts, canManageInterventions, updating, downloading, onAssign, onCreateIntervention, onStatus, onOpenIntervention, onPreview, onDownload }: {
   alert: AlertItem
   technicianMode: boolean
   canManageAlerts: boolean
@@ -206,6 +211,7 @@ function AlertDetails({ alert, technicianMode, canManageAlerts, canAssignAlerts,
   onCreateIntervention: () => void
   onStatus: (status: AlertStatus) => void
   onOpenIntervention: () => void
+  onPreview: () => void
   onDownload: () => void
 }) {
   const hasActiveIntervention = alert.intervention
@@ -224,7 +230,8 @@ function AlertDetails({ alert, technicianMode, canManageAlerts, canAssignAlerts,
     {(alert.suggested_cause || alert.recommended_action) && <section className="field-suggestion"><strong>Diagnostic suggestion</strong><p>{alert.suggested_cause} {alert.recommended_action}</p></section>}
     <section className="workflow-timeline"><h3>Timeline</h3>{alert.events.map((event) => <div key={event.id}><span><CheckCircle2 size={13} /></span><p>{event.description}<small>{event.occurred_relative}</small></p></div>)}</section>
     <div className="alert-actions">
-      <Button icon={<FileDown size={15} />} loading={downloading} onClick={onDownload}>Alert report</Button>
+      <Button icon={<Eye size={15} />} onClick={onPreview}>View report</Button>
+      <Button icon={<FileDown size={15} />} loading={downloading} onClick={onDownload}>Download</Button>
       {technicianMode ? (
         alert.intervention
           ? <Button type="primary" onClick={onOpenIntervention}>Open intervention</Button>

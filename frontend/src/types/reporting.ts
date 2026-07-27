@@ -1,3 +1,5 @@
+import type { AssetDocument } from './documents'
+
 export type ReportPeriodKey = '7d' | '30d' | '90d'
 export type ReportMailbox = 'inbox' | 'sent' | 'drafts' | 'archived'
 export type InternalReportCategory = 'operations' | 'incident' | 'intervention' | 'maintenance' | 'performance' | 'handover'
@@ -97,6 +99,7 @@ export interface InternalReport {
   related: { type: string; id: number } | null
   sender: ReportPerson | null
   recipient: ReportPerson | null
+  attachments: AssetDocument[]
   sent_at: string | null
   read_at: string | null
   created_at: string

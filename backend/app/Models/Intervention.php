@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 #[Fillable([
     'organization_id', 'alert_id', 'maintenance_plan_id', 'maintenance_occurrence_number', 'station_id', 'connector_id',
@@ -74,6 +75,11 @@ class Intervention extends Model
     public function photos(): HasMany
     {
         return $this->hasMany(InterventionPhoto::class)->orderBy('created_at');
+    }
+
+    public function documents(): MorphMany
+    {
+        return $this->morphMany(AssetDocument::class, 'documentable');
     }
 
     /** @return array<string, string> */

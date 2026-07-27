@@ -48,6 +48,7 @@ const OperatorReportsPage = lazy(() => import('../pages/OperatorReportsPage').th
 const TechnicianReportsPage = lazy(() => import('../pages/TechnicianReportsPage').then((module) => ({ default: module.TechnicianReportsPage })))
 const CommercialManagementPage = lazy(() => import('../pages/CommercialManagementPage').then((module) => ({ default: module.CommercialManagementPage })))
 const OrganizationBillingPage = lazy(() => import('../pages/OrganizationBillingPage').then((module) => ({ default: module.OrganizationBillingPage })))
+const HelpPage = lazy(() => import('../pages/HelpPage').then((module) => ({ default: module.HelpPage })))
 
 function DefaultRedirect() {
   const { user } = useAuth()
@@ -136,7 +137,7 @@ export function AppRouter() {
           </Route>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/help" element={<WorkspacePage title="Help" subtitle="Internal user guidance and support." />} />
+          <Route path="/help" element={<HelpPage />} />
           <Route path="/subscription-required" element={<WorkspacePage title="Organization access suspended" subtitle="Operational modules are unavailable until your organization administrator renews the ChargeTrackr subscription." />} />
           </Route>
         </Route>

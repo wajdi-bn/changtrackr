@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AccountInvitationController;
 use App\Http\Controllers\Api\AccountPreferenceController;
 use App\Http\Controllers\Api\AccountSecurityController;
 use App\Http\Controllers\Api\AlertController;
+use App\Http\Controllers\Api\AssetDocumentController;
 use App\Http\Controllers\Api\ChargingAttemptController;
 use App\Http\Controllers\Api\ChargingPlanController;
 use App\Http\Controllers\Api\ChargingSessionController;
@@ -118,6 +119,8 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::get('/stations/map', [StationController::class, 'map']);
     Route::get('/connector-qr/{token}', [ConnectorQrController::class, 'show']);
     Route::apiResource('stations', StationController::class);
+    Route::get('/stations/{station}/documents', [AssetDocumentController::class, 'stationIndex']);
+    Route::post('/stations/{station}/documents', [AssetDocumentController::class, 'stationStore']);
     Route::post('/stations/{station}/connectors', [ConnectorController::class, 'store']);
     Route::put('/stations/{station}/connectors/{connector}', [ConnectorController::class, 'update']);
     Route::delete('/stations/{station}/connectors/{connector}', [ConnectorController::class, 'destroy']);
@@ -134,6 +137,8 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::patch('/interventions/{intervention}', [InterventionController::class, 'update']);
     Route::post('/interventions/{intervention}/notes', [InterventionController::class, 'addNote']);
     Route::post('/interventions/{intervention}/report', [InterventionReportController::class, 'store']);
+    Route::get('/interventions/{intervention}/documents', [AssetDocumentController::class, 'interventionIndex']);
+    Route::post('/interventions/{intervention}/documents', [AssetDocumentController::class, 'interventionStore']);
     Route::get('/interventions/{intervention}/document', [OperationalDocumentController::class, 'intervention']);
     Route::post('/interventions/{intervention}/photos', [InterventionReportController::class, 'storePhoto']);
     Route::get('/interventions/{intervention}/photos/{photo}', [InterventionReportController::class, 'content']);
@@ -165,7 +170,11 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::post('/internal-reports/{internalReport}/read', [InternalReportController::class, 'read']);
     Route::post('/internal-reports/{internalReport}/archive', [InternalReportController::class, 'archive']);
     Route::get('/internal-reports/{internalReport}/document', [InternalReportController::class, 'document']);
+    Route::get('/internal-reports/{internalReport}/attachments', [AssetDocumentController::class, 'reportIndex']);
+    Route::post('/internal-reports/{internalReport}/attachments', [AssetDocumentController::class, 'reportStore']);
     Route::delete('/internal-reports/{internalReport}', [InternalReportController::class, 'destroy']);
+    Route::get('/asset-documents/{assetDocument}/content', [AssetDocumentController::class, 'content']);
+    Route::delete('/asset-documents/{assetDocument}', [AssetDocumentController::class, 'destroy']);
 
     Route::get('/reporting/platform', [ReportAnalyticsController::class, 'platform']);
     Route::get('/reporting/organization', [ReportAnalyticsController::class, 'organization']);

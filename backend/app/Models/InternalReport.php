@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 #[Fillable([
     'organization_id', 'sender_id', 'recipient_id', 'title', 'category', 'priority', 'status',
@@ -26,6 +27,11 @@ class InternalReport extends Model
     public function recipient(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recipient_id');
+    }
+
+    public function documents(): MorphMany
+    {
+        return $this->morphMany(AssetDocument::class, 'documentable');
     }
 
     protected function casts(): array

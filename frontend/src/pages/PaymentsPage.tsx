@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Button, Card, Empty, Input, Select, Table } from 'antd'
 import axios from 'axios'
 import dayjs from 'dayjs'
-import { CircleDollarSign, CreditCard, FileDown, ReceiptText, RefreshCw, Search } from 'lucide-react'
+import { CircleDollarSign, CreditCard, Eye, FileDown, ReceiptText, RefreshCw, Search } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
 import { useSearchParams } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
@@ -14,6 +14,7 @@ import { ChargingStatusTag } from '../features/charging/ChargingStatusTag'
 import { PaymentDrawer } from '../features/charging/PaymentDrawer'
 import { useAuth } from '../features/auth/useAuth'
 import { downloadOperationalDocument } from '../features/reports/reportingApi'
+import { OperationalDocumentPreviewModal, type OperationalPreviewTarget } from '../features/reports/OperationalDocumentPreviewModal'
 import type { ChargingSession, Payment, PaymentPayload, PaymentStatus } from '../types/charging'
 import { downloadBlob } from '../utils/downloadBlob'
 
@@ -26,6 +27,7 @@ export function PaymentsPage() {
   const deferredSearch = useDeferredValue(search)
   const [status, setStatus] = useState<'all' | PaymentStatus>('all')
   const [paymentSession, setPaymentSession] = useState<ChargingSession | null>(null)
+  const [receiptPreview, setReceiptPreview] = useState<OperationalPreviewTarget | null>(null)
   const queryClient = useQueryClient()
   const { message } = App.useApp()
   const filters = useMemo(() => ({ search: deferredSearch.trim() || undefined, status: status === 'all' ? undefined : status }), [deferredSearch, status])
@@ -76,7 +78,10 @@ export function PaymentsPage() {
     { title: 'Status', dataIndex: 'status', key: 'status', render: (value: PaymentStatus) => <ChargingStatusTag value={value} /> },
     { title: 'Transaction', dataIndex: 'provider_transaction_id', key: 'transaction', render: (value: string | null, item) => <span className="payment-reference"><strong>{value ?? 'Pending'}</strong>{item.provider_event && <small>Webhook: {item.provider_event.processing_status.replaceAll('_', ' ')}</small>}</span> },
     { title: 'Amount', key: 'amount', align: 'right', render: (_: unknown, item) => <strong>{item.amount} {item.currency}</strong> },
-    { title: '', key: 'receipt', width: 54, align: 'right', render: (_: unknown, item) => <Button type="text" aria-label={`Download receipt ${item.reference}`} icon={<FileDown size={15} />} loading={receiptMutation.isPending && receiptMutation.variables?.id === item.id} onClick={() => receiptMutation.mutate(item)} /> },
+    { title: '', key: 'receipt', width: 92, align: 'right', render: (_: unknown, item) => <div className="payment-receipt-actions">
+      <Button type="text" aria-label={`View receipt ${item.reference}`} icon={<Eye size={15} />} onClick={() => setReceiptPreview({ type: 'receipt', id: item.id, title: `Receipt ${item.reference}`, filename: `receipt-${item.reference}.pdf` })} />
+      <Button type="text" aria-label={`Download receipt ${item.reference}`} icon={<FileDown size={15} />} loading={receiptMutation.isPending && receiptMutation.variables?.id === item.id} onClick={() => receiptMutation.mutate(item)} />
+    </div> },
   ]
 
   return <div className="payments-page">
@@ -103,6 +108,7 @@ export function PaymentsPage() {
       <Table rowKey="id" columns={columns} dataSource={paymentsQuery.data?.data ?? []} loading={paymentsQuery.isLoading} pagination={{ pageSize: 8, hideOnSinglePage: true }} scroll={{ x: 900 }} locale={{ emptyText: <Empty description="No payment transactions found" /> }} />
     </Card>
     <PaymentDrawer open={Boolean(paymentSession)} session={paymentSession} submitting={paymentMutation.isPending} onClose={() => setPaymentSession(null)} onSubmit={(payload) => paymentSession && paymentMutation.mutate({ sessionId: paymentSession.id, payload })} />
+    <OperationalDocumentPreviewModal target={receiptPreview} onClose={() => setReceiptPreview(null)} />
   </div>
 }
 

@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class InternalReportController extends Controller
 {
-    private const RELATIONS = ['organization', 'sender.roles', 'recipient.roles'];
+    private const RELATIONS = ['organization', 'sender.roles', 'recipient.roles', 'documents.uploadedBy'];
 
     public function index(Request $request): JsonResponse
     {
@@ -148,7 +148,9 @@ class InternalReportController extends Controller
     public function document(Request $request, InternalReport $internalReport): Response
     {
         $user = $this->actor($request);
-        abort_unless($internalReport->organization_id === $user->organization_id && in_array($user->id, [$internalReport->sender_id, $internalReport->recipient_id], true), 403);
+        $isSender = $internalReport->sender_id === $user->id;
+        $isRecipientOfSentReport = $internalReport->recipient_id === $user->id && $internalReport->sent_at !== null;
+        abort_unless($internalReport->organization_id === $user->organization_id && ($isSender || $isRecipientOfSentReport), 403);
         $internalReport->load(self::RELATIONS);
 
         return Pdf::loadView('reports.internal-report', ['report' => $internalReport])
