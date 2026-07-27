@@ -1355,7 +1355,7 @@
   gap: 11px;
 }
 
-.billing-plan-overview > header > span,
+.billing-plan-overview > header > span:first-child,
 .billing-usage-panel > header > svg {
   display: inline-flex;
   width: 46px;
@@ -1364,6 +1364,10 @@
   border-radius: 8px;
   color: #7044d4;
   background: #f0eafd;
+}
+
+.billing-plan-overview > header > .admin-status {
+  justify-self: end;
 }
 
 .billing-plan-overview h2,
@@ -7370,8 +7374,9 @@ html {
 }
 
 .current-subscription-card > header { display: flex; align-items: center; gap: 9px; padding: 12px 13px; border-bottom: 1px solid #e7f1ec; background: #f5fcf8; }
-.current-subscription-card > header > span { display: grid; width: 27px; height: 27px; place-items: center; border-radius: 7px; background: #17a66d; color: #ffffff; }
+.current-subscription-card > header > .subscription-organization-logo { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 7px; background: #17a66d; color: #ffffff; }
 .current-subscription-card > header > div { min-width: 0; flex: 1; }
+.current-subscription-card > header > .ant-tag { flex: 0 0 auto; margin-inline-end: 0; }
 .current-subscription-card > header small { display: block; color: #638075; font-size: 8px; }
 .current-subscription-card > header h3 { margin: 1px 0 0; color: #17221c; font-size: 13px; font-weight: 600; }
 .current-subscription-card > header > b { padding: 3px 7px; border-radius: 10px; background: #dff8eb; color: #087a50; font-size: 8px; font-weight: 600; }
