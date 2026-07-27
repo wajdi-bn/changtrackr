@@ -1,5 +1,5 @@
 import { httpClient } from '../../api/httpClient'
-import type { ChargingPlan, ChargingPlanPayload, EffectivePricing, PricingSimulation, PricingSimulationPayload, Tariff, TariffPayload, TariffsResponse, TariffStatus } from '../../types/tariff'
+import type { ChargingPlan, ChargingPlanPayload, ChargingPlanSubscribers, EffectivePricing, PricingSimulation, PricingSimulationPayload, Tariff, TariffPayload, TariffsResponse, TariffStatus } from '../../types/tariff'
 
 export async function getTariffs(filters: { search?: string; status?: TariffStatus } = {}): Promise<TariffsResponse> {
   const response = await httpClient.get<TariffsResponse>('/tariffs', { params: filters })
@@ -51,6 +51,10 @@ export async function updateChargingPlan(planId: number, payload: Partial<Chargi
 
 export async function deleteChargingPlan(planId: number): Promise<void> {
   await httpClient.delete(`/charging-plans/${planId}`)
+}
+
+export async function getChargingPlanSubscribers(planId: number): Promise<ChargingPlanSubscribers> {
+  return (await httpClient.get<ChargingPlanSubscribers>(`/charging-plans/${planId}/subscribers`)).data
 }
 
 export async function simulatePricing(payload: PricingSimulationPayload): Promise<PricingSimulation> {

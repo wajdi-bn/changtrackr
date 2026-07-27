@@ -41,7 +41,7 @@ class ChargingPlanApiTest extends TestCase
         $this->patchJson("/api/charging-plans/{$planId}", ['status' => 'archived', 'member_count' => 42])
             ->assertOk()
             ->assertJsonPath('data.status', 'archived')
-            ->assertJsonPath('data.member_count', 42);
+            ->assertJsonPath('data.member_count', 0);
 
         $this->deleteJson("/api/charging-plans/{$planId}")->assertNoContent();
         $this->assertSoftDeleted('charging_plans', ['id' => $planId]);

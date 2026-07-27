@@ -19,7 +19,9 @@ class ChargingPlanResource extends JsonResource
             'discount_basis_points' => $this->discount_basis_points,
             'audience' => $this->audience,
             'status' => $this->status,
-            'member_count' => $this->member_count,
+            'member_count' => (int) ($this->current_member_count ?? $this->member_count),
+            'collected_millimes' => (int) ($this->collected_millimes ?? 0),
+            'failed_payments_count' => (int) ($this->failed_payments_count ?? 0),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

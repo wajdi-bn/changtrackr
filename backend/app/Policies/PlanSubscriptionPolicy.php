@@ -26,7 +26,7 @@ class PlanSubscriptionPolicy
     {
         return $user->can('subscriptions.manage')
             && $subscription->user_id === $user->id
-            && $subscription->status === 'active';
+            && in_array($subscription->status, ['active', 'past_due'], true);
     }
 
     public function delete(User $user, PlanSubscription $subscription): bool

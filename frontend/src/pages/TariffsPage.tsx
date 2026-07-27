@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Button, DatePicker, Drawer, Empty, Form, Input, InputNumber, Modal, Popconfirm, Segmented, Select, Switch, Tooltip } from 'antd'
+import { Alert, App, Avatar, Button, DatePicker, Drawer, Empty, Form, Input, InputNumber, Modal, Popconfirm, Segmented, Select, Switch, Tag, Tooltip } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
-import { Calculator, Link2, PencilLine, Plus, Trash2 } from 'lucide-react'
+import { Calculator, CircleDollarSign, Link2, PencilLine, Plus, ReceiptText, Trash2, Users } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
 import { CompactInputNumber } from '../components/CompactInputNumber'
 import { useAuth } from '../features/auth/useAuth'
@@ -14,6 +14,7 @@ import {
   deleteChargingPlan,
   deleteTariff,
   getChargingPlans,
+  getChargingPlanSubscribers,
   getTariffs,
   removeTariffAssignment,
   simulatePricing,
@@ -53,6 +54,7 @@ export function TariffsPage() {
   const [activeTab, setActiveTab] = useState<TariffTab>('rules')
   const [editorTariff, setEditorTariff] = useState<Tariff | null | undefined>(undefined)
   const [editorPlan, setEditorPlan] = useState<ChargingPlan | null | undefined>(undefined)
+  const [subscriberPlan, setSubscriberPlan] = useState<ChargingPlan>()
   const [assignmentContext, setAssignmentContext] = useState<AssignmentContext>()
   const [simStationId, setSimStationId] = useState<number>()
   const [simConnectorId, setSimConnectorId] = useState<number>()
@@ -64,6 +66,11 @@ export function TariffsPage() {
   const { message } = App.useApp()
   const tariffsQuery = useQuery({ queryKey: ['tariffs'], queryFn: () => getTariffs() })
   const plansQuery = useQuery({ queryKey: ['charging-plans'], queryFn: getChargingPlans })
+  const subscribersQuery = useQuery({
+    queryKey: ['charging-plan-subscribers', subscriberPlan?.id],
+    queryFn: () => getChargingPlanSubscribers(subscriberPlan!.id),
+    enabled: Boolean(subscriberPlan),
+  })
   const stationsQuery = useQuery({ queryKey: ['stations', 'tariff-assignment'], queryFn: () => getStations({}) })
 
   const tariffs = tariffsQuery.data?.data ?? []
@@ -191,8 +198,8 @@ export function TariffsPage() {
       {plans.map((plan) => <article key={plan.id} className="tariff-plan-card">
         <header><div><small>{plan.code}</small><h3>{plan.name}</h3></div><StatusBadge status={plan.status} /></header>
         <strong>{formatMonthlyPrice(plan.monthly_fee_millimes)}<small>/month</small></strong>
-        <dl><div><dt>Charging discount</dt><dd>{formatDiscount(plan.discount_basis_points)}</dd></div><div><dt>Audience</dt><dd>{plan.audience}</dd></div><div><dt>Members</dt><dd>{plan.member_count.toLocaleString()}</dd></div></dl>
-        <div className="tariff-plan-actions"><button type="button" onClick={() => setEditorPlan(plan)}>{canManage ? 'Edit plan' : 'View plan'}</button>{canManage && <Popconfirm title="Delete this plan?" okButtonProps={{ danger: true }} onConfirm={() => deletePlanMutation.mutate(plan.id)}><button type="button" className="danger" aria-label={`Delete ${plan.name}`}><Trash2 size={13} /></button></Popconfirm>}</div>
+        <dl><div><dt>Charging discount</dt><dd>{formatDiscount(plan.discount_basis_points)}</dd></div><div><dt>Audience</dt><dd>{plan.audience}</dd></div><div><dt>Current members</dt><dd>{plan.member_count.toLocaleString()}</dd></div><div><dt>Collected</dt><dd>{formatMonthlyPrice(plan.collected_millimes)}</dd></div></dl>
+        <div className="tariff-plan-actions"><button type="button" onClick={() => setSubscriberPlan(plan)}><Users size={13} /> View members</button><button type="button" onClick={() => setEditorPlan(plan)}>{canManage ? 'Edit plan' : 'View plan'}</button>{canManage && <Popconfirm title="Delete this plan?" okButtonProps={{ danger: true }} onConfirm={() => deletePlanMutation.mutate(plan.id)}><button type="button" className="danger" aria-label={`Delete ${plan.name}`}><Trash2 size={13} /></button></Popconfirm>}</div>
       </article>)}
       {!plansQuery.isLoading && plans.length === 0 && <div className="tariff-empty-grid"><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No charging plans" /></div>}
       {plansQuery.isLoading && <div className="tariff-loading tariff-empty-grid">Loading charging plans...</div>}
@@ -228,6 +235,7 @@ export function TariffsPage() {
 
     <TariffFormModal open={editorTariff !== undefined} tariff={editorTariff ?? null} submitting={saveMutation.isPending} onClose={() => setEditorTariff(undefined)} onSubmit={(payload) => saveMutation.mutate({ tariff: editorTariff ?? null, payload })} />
     <ChargingPlanModal open={editorPlan !== undefined} plan={editorPlan ?? null} canSave={canManage} submitting={savePlanMutation.isPending} onClose={() => setEditorPlan(undefined)} onSubmit={(payload) => savePlanMutation.mutate({ plan: editorPlan ?? null, payload })} />
+    <ChargingPlanSubscribersDrawer plan={subscriberPlan} loading={subscribersQuery.isLoading} data={subscribersQuery.data} onClose={() => setSubscriberPlan(undefined)} />
     <TariffAssignmentDrawer open={assignmentContext !== undefined} initialTariff={assignmentContext?.tariff ?? null} assignment={assignmentContext?.assignment} tariffs={tariffs} stations={stations} submitting={assignmentMutation.isPending} onClose={() => setAssignmentContext(undefined)} onSubmit={(tariffId, payload) => assignmentMutation.mutate({ tariffId, payload })} />
   </div>
 }
@@ -302,8 +310,7 @@ function ChargingPlanModal({ open, plan, canSave, submitting, onClose, onSubmit 
       discount_percent: plan.discount_basis_points / 100,
       audience: plan.audience,
       status: plan.status,
-      member_count: plan.member_count,
-    } : { name: '', code: '', description: '', monthly_fee: 0, discount_percent: 0, audience: '', status: 'draft', member_count: 0 })
+    } : { name: '', code: '', description: '', monthly_fee: 0, discount_percent: 0, audience: '', status: 'draft' })
   }, [form, open, plan])
 
   return <Modal className="tariff-editor-modal" open={open} centered width={620} footer={null} onCancel={onClose} title={<div><strong>{plan ? (canSave ? 'Edit charging plan' : 'Charging plan details') : 'Create charging plan'}</strong><small>Configure recurring fees, charging discounts, audience, and lifecycle.</small></div>}>
@@ -315,16 +322,38 @@ function ChargingPlanModal({ open, plan, canSave, submitting, onClose, onSubmit 
       discount_basis_points: Math.round(values.discount_percent * 100),
       audience: values.audience,
       status: values.status,
-      member_count: values.member_count,
     })}>
       <div className="tariff-form-grid"><Form.Item label="Plan name" name="name" rules={[{ required: true }]}><Input placeholder="Member Plan" /></Form.Item><Form.Item label="Code" name="code" rules={[{ required: true }]}><Input placeholder="MEMBER" /></Form.Item></div>
       <Form.Item label="Description" name="description"><Input.TextArea rows={2} placeholder="Plan purpose and eligibility" /></Form.Item>
       <div className="tariff-form-grid"><Form.Item label="Monthly fee" name="monthly_fee" rules={[{ required: true }]}><CompactInputNumber min={0} precision={3} addon="TND" /></Form.Item><Form.Item label="Charging discount" name="discount_percent" rules={[{ required: true }]}><CompactInputNumber min={0} max={100} precision={2} addon="%" /></Form.Item></div>
-      <div className="tariff-form-grid"><Form.Item label="Audience" name="audience" rules={[{ required: true }]}><Input placeholder="Frequent drivers" /></Form.Item><Form.Item label="Members" name="member_count" rules={[{ required: true }]}><InputNumber min={0} precision={0} style={{ width: '100%' }} /></Form.Item></div>
+      <Form.Item label="Audience" name="audience" rules={[{ required: true }]}><Input placeholder="Frequent drivers" /></Form.Item>
+      {plan && <Alert type="info" showIcon title={`${plan.member_count.toLocaleString()} current members`} description="Membership totals are calculated from paid client subscriptions and cannot be edited manually." />}
       <Form.Item label="Status" name="status" rules={[{ required: true }]}><Select options={['draft', 'active', 'archived'].map((value) => ({ value, label: value }))} /></Form.Item>
       <div className="tariff-modal-actions"><Button disabled={false} onClick={onClose}>{canSave ? 'Cancel' : 'Close'}</Button>{canSave && <Button className="tariff-save-button" type="primary" htmlType="submit" loading={submitting}>Save plan</Button>}</div>
     </Form>
   </Modal>
+}
+
+function ChargingPlanSubscribersDrawer({ plan, loading, data, onClose }: {
+  plan?: ChargingPlan
+  loading: boolean
+  data?: Awaited<ReturnType<typeof getChargingPlanSubscribers>>
+  onClose: () => void
+}) {
+  return <Drawer className="plan-subscribers-drawer" open={Boolean(plan)} width={620} title={plan ? `${plan.name} members` : 'Plan members'} onClose={onClose}>
+    {loading ? <div className="tariff-loading">Loading memberships...</div> : !data || data.data.length === 0 ? <Empty description="No membership history for this plan" /> : <>
+      <div className="plan-subscriber-summary">
+        <span><Users size={17} /><div><small>Current</small><strong>{data.summary.current_members}</strong></div></span>
+        <span><CircleDollarSign size={17} /><div><small>Collected</small><strong>{formatMonthlyPrice(data.summary.collected_millimes)}</strong></div></span>
+        <span><ReceiptText size={17} /><div><small>Past due</small><strong>{data.summary.past_due}</strong></div></span>
+      </div>
+      <div className="plan-subscriber-list">{data.data.map((subscription) => <article key={subscription.id}>
+        <Avatar src={subscription.customer.avatar_url ?? undefined}>{subscription.customer.name.slice(0, 2).toUpperCase()}</Avatar>
+        <div><strong>{subscription.customer.name}</strong><small>{subscription.customer.email}</small></div>
+        <div><Tag color={subscription.status === 'active' ? 'success' : subscription.status === 'past_due' ? 'error' : 'default'}>{subscription.status}</Tag><small>{formatMonthlyPrice(subscription.paid_millimes)} paid / {subscription.invoices_count} invoice{subscription.invoices_count === 1 ? '' : 's'}</small></div>
+      </article>)}</div>
+    </>}
+  </Drawer>
 }
 
 function MoneyField({ label, name, suffix }: { label: string; name: keyof TariffFormValues; suffix: string }) {

@@ -38,3 +38,7 @@ Schedule::command('audit:prune')
 Schedule::command('commercial:sync')
     ->hourly()
     ->withoutOverlapping(10);
+
+Schedule::command('client-subscriptions:sync')
+    ->hourly()
+    ->withoutOverlapping(10);

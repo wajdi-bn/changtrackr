@@ -29,7 +29,6 @@ class StoreChargingPlanRequest extends FormRequest
             'discount_basis_points' => ['required', 'integer', 'min:0', 'max:10000'],
             'audience' => ['required', 'string', 'max:120'],
             'status' => ['required', Rule::in(['draft', 'active', 'archived'])],
-            'member_count' => ['required', 'integer', 'min:0', 'max:100000000'],
         ];
     }
 }

@@ -71,6 +71,8 @@ export interface ChargingPlan {
   audience: string
   status: TariffStatus
   member_count: number
+  collected_millimes: number
+  failed_payments_count: number
   created_at: string
   updated_at: string
 }
@@ -83,7 +85,22 @@ export interface ChargingPlanPayload {
   discount_basis_points: number
   audience: string
   status: TariffStatus
-  member_count: number
+}
+
+export interface ChargingPlanSubscribers {
+  summary: { current_members: number; past_due: number; collected_millimes: number }
+  data: Array<{
+    id: number
+    customer: { id: number; name: string; email: string; avatar_url: string | null }
+    status: string
+    auto_renew: boolean
+    cancel_at_period_end: boolean
+    current_period_ends_at: string
+    grace_ends_at: string | null
+    invoices_count: number
+    paid_millimes: number
+    latest_invoice_status: string | null
+  }>
 }
 
 export interface PricingSimulationPayload {

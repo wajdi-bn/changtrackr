@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'organization_id', 'payment_id', 'charging_attempt_id', 'provider', 'event_id',
-    'type', 'operation', 'status', 'payment_reference', 'provider_transaction_id',
-    'processing_status', 'payload', 'error_message', 'received_at', 'processed_at',
+    'organization_id', 'payment_id', 'plan_subscription_invoice_id',
+    'charging_attempt_id', 'provider', 'event_id', 'type', 'operation', 'status',
+    'payment_reference', 'provider_transaction_id', 'processing_status', 'payload',
+    'error_message', 'received_at', 'processed_at',
 ])]
 class PaymentProviderEvent extends Model
 {
@@ -21,6 +22,11 @@ class PaymentProviderEvent extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    public function planSubscriptionInvoice(): BelongsTo
+    {
+        return $this->belongsTo(PlanSubscriptionInvoice::class);
     }
 
     public function chargingAttempt(): BelongsTo

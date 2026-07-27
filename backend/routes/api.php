@@ -185,8 +185,12 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
 
     Route::get('/subscription-plans', [PlanSubscriptionController::class, 'catalog']);
     Route::get('/subscriptions', [PlanSubscriptionController::class, 'index']);
+    Route::get('/subscription-invoices', [PlanSubscriptionController::class, 'invoices']);
+    Route::get('/subscription-invoices/{invoice}/document', [PlanSubscriptionController::class, 'invoiceDocument']);
     Route::post('/subscriptions', [PlanSubscriptionController::class, 'store']);
     Route::patch('/subscriptions/{subscription}', [PlanSubscriptionController::class, 'update']);
+    Route::post('/subscriptions/{subscription}/resume', [PlanSubscriptionController::class, 'resume']);
+    Route::post('/subscriptions/{subscription}/retry-payment', [PlanSubscriptionController::class, 'retry']);
     Route::delete('/subscriptions/{subscription}', [PlanSubscriptionController::class, 'destroy']);
 
     Route::get('/users/export', [UserController::class, 'export']);
@@ -202,6 +206,7 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::get('/customers/{customer}', [CustomerController::class, 'show']);
 
     Route::apiResource('tariffs', TariffController::class);
+    Route::get('/charging-plans/{chargingPlan}/subscribers', [ChargingPlanController::class, 'subscribers']);
     Route::apiResource('charging-plans', ChargingPlanController::class);
     Route::post('/tariffs/{tariff}/assignments', [TariffAssignmentController::class, 'store']);
     Route::delete('/tariff-assignments/{tariffAssignment}', [TariffAssignmentController::class, 'destroy']);

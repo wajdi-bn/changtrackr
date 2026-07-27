@@ -73,6 +73,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(PlanSubscription::class);
     }
 
+    public function planSubscriptionInvoices(): HasMany
+    {
+        return $this->hasMany(PlanSubscriptionInvoice::class);
+    }
+
     public function ocppIdTags(): HasMany
     {
         return $this->hasMany(OcppIdTag::class);

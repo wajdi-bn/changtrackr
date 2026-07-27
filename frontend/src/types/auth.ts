@@ -4,6 +4,7 @@ export interface OrganizationSummary {
   id: number
   name: string
   slug: string
+  logo_url?: string | null
 }
 
 export interface Organization extends OrganizationSummary {

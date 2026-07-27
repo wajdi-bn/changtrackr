@@ -2,16 +2,17 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { App, Button, Progress, Radio, Table, Timeline } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { Building2, CalendarClock, Check, CircleDollarSign, Download, FileClock, ReceiptText, ShieldCheck, Sparkles, Users, Zap } from 'lucide-react'
+import { Building2, CalendarClock, Check, CircleDollarSign, Eye, FileClock, ReceiptText, ShieldCheck, Sparkles, Users, Zap } from 'lucide-react'
 import dayjs from 'dayjs'
 import { MountainBanner } from '../components/MountainBanner'
 import { AdminDataPanel, AdminEmpty, AdminLoading, AdminMetric, AdminMetricGrid, AdminStatus } from '../components/admin/AdminSurface'
+import { PdfDocumentPreviewModal, type PdfPreviewTarget } from '../features/documents/PdfDocumentPreviewModal'
 import { downloadOrganizationInvoice, getOrganizationBilling, requestOrganizationPlan } from '../features/commercial/commercialApi'
 import type { BillingCycle, OrganizationInvoice, SaasPlan } from '../types/commercial'
-import { downloadBlob } from '../utils/downloadBlob'
 
 export function OrganizationBillingPage() {
   const [cycle, setCycle] = useState<BillingCycle>('monthly')
+  const [invoicePreview, setInvoicePreview] = useState<PdfPreviewTarget | null>(null)
   const queryClient = useQueryClient()
   const { message, modal } = App.useApp()
   const billingQuery = useQuery({ queryKey: ['organization-billing'], queryFn: getOrganizationBilling })
@@ -20,7 +21,6 @@ export function OrganizationBillingPage() {
     onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['organization-billing'] }); void message.success('Plan request created. The platform team can now validate the simulated payment.') },
     onError: () => void message.error('The plan request could not be created. Resolve any existing open invoice first.'),
   })
-  const downloadMutation = useMutation({ mutationFn: downloadOrganizationInvoice, onSuccess: (blob, id) => downloadBlob(blob, `organization-invoice-${id}.pdf`), onError: () => void message.error('The invoice PDF could not be generated.') })
   const data = billingQuery.data
   const subscription = data?.subscription
   const deadline = subscription?.status === 'trialing' ? subscription.trial_ends_at : subscription?.status === 'grace_period' ? subscription.grace_ends_at : subscription?.current_period_ends_at
@@ -30,7 +30,7 @@ export function OrganizationBillingPage() {
     { title: 'Amount', dataIndex: 'amount_millimes', render: (value: number) => <strong>{formatMoney(value)}</strong> },
     { title: 'Due', dataIndex: 'due_at', render: (value: string) => dayjs(value).format('DD MMM YYYY') },
     { title: 'Status', dataIndex: 'status', render: (value: string) => <AdminStatus status={value} /> },
-    { title: '', align: 'right', width: 96, render: (_, invoice) => <Button type="text" icon={<Download size={15} />} loading={downloadMutation.isPending && downloadMutation.variables === invoice.id} onClick={() => downloadMutation.mutate(invoice.id)}>PDF</Button> },
+    { title: '', align: 'right', width: 110, render: (_, invoice) => <Button type="text" icon={<Eye size={15} />} onClick={() => setInvoicePreview({ title: `Organization invoice ${invoice.number}`, filename: `organization-invoice-${invoice.number}.pdf`, load: () => downloadOrganizationInvoice(invoice.id) })}>View PDF</Button> },
   ]
 
   if (billingQuery.isLoading) return <div className="page-stack"><AdminLoading rows={14} /></div>
@@ -66,6 +66,7 @@ export function OrganizationBillingPage() {
     </AdminDataPanel>
 
     {subscription?.events.length ? <AdminDataPanel title="Commercial history" subtitle="Traceable lifecycle decisions for this organization."><Timeline className="billing-history" items={subscription.events.slice(0, 8).map((event) => ({ color: event.to_status === 'suspended' ? 'red' : 'green', dot: event.event.includes('invoice') ? <CircleDollarSign size={15} /> : event.event.includes('trial') ? <FileClock size={15} /> : undefined, children: <div><strong>{humanize(event.event)}</strong><p>{event.note}</p><small>{event.actor} · {dayjs(event.created_at).format('DD MMM YYYY, HH:mm')}</small></div> }))} /></AdminDataPanel> : null}
+    <PdfDocumentPreviewModal target={invoicePreview} onClose={() => setInvoicePreview(null)} />
   </div>
 }
 

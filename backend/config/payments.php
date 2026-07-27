@@ -7,6 +7,7 @@ return [
     'default' => env('PAYMENT_DRIVER', 'wiremock'),
     'preauthorization_amount_millimes' => (int) env('PAYMENT_PREAUTHORIZATION_AMOUNT_MILLIMES', 30000),
     'authorization_ttl_minutes' => (int) env('PAYMENT_AUTHORIZATION_TTL_MINUTES', 15),
+    'subscription_grace_days' => (int) env('PAYMENT_SUBSCRIPTION_GRACE_DAYS', 3),
     'drivers' => [
         'simulated' => SimulatedPaymentAdapter::class,
         'wiremock' => WireMockPaymentAdapter::class,

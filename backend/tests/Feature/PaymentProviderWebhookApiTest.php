@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\ChargingSession;
+use App\Models\ChargingPlan;
 use App\Models\Connector;
 use App\Models\Organization;
 use App\Models\Payment;
+use App\Models\PlanSubscriptionInvoice;
 use App\Models\Station;
 use App\Models\User;
 use App\Services\Payments\PaymentWebhookSignature;
@@ -62,6 +64,69 @@ class PaymentProviderWebhookApiTest extends TestCase
 
         $this->assertDatabaseCount('payment_provider_events', 0);
         $this->assertDatabaseHas('payments', ['id' => $payment->id, 'status' => 'pending']);
+    }
+
+    public function test_a_signed_plan_invoice_webhook_is_reconciled_without_a_charging_session(): void
+    {
+        $organization = Organization::query()->create([
+            'name' => 'Membership Network',
+            'slug' => 'membership-network',
+            'status' => 'active',
+        ]);
+        $client = User::factory()->create(['organization_id' => null, 'status' => 'active']);
+        $plan = ChargingPlan::query()->create([
+            'organization_id' => $organization->id,
+            'name' => 'Member',
+            'code' => 'MEMBER',
+            'monthly_fee_millimes' => 19000,
+            'discount_basis_points' => 800,
+            'audience' => 'Drivers',
+            'status' => 'active',
+        ]);
+        $invoice = PlanSubscriptionInvoice::query()->create([
+            'organization_id' => $organization->id,
+            'user_id' => $client->id,
+            'charging_plan_id' => $plan->id,
+            'reference' => 'CPS-WEBHOOK-001',
+            'status' => 'pending',
+            'billing_reason' => 'initial',
+            'payment_provider' => 'wiremock',
+            'payment_method' => 'simulated_card',
+            'idempotency_key' => '30000000-0000-4000-8000-000000000001',
+            'amount_millimes' => 19000,
+            'currency' => 'TND',
+            'period_starts_at' => now(),
+            'period_ends_at' => now()->addMonth(),
+            'due_at' => now(),
+        ]);
+        $payload = [
+            'event_id' => 'evt_charge_30000000-0000-4000-8000-000000000001',
+            'type' => 'payment.charge.paid',
+            'operation' => 'charge',
+            'status' => 'paid',
+            'payment_reference' => $invoice->reference,
+            'provider_transaction_id' => 'sim_chg_30000000-0000-4000-8000-000000000001',
+            'authorization_id' => '',
+            'amount_millimes' => 19000,
+            'currency' => 'TND',
+            'idempotency_key' => '30000000-0000-4000-8000-000000000001',
+        ];
+        $signature = app(PaymentWebhookSignature::class)->sign($payload);
+
+        $this->withHeader('X-ChargeTrackr-Signature', $signature)
+            ->postJson('/api/internal/payments/webhooks', $payload)
+            ->assertAccepted()
+            ->assertJsonPath('processing_status', 'processed');
+
+        $this->assertDatabaseHas('plan_subscription_invoices', [
+            'id' => $invoice->id,
+            'status' => 'paid',
+            'provider_transaction_id' => 'sim_chg_30000000-0000-4000-8000-000000000001',
+        ]);
+        $this->assertDatabaseHas('payment_provider_events', [
+            'plan_subscription_invoice_id' => $invoice->id,
+            'processing_status' => 'processed',
+        ]);
     }
 
     /** @return array{Payment, Station} */

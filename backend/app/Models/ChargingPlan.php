@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'organization_id', 'name', 'code', 'description', 'monthly_fee_millimes',
-    'discount_basis_points', 'audience', 'status', 'member_count',
+    'discount_basis_points', 'audience', 'status',
 ])]
 class ChargingPlan extends Model
 {
@@ -24,6 +24,11 @@ class ChargingPlan extends Model
     public function subscriptions(): HasMany
     {
         return $this->hasMany(PlanSubscription::class);
+    }
+
+    public function subscriptionInvoices(): HasMany
+    {
+        return $this->hasMany(PlanSubscriptionInvoice::class);
     }
 
     protected function casts(): array

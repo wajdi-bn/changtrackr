@@ -63,6 +63,8 @@ class PlanSubscriptionApiTest extends TestCase
         $firstSubscriptionId = $this->postJson('/api/subscriptions', [
             'charging_plan_id' => $member->id,
             'auto_renew' => true,
+            'payment_method' => 'simulated_card',
+            'idempotency_key' => '10000000-0000-4000-8000-000000000001',
         ])->assertCreated()
             ->assertJsonPath('data.organization.id', $firstOrganization->id)
             ->assertJsonPath('data.billing_provider', 'simulated')
@@ -71,11 +73,15 @@ class PlanSubscriptionApiTest extends TestCase
         $this->postJson('/api/subscriptions', [
             'charging_plan_id' => $coast->id,
             'auto_renew' => false,
+            'payment_method' => 'simulated_d17',
+            'idempotency_key' => '10000000-0000-4000-8000-000000000002',
         ])->assertCreated();
 
         $this->postJson('/api/subscriptions', [
             'charging_plan_id' => $premium->id,
             'auto_renew' => true,
+            'payment_method' => 'simulated_edinar',
+            'idempotency_key' => '10000000-0000-4000-8000-000000000003',
         ])->assertCreated();
 
         $this->assertDatabaseHas('plan_subscriptions', ['id' => $firstSubscriptionId, 'status' => 'cancelled']);
@@ -85,12 +91,29 @@ class PlanSubscriptionApiTest extends TestCase
         $this->assertDatabaseHas('charging_plans', ['id' => $premium->id, 'member_count' => 1]);
         $this->assertDatabaseHas('charging_plans', ['id' => $coast->id, 'member_count' => 1]);
 
-        $this->postJson('/api/subscriptions', ['charging_plan_id' => $premium->id, 'auto_renew' => true])
+        $this->postJson('/api/subscriptions', [
+            'charging_plan_id' => $premium->id,
+            'auto_renew' => true,
+            'payment_method' => 'simulated_card',
+            'idempotency_key' => '10000000-0000-4000-8000-000000000004',
+        ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('charging_plan_id');
-        $this->postJson('/api/subscriptions', ['charging_plan_id' => $payg->id, 'auto_renew' => true])
+        $this->postJson('/api/subscriptions', [
+            'charging_plan_id' => $payg->id,
+            'auto_renew' => true,
+            'payment_method' => 'simulated_card',
+            'idempotency_key' => '10000000-0000-4000-8000-000000000005',
+        ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('charging_plan_id');
+
+        $this->assertDatabaseCount('plan_subscription_invoices', 3);
+        $this->assertDatabaseHas('plan_subscription_invoices', [
+            'charging_plan_id' => $premium->id,
+            'status' => 'paid',
+            'payment_method' => 'simulated_edinar',
+        ]);
     }
 
     public function test_client_can_update_renewal_and_cancel_only_their_subscription(): void
@@ -110,8 +133,101 @@ class PlanSubscriptionApiTest extends TestCase
             ->assertJsonPath('data.auto_renew', false);
         $this->deleteJson("/api/subscriptions/{$subscription->id}")
             ->assertOk()
-            ->assertJsonPath('data.status', 'cancelled');
+            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.cancel_at_period_end', true);
+        $this->assertDatabaseHas('charging_plans', ['id' => $plan->id, 'member_count' => 1]);
+
+        $this->postJson("/api/subscriptions/{$subscription->id}/resume")
+            ->assertOk()
+            ->assertJsonPath('data.auto_renew', true)
+            ->assertJsonPath('data.cancel_at_period_end', false);
+    }
+
+    public function test_declined_checkout_creates_failed_invoice_without_activating_plan(): void
+    {
+        $organization = $this->organization('declined-network');
+        $plan = $this->plan($organization, 'MEMBER', 19000, 800);
+        $client = $this->user(null, 'client');
+        Sanctum::actingAs($client);
+
+        $this->postJson('/api/subscriptions', [
+            'charging_plan_id' => $plan->id,
+            'auto_renew' => true,
+            'payment_method' => 'simulated_card',
+            'idempotency_key' => '10000000-0000-4000-8000-000000000006',
+            'simulation_outcome' => 'declined',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('payment');
+
+        $this->assertDatabaseMissing('plan_subscriptions', [
+            'user_id' => $client->id,
+            'charging_plan_id' => $plan->id,
+            'status' => 'active',
+        ]);
+        $this->assertDatabaseHas('plan_subscription_invoices', [
+            'user_id' => $client->id,
+            'charging_plan_id' => $plan->id,
+            'status' => 'failed',
+        ]);
         $this->assertDatabaseHas('charging_plans', ['id' => $plan->id, 'member_count' => 0]);
+    }
+
+    public function test_lifecycle_command_renews_or_expires_due_subscriptions(): void
+    {
+        $organization = $this->organization('lifecycle-network');
+        $plan = $this->plan($organization, 'MEMBER', 19000, 800);
+        $renewingClient = $this->user(null, 'client');
+        $endingClient = $this->user(null, 'client');
+        $renewing = $this->subscription($renewingClient, $plan);
+        $ending = $this->subscription($endingClient, $plan);
+        $renewing->update(['current_period_ends_at' => now()->subMinute(), 'payment_method' => 'simulated_card']);
+        $ending->update([
+            'current_period_ends_at' => now()->subMinute(),
+            'auto_renew' => false,
+            'cancel_at_period_end' => true,
+            'payment_method' => 'simulated_card',
+        ]);
+
+        $this->artisan('client-subscriptions:sync')->assertSuccessful();
+
+        $this->assertDatabaseHas('plan_subscriptions', ['id' => $renewing->id, 'status' => 'active']);
+        $this->assertTrue($renewing->fresh()->current_period_ends_at->isFuture());
+        $this->assertDatabaseHas('plan_subscriptions', ['id' => $ending->id, 'status' => 'expired']);
+        $this->assertDatabaseHas('charging_plans', ['id' => $plan->id, 'member_count' => 1]);
+        $this->assertDatabaseHas('plan_subscription_invoices', [
+            'plan_subscription_id' => $renewing->id,
+            'billing_reason' => 'renewal',
+            'status' => 'paid',
+        ]);
+    }
+
+    public function test_client_can_list_and_preview_only_their_membership_invoices(): void
+    {
+        $organization = $this->organization('invoice-network');
+        $plan = $this->plan($organization, 'MEMBER', 19000, 800);
+        $client = $this->user(null, 'client');
+        $otherClient = $this->user(null, 'client');
+        Sanctum::actingAs($client);
+
+        $invoiceId = $this->postJson('/api/subscriptions', [
+            'charging_plan_id' => $plan->id,
+            'auto_renew' => true,
+            'payment_method' => 'simulated_card',
+            'idempotency_key' => '10000000-0000-4000-8000-000000000007',
+        ])->assertCreated()->json('data.latest_invoice.id');
+
+        $this->getJson('/api/subscription-invoices')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $invoiceId);
+
+        Sanctum::actingAs($otherClient);
+        $this->get("/api/subscription-invoices/{$invoiceId}/document")->assertForbidden();
+
+        Sanctum::actingAs($client);
+        $this->get("/api/subscription-invoices/{$invoiceId}/document")
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_subscription_discount_is_applied_to_real_sessions_and_arbitrary_plans_are_rejected(): void

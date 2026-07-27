@@ -22,7 +22,6 @@ class UpdateChargingPlanRequest extends FormRequest
             'discount_basis_points' => ['sometimes', 'required', 'integer', 'min:0', 'max:10000'],
             'audience' => ['sometimes', 'required', 'string', 'max:120'],
             'status' => ['sometimes', 'required', Rule::in(['draft', 'active', 'archived'])],
-            'member_count' => ['sometimes', 'required', 'integer', 'min:0', 'max:100000000'],
         ];
     }
 }

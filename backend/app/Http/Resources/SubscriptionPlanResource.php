@@ -23,7 +23,8 @@ class SubscriptionPlanResource extends JsonResource
             'monthly_fee_millimes' => $this->monthly_fee_millimes,
             'discount_basis_points' => $this->discount_basis_points,
             'audience' => $this->audience,
-            'member_count' => $this->member_count,
+            'member_count' => (int) ($this->current_member_count ?? $this->member_count),
+            'collected_millimes' => (int) ($this->collected_millimes ?? 0),
             'requires_subscription' => $this->monthly_fee_millimes > 0 || $this->discount_basis_points > 0,
             'current_subscription' => $subscription
                 ? new PlanSubscriptionResource($subscription)

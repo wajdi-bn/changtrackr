@@ -6,6 +6,7 @@ use App\Models\ChargingAttempt;
 use App\Models\ChargingSession;
 use App\Models\Payment;
 use App\Models\PaymentProviderEvent;
+use App\Models\PlanSubscriptionInvoice;
 use App\Models\Station;
 use App\Services\Notifications\OperationalNotificationService;
 use Illuminate\Support\Facades\DB;
@@ -27,12 +28,15 @@ class PaymentProviderEventService
             throw new UnauthorizedHttpException('PaymentWebhook', 'Invalid payment webhook signature.');
         }
 
-        [$payment, $attempt] = $this->findTargets($payload);
+        [$payment, $attempt, $planInvoice] = $this->findTargets($payload);
         $event = PaymentProviderEvent::query()->firstOrCreate(
             ['provider' => 'wiremock', 'event_id' => $payload['event_id']],
             [
-                'organization_id' => $payment?->organization_id ?? $attempt?->organization_id,
+                'organization_id' => $payment?->organization_id
+                    ?? $attempt?->organization_id
+                    ?? $planInvoice?->organization_id,
                 'payment_id' => $payment?->id,
+                'plan_subscription_invoice_id' => $planInvoice?->id,
                 'charging_attempt_id' => $attempt?->id,
                 'type' => $payload['type'],
                 'operation' => $payload['operation'],
@@ -73,16 +77,21 @@ class PaymentProviderEventService
             }
 
             $payload = $event->payload;
-            [$payment, $attempt] = $this->findTargets($payload, true);
+            [$payment, $attempt, $planInvoice] = $this->findTargets($payload, true);
             $event->fill([
-                'organization_id' => $payment?->organization_id ?? $attempt?->organization_id,
+                'organization_id' => $payment?->organization_id
+                    ?? $attempt?->organization_id
+                    ?? $planInvoice?->organization_id,
                 'payment_id' => $payment?->id,
+                'plan_subscription_invoice_id' => $planInvoice?->id,
                 'charging_attempt_id' => $attempt?->id,
             ]);
 
             $outcome = match ($event->operation) {
                 'authorize' => $this->reconcileAuthorization($event, $attempt),
-                'capture', 'charge' => $this->reconcileSettlement($event, $payment, $attempt),
+                'capture', 'charge' => $planInvoice !== null
+                    ? $this->reconcilePlanInvoice($event, $planInvoice)
+                    : $this->reconcileSettlement($event, $payment, $attempt),
                 'release' => $this->reconcileRelease($event, $attempt),
                 default => 'requires_review',
             };
@@ -207,14 +216,52 @@ class PaymentProviderEventService
         return 'processed';
     }
 
+    private function reconcilePlanInvoice(
+        PaymentProviderEvent $event,
+        PlanSubscriptionInvoice $invoice,
+    ): string {
+        $invoice = PlanSubscriptionInvoice::query()->lockForUpdate()->findOrFail($invoice->id);
+        if (in_array($event->status, ['declined', 'failed'], true)) {
+            if ($invoice->status === 'paid') {
+                return 'requires_review';
+            }
+            $invoice->update([
+                'status' => 'failed',
+                'provider_transaction_id' => $event->provider_transaction_id,
+                'failed_at' => now(),
+                'failure_code' => $event->payload['failure_code'] ?? 'payment_declined',
+                'failure_reason' => $event->payload['failure_reason'] ?? 'The payment provider declined the payment.',
+                'metadata' => [...($invoice->metadata ?? []), 'provider_event_id' => $event->event_id],
+            ]);
+
+            return 'processed';
+        }
+
+        if ($invoice->status !== 'paid') {
+            $invoice->update([
+                'status' => 'paid',
+                'provider_transaction_id' => $event->provider_transaction_id,
+                'paid_at' => now(),
+                'failed_at' => null,
+                'failure_code' => null,
+                'failure_reason' => null,
+                'metadata' => [...($invoice->metadata ?? []), 'provider_event_id' => $event->event_id],
+            ]);
+        }
+
+        return 'processed';
+    }
+
     /** @param array<string, mixed> $payload
-     * @return array{0: ?Payment, 1: ?ChargingAttempt}
+     * @return array{0: ?Payment, 1: ?ChargingAttempt, 2: ?PlanSubscriptionInvoice}
      */
     private function findTargets(array $payload, bool $lock = false): array
     {
         $reference = (string) ($payload['payment_reference'] ?? '');
         $paymentQuery = Payment::query()->where('reference', $reference);
         $payment = $lock ? $paymentQuery->lockForUpdate()->first() : $paymentQuery->first();
+        $invoiceQuery = PlanSubscriptionInvoice::query()->where('reference', $reference);
+        $planInvoice = $lock ? $invoiceQuery->lockForUpdate()->first() : $invoiceQuery->first();
 
         $attemptQuery = ChargingAttempt::query();
         if (str_starts_with($reference, 'ATT-')) {
@@ -224,11 +271,11 @@ class PaymentProviderEventService
         } elseif ($payment !== null) {
             $attemptQuery->where('charging_session_id', $payment->charging_session_id);
         } else {
-            return [$payment, null];
+            return [$payment, null, $planInvoice];
         }
 
         $attempt = $lock ? $attemptQuery->lockForUpdate()->first() : $attemptQuery->first();
 
-        return [$payment, $attempt];
+        return [$payment, $attempt, $planInvoice];
     }
 }

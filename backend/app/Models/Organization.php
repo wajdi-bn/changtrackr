@@ -81,6 +81,11 @@ class Organization extends Model
         return $this->hasMany(PlanSubscription::class);
     }
 
+    public function planSubscriptionInvoices(): HasMany
+    {
+        return $this->hasMany(PlanSubscriptionInvoice::class);
+    }
+
     public function demoRequests(): HasMany
     {
         return $this->hasMany(DemoRequest::class);
