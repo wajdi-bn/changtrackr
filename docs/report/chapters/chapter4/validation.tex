@@ -1,0 +1,263 @@
+\section{Intégration et validation}
+
+\subsection{Intégration bout en bout}
+
+L'intégration verticale est vérifiable sans accès direct du frontend à la borne
+ou au fournisseur de paiement. React appelle uniquement l'API publique Laravel.
+Laravel crée les intentions métier et les commandes. La passerelle OCPP échange
+avec le simulateur puis renvoie des événements signés. PostgreSQL conserve les
+preuves et projections. Reverb diffuse les changements utiles à l'interface.
+WireMock représente un système financier externe indépendant.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=7mm and 8mm,
+    box/.style={draw=ctline,fill=ctpaper,rounded corners=2mm,
+      minimum width=2.7cm,minimum height=1.0cm,align=center,
+      font=\small\bfseries,text=ctdark},
+    arrow/.style={-{Latex[length=2mm]},thick,draw=ctgreen}
+  ]
+    \node[box] (react) {React};
+    \node[box,right=of react] (laravel) {Laravel};
+    \node[box,right=of laravel] (db) {PostgreSQL};
+    \node[box,below=of laravel] (gateway) {Passerelle OCPP};
+    \node[box,left=of gateway] (simulator) {Simulateur SAP};
+    \node[box,right=of gateway] (payment) {WireMock};
+    \draw[arrow] (react) -- node[above,font=\scriptsize]{HTTP} (laravel);
+    \draw[arrow] (laravel) -- node[above,font=\scriptsize]{transactions} (db);
+    \draw[arrow] (laravel) -- node[right,font=\scriptsize]{commandes} (gateway);
+    \draw[arrow] (gateway) -- node[below,font=\scriptsize]{WebSocket OCPP} (simulator);
+    \draw[arrow] (laravel) -- node[above right,font=\scriptsize]{paiement} (payment);
+    \draw[arrow,dashed] (laravel) to[bend left=20]
+      node[above,font=\scriptsize]{Reverb} (react);
+  \end{tikzpicture}
+  \caption{Composants traversés par le MVP vertical}
+  \label{fig:implementation-vertical-integration}
+\end{figure}
+
+Cette structure a facilité le diagnostic. Un écran n'actualisant pas une donnée
+peut être analysé successivement au niveau de la requête React, de la réponse API,
+de la projection PostgreSQL, de l'événement reçu par la passerelle et du message
+émis par le simulateur. Le fournisseur de paiement peut de la même manière être
+observé sans modifier les tables depuis WireMock.
+
+\subsection{Stratégie de tests}
+
+La stratégie accorde la priorité aux invariants backend, car le frontend ne doit
+pas être la seule barrière contre une action interdite. Les tests utilisent une
+base SQLite en mémoire, une queue synchrone, un mailer en mémoire et un diffuseur
+nul. Ils restent ainsi reproductibles et n'envoient ni email réel ni événement
+WebSocket pendant la campagne.
+
+\begin{longtable}{@{}p{2.8cm}p{3.9cm}p{3.9cm}p{2.8cm}@{}}
+  \caption{Niveaux de validation appliqués}
+  \label{tab:implementation-test-strategy}\\
+  \toprule
+  \textbf{Niveau} & \textbf{Objet} & \textbf{Exemples} &
+  \textbf{Preuve}\\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Niveau} & \textbf{Objet} & \textbf{Exemples} &
+  \textbf{Preuve}\\
+  \midrule
+  \endhead
+  Tests métier & Invariants, projections et transitions &
+  disponibilité, transactions OCPP, tarifs, cycles commerciaux &
+  Assertions PHPUnit.\\
+  Tests API & Validation, autorisation, sérialisation et effets &
+  authentification, stations, alertes, rapports, paiement &
+  Réponses et base vérifiées.\\
+  Tests d'isolation & Accès croisé entre organisations &
+  utilisateurs, actifs, interventions, exports &
+  Réponses 403/404 attendues.\\
+  Tests d'adaptateur & Contrat avec un service remplaçable &
+  WireMock, webhook signé, Google OAuth simulé &
+  Doubles et serveur local.\\
+  Tests OCPP & Lecture des profils et scénarios du simulateur &
+  connexion, plug/unplug, transactions, projections &
+  Node Test et PHPUnit.\\
+  Qualité frontend & Types, imports et règles statiques &
+  compilation Vite et Oxlint &
+  Commandes sans erreur.\\
+  Vérification visuelle & Mise en page et parcours représentatifs &
+  dashboards, stations, cartes, formulaires, documents &
+  Inspection navigateur/PDF.\\
+  \bottomrule
+\end{longtable}
+
+\subsection{Résultats mesurés}
+
+La campagne exécutée le 28 juillet 2026 produit les résultats suivants :
+
+\begin{table}[H]
+  \centering
+  \caption{Résultats de validation du dépôt}
+  \label{tab:implementation-test-results}
+  \begin{tabularx}{\textwidth}{@{}p{4.5cm}p{3.2cm}Y@{}}
+    \toprule
+    \textbf{Contrôle} & \textbf{Résultat} & \textbf{Portée}\\
+    \midrule
+    \texttt{php artisan test --compact} &
+    201 tests, 1\,489 assertions & 37 classes de tests Feature et tests unitaires
+    chargés par PHPUnit.\\
+    \texttt{pnpm test:ocpp-tools} &
+    2 tests, 0 échec & Lecture et contrôle des états du simulateur.\\
+    \texttt{pnpm lint:frontend} &
+    Succès & Analyse Oxlint du code TypeScript/React.\\
+    \texttt{pnpm build:frontend} &
+    Succès & Type-check TypeScript et bundle Vite de production.\\
+    Inventaire des routes &
+    186 routes, dont 177 API & 75 GET, 67 POST, 23 PATCH/PUT et 12 DELETE.\\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+La réussite de la compilation ne prouve pas seule la qualité UX, et le nombre de
+tests ne remplace pas une recette. Elle montre néanmoins que les contrats
+principaux, les migrations et la majorité des cycles de vie restent cohérents
+après l'intégration des incréments.
+
+\subsection{Anomalies représentatives et non-régression}
+
+Plusieurs anomalies rencontrées pendant la réalisation ont renforcé les contrôles :
+
+\begin{itemize}[leftmargin=7mm]
+  \item une requête depuis l'adresse locale du réseau pouvait recevoir une erreur
+  419 lorsque les domaines de session et les origines CSRF ne couvraient que
+  \texttt{localhost}. La configuration a été rendue cohérente pour l'hôte local et
+  l'adresse LAN de développement ;
+  \item une double soumission involontaire d'une invitation déclenchait une erreur
+  429. Le bouton est verrouillé pendant la requête et les limites restent actives
+  côté serveur ;
+  \item un tri \texttt{created\_at} combiné à un \texttt{GROUP BY} était accepté
+  par certains moteurs mais refusé par PostgreSQL. La requête d'agrégation des
+  photos d'intervention a été corrigée et couverte par un test ;
+  \item \texttt{crypto.randomUUID()} échouait sur un navigateur mobile servi en
+  HTTP non sécurisé. L'identifiant temporaire utilise désormais une solution
+  compatible qui ne modifie pas l'identité métier du backend ;
+  \item des URL WebSocket figées sur \texttt{localhost} empêchaient Reverb de
+  fonctionner depuis un téléphone. Le frontend construit l'hôte de développement
+  à partir de sa configuration plutôt que de supposer une machine unique.
+\end{itemize}
+
+Les réponses d'erreur de l'API sont normalisées pour ne pas exposer une trace SQL,
+un chemin local ou un secret. En environnement de production,
+\texttt{APP\_DEBUG=false} reste obligatoire.
+
+\subsection{Performance et robustesse}
+
+Les listes volumineuses utilisent pagination et filtres côté serveur. Les
+relations nécessaires aux ressources API sont chargées explicitement afin de
+limiter les requêtes répétitives. Les agrégats de tableaux de bord sont calculés
+par période et périmètre plutôt que reconstruits dans le navigateur. Les travaux
+lents, notamment emails et certaines notifications, passent par la queue.
+
+Pour OCPP, la passerelle conserve la connexion WebSocket mais délègue rapidement
+l'événement à Laravel. Le recalcul de disponibilité est idempotent et protégé
+contre le chevauchement. Les événements et mesures restent horodatés, ce qui
+permet d'appliquer un délai de non-réponse sans dépendre de l'heure du navigateur.
+
+La compilation frontend signale toutefois plusieurs bundles supérieurs à
+500~kio ; le principal fichier JavaScript atteint environ 767~kio. Ce résultat
+n'empêche pas le MVP local, mais justifie une optimisation avant production :
+découpage par route, chargement différé de PDF.js et du scanner QR, séparation des
+icônes et graphiques, puis mesure Lighthouse sur réseau mobile.
+
+\subsection{Sécurité appliquée}
+
+Les mesures suivantes sont effectivement présentes dans le code :
+
+\begin{itemize}[leftmargin=7mm]
+  \item session SPA protégée par Sanctum et cookie CSRF ;
+  \item validation systématique des écritures par \emph{Form Requests} ;
+  \item policies et scoping organisationnel côté serveur ;
+  \item hachage des mots de passe et des secrets de station ;
+  \item vérification des signatures de webhooks et déduplication des événements ;
+  \item limitation des tentatives de connexion, d'activation et d'invitation ;
+  \item routes internes OCPP séparées des routes publiques ;
+  \item journal d'audit pour les actions sensibles ;
+  \item fichiers et documents servis par contrôleurs autorisés ;
+  \item secrets exclus du dépôt et masqués dans les réponses d'intégration.
+\end{itemize}
+
+Un audit de sécurité complet reste nécessaire avant exposition publique :
+rotation des clés, TLS/WSS, durcissement des cookies, en-têtes de sécurité,
+analyse des dépendances, tests IDOR systématiques, sauvegardes chiffrées et
+supervision des événements anormaux.
+
+\subsection{Limites de la validation}
+
+\begin{scopebox}[Frontière des résultats]
+\begin{itemize}[leftmargin=7mm]
+  \item Le simulateur SAP valide les messages OCPP 1.6J, mais pas le comportement
+  électrique, le modem ou le firmware d'une borne réelle.
+  \item WireMock valide le contrat HTTP et les webhooks, mais aucune transaction
+  bancaire ni exigence PCI DSS.
+  \item Les tests automatisés n'ont pas encore été complétés par une campagne de
+  charge OCPP multi-borne ni par des tests de performance formels.
+  \item Le déploiement de production, TLS, sauvegardes, supervision et CI/CD ne
+  sont pas encore qualifiés.
+  \item La spécification OpenAPI/Swagger, les manuels et le procès-verbal de recette
+  constituent des livrables distincts encore à finaliser.
+  \item OCPP 2.0.1, Microsoft OAuth, le paiement réel et le firmware restent hors
+  du MVP validé.
+\end{itemize}
+\end{scopebox}
+
+\subsection{Traçabilité avec le backlog}
+
+\begin{longtable}{@{}C{1.2cm}p{3.4cm}p{4.6cm}p{4.1cm}@{}}
+  \caption{Preuves de réalisation par incrément}
+  \label{tab:implementation-traceability}\\
+  \toprule
+  \textbf{Inc.} & \textbf{User stories} & \textbf{Preuves dans le code} &
+  \textbf{Tests principaux}\\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Inc.} & \textbf{User stories} & \textbf{Preuves dans le code} &
+  \textbf{Tests principaux}\\
+  \midrule
+  \endhead
+  INC-01 & US-01--04, 06, 27, 39 &
+  Auth, Google, invitations, démo, onboarding, policies &
+  Auth, OAuth, onboarding, utilisateurs, organisations.\\
+  INC-02 & US-07--13, 37 &
+  Stations, connecteurs, cartes, commissioning, documents &
+  Station API, commissioning, documents.\\
+  INC-03 & US-14--16, 19 &
+  Gateway, ingestion, projection, commandes, télémétrie &
+  OCPP gateway, flotte, supervision, disponibilité, télémétrie.\\
+  INC-04 & US-20--23, 40 &
+  Alertes, interventions, maintenance, SLA, notifications &
+  Alertes, rapports terrain, maintenance, notifications.\\
+  INC-05 & US-24--26, 28--30 &
+  Tentatives, sessions, transactions, paiements, reçus &
+  Recharge distante, session/paiement, webhook WireMock.\\
+  INC-06 & US-31, 32, 41, 42 &
+  Tarifs, plans, abonnements clients et SaaS &
+  Tarifs, plans, commercial organisationnel.\\
+  INC-07 & US-05, 17, 18, 33--36 &
+  Dashboards, reporting, audit, paramètres, intégrations &
+  Dashboard, rapports, gouvernance, recherche.\\
+  INC-08 & US-34, 38 &
+  Exports PDF/JSON/CSV ; firmware documenté mais différé &
+  Exports couverts dans les tests de chaque domaine.\\
+  \bottomrule
+\end{longtable}
+
+\section{Documentation technique produite et restante}
+
+Le dépôt contient déjà les scripts d'installation, les configurations d'exemple,
+les commandes d'exploitation des simulateurs et le présent rapport. Les noms des
+routes et les ressources Laravel forment une base vérifiable pour produire une
+spécification OpenAPI 3.1. Celle-ci sera exposée avec Swagger UI pour l'exploration,
+mais le fichier OpenAPI versionné restera la source du livrable API.
+
+Les livrables à finaliser sont le manuel utilisateur par rôle, le manuel
+administrateur, le cahier de tests, la procédure d'installation, la documentation
+des processus OCPP et le procès-verbal de recette. Ils devront reprendre les mêmes
+identifiants de user stories et critères d'acceptation afin d'éviter une
+documentation déconnectée du produit.

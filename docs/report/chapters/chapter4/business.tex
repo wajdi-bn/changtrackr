@@ -1,0 +1,244 @@
+\section{Réalisation des parcours métier}
+
+\subsection{INC-04 : exploitation terrain}
+
+\subsubsection{Alertes et qualification}
+
+Une alerte représente un symptôme opérationnel à traiter, et non une intervention.
+Elle possède une sévérité, un statut, une station, un contexte technique et une
+chronologie. Elle peut provenir automatiquement d'une perte de communication,
+d'un défaut OCPP ou d'une règle de maintenance, mais un utilisateur autorisé peut
+également créer une alerte manuelle.
+
+L'interface utilise une disposition en deux panneaux : la liste filtrable reste
+visible pendant que le détail, les actions et l'historique de l'alerte sélectionnée
+sont consultés. Les filtres de sévérité et d'état ne modifient pas la donnée ; ils
+sont convertis en paramètres API. Les compteurs de la barre latérale sont dérivés
+des notifications non lues liées à ce contexte.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{assets/screenshots/alerts-workspace.png}
+  \caption{Centre opérationnel des alertes}
+  \label{fig:implementation-alerts}
+\end{figure}
+
+\subsubsection{Interventions, maintenance et SLA}
+
+Une intervention matérialise le travail humain déclenché par une alerte ou une
+décision d'exploitation. L'opérateur la crée, choisit une priorité et l'assigne à
+un technicien de la même organisation. Le technicien accepte le travail, ajoute
+ses notes, documente le diagnostic, les actions et les pièces, joint des photos
+\emph{avant/après}, puis soumet son rapport. L'opérateur contrôle ensuite le
+résultat et clôt l'intervention.
+
+La maintenance répond à un besoin différent. Elle planifie une action préventive
+ou corrective sur une période, indépendamment de l'existence immédiate d'une
+alerte. \texttt{MaintenancePlanService} gère le plan, tandis que
+\texttt{MaintenanceLifecycleService} contrôle les transitions. Le job
+\texttt{GenerateMaintenanceOccurrences} matérialise les occurrences récurrentes.
+
+\texttt{NotificationSlaService} analyse chaque minute les échéances approchantes
+ou dépassées. Les notifications sont enregistrées en base, diffusées par Reverb
+et éventuellement envoyées par email via la queue. L'utilisateur peut marquer
+une notification lue globalement ou dans le contexte de la page consultée.
+
+Les documents d'alerte, d'intervention et de maintenance sont générés par le
+backend. Le rapport PDF reprend la référence, les acteurs, les dates, les preuves
+et l'historique sans dépendre d'une capture de l'écran. Les pièces jointes passent
+par des routes autorisées et sont supprimables selon le cycle de vie de la
+ressource.
+
+\subsection{INC-05 : recharge, transaction et paiement}
+
+\subsubsection{Assistant de recharge client}
+
+Le client peut ouvrir l'assistant depuis \emph{Start session}, depuis une fiche
+station ou depuis la carte. Dans les deux derniers cas, la station est déjà
+sélectionnée et le parcours commence directement au choix du connecteur. Le
+workflow se compose de cinq étapes :
+
+\begin{enumerate}[leftmargin=8mm]
+  \item sélectionner une station disponible ;
+  \item choisir un connecteur compatible et libre ;
+  \item brancher le câble et attendre la confirmation OCPP ;
+  \item autoriser le paiement simulé et vérifier le tarif applicable ;
+  \item envoyer la demande de démarrage distant et attendre la transaction OCPP.
+\end{enumerate}
+
+Le passage de l'étape de branchement n'est pas manuel. Le frontend interroge la
+tentative de recharge et reçoit la mise à jour du connecteur ; il avance uniquement
+lorsque le backend confirme une preuve OCPP compatible. Les pictogrammes de prises
+aident le client à reconnaître CCS2, Type~2, CHAdeMO ou un autre standard.
+
+\subsubsection{Cycle de session}
+
+\texttt{ChargingAttemptService} conserve le contexte entre les étapes et refuse
+une station, un connecteur ou un tarif devenus invalides. Après autorisation,
+\texttt{OcppCommandService} demande un
+\texttt{RemoteStartTransaction}. Le simulateur répond, puis
+\texttt{StartTransaction} devient la preuve de démarrage. Les
+\texttt{MeterValues} actualisent l'énergie, la puissance et l'estimation. Le
+client peut laisser la vue active en arrière-plan et y revenir depuis la page des
+sessions.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=8mm and 7mm,
+    workflowstep/.style={draw=ctline,fill=ctpaper,rounded corners=2mm,
+      minimum width=2.65cm,minimum height=1.05cm,align=center,
+      font=\small\bfseries,text=ctdark},
+    flow/.style={-{Latex[length=2mm]},thick,draw=ctgreen}
+  ]
+    \node[workflowstep] (select) {Station et\\connecteur};
+    \node[workflowstep,right=of select] (plug) {Branchement\\confirmé OCPP};
+    \node[workflowstep,right=of plug] (auth) {Autorisation\\de paiement};
+    \node[workflowstep,below=of auth] (start) {Transaction\\démarrée};
+    \node[workflowstep,left=of start] (meter) {Mesures et\\estimation};
+    \node[workflowstep,left=of meter] (stop) {Arrêt, capture\\et reçu};
+    \draw[flow] (select) -- (plug);
+    \draw[flow] (plug) -- (auth);
+    \draw[flow] (auth) -- (start);
+    \draw[flow] (start) -- (meter);
+    \draw[flow] (meter) -- (stop);
+  \end{tikzpicture}
+  \caption{Parcours vertical d'une recharge}
+  \label{fig:implementation-charging-flow}
+\end{figure}
+
+L'arrêt peut être demandé par le client, par un opérateur autorisé, par la borne
+ou par une condition technique. \texttt{StopTransaction} clôt la transaction et
+fige les valeurs finales. Le coût n'est pas calculé dans React :
+\texttt{TariffResolver} sélectionne la règle applicable, puis le backend calcule
+les composantes énergie, temps, forfait et remise.
+
+\subsubsection{Adaptateur de paiement simulé}
+
+Le domaine dépend de l'interface \path{PaymentGateway}. Deux implémentations sont
+disponibles : \path{SimulatedPaymentAdapter}, utile aux tests unitaires, et
+\path{WireMockPaymentAdapter}, qui appelle un serveur HTTP externe local. Les
+opérations fonctionnelles sont l'autorisation, la capture, la libération et le
+débit direct.
+
+WireMock reproduit des succès, refus, délais, erreurs serveur et webhooks. Le
+webhook est signé ; \path{PaymentWebhookSignature} vérifie son authenticité et
+\path{PaymentProviderEventService} assure l'idempotence. Un même événement
+rejoué ne capture donc pas deux fois une session. Le reçu est consultable dans
+l'application et exportable en PDF.
+
+Ce choix ne simule pas une banque au niveau réglementaire. Il valide la frontière
+technique qui permettra d'ajouter ultérieurement ClicToPay, e-DINAR/D17,
+GPGCheckout, Konnect ou Flouci. L'adaptateur réel devra ajouter la conformité du
+prestataire, le rapprochement, la gestion des litiges et des remboursements.
+
+\subsection{INC-06 : tarification et commerce}
+
+\subsubsection{Tarifs et plans de recharge}
+
+Un tarif appartient à une organisation et peut combiner un prix au kWh, un prix
+au temps, un coût fixe et des règles horaires. Les affectations définissent son
+périmètre : organisation, station ou connecteur. Lorsqu'une session commence,
+\texttt{TariffResolver} applique l'affectation la plus spécifique et conserve une
+référence au tarif retenu afin qu'une modification future ne change pas
+rétroactivement le calcul.
+
+Les plans clients sont des avantages proposés par une organisation : remise sur
+la recharge, éventuel abonnement périodique et conditions d'accès. Un client peut
+cumuler des abonnements auprès de plusieurs réseaux, car son utilisation d'une
+borne ne le transforme pas automatiquement en client exclusif de son propriétaire.
+La simple recharge crée une relation transactionnelle ; l'abonnement demeure une
+décision explicite.
+
+\subsubsection{Abonnement SaaS de l'organisation}
+
+Le contrat commercial de l'organisation est volontairement séparé des paiements
+des conducteurs. Il détermine la période d'essai, le nombre maximal d'employés et
+de stations, les fonctions accessibles, la date de renouvellement et les factures
+adressées à l'organisation. \texttt{OrganizationEntitlementService} contrôle les
+limites avant la création d'un actif, tandis que
+\texttt{OrganizationSubscriptionLifecycleService} traite essai, activation,
+suspension, expiration et restauration.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{assets/screenshots/organization-billing.png}
+  \caption{Suivi de l'abonnement commercial d'une organisation}
+  \label{fig:implementation-organization-billing}
+\end{figure}
+
+Le super administrateur gère le catalogue SaaS et le portefeuille global.
+L'administrateur consulte son offre, sa consommation de capacité et ses factures,
+puis émet une demande de changement. Cette demande évite qu'un administrateur
+modifie directement un contrat financier. L'encaissement SaaS reste simulé ou
+manuel dans le MVP.
+
+\subsection{INC-07 : pilotage, reporting et gouvernance}
+
+\subsubsection{Tableaux de bord par rôle}
+
+\texttt{DashboardService} compose une réponse différente selon le rôle plutôt que
+de renvoyer le même tableau de bord avec des libellés modifiés. Le super
+administrateur supervise les organisations et les intégrations. L'administrateur
+observe les employés, clients, revenus, stations et performances de son
+organisation. L'opérateur suit disponibilité, incidents et sessions. Le
+technicien voit sa charge terrain et ses SLA. Le client consulte ses recharges,
+paiements et abonnements.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{assets/screenshots/admin-overview.png}
+  \caption{Tableau de bord réel de l'administrateur}
+  \label{fig:implementation-admin-dashboard}
+\end{figure}
+
+Les indicateurs utilisent les mêmes règles et périmètres que les écrans de détail.
+Par exemple, la disponibilité du tableau de bord passe par
+\texttt{AvailabilityMetrics} et ne moyenne pas des valeurs fictives du frontend.
+Les sélecteurs de période sont transformés en bornes temporelles côté API.
+
+\subsubsection{Rapports et échanges internes}
+
+Les espaces d'analyse sont adaptés au périmètre du rôle :
+\texttt{/reporting/platform}, \texttt{/organization},
+\texttt{/operations} et \texttt{/field}. Les exports PDF, JSON et CSV réutilisent
+les mêmes filtres et autorisations. Les rapports internes sont des objets
+distincts des exports : un employé peut composer un rapport, joindre des fichiers,
+choisir un destinataire de son organisation, l'envoyer, puis suivre lecture et
+archivage.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{assets/screenshots/administrator-reports.png}
+  \caption{Studio de performance de l'administrateur}
+  \label{fig:implementation-admin-reports}
+\end{figure}
+
+\subsubsection{Administration globale}
+
+Le super administrateur dispose d'un espace cohérent avec la navigation du
+produit, mais orienté opérations de plateforme : organisations, utilisateurs,
+rôles, permissions, demandes de démonstration, catalogue commercial, audit,
+intégrations et paramètres. Les secrets OAuth, OCPP, email ou paiement ne sont
+jamais renvoyés par les endpoints d'intégration. L'écran expose uniquement l'état
+de configuration et la date du dernier contrôle.
+
+\texttt{PlatformSettingService} limite les paramètres modifiables à une liste
+validée. Les valeurs sensibles restent dans l'environnement. Toute modification
+globale est attribuée à son auteur dans le journal d'audit. Les paramètres
+personnels, tels que fuseau horaire, préférences de notification et rayon de
+recherche, restent séparés des contrôles globaux.
+
+\subsection{INC-08 : exports et évolutions différées}
+
+\texttt{ReportExportService} centralise les formats PDF, CSV et JSON. OpenSpout est
+disponible pour les formats tabulaires plus riches, tandis que DomPDF produit les
+documents visuels. Les reçus, factures et rapports opérationnels sont générés près
+de leur ressource afin que l'utilisateur les retrouve dans le workflow concerné,
+et non uniquement dans une page de rapports générique.
+
+La gestion distante du firmware n'est pas simulée comme si elle était achevée.
+Elle nécessite une matrice de compatibilité matériel/logiciel, la signature des
+paquets, un hébergement sécurisé, le suivi de progression, une stratégie de
+retour arrière et une validation sur borne. Elle reste donc une évolution de
+l'INC-08, conformément au risque de 13 points associé à US-38.

@@ -1,90 +1,52 @@
 \chapter{Réalisation et validation}
 
-\section{Introduction à la réalisation}
+\section*{Introduction}
 
-\subsection{Objectifs}
-\plannedcontent{Rappeler les objectifs du MVP vertical : borne simulée, OCPP, disponibilité,
-carte, session, tarification, paiement, reçu et exploitation opérationnelle.}
+Ce chapitre présente la traduction effective de la conception en une application
+exécutable. Il ne décrit pas seulement les écrans obtenus : il relie les incréments
+du Product Backlog aux composants frontend, aux services métier, aux données
+persistées, aux processus d'infrastructure et aux contrôles qui permettent de
+vérifier leur comportement.
 
-\subsection{Enjeux liés à la mise en œuvre}
-\plannedcontent{Interopérabilité, temps réel, cohérence des états, sécurité, isolation des
-organisations, expérience utilisateur et reproductibilité de l'environnement.}
+La réalisation a été menée par incréments dépendants. Chaque incrément stabilise
+une capacité démontrable avant d'ouvrir le suivant. Cette progression a d'abord
+sécurisé l'identité et l'isolation des organisations, puis le référentiel des
+stations, la communication OCPP, les opérations terrain, la recharge, le paiement
+et enfin le pilotage commercial. Elle aboutit à un premier parcours vertical :
 
-\section{Environnement de développement}
+\begin{center}
+\textbf{borne simulée $\rightarrow$ OCPP $\rightarrow$ disponibilité
+$\rightarrow$ alerte ou carte $\rightarrow$ session $\rightarrow$ tarif
+$\rightarrow$ paiement simulé $\rightarrow$ reçu.}
+\end{center}
 
-\subsection{Outils et choix technologiques}
-\plannedcontent{Documenter Git et GitHub, Docker et WSL2, Postman/Swagger, pgAdmin,
-simulateur SAP, WireMock, Resend et les outils de modélisation réellement employés.}
+Les résultats présentés correspondent à l'état du dépôt au 28 juillet 2026. Une
+fonctionnalité est qualifiée de \emph{réalisée} lorsqu'elle possède un contrat
+backend, une interface exploitable et des tests automatisés adaptés. Le terme
+\emph{validée localement} ne signifie pas qu'elle est déjà certifiée pour la
+production : les limites relatives à une borne physique, à un prestataire de
+paiement réel, au déploiement et à la charge sont indiquées explicitement.
 
-\subsection{Langages, frameworks et bibliothèques}
-\plannedcontent{Présenter PHP et Laravel, TypeScript, React, Ant Design, PostgreSQL,
-WebSocket/Reverb, CSS, Python pour le gateway OCPP et les bibliothèques de cartographie
-et de visualisation.}
+\input{chapters/chapter4/environment}
+\input{chapters/chapter4/foundations}
+\input{chapters/chapter4/business}
+\input{chapters/chapter4/validation}
 
-\section{Réalisation par incréments}
+\section*{Conclusion}
 
-\subsection{Fondations, authentification et multi-tenant}
-\plannedcontent{Initialisation du dépôt, séparation frontend/backend, base de données,
-Sanctum, OAuth Google, invitations, rôles et isolation des organisations.}
+La réalisation confirme la faisabilité de l'architecture proposée. Le dépôt
+contient une application React par rôle, une API Laravel protégée, un modèle
+PostgreSQL couvrant les domaines principaux, une passerelle OCPP indépendante et
+des adaptateurs pour les services externes. Le simulateur SAP produit des
+messages OCPP effectivement ingérés ; les services Laravel calculent ensuite les
+projections de disponibilité, les sessions, les alertes et les données de
+pilotage. Le paiement externe reste simulé, mais son contrat permet de remplacer
+WireMock sans réécrire le parcours de recharge.
 
-\subsection{Bornes, connecteurs et cartographie}
-\plannedcontent{CRUD, vues carte/liste/table, géolocalisation, itinéraires, QR des
-connecteurs et commissioning guidé.}
-
-\subsection{OCPP et disponibilité}
-\plannedcontent{Gateway OCPP 1.6 JSON, simulateur SAP, événements, commandes distantes,
-projection des états, heartbeats, alertes de connectivité et télémétrie réelle.}
-
-\subsection{Sessions de recharge et paiement}
-\plannedcontent{Workflow client, détection de branchement, RemoteStartTransaction,
-MeterValues, RemoteStopTransaction, calcul tarifaire, paiement simulé et reçus.}
-
-\subsection{Alertes, interventions et maintenance}
-\plannedcontent{Cycle de vie opérationnel, assignation, SLA, preuves terrain, rapport,
-historique et maintenance planifiée.}
-
-\subsection{Gestion commerciale, reporting et administration}
-\plannedcontent{Plans clients, abonnement des organisations, limites, rapports par rôle,
-exports, paramètres, intégrations et Super Administration.}
-
-\section{Utilisation d'UML pour guider l'implémentation}
-\plannedcontent{Mettre en relation les principaux diagrammes avec les modules effectivement
-implémentés et signaler les adaptations réalisées pendant le développement.}
-
-\section{Tests et débogage}
-
-\subsection{Stratégie de tests}
-\plannedcontent{Tests unitaires, tests d'intégration API, tests des policies, tests OCPP,
-tests frontend, scénarios E2E et vérification visuelle. Relier chaque résultat au cahier
-de tests.}
-
-\subsection{Processus de débogage}
-\plannedcontent{Présenter des anomalies représentatives, leur diagnostic, la correction et
-les tests de non-régression, sans exposer de secrets ou de données personnelles.}
-
-\section{Intégration des composants}
-\plannedcontent{Décrire les flux bout en bout entre React, Laravel, PostgreSQL, queue,
-Reverb, gateway OCPP, simulateur de borne, messagerie et paiement.}
-
-\section{Validation et vérification}
-\plannedcontent{Présenter les résultats mesurés, les démonstrations fonctionnelles et la
-traçabilité avec les critères d'acceptation du backlog.}
-
-\section{Optimisation des performances}
-\plannedcontent{Index de base de données, chargement différé, cache, pagination, fréquence
-de rafraîchissement, traitement asynchrone et maîtrise des volumes de télémétrie.}
-
-\section{Déploiement, sécurité et limites}
-\plannedcontent{Configuration des environnements, TLS, secrets, CORS/CSRF, permissions,
-sauvegardes, logs, supervision, limites du simulateur et différences avec une borne
-physique ou un prestataire de paiement réel.}
-
-\section{Documentation technique}
-\plannedcontent{Référencer le guide d'installation, l'OpenAPI, les variables d'environnement,
-les commandes des processus, le manuel utilisateur, le manuel administrateur et le
-cahier de tests.}
-
-\section{Conclusion du chapitre}
-\plannedcontent{Résumer la réalisation, les résultats de validation et les limites encore
-ouvertes.}
-
+La campagne locale atteint 201 tests backend et 1\,489 assertions, complétés par
+deux tests des outils OCPP, le lint frontend et une compilation de production.
+Ces résultats valident le MVP vertical dans l'environnement du stage. Les
+travaux encore ouverts concernent principalement l'industrialisation, la mesure
+de charge, la documentation OpenAPI, la recette formelle, la connexion à un
+prestataire financier réel, l'essai sur une borne physique et la gestion
+sécurisée du firmware.

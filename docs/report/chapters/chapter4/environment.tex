@@ -1,0 +1,165 @@
+\section{Environnement et organisation de la réalisation}
+
+\subsection{Poste, outils et versions}
+
+Le développement est effectué sur un poste Windows avec PHP installé localement
+et Docker Desktop appuyé sur WSL2 pour les composants conteneurisés. Cette
+organisation permet de conserver un cycle rapide pour React et Laravel tout en
+isolant la passerelle OCPP, le simulateur SAP et le simulateur de paiement. Git
+assure la traçabilité du code et GitHub centralise le dépôt distant.
+
+\begin{table}[H]
+  \centering
+  \caption{Environnement technique effectivement utilisé}
+  \label{tab:implementation-toolchain}
+  \begin{tabularx}{\textwidth}{@{}p{3.2cm}p{4.0cm}Y@{}}
+    \toprule
+    \textbf{Domaine} & \textbf{Technologies} & \textbf{Usage dans le projet}\\
+    \midrule
+    Frontend & React 19, TypeScript 6, Vite 8 &
+    Application monopage, typage statique et compilation de production.\\
+    Interface & Ant Design 6, Recharts, Leaflet, GSAP &
+    Composants, graphiques, cartes et animations ciblées.\\
+    État et échanges & TanStack Query, Axios, Zustand &
+    Cache serveur, appels HTTP et états locaux transverses.\\
+    Backend & PHP 8.5, Laravel 13 &
+    API REST, logique métier, validation, autorisation et tâches planifiées.\\
+    Identité & Sanctum, Socialite, Spatie Permission &
+    Session SPA, Google OAuth 2.0, rôles et permissions.\\
+    Données & PostgreSQL 16, Eloquent &
+    Persistance transactionnelle, relations et migrations.\\
+    Temps réel & Reverb, Laravel Echo &
+    Notifications et mises à jour poussées par WebSocket.\\
+    OCPP & Python 3.11, OCPP 1.6J, simulateur SAP &
+    Passerelle WebSocket, messages de borne et scénarios de test.\\
+    Paiement & Contrat \texttt{PaymentGateway}, WireMock 3 &
+    Fournisseur externe simulé, webhooks et scénarios d'erreur.\\
+    Email & Resend, queue Laravel &
+    Vérification d'email, invitations et notifications asynchrones.\\
+    Qualité & PHPUnit 12, Oxlint, TypeScript &
+    Tests backend, analyse frontend et validation de compilation.\\
+    Documentation & \LaTeX, TikZ, OpenAPI prévu &
+    Rapport, schémas et future spécification de l'API.\\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Le fichier \texttt{composer.json} exige PHP~8.3 ou supérieur, ce qui laisse la
+possibilité d'utiliser une version stable en déploiement même si le poste local
+exécute PHP~8.5. Les dépendances sont verrouillées par
+\texttt{composer.lock} et \texttt{pnpm-lock.yaml}. Les valeurs sensibles sont
+placées dans les fichiers \texttt{.env}, exclus de Git, tandis que les fichiers
+\texttt{.env.example} documentent uniquement les clés attendues.
+
+\subsection{Structure du dépôt}
+
+Le dépôt conserve une séparation physique entre les composants tout en proposant
+des commandes communes à sa racine :
+
+\begin{description}[leftmargin=37mm,style=nextline]
+  \item[\texttt{frontend/}] application React, pages, fonctionnalités, composants,
+  styles et ressources visuelles ;
+  \item[\texttt{backend/}] API Laravel, services métier, migrations, policies,
+  jobs et tests ;
+  \item[\texttt{ocpp-gateway/}] passerelle Python entre les bornes et l'API
+  interne Laravel ;
+  \item[\texttt{infra/ocpp/}] composition Docker et profils du simulateur SAP ;
+  \item[\texttt{infra/payment-simulator/}] serveur WireMock et contrats du faux
+  fournisseur de paiement ;
+  \item[\texttt{scripts/}] commandes d'orchestration, de provisioning et de
+  pilotage des scénarios ;
+  \item[\texttt{docs/}] rapport, diagrammes et futurs livrables d'exploitation.
+\end{description}
+
+L'audit statique du dépôt met en évidence 49 contrôleurs, 45 classes de validation
+HTTP, 24 ressources API, 39 modèles, 11 policies et 47 migrations. Le frontend
+contient 39 pages React. Ces chiffres ne constituent pas une métrique de qualité
+en eux-mêmes ; ils montrent cependant que la logique a été répartie selon les
+responsabilités Laravel plutôt que concentrée dans quelques contrôleurs.
+
+\subsection{Processus de développement}
+
+Le fichier \texttt{package.json} racine sert de façade aux commandes des trois
+environnements. Une session de développement complète utilise les processus
+suivants :
+
+\begin{table}[H]
+  \centering
+  \caption{Commandes principales de l'environnement local}
+  \label{tab:implementation-commands}
+  \begin{tabularx}{\textwidth}{@{}p{4.4cm}Y@{}}
+    \toprule
+    \textbf{Commande} & \textbf{Responsabilité}\\
+    \midrule
+    \texttt{pnpm dev:frontend} & Lance Vite sur le port 5173.\\
+    \texttt{pnpm dev:backend} & Lance l'API Laravel sur le port 8000.\\
+    \texttt{pnpm dev:queue} & Traite les emails et travaux asynchrones.\\
+    \texttt{pnpm dev:scheduler} & Exécute les règles périodiques.\\
+    \texttt{pnpm dev:reverb} & Lance le serveur WebSocket applicatif.\\
+    \texttt{pnpm ocpp:up} & Démarre la passerelle et le simulateur OCPP.\\
+    \texttt{pnpm ocpp:status} & Affiche l'état d'une borne simulée.\\
+    \texttt{pnpm ocpp:plug} / \texttt{ocpp:unplug} &
+    Simule la connexion ou le retrait physique d'un câble.\\
+    \texttt{pnpm payment:up} & Démarre le fournisseur WireMock.\\
+    \texttt{pnpm build:frontend} & Type-check et compile le frontend.\\
+    \texttt{pnpm test:backend} & Exécute la campagne PHPUnit.\\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Le scheduler recalcule la disponibilité toutes les 30 secondes, expire les
+commandes OCPP toutes les 10 secondes, contrôle les SLA chaque minute et génère
+les maintenances récurrentes toutes les heures. Les abonnements clients et
+organisationnels sont également synchronisés toutes les heures. L'option
+\texttt{withoutOverlapping} empêche qu'une nouvelle occurrence commence alors
+que la précédente n'est pas terminée.
+
+\subsection{Gestion incrémentale avec Git}
+
+La chronologie des commits reflète les risques du produit. Les premières
+modifications ont initialisé l'authentification, PostgreSQL et l'isolation
+multi-tenant. Les stations, tarifs et sessions ont ensuite fourni les premiers
+objets métier. L'intégration OAuth, les invitations et les demandes de
+démonstration ont stabilisé l'entrée dans la plateforme. Les blocs OCPP,
+disponibilité et opérations ont été intégrés avant le paiement et les tableaux de
+bord. Enfin, le commissioning, la télémétrie vérifiée et les documents ont
+complété le parcours d'exploitation.
+
+Chaque bloc fonctionnel est suivi d'un commit cohérent puis poussé sur la branche
+\texttt{main}. Cette discipline facilite l'identification d'une régression et
+conserve un historique exploitable pour le rapport. Les fichiers d'environnement,
+les dépendances installées et les sorties de compilation ne sont pas versionnés.
+
+\subsection{État synthétique des incréments}
+
+\begin{longtable}{@{}C{1.2cm}p{3.8cm}p{4.8cm}p{3.8cm}@{}}
+  \caption{État de réalisation au 28 juillet 2026}
+  \label{tab:increment-implementation-status}\\
+  \toprule
+  \textbf{Inc.} & \textbf{Capacité démontrable} & \textbf{Validation actuelle} &
+  \textbf{Limite principale}\\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Inc.} & \textbf{Capacité démontrable} & \textbf{Validation actuelle} &
+  \textbf{Limite principale}\\
+  \midrule
+  \endhead
+  INC-01 & Comptes, Google OAuth, invitations, démo, onboarding et rôles &
+  API et parcours web testés & Microsoft OAuth reporté.\\
+  INC-02 & Stations, connecteurs, cartes, documents et commissioning &
+  CRUD, policies et création atomique testés & Pas de borne physique.\\
+  INC-03 & OCPP, heartbeats, disponibilité, commandes et télémétrie &
+  Simulateur SAP et projections testés & OCPP 2.0.1 hors périmètre.\\
+  INC-04 & Alertes, interventions, maintenance, SLA et notifications &
+  Cycles de vie et documents testés & Recette terrain à réaliser.\\
+  INC-05 & Recharge, mesures, arrêt, paiement et reçu &
+  Parcours vertical avec paiement simulé & Aucun débit bancaire réel.\\
+  INC-06 & Tarifs, plans clients et contrat SaaS organisationnel &
+  Règles, limites et factures testées & Souscription SaaS non encaissée.\\
+  INC-07 & Dashboards, rapports, audit, paramètres et intégrations &
+  APIs par rôle et exports testés & Finitions UX encore itératives.\\
+  INC-08 & Exports généralisés et préparation documentaire &
+  CSV, JSON et PDF disponibles par périmètre & Firmware et CI/CD reportés.\\
+  \bottomrule
+\end{longtable}
