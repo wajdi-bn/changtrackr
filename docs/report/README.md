@@ -12,8 +12,8 @@ Depuis ce dossier :
 latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=build main.tex
 ```
 
-Le PDF compilé se trouve dans `build/main.pdf`. La version structurelle validée est
-également copiée dans `output/pdf/charge-trackr-report-structure.pdf`.
+Le PDF compilé se trouve dans `build/main.pdf`. La dernière version contrôlée est
+également copiée dans `output/pdf/charge-trackr-rapport-stage.pdf`.
 
 ## Organisation
 
@@ -28,6 +28,5 @@ preamble.tex     Mise en page et commandes communes
 main.tex         Point d'entrée
 ```
 
-Cette première version est un squelette structurel. Les blocs "Périmètre prévu"
-seront remplacés progressivement par le contenu validé.
-
+Le chapitre 1 est entièrement rédigé. Les blocs "Périmètre prévu" des chapitres
+suivants seront remplacés progressivement par le contenu validé.

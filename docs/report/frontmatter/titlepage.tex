@@ -9,17 +9,24 @@
   \end{tikzpicture}
 
   \begin{center}
-    {\small\bfseries \UniversityName}\\[2pt]
-    {\small \FacultyName}\\
-    {\small \DepartmentName}\\[1.3cm]
+    \begin{tabularx}{0.92\textwidth}{@{}C{2.2cm} Y C{2.2cm}@{}}
+      \includegraphics[height=1.65cm,keepaspectratio]{assets/brand/utm-logo.png}
+      &
+      \centering
+      {\small\bfseries \UniversityName}\\[2pt]
+      {\small \FacultyName}\\
+      {\small \DepartmentName}
+      &
+      \includegraphics[height=1.65cm,keepaspectratio]{assets/brand/fst-logo.png}
+    \end{tabularx}\\[0.75cm]
 
-    \includegraphics[width=3.2cm]{assets/brand/chargetrackr-logo.png}\\[0.3cm]
-    {\Large\bfseries\color{ctgreen}\ProjectName}\\[1cm]
+    \includegraphics[width=2.7cm]{assets/brand/chargetrackr-logo.png}\\[0.2cm]
+    {\Large\bfseries\color{ctgreen}\ProjectName}\\[0.65cm]
 
     {\large\bfseries \DocumentType}\\[0.35cm]
     {\color{ctgreen}\rule{0.72\textwidth}{1.2pt}}\\[0.55cm]
     {\LARGE\bfseries\color{ctdark}\ProjectTitle}\\[0.55cm]
-    {\color{ctgreen}\rule{0.72\textwidth}{1.2pt}}\\[1.2cm]
+    {\color{ctgreen}\rule{0.72\textwidth}{1.2pt}}\\[0.8cm]
 
     \begin{tcolorbox}[
       width=0.82\textwidth,
@@ -34,9 +41,14 @@
     ]
       \begin{tabularx}{\linewidth}{@{}Y Y@{}}
         \textbf{Réalisé par} & \textbf{Encadré en entreprise par}\\
-        \StudentName & M. \CompanySupervisor\\[7mm]
+        \StudentName & M. \CompanySupervisor\\[5mm]
         \textbf{Formation} & \textbf{Organisme d'accueil}\\
-        \ProgramName & \CompanyName
+        \ProgramName &
+        \begin{minipage}[t]{\linewidth}
+          \vspace{-2mm}
+          \includegraphics[height=0.85cm,keepaspectratio]{assets/brand/tactic-logo.png}\hspace{2mm}
+          \raisebox{0.25cm}{\CompanyName}
+        \end{minipage}
       \end{tabularx}
     \end{tcolorbox}
 
