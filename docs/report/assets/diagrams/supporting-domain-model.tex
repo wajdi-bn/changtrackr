@@ -1,57 +1,61 @@
 \begin{tikzpicture}[
   font=\sffamily\scriptsize,
   class/.style={draw=ctline, rounded corners=1.5mm, thick, fill=white,
-    text width=28mm, minimum height=16mm, align=left, inner sep=2.3mm},
+    text width=32mm, minimum height=15mm, align=left, inner sep=2.2mm},
   ops/.style={class, draw=ctgreen, fill=ctmint},
   commerce/.style={class, draw=ctamber, fill=yellow!7},
   rel/.style={-{Latex[length=1.8mm]}, thick, draw=ctgray},
-  zone/.style={draw=ctline, rounded corners=3mm, dashed, inner sep=4mm}
+  card/.style={fill=white, inner sep=1pt, font=\sffamily\tiny},
+  zone/.style={draw=ctline, rounded corners=3mm, dashed, inner sep=3mm}
 ]
-  \node[ops] (alert) at (0,3.7)
+  % Exploitation et circulation des rapports.
+  \node[ops] (alert) at (-4.2,7.3)
     {\textbf{Alert}\\severity, status\\deduplication key};
-  \node[ops] (intervention) at (4.0,3.7)
+  \node[ops] (intervention) at (0,7.3)
     {\textbf{Intervention}\\priority, SLA\\assigned technician};
-  \node[ops] (maintenance) at (8.0,3.7)
+  \node[ops] (maintenance) at (4.2,7.3)
     {\textbf{MaintenancePlan}\\frequency, schedule\\assigned technician};
-  \node[ops] (report) at (4.0,0.7)
-    {\textbf{InterventionReport}\\diagnosis, actions\\parts, outcome};
-  \node[ops] (document) at (8.0,0.7)
-    {\textbf{AssetDocument}\\private path, MIME\\documentable};
-  \node[ops] (internal) at (0,0.7)
+  \node[ops] (internal) at (-4.2,4.6)
     {\textbf{InternalReport}\\sender, recipient\\status, scope};
+  \node[ops] (report) at (0,4.6)
+    {\textbf{InterventionReport}\\diagnosis, actions\\parts, outcome};
+  \node[ops] (document) at (4.2,4.6)
+    {\textbf{AssetDocument}\\private path, MIME\\documentable};
 
-  \node[commerce] (tariff) at (12.5,3.7)
+  % Commerce destiné aux conducteurs.
+  \node[commerce] (tariff) at (-2.2,0.5)
     {\textbf{Tariff}\\price/kWh, fees\\validity};
-  \node[commerce] (assignment) at (16.3,3.7)
+  \node[commerce] (assignment) at (2.2,0.5)
     {\textbf{TariffAssignment}\\station\_id?\\connector\_id?};
-  \node[commerce] (plan) at (12.5,0.7)
+  \node[commerce] (plan) at (-2.2,-2.1)
     {\textbf{ChargingPlan}\\monthly fee\\discount};
-  \node[commerce] (subscription) at (16.3,0.7)
+  \node[commerce] (subscription) at (2.2,-2.1)
     {\textbf{PlanSubscription}\\client, period\\renewal, status};
-  \node[commerce] (clientinvoice) at (16.3,-2.3)
+  \node[commerce] (clientinvoice) at (2.2,-4.7)
     {\textbf{Client plan invoice}\\amount, due date\\payment status};
 
-  \node[commerce] (saas) at (21.0,3.7)
+  % Contrat SaaS de l'organisation.
+  \node[commerce] (saas) at (-4.2,-8.6)
     {\textbf{SaasPlan}\\station limit\\employee limit};
-  \node[commerce] (orgsub) at (21.0,0.7)
+  \node[commerce] (orgsub) at (0,-8.6)
     {\textbf{Organization subscription}\\trial, active, grace\\suspended};
-  \node[commerce] (orginvoice) at (21.0,-2.3)
+  \node[commerce] (orginvoice) at (4.2,-8.6)
     {\textbf{Organization invoice}\\period, amount\\status};
 
-  \draw[rel] (alert) -- node[above, fill=white, inner sep=1pt]{1:N} (intervention);
-  \draw[rel] (maintenance) -- node[above, fill=white, inner sep=1pt]{1:N} (intervention);
-  \draw[rel] (intervention) -- node[right, fill=white, inner sep=1pt]{0:1} (report);
-  \draw[rel] (intervention) -- node[above right, fill=white, inner sep=1pt]{1:N} (document);
-  \draw[rel] (internal.south) to[out=-35,in=-145]
-    node[below, fill=white, inner sep=1pt]{1:N} (document.south);
+  \draw[rel] (alert) -- node[card, above]{1:N} (intervention);
+  \draw[rel] (maintenance) -- node[card, above]{1:N} (intervention);
+  \draw[rel] (intervention) -- node[card, right]{0:1} (report);
+  \draw[rel] (intervention.south east) to[out=-25,in=155]
+    node[card, above]{1:N} (document.west);
+  \draw[rel] (internal) -- node[card, above]{1:N} (document);
 
-  \draw[rel] (tariff) -- node[above, fill=white, inner sep=1pt]{1:N} (assignment);
-  \draw[rel] (plan) -- node[above, fill=white, inner sep=1pt]{1:N} (subscription);
-  \draw[rel] (subscription) -- node[right, fill=white, inner sep=1pt]{1:N} (clientinvoice);
-  \draw[rel] (saas) -- node[right, fill=white, inner sep=1pt]{1:N} (orgsub);
-  \draw[rel] (orgsub) -- node[right, fill=white, inner sep=1pt]{1:N} (orginvoice);
+  \draw[rel] (tariff) -- node[card, above]{1:N} (assignment);
+  \draw[rel] (plan) -- node[card, above]{1:N} (subscription);
+  \draw[rel] (subscription) -- node[card, right]{1:N} (clientinvoice);
+  \draw[rel] (saas) -- node[card, above]{1:N} (orgsub);
+  \draw[rel] (orgsub) -- node[card, above]{1:N} (orginvoice);
 
-  \node[zone, fit=(alert)(intervention)(maintenance)(report)(document)(internal),
+  \node[zone, fit=(alert)(intervention)(maintenance)(internal)(report)(document),
     label={[ctgreen]above:\textbf{Exploitation et rapports}}] {};
   \node[zone, fit=(tariff)(assignment)(plan)(subscription)(clientinvoice),
     label={[ctamber]above:\textbf{Commerce conducteur}}] {};

@@ -1,50 +1,56 @@
 \begin{tikzpicture}[
   font=\sffamily\scriptsize,
   class/.style={draw=ctline, rounded corners=1.5mm, thick, fill=white,
-    text width=31mm, minimum height=17mm, align=left, inner sep=2.5mm},
+    text width=32mm, minimum height=16mm, align=left, inner sep=2.3mm},
   aggregate/.style={class, draw=ctgreen, fill=ctmint},
   technical/.style={class, draw=ctblue, fill=blue!5},
-  rel/.style={-{Latex[length=1.8mm]}, thick, draw=ctgray}
+  rel/.style={-{Latex[length=1.8mm]}, thick, draw=ctgray},
+  card/.style={fill=white, inner sep=1pt, font=\sffamily\tiny}
 ]
-  \node[aggregate] (org) at (0,4.1)
-    {\textbf{Organization}\\\rule{30mm}{0.2pt}\\id, name, status};
-  \node[aggregate] (user) at (0,0.8)
-    {\textbf{User}\\\rule{30mm}{0.2pt}\\organization\_id?\\role, status};
-  \node[aggregate] (station) at (4.4,4.1)
-    {\textbf{Station}\\\rule{30mm}{0.2pt}\\reference, ocpp\_identity\\status, source, reason};
-  \node[aggregate] (connector) at (8.8,4.1)
-    {\textbf{Connector}\\\rule{30mm}{0.2pt}\\label, ocpp\_connector\_id\\type, power, status};
-  \node[technical] (event) at (4.4,0.8)
-    {\textbf{OcppEvent}\\\rule{30mm}{0.2pt}\\event\_id, action\\payload, occurred\_at};
-  \node[technical] (transition) at (8.8,0.8)
-    {\textbf{AvailabilityTransition}\\\rule{30mm}{0.2pt}\\from, to, reason\\occurred\_at};
+  % Axe principal : organisation, station, recharge et règlement.
+  \node[aggregate] (org) at (0,8.2)
+    {\textbf{Organization}\\\rule{31mm}{0.2pt}\\id, name, status};
+  \node[aggregate] (station) at (0,5.6)
+    {\textbf{Station}\\\rule{31mm}{0.2pt}\\reference, ocpp\_identity\\status, source, reason};
+  \node[aggregate] (connector) at (0,3.0)
+    {\textbf{Connector}\\\rule{31mm}{0.2pt}\\label, ocpp\_connector\_id\\type, power, status};
+  \node[aggregate] (attempt) at (0,0.4)
+    {\textbf{ChargingAttempt}\\\rule{31mm}{0.2pt}\\status, limits\\authorization};
+  \node[technical] (tx) at (0,-2.2)
+    {\textbf{OcppTransaction}\\\rule{31mm}{0.2pt}\\status, meters\\start/stop events};
+  \node[aggregate] (session) at (0,-4.8)
+    {\textbf{ChargingSession}\\\rule{31mm}{0.2pt}\\status, energy, duration\\tariff/plan snapshot};
+  \node[aggregate] (payment) at (4.3,-4.8)
+    {\textbf{Payment}\\\rule{31mm}{0.2pt}\\amount, status, provider\\idempotency key};
 
-  \node[aggregate] (attempt) at (13.2,4.1)
-    {\textbf{ChargingAttempt}\\\rule{30mm}{0.2pt}\\status, limits\\authorization};
-  \node[technical] (command) at (17.6,4.1)
-    {\textbf{OcppCommand}\\\rule{30mm}{0.2pt}\\action, status, expires\\encrypted payload};
-  \node[technical] (tx) at (13.2,0.8)
-    {\textbf{OcppTransaction}\\\rule{30mm}{0.2pt}\\status, meters\\start/stop events};
-  \node[technical] (sample) at (17.6,0.8)
-    {\textbf{OcppMeterSample}\\\rule{30mm}{0.2pt}\\measurand, value, unit\\sampled\_at};
-  \node[aggregate] (session) at (13.2,-2.6)
-    {\textbf{ChargingSession}\\\rule{30mm}{0.2pt}\\status, energy, duration\\tariff/plan snapshot};
-  \node[aggregate] (payment) at (17.6,-2.6)
-    {\textbf{Payment}\\\rule{30mm}{0.2pt}\\amount, status, provider\\idempotency key};
+  % Objets de contexte et traces techniques.
+  \node[aggregate] (user) at (-4.3,8.2)
+    {\textbf{User}\\\rule{31mm}{0.2pt}\\organization\_id?\\role, status};
+  \node[technical] (event) at (-4.3,5.6)
+    {\textbf{OcppEvent}\\\rule{31mm}{0.2pt}\\event\_id, action\\payload, occurred\_at};
+  \node[technical] (transition) at (4.3,3.0)
+    {\textbf{AvailabilityTransition}\\\rule{31mm}{0.2pt}\\from, to, reason\\occurred\_at};
+  \node[technical] (command) at (4.3,0.4)
+    {\textbf{OcppCommand}\\\rule{31mm}{0.2pt}\\action, status, expires\\encrypted payload};
+  \node[technical] (sample) at (4.3,-2.2)
+    {\textbf{OcppMeterSample}\\\rule{31mm}{0.2pt}\\measurand, value, unit\\sampled\_at};
 
-  \draw[rel] (org) -- node[left]{1} node[right]{0..*} (user);
-  \draw[rel] (org) -- node[above]{1 \hspace{18mm} 0..*} (station);
-  \draw[rel] (station) -- node[above]{1 \hspace{18mm} 1..*} (connector);
-  \draw[rel] (station) -- node[left]{1} node[right]{0..*} (event);
-  \draw[rel] (connector) -- node[right]{0..*} (transition);
-  \draw[rel] (event) -- node[above]{0..1 source} (transition);
-
-  \draw[rel] (connector) -- node[above]{1 \hspace{16mm} 0..*} (attempt);
-  \draw[rel] (attempt) -- node[above]{1 \hspace{16mm} 0..*} (command);
-  \draw[rel] (connector) to[bend right=20] node[below]{1 \hspace{15mm} 0..*} (tx);
-  \draw[rel] (tx) -- node[above]{1 \hspace{17mm} 0..*} (sample);
-  \draw[rel] (tx) -- node[left]{1} node[right]{0..1} (session);
-  \draw[rel] (attempt) -- node[right]{0..1} (session);
-  \draw[rel] (session) -- node[above]{1 \hspace{18mm} 0..1} (payment);
-  \draw[rel] (user) to[bend right=18] node[below]{client 1 \hspace{12mm} 0..*} (session);
+  \draw[rel] (org) -- node[card, above]{1 \hspace{16mm} 0..*} (user);
+  \draw[rel] (org) -- node[card, left]{1 : 0..*} (station);
+  \draw[rel] (station) -- node[card, left]{1 : 1..*} (connector);
+  \draw[rel] (station) -- node[card, above]{1 : 0..*} (event);
+  \draw[rel] (connector) -- node[card, above]{1 : 0..*} (transition);
+  \draw[rel] (event.south east) to[out=-25,in=165]
+    node[card, above]{source 0..1} (transition.west);
+  \draw[rel] (connector) -- node[card, left]{1 : 0..*} (attempt);
+  \draw[rel] (attempt) -- node[card, above]{1 : 0..*} (command);
+  \draw[rel] (connector.west) to[out=-155,in=155]
+    node[card, left]{1 : 0..*} (tx.west);
+  \draw[rel] (tx) -- node[card, above]{1 : 0..*} (sample);
+  \draw[rel] (tx) -- node[card, left]{1 : 0..1} (session);
+  \draw[rel] (attempt.west) to[out=-155,in=155]
+    node[card, left]{0..1} (session.west);
+  \draw[rel] (session) -- node[card, above]{1 : 0..1} (payment);
+  \draw[rel] (user.west) to[out=190,in=170]
+    node[card, left]{client 1 : 0..*} (session.west);
 \end{tikzpicture}

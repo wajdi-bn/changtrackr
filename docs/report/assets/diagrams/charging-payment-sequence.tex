@@ -1,38 +1,41 @@
 \begin{tikzpicture}[
-  font=\sffamily\scriptsize,
+  x=1cm,
+  y=1cm,
+  font=\sffamily\tiny,
   participant/.style={draw=ctline, rounded corners=1.5mm, fill=white,
-    minimum width=25mm, minimum height=9mm, align=center},
-  call/.style={-{Latex[length=2mm]}, thick, draw=ctgray},
-  return/.style={-{Latex[length=2mm]}, dashed, draw=ctgreen}
+    minimum width=19mm, minimum height=8mm, align=center},
+  call/.style={-{Latex[length=1.8mm]}, thick, draw=ctgray},
+  return/.style={-{Latex[length=1.8mm]}, dashed, draw=ctgreen},
+  msg/.style={fill=white, inner sep=0.7pt, font=\sffamily\tiny}
 ]
   \node[participant] (client) at (0,0) {Client};
-  \node[participant] (app) at (3.1,0) {React / Laravel};
-  \node[participant] (payment) at (6.2,0) {PaymentGateway};
-  \node[participant] (gateway) at (9.3,0) {Gateway OCPP};
-  \node[participant] (station) at (12.4,0) {Borne};
-  \node[participant] (worker) at (15.5,0) {Worker};
+  \node[participant] (app) at (2.45,0) {Application};
+  \node[participant] (payment) at (4.9,0) {Paiement};
+  \node[participant] (gateway) at (7.35,0) {OCPP};
+  \node[participant] (station) at (9.8,0) {Borne};
+  \node[participant] (worker) at (12.25,0) {Worker};
 
-  \foreach \x in {0,3.1,6.2,9.3,12.4,15.5}
-    \draw[densely dashed, ctline] (\x,-0.5) -- (\x,-8.3);
+  \foreach \x in {0,2.45,4.9,7.35,9.8,12.25}
+    \draw[densely dashed, ctline] (\x,-0.45) -- (\x,-9.0);
 
-  \draw[call] (0,-0.8) -- node[above]{Choisir station, connecteur, limite} (3.1,-0.8);
-  \draw[call] (3.1,-1.2) -- node[above]{Préautoriser} (6.2,-1.2);
-  \draw[return] (6.2,-1.55) -- node[above]{Autorisation} (3.1,-1.55);
-  \draw[call] (3.1,-1.95) -- node[above]{Commande en attente} (9.3,-1.95);
-  \draw[call] (9.3,-2.35) -- node[above]{RemoteStartTransaction} (12.4,-2.35);
-  \draw[return] (12.4,-2.7) -- node[above]{Accepted} (9.3,-2.7);
-  \draw[call] (12.4,-3.15) -- node[above]{StartTransaction} (9.3,-3.15);
-  \draw[call] (9.3,-3.5) -- node[above]{Événement signé} (3.1,-3.5);
-  \draw[return] (3.1,-3.85) -- node[above]{Session créée} (0,-3.85);
-  \draw[call] (12.4,-4.3) -- node[above]{MeterValues} (9.3,-4.3);
-  \draw[call] (9.3,-4.65) -- node[above]{Énergie et puissance} (3.1,-4.65);
-  \draw[return] (3.1,-5.0) -- node[above]{Vue temps réel} (0,-5.0);
-  \draw[call] (0,-5.45) -- node[above]{Arrêter} (3.1,-5.45);
-  \draw[call] (3.1,-5.8) -- node[above]{RemoteStopTransaction} (9.3,-5.8);
-  \draw[call] (9.3,-6.15) -- node[above]{Commande distante} (12.4,-6.15);
-  \draw[call] (12.4,-6.55) -- node[above]{StopTransaction + compteur final} (9.3,-6.55);
-  \draw[call] (9.3,-6.9) -- node[above]{Événement signé} (3.1,-6.9);
-  \draw[call] (3.1,-7.3) -- node[above]{Job de capture} (15.5,-7.3);
-  \draw[call] (15.5,-7.7) -- node[above]{Capturer montant final} (6.2,-7.7);
-  \draw[return] (6.2,-8.05) -- node[above]{Paiement + reçu} (3.1,-8.05);
+  \draw[call] (0,-0.75) -- node[msg, above]{Choix station / connecteur} (2.45,-0.75);
+  \draw[call] (2.45,-1.15) -- node[msg, above]{Préautoriser} (4.9,-1.15);
+  \draw[return] (4.9,-1.5) -- node[msg, above]{Autorisé} (2.45,-1.5);
+  \draw[call] (2.45,-1.9) -- node[msg, above]{Commande pending} (7.35,-1.9);
+  \draw[call] (7.35,-2.3) -- node[msg, above]{RemoteStart} (9.8,-2.3);
+  \draw[return] (9.8,-2.65) -- node[msg, above]{Accepted} (7.35,-2.65);
+  \draw[call] (9.8,-3.05) -- node[msg, above]{StartTransaction} (7.35,-3.05);
+  \draw[call] (7.35,-3.4) -- node[msg, above]{Événement signé} (2.45,-3.4);
+  \draw[return] (2.45,-3.75) -- node[msg, above]{Session créée} (0,-3.75);
+  \draw[call] (9.8,-4.2) -- node[msg, above]{MeterValues} (7.35,-4.2);
+  \draw[call] (7.35,-4.55) -- node[msg, above]{Mesures} (2.45,-4.55);
+  \draw[return] (2.45,-4.9) -- node[msg, above]{Temps réel} (0,-4.9);
+  \draw[call] (0,-5.35) -- node[msg, above]{Arrêter} (2.45,-5.35);
+  \draw[call] (2.45,-5.75) -- node[msg, above]{RemoteStop} (7.35,-5.75);
+  \draw[call] (7.35,-6.15) -- node[msg, above]{Commande} (9.8,-6.15);
+  \draw[call] (9.8,-6.55) -- node[msg, above]{StopTransaction} (7.35,-6.55);
+  \draw[call] (7.35,-6.9) -- node[msg, above]{Événement signé} (2.45,-6.9);
+  \draw[call] (2.45,-7.35) -- node[msg, above]{Capture async} (12.25,-7.35);
+  \draw[call] (12.25,-7.8) -- node[msg, above]{Capturer} (4.9,-7.8);
+  \draw[return] (4.9,-8.2) -- node[msg, above]{Paiement + reçu} (2.45,-8.2);
 \end{tikzpicture}

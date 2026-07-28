@@ -35,14 +35,12 @@ La figure~\ref{fig:technical-architecture} montre les composants exécutables et
 protocoles qui les relient. Les services en pointillé sont des intégrations externes
 ou des simulateurs ; ils peuvent être remplacés sans modifier les règles du domaine.
 
-\begin{landscape}
 \begin{figure}[p]
   \centering
-  \resizebox{0.96\linewidth}{!}{\input{assets/diagrams/technical-architecture}}
+  \resizebox{0.96\textwidth}{!}{\input{assets/diagrams/technical-architecture}}
   \caption{Architecture technique globale de \ProjectName{}}
   \label{fig:technical-architecture}
 \end{figure}
-\end{landscape}
 
 \subsubsection{Application web React}
 
@@ -153,14 +151,12 @@ Le développement local associe des processus Windows et des conteneurs Docker. 
 ports ne décrivent pas une obligation de production ; ils rendent les interactions
 reproductibles sur la machine de développement.
 
-\begin{landscape}
 \begin{figure}[p]
   \centering
-  \resizebox{0.72\linewidth}{!}{\input{assets/diagrams/deployment-architecture}}
+  \resizebox{0.94\textwidth}{!}{\input{assets/diagrams/deployment-architecture}}
   \caption{Architecture de déploiement de l'environnement local}
   \label{fig:deployment-architecture}
 \end{figure}
-\end{landscape}
 
 \begin{longtable}{@{}p{3.0cm}p{2.3cm}p{2.3cm}p{6.7cm}@{}}
   \caption{Processus nécessaires dans l'environnement de développement}

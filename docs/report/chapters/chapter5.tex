@@ -11,27 +11,28 @@ captures strictement techniques du commissioning, de la connexion au simulateur
 SAP et de la télémétrie OCPP restent volontairement dans le
 chapitre~\ref{chap:implementation} afin d'éviter toute duplication.
 
-\section{Du prototype à l'interface réalisée}
+\section{Page d'accueil}
 
-Le prototype a joué le rôle de contrat visuel avant l'implémentation. Il a fixé
-une identité claire, une navigation latérale compacte, une barre supérieure
-stable, des bandeaux de contexte et des espaces de travail denses mais lisibles.
-La figure~\ref{fig:interfaces-prototype-public} rassemble la direction retenue
-pour l'entrée publique et les principales vues métier envisagées.
+La page d'accueil constitue le point d'entrée public de \ProjectName{}. Elle
+présente directement le domaine de la plateforme à travers une photographie de
+bornes de recharge, une proposition de valeur concise et un aperçu du pilotage
+opérationnel. La navigation conduit aux capacités du produit, aux ressources et
+au contact, tandis que les actions principales distinguent la connexion, la
+création d'un compte client et la demande de démonstration destinée à une future
+organisation.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.98\textwidth]{assets/screenshots/prototype-landing.png}
-  \caption{Prototype de référence de ChargeTrackr}
-  \label{fig:interfaces-prototype-public}
+  \includegraphics[width=0.98\textwidth]{assets/screenshots/landing-page.png}
+  \caption{Page d'accueil publique de \ProjectName{}}
+  \label{fig:interfaces-landing-page}
 \end{figure}
 
-L'application réalisée ne reproduit pas ces maquettes comme des images
-statiques. Les composants Ant Design ont été adaptés au système visuel du
-prototype, puis reliés aux autorisations, aux états de chargement, aux erreurs,
-aux filtres et aux données renvoyées par l'API. Les mêmes repères sont conservés
-sur l'ensemble du produit, mais le contenu et les actions diffèrent selon le
-rôle.
+Le premier écran privilégie la compréhension immédiate du service et conserve les
+actions essentielles au-dessus de la ligne de flottaison. Les sections suivantes
+détaillent la supervision temps réel, la gestion des opérations, les indicateurs
+et le fonctionnement général. Cette entrée publique reste séparée de la coque
+authentifiée afin de ne pas exposer la navigation métier avant la connexion.
 
 \section{Entrée et prise en main}
 

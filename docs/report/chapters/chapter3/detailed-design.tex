@@ -186,14 +186,12 @@ Trois objets distincts évitent de facturer une énergie qui n'a pas été déli
   \texttt{StartTransaction} accepté.
 \end{description}
 
-\begin{landscape}
 \begin{figure}[p]
   \centering
-  \resizebox{0.95\linewidth}{!}{\input{assets/diagrams/charging-payment-sequence}}
+  \resizebox{0.96\textwidth}{!}{\input{assets/diagrams/charging-payment-sequence}}
   \caption{Séquence de recharge distante et paiement simulé}
   \label{fig:charging-payment-sequence}
 \end{figure}
-\end{landscape}
 
 Une préautorisation réussie ne prouve donc pas que la recharge a commencé. Laravel
 crée une commande \texttt{RemoteStartTransaction} chiffrée au repos et limitée dans

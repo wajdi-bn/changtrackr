@@ -20,7 +20,6 @@
 \usepackage[table]{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
-\usepackage{pdflscape}
 \usepackage[most]{tcolorbox}
 \usepackage{fancyhdr}
 \usepackage{titlesec}
@@ -92,7 +91,7 @@
   {0.7em}
   {}
 
-\newtcolorbox{scopebox}[1][Périmètre prévu]{
+\newtcolorbox{scopebox}[1][Information]{
   enhanced,
   breakable,
   colback=ctpaper,
@@ -107,31 +106,6 @@
   right=4mm,
   top=3mm,
   bottom=3mm
-}
-
-\newcommand{\plannedcontent}[2][Périmètre prévu]{
-  \begin{scopebox}[#1]
-    #2
-  \end{scopebox}
-}
-
-\newcommand{\screenplaceholder}[2]{
-  \begin{figure}[H]
-    \centering
-    \begin{tcolorbox}[
-      width=0.94\textwidth,
-      height=5.2cm,
-      valign=center,
-      halign=center,
-      colback=ctpaper,
-      colframe=ctline,
-      arc=2mm
-    ]
-      {\Large\color{ctgreen}\textbf{#1}}\\[4pt]
-      {\small\color{ctgray}#2}
-    \end{tcolorbox}
-    \caption{#1}
-  \end{figure}
 }
 
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
