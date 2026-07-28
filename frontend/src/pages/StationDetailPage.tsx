@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useDeferredValue, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Avatar, Button, Card, Drawer, Empty, Form, Input, InputNumber, Modal, Popconfirm, Segmented, Select, Skeleton, Table, Tag, Tabs, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
@@ -10,7 +10,11 @@ import {
   Activity,
   AlertTriangle,
   ArrowLeft,
+  BatteryCharging,
   Cable as CableIcon,
+  Clock3,
+  CreditCard,
+  Eye,
   LockOpen,
   KeyRound,
   MapPin,
@@ -21,6 +25,7 @@ import {
   Power,
   QrCode,
   RefreshCw,
+  Search,
   Settings,
   Trash2,
   Wrench,
@@ -32,11 +37,14 @@ import { StationCommissioningResultModal } from '../features/stations/StationCom
 import { StationStatusTag } from '../features/stations/StationStatusTag'
 import { availabilityReasonLabel } from '../features/stations/availabilityLabels'
 import { useAuth } from '../features/auth/useAuth'
+import { ChargingStatusTag } from '../features/charging/ChargingStatusTag'
 import { ConnectorTypeIcon } from '../features/charging/ConnectorTypeIcon'
+import { getChargingSessions } from '../features/charging/chargingApi'
 import { DocumentManager } from '../features/documents/DocumentManager'
-import { getMaintenances } from '../features/operations/operationsApi'
+import { getAlerts, getMaintenances } from '../features/operations/operationsApi'
 import { WorkflowTag } from '../features/operations/WorkflowTag'
-import type { InterventionItem, InterventionStatus } from '../types/operations'
+import type { ChargingSession, ChargingSessionsResponse, ChargingSessionStatus } from '../types/charging'
+import type { AlertItem, AlertSeverity, AlertsResponse, AlertStatus, InterventionItem, InterventionStatus } from '../types/operations'
 import type { Connector, ConnectorPayload, MaintenanceModeResponse, OcppCommand, OcppCommandStatus, Station, StationCommissioningResult, StationTelemetry } from '../types/station'
 
 export function StationDetailPage() {
@@ -53,12 +61,22 @@ export function StationDetailPage() {
   const [qrConnector, setQrConnector] = useState<Connector | null>(null)
   const [rotatedCredentials, setRotatedCredentials] = useState<StationCommissioningResult | null>(null)
   const [telemetryDays, setTelemetryDays] = useState<1 | 7 | 30>(7)
+  const [sessionSearch, setSessionSearch] = useState('')
+  const deferredSessionSearch = useDeferredValue(sessionSearch)
+  const [sessionStatus, setSessionStatus] = useState<'all' | ChargingSessionStatus>('all')
+  const [alertSearch, setAlertSearch] = useState('')
+  const deferredAlertSearch = useDeferredValue(alertSearch)
+  const [alertSeverity, setAlertSeverity] = useState<'all' | AlertSeverity>('all')
+  const [alertStatus, setAlertStatus] = useState<'all' | AlertStatus>('all')
   const canUpdate = user?.permissions.includes('stations.update') ?? false
   const canManageConnectors = canUpdate && (user?.permissions.includes('connectors.manage') ?? false)
   const canViewCommands = user?.permissions.includes('ocpp_commands.view') ?? false
   const canExecuteCommands = user?.permissions.includes('ocpp_commands.execute') ?? false
   const canViewMaintenance = user?.permissions.includes('maintenances.view') ?? false
+  const canViewSessions = user?.permissions.includes('sessions.view') ?? false
+  const canViewAlerts = user?.permissions.includes('alerts.view') ?? false
   const isTechnician = primaryRole === 'technician'
+  const isClient = primaryRole === 'client'
 
   const stationQuery = useQuery({
     queryKey: ['station', numericStationId],
@@ -89,6 +107,38 @@ export function StationDetailPage() {
     enabled: Number.isFinite(numericStationId) && canViewMaintenance && activeTab === 'maintenance',
   })
 
+  const sessionsQuery = useQuery({
+    queryKey: ['charging-sessions', {
+      station_id: numericStationId,
+      search: deferredSessionSearch.trim() || undefined,
+      status: sessionStatus === 'all' ? undefined : sessionStatus,
+    }],
+    queryFn: () => getChargingSessions({
+      station_id: numericStationId,
+      search: deferredSessionSearch.trim() || undefined,
+      status: sessionStatus === 'all' ? undefined : sessionStatus,
+    }),
+    enabled: Number.isFinite(numericStationId) && canViewSessions && activeTab === 'sessions',
+    refetchInterval: (query) => query.state.data?.data.some((session) => ['pending', 'charging', 'stopping'].includes(session.status)) ? 2_500 : false,
+  })
+
+  const alertsQuery = useQuery({
+    queryKey: ['alerts', {
+      station_id: numericStationId,
+      search: deferredAlertSearch.trim() || undefined,
+      severity: alertSeverity === 'all' ? undefined : alertSeverity,
+      status: alertStatus === 'all' ? undefined : alertStatus,
+    }],
+    queryFn: () => getAlerts({
+      station_id: numericStationId,
+      search: deferredAlertSearch.trim() || undefined,
+      severity: alertSeverity === 'all' ? undefined : alertSeverity,
+      status: alertStatus === 'all' ? undefined : alertStatus,
+    }),
+    enabled: Number.isFinite(numericStationId) && canViewAlerts && activeTab === 'alerts',
+    refetchInterval: 15_000,
+  })
+
   const refreshStationData = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['station', numericStationId] }),
@@ -96,6 +146,8 @@ export function StationDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['stations'] }),
       queryClient.invalidateQueries({ queryKey: ['station-commands', numericStationId] }),
       queryClient.invalidateQueries({ queryKey: ['maintenances'] }),
+      queryClient.invalidateQueries({ queryKey: ['charging-sessions'] }),
+      queryClient.invalidateQueries({ queryKey: ['alerts'] }),
     ])
   }
 
@@ -223,7 +275,6 @@ export function StationDetailPage() {
       children: (
         <div className="station-overview-workspace">
           <div className="station-overview-viewbar">
-            <span>Overview view</span>
             <Segmented
               value={overviewView}
               options={[
@@ -373,11 +424,45 @@ export function StationDetailPage() {
         />
       </Card>,
     }] : []),
-    ...['Sessions', 'Alerts'].map((label) => ({
-      key: label.toLowerCase(),
-      label,
-      children: <Card><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={`${label} will be connected in its dedicated vertical slice.`} /></Card>,
-    })),
+    ...(canViewSessions ? [{
+      key: 'sessions',
+      label: 'Sessions',
+      children: (
+        <StationSessionsPanel
+          data={sessionsQuery.data}
+          loading={sessionsQuery.isLoading}
+          error={sessionsQuery.isError}
+          clientMode={isClient}
+          search={sessionSearch}
+          status={sessionStatus}
+          onSearchChange={setSessionSearch}
+          onStatusChange={setSessionStatus}
+          onRetry={() => void sessionsQuery.refetch()}
+          onOpenSession={(session) => navigate(`${isClient ? '/my-sessions' : '/sessions'}?search=${encodeURIComponent(session.reference)}`)}
+          onOpenAll={() => navigate(`${isClient ? '/my-sessions' : '/sessions'}?search=${encodeURIComponent(station.name)}`)}
+        />
+      ),
+    }] : []),
+    ...(canViewAlerts ? [{
+      key: 'alerts',
+      label: 'Alerts',
+      children: (
+        <StationAlertsPanel
+          data={alertsQuery.data}
+          loading={alertsQuery.isLoading}
+          error={alertsQuery.isError}
+          search={alertSearch}
+          severity={alertSeverity}
+          status={alertStatus}
+          onSearchChange={setAlertSearch}
+          onSeverityChange={setAlertSeverity}
+          onStatusChange={setAlertStatus}
+          onRetry={() => void alertsQuery.refetch()}
+          onOpenAlert={(alert) => navigate(`${isTechnician ? '/assigned-alerts' : '/alerts'}?alert=${alert.id}`)}
+          onOpenAll={() => navigate(isTechnician ? '/assigned-alerts' : '/alerts')}
+        />
+      ),
+    }] : []),
     {
       key: 'documents',
       label: 'Documents',
@@ -452,6 +537,266 @@ export function StationDetailPage() {
       <StationCommissioningResultModal mode="rotated" result={rotatedCredentials} onClose={() => setRotatedCredentials(null)} />
     </div>
   )
+}
+
+function StationSessionsPanel({
+  data,
+  loading,
+  error,
+  clientMode,
+  search,
+  status,
+  onSearchChange,
+  onStatusChange,
+  onRetry,
+  onOpenSession,
+  onOpenAll,
+}: {
+  data?: ChargingSessionsResponse
+  loading: boolean
+  error: boolean
+  clientMode: boolean
+  search: string
+  status: 'all' | ChargingSessionStatus
+  onSearchChange: (value: string) => void
+  onStatusChange: (value: 'all' | ChargingSessionStatus) => void
+  onRetry: () => void
+  onOpenSession: (session: ChargingSession) => void
+  onOpenAll: () => void
+}) {
+  const columns: ColumnsType<ChargingSession> = [
+    {
+      title: 'Session',
+      dataIndex: 'reference',
+      width: 190,
+      render: (value: string, item) => (
+        <span className="station-related-primary">
+          <strong>{value}</strong>
+          <small>{dayjs(item.started_at).format('DD MMM YYYY, HH:mm')}</small>
+        </span>
+      ),
+    },
+    ...(!clientMode ? [{
+      title: 'Driver',
+      key: 'client',
+      width: 150,
+      render: (_: unknown, item: ChargingSession) => item.client.name,
+    }] : []),
+    {
+      title: 'Connector',
+      key: 'connector',
+      width: 130,
+      render: (_: unknown, item) => (
+        <span className="station-related-primary">
+          <strong>{item.connector.external_id}</strong>
+          <small>{item.connector.type ?? 'Type unavailable'}</small>
+        </span>
+      ),
+    },
+    {
+      title: 'Usage',
+      key: 'usage',
+      width: 150,
+      render: (_: unknown, item) => (
+        <span className="station-related-primary">
+          <strong>{item.energy_kwh.toFixed(3)} kWh</strong>
+          <small>{stationSessionIsActive(item) ? `${Math.max(1, dayjs().diff(dayjs(item.started_at), 'minute'))} min live` : `${item.duration_minutes} min`}</small>
+        </span>
+      ),
+    },
+    { title: 'Status', dataIndex: 'status', width: 125, render: (value: ChargingSessionStatus) => <ChargingStatusTag value={value} /> },
+    {
+      title: 'Payment',
+      key: 'payment',
+      width: 150,
+      render: (_: unknown, item) => (
+        <span className="station-related-primary">
+          <ChargingStatusTag value={item.payment_status} />
+          <small>{item.total_amount} {item.currency}</small>
+        </span>
+      ),
+    },
+    {
+      title: '',
+      key: 'actions',
+      width: 70,
+      align: 'right',
+      render: (_: unknown, item) => <Tooltip title="Open in session workspace"><Button type="text" icon={<Eye size={16} />} onClick={() => onOpenSession(item)} /></Tooltip>,
+    },
+  ]
+
+  return (
+    <section className="station-related-panel">
+      <header className="station-related-header">
+        <div>
+          <span className="station-related-eyebrow"><BatteryCharging size={15} />Charging activity</span>
+          <h2>Station sessions</h2>
+          <p>Measured charging sessions and payment outcomes for this station only.</p>
+        </div>
+        <Button onClick={onOpenAll}>Open session workspace</Button>
+      </header>
+      <div className="station-related-summary">
+        <StationRelatedMetric icon={<BatteryCharging size={17} />} label="All sessions" value={data?.summary.total ?? 0} />
+        <StationRelatedMetric icon={<Activity size={17} />} label="Active now" value={data?.summary.active ?? 0} tone="green" />
+        <StationRelatedMetric icon={<Zap size={17} />} label="Energy delivered" value={`${data?.summary.energy_kwh ?? 0} kWh`} tone="blue" />
+        <StationRelatedMetric icon={<CreditCard size={17} />} label={clientMode ? 'Paid value' : 'Settled revenue'} value={`${((data?.summary.revenue_millimes ?? 0) / 1000).toFixed(3)} TND`} tone="amber" />
+      </div>
+      <div className="station-related-toolbar">
+        <Input value={search} onChange={(event) => onSearchChange(event.target.value)} prefix={<Search size={15} />} placeholder="Search reference, driver or connector" allowClear />
+        <Select
+          value={status}
+          onChange={onStatusChange}
+          options={(['all', 'pending', 'charging', 'stopping', 'completed', 'interrupted', 'failed', 'cancelled'] as const).map((value) => ({
+            value,
+            label: value === 'all' ? 'All statuses' : humanizeValue(value),
+          }))}
+        />
+      </div>
+      {error && <Alert type="error" showIcon title="Unable to load station sessions" action={<Button size="small" onClick={onRetry}>Retry</Button>} />}
+      <Table<ChargingSession>
+        className="station-related-table"
+        rowKey="id"
+        loading={loading}
+        columns={columns}
+        dataSource={data?.data ?? []}
+        pagination={{ pageSize: 7, hideOnSinglePage: true, showSizeChanger: false }}
+        scroll={{ x: 900 }}
+        locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No session has been recorded for this station" /> }}
+      />
+    </section>
+  )
+}
+
+function StationAlertsPanel({
+  data,
+  loading,
+  error,
+  search,
+  severity,
+  status,
+  onSearchChange,
+  onSeverityChange,
+  onStatusChange,
+  onRetry,
+  onOpenAlert,
+  onOpenAll,
+}: {
+  data?: AlertsResponse
+  loading: boolean
+  error: boolean
+  search: string
+  severity: 'all' | AlertSeverity
+  status: 'all' | AlertStatus
+  onSearchChange: (value: string) => void
+  onSeverityChange: (value: 'all' | AlertSeverity) => void
+  onStatusChange: (value: 'all' | AlertStatus) => void
+  onRetry: () => void
+  onOpenAlert: (alert: AlertItem) => void
+  onOpenAll: () => void
+}) {
+  const columns: ColumnsType<AlertItem> = [
+    {
+      title: 'Alert',
+      key: 'alert',
+      width: 260,
+      render: (_: unknown, item) => (
+        <span className="station-related-primary">
+          <strong>{item.title}</strong>
+          <small>{item.reference} · {item.problem_type}</small>
+        </span>
+      ),
+    },
+    {
+      title: 'Connector',
+      key: 'connector',
+      width: 125,
+      render: (_: unknown, item) => item.connector
+        ? <span className="station-related-primary"><strong>{item.connector.external_id}</strong><small>{item.connector.type}</small></span>
+        : 'Station-wide',
+    },
+    { title: 'Severity', dataIndex: 'severity', width: 120, render: (value: AlertSeverity) => <WorkflowTag value={value} /> },
+    { title: 'Status', dataIndex: 'status', width: 130, render: (value: AlertStatus) => <WorkflowTag value={value} /> },
+    {
+      title: 'Assigned to',
+      key: 'technician',
+      width: 170,
+      render: (_: unknown, item) => item.assigned_technician?.name ?? 'Unassigned',
+    },
+    {
+      title: 'Detected',
+      key: 'detected',
+      width: 145,
+      render: (_: unknown, item) => <span className="station-related-primary"><strong>{item.detected_relative}</strong><small>{dayjs(item.detected_at).format('DD MMM, HH:mm')}</small></span>,
+    },
+    {
+      title: '',
+      key: 'actions',
+      width: 70,
+      align: 'right',
+      render: (_: unknown, item) => <Tooltip title="Open alert workflow"><Button type="text" icon={<Eye size={16} />} onClick={() => onOpenAlert(item)} /></Tooltip>,
+    },
+  ]
+
+  return (
+    <section className="station-related-panel">
+      <header className="station-related-header">
+        <div>
+          <span className="station-related-eyebrow station-related-eyebrow--alert"><AlertTriangle size={15} />Operational attention</span>
+          <h2>Station alerts</h2>
+          <p>Availability incidents, OCPP faults and technician assignment for this station only.</p>
+        </div>
+        <Button onClick={onOpenAll}>Open alert workspace</Button>
+      </header>
+      <div className="station-related-summary">
+        <StationRelatedMetric icon={<AlertTriangle size={17} />} label="All alerts" value={data?.summary.total ?? 0} />
+        <StationRelatedMetric icon={<AlertTriangle size={17} />} label="Critical open" value={data?.summary.critical ?? 0} tone="red" />
+        <StationRelatedMetric icon={<Clock3 size={17} />} label="New" value={data?.summary.new ?? 0} tone="amber" />
+        <StationRelatedMetric icon={<Wrench size={17} />} label="In progress" value={data?.summary.in_progress ?? 0} tone="blue" />
+      </div>
+      <div className="station-related-toolbar station-related-toolbar--alerts">
+        <Input value={search} onChange={(event) => onSearchChange(event.target.value)} prefix={<Search size={15} />} placeholder="Search alert, reference or problem" allowClear />
+        <Select
+          value={severity}
+          onChange={onSeverityChange}
+          options={(['all', 'critical', 'warning', 'info'] as const).map((value) => ({ value, label: value === 'all' ? 'All severities' : humanizeValue(value) }))}
+        />
+        <Select
+          value={status}
+          onChange={onStatusChange}
+          options={(['all', 'new', 'in-progress', 'resolved'] as const).map((value) => ({ value, label: value === 'all' ? 'All statuses' : humanizeValue(value) }))}
+        />
+      </div>
+      {error && <Alert type="error" showIcon title="Unable to load station alerts" action={<Button size="small" onClick={onRetry}>Retry</Button>} />}
+      <Table<AlertItem>
+        className="station-related-table"
+        rowKey="id"
+        loading={loading}
+        columns={columns}
+        dataSource={data?.data ?? []}
+        pagination={{ pageSize: 7, hideOnSinglePage: true, showSizeChanger: false }}
+        scroll={{ x: 980 }}
+        locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No alert matches this station view" /> }}
+      />
+    </section>
+  )
+}
+
+function StationRelatedMetric({ icon, label, value, tone = 'purple' }: {
+  icon: React.ReactNode
+  label: string
+  value: string | number
+  tone?: 'purple' | 'green' | 'blue' | 'amber' | 'red'
+}) {
+  return (
+    <div className={`station-related-metric station-related-metric--${tone}`}>
+      <span>{icon}</span>
+      <div><small>{label}</small><strong>{value}</strong></div>
+    </div>
+  )
+}
+
+function stationSessionIsActive(session: ChargingSession): boolean {
+  return ['pending', 'charging', 'stopping'].includes(session.status)
 }
 
 function commissioningTargetLabel(target: Station['ocpp_commissioning_target']): string {

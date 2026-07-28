@@ -14,7 +14,7 @@ import type {
   MaintenancesResponse,
 } from '../../types/operations'
 
-export async function getAlerts(filters: { search?: string; severity?: AlertSeverity; status?: AlertStatus }): Promise<AlertsResponse> {
+export async function getAlerts(filters: { search?: string; station_id?: number; severity?: AlertSeverity; status?: AlertStatus }): Promise<AlertsResponse> {
   const response = await httpClient.get<AlertsResponse>('/alerts', { params: filters })
   return response.data
 }

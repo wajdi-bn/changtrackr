@@ -82,6 +82,26 @@ class ChargingSessionPaymentApiTest extends TestCase
             ->assertJsonFragment(['id' => $secondOrganization->id, 'name' => $secondOrganization->name]);
     }
 
+    public function test_session_index_can_be_scoped_to_one_station(): void
+    {
+        $organization = $this->organization('station-session-filter');
+        $admin = $this->user($organization, 'admin');
+        $client = $this->user(null, 'client');
+        [$selectedStation, $selectedConnector] = $this->stationWithConnector($organization, 'CT-SESSION-FILTER-001');
+        [$otherStation, $otherConnector] = $this->stationWithConnector($organization, 'CT-SESSION-FILTER-002');
+        $visible = $this->completedSession($client, $selectedStation, $selectedConnector, 'SES-FILTER-001');
+        $this->completedSession($client, $otherStation, $otherConnector, 'SES-FILTER-002');
+        Sanctum::actingAs($admin);
+
+        $this->getJson("/api/charging-sessions?station_id={$selectedStation->id}")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $visible->id)
+            ->assertJsonPath('summary.total', 1)
+            ->assertJsonPath('summary.completed', 1)
+            ->assertJsonPath('summary.energy_kwh', 10);
+    }
+
     public function test_global_client_cannot_start_a_session_for_an_inactive_organization(): void
     {
         [$client] = $this->userWithRole('client');

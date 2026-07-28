@@ -15,6 +15,7 @@ import type { ExportFormat } from '../../components/ExportDropdown'
 
 export interface SessionFilters {
   search?: string
+  station_id?: number
   status?: ChargingSessionStatus
   payment_status?: SessionPaymentStatus
 }

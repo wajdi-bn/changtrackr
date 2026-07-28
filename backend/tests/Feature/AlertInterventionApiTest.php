@@ -57,6 +57,24 @@ class AlertInterventionApiTest extends TestCase
             ->assertJsonPath('data.0.id', $visible->id);
     }
 
+    public function test_alert_index_can_be_scoped_to_one_station(): void
+    {
+        $organization = $this->organization('station-alert-filter');
+        $operator = $this->user($organization, 'operator');
+        $selectedStation = $this->station($organization, 'CT-ALERT-FILTER-001');
+        $otherStation = $this->station($organization, 'CT-ALERT-FILTER-002');
+        $visible = $this->alert($selectedStation, 'ALT-FILTER-001');
+        $this->alert($otherStation, 'ALT-FILTER-002');
+        Sanctum::actingAs($operator);
+
+        $this->getJson("/api/alerts?station_id={$selectedStation->id}")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $visible->id)
+            ->assertJsonPath('summary.total', 1)
+            ->assertJsonPath('summary.critical', 1);
+    }
+
     public function test_operator_can_assign_an_alert_and_create_an_intervention(): void
     {
         $organization = $this->organization('workflow-network');

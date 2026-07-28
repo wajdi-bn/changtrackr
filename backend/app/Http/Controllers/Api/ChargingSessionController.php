@@ -28,7 +28,8 @@ class ChargingSessionController extends Controller
 
         /** @var User $user */
         $user = $request->user();
-        $scope = $this->scopedQuery($user);
+        $scope = $this->scopedQuery($user)
+            ->when($filters['station_id'] ?? null, fn (Builder $query, int $stationId) => $query->where('station_id', $stationId));
         $summary = clone $scope;
 
         $sessions = $this->applyFilters($scope, $filters)
@@ -130,6 +131,7 @@ class ChargingSessionController extends Controller
     {
         return $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
+            'station_id' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', Rule::in(['pending', 'charging', 'stopping', 'completed', 'interrupted', 'failed', 'cancelled'])],
             'payment_status' => ['nullable', Rule::in(['unpaid', 'authorized', 'paid', 'failed'])],
         ]);

@@ -33,6 +33,7 @@ class AlertController extends Controller
 
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
+            'station_id' => ['nullable', 'integer', 'min:1'],
             'severity' => ['nullable', Rule::in(['critical', 'warning', 'info'])],
             'status' => ['nullable', Rule::in(['new', 'in-progress', 'resolved'])],
         ]);
@@ -41,7 +42,8 @@ class AlertController extends Controller
         $user = $request->user();
         $scope = Alert::query()
             ->when(! $user->hasRole('super_admin'), fn (Builder $query) => $query->where('organization_id', $user->organization_id))
-            ->when($user->hasRole('technician'), fn (Builder $query) => $query->where('assigned_technician_id', $user->id));
+            ->when($user->hasRole('technician'), fn (Builder $query) => $query->where('assigned_technician_id', $user->id))
+            ->when($filters['station_id'] ?? null, fn (Builder $query, int $stationId) => $query->where('station_id', $stationId));
 
         $summaryQuery = clone $scope;
         $alerts = $scope
