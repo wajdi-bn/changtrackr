@@ -9,6 +9,7 @@ import {
   Activity,
   AlertTriangle,
   ArrowLeft,
+  Cable as CableIcon,
   LockOpen,
   KeyRound,
   MapPin,
@@ -25,7 +26,6 @@ import {
   Zap,
 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts'
 import { createConnector, deleteConnector, getStation, getStationCommands, restartStation, rotateStationCredentials, setStationMaintenanceMode, unlockStationConnector, updateConnector, updateStation } from '../features/stations/stationApi'
 import { StationCommissioningResultModal } from '../features/stations/StationCommissioningResultModal'
 import { StationStatusTag } from '../features/stations/StationStatusTag'
@@ -37,16 +37,6 @@ import { getMaintenances } from '../features/operations/operationsApi'
 import { WorkflowTag } from '../features/operations/WorkflowTag'
 import type { InterventionItem, InterventionStatus } from '../types/operations'
 import type { Connector, ConnectorPayload, MaintenanceModeResponse, OcppCommand, OcppCommandStatus, Station, StationCommissioningResult } from '../types/station'
-
-const utilizationData = [
-  { label: '08:00', value: 42 }, { label: '10:00', value: 58 }, { label: '12:00', value: 76 },
-  { label: '14:00', value: 68 }, { label: '16:00', value: 82 }, { label: '18:00', value: 71 },
-]
-
-const energyData = [
-  { label: 'Mon', energy: 284 }, { label: 'Tue', energy: 316 }, { label: 'Wed', energy: 298 },
-  { label: 'Thu', energy: 421 }, { label: 'Fri', energy: 388 }, { label: 'Sat', energy: 445 },
-]
 
 export function StationDetailPage() {
   const { stationId } = useParams()
@@ -211,33 +201,38 @@ export function StationDetailPage() {
       onOk: () => rotateCredentialsMutation.mutateAsync(),
     })
   }
-  const metrics = [
-    { label: 'Energy today', value: `${station.energy_today_kwh} kWh`, icon: Zap },
-    { label: 'Sessions today', value: station.sessions_today.toString(), icon: Activity },
-    { label: 'Revenue today', value: `${station.revenue_today} TND`, icon: Power },
-    { label: 'Open alerts', value: station.open_alerts_count.toString(), icon: Settings },
-  ]
-
   const tabItems = [
     {
       key: 'overview',
       label: 'Overview',
       children: (
-        <div className="station-overview-grid">
-          <MetricChartCard title="Utilization rate" subtitle={`${station.utilization_percent}% live utilization`}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={utilizationData}><CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" /><XAxis dataKey="label" tickLine={false} axisLine={false} /><YAxis tickLine={false} axisLine={false} /><ChartTooltip /><Area type="monotone" dataKey="value" stroke="#7c3aed" fill="#ede9fe" strokeWidth={2} /></AreaChart>
-            </ResponsiveContainer>
-          </MetricChartCard>
-          <MetricChartCard title="Energy delivered" subtitle="Recent daily energy output">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={energyData}><CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" /><XAxis dataKey="label" tickLine={false} axisLine={false} /><YAxis tickLine={false} axisLine={false} /><ChartTooltip /><Bar dataKey="energy" fill="#22c55e" radius={[6, 6, 0, 0]} /></BarChart>
-            </ResponsiveContainer>
-          </MetricChartCard>
-          <Card title="Live metrics" className="station-live-card" extra={<small>Current operational counters</small>}>
-            {metrics.map(({ label, value, icon: Icon }) => <div key={label}><span><Icon size={16} />{label}</span><strong>{value}</strong></div>)}
-          </Card>
-        </div>
+        <section className="station-verified-snapshot">
+          <header>
+            <span><Activity size={19} /></span>
+            <div>
+              <h2>Verified station snapshot</h2>
+              <p>Current projections returned by the backend. No synthetic historical series are displayed.</p>
+            </div>
+            <Tag color={station.ocpp_is_connected ? 'green' : 'default'}>{station.ocpp_is_connected ? 'Connected' : 'Offline'}</Tag>
+          </header>
+          <div className="station-snapshot-grid">
+            <SnapshotGroup title="Today's activity" description="Completed sessions and settled payments">
+              <SnapshotMetric icon={<Zap size={16} />} label="Energy delivered" value={`${station.energy_today_kwh} kWh`} />
+              <SnapshotMetric icon={<Activity size={16} />} label="Charging sessions" value={station.sessions_today.toString()} />
+              <SnapshotMetric icon={<Power size={16} />} label="Settled revenue" value={`${station.revenue_today} TND`} />
+            </SnapshotGroup>
+            <SnapshotGroup title="OCPP health" description="Latest gateway projection">
+              <SnapshotMetric icon={<Activity size={16} />} label="Connection" value={station.ocpp_is_connected ? 'Connected' : 'Offline'} />
+              <SnapshotMetric icon={<Zap size={16} />} label="Station status" value={humanizeValue(station.status)} />
+              <SnapshotMetric icon={<RefreshCw size={16} />} label="Last station signal" value={station.last_heartbeat_relative} />
+            </SnapshotGroup>
+            <SnapshotGroup title="Operational attention" description="Current station-side workload">
+              <SnapshotMetric icon={<CableIcon size={16} />} label="Available connectors" value={`${station.available_connectors_count ?? 0} / ${station.connectors_count ?? station.connectors.length}`} />
+              <SnapshotMetric icon={<AlertTriangle size={16} />} label="Open alerts" value={station.open_alerts_count.toString()} />
+              <SnapshotMetric icon={<Settings size={16} />} label="Commissioning" value={humanizeValue(station.commissioning_status)} />
+            </SnapshotGroup>
+          </div>
+        </section>
       ),
     },
     {
@@ -480,8 +475,16 @@ function InfoFact({ label, value }: { label: string; value: string }) {
   return <div className="station-info-fact"><span>{label}</span><strong>{value}</strong></div>
 }
 
-function MetricChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
-  return <Card className="station-chart-card" title={title} extra={<small>{subtitle}</small>}><div>{children}</div></Card>
+function SnapshotGroup({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return <article className="station-snapshot-group"><header><h3>{title}</h3><p>{description}</p></header><div>{children}</div></article>
+}
+
+function SnapshotMetric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return <div className="station-snapshot-metric"><span>{icon}{label}</span><strong>{value}</strong></div>
+}
+
+function humanizeValue(value: string): string {
+  return value.replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase())
 }
 
 const commandStatusConfig: Record<OcppCommandStatus, { color: string; label: string }> = {
@@ -582,7 +585,7 @@ function ConnectorDrawer({ open, connector, managed, submitting, onClose, onSubm
         <Form.Item label="Connector type" name="type" rules={[{ required: true }]}><Select options={['CCS2', 'Type 2', 'CHAdeMO'].map((value) => ({ value }))} /></Form.Item>
         <Form.Item label="Current type" name="current_type" rules={[{ required: true }]}><Select options={[{ value: 'AC' }, { value: 'DC' }]} /></Form.Item>
         <Form.Item label="Maximum power (kW)" name="max_power_kw" rules={[{ required: true }]}><InputNumber min={1} max={1000} style={{ width: '100%' }} /></Form.Item>
-        {managed ? <Alert type="info" showIcon title="Connector status managed by OCPP" description="Status and error code are updated from StatusNotification events." /> : <>
+        {!managed && <>
           <Form.Item label="Status" name="status" rules={[{ required: true }]}><Select options={['available', 'charging', 'faulted', 'offline', 'maintenance', 'reserved', 'unavailable'].map((value) => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1) }))} /></Form.Item>
           <Form.Item label="Error code" name="error_code"><Input placeholder="Optional OCPP error code" /></Form.Item>
         </>}

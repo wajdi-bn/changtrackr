@@ -108,7 +108,7 @@ export function HelpPage() {
         </section>
         <aside className="help-support">
           <span><ShieldCheck size={24} /></span>
-          <Tag color="green">Protected workspace</Tag>
+          <strong className="help-support-badge"><ShieldCheck size={13} />Protected workspace</strong>
           <h2>Still blocked?</h2>
           <p>Include the page, record reference, expected action and visible error. Never send passwords, OAuth secrets, payment credentials or OCPP station secrets.</p>
           <div><strong>Recommended evidence</strong><span>Screenshot · timestamp · station or report reference</span></div>

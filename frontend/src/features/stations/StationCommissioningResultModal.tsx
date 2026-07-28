@@ -33,7 +33,7 @@ export function StationCommissioningResultModal({ result, mode = 'created', onCl
       {result && commissioning && <>
         <header className="commissioning-result-header">
           <span><CheckCircle2 size={27} /></span>
-          <div><Tag color="green">{mode === 'rotated' ? 'Credentials rotated' : 'Station created'}</Tag><h2>{result.data.name}</h2><p>{result.data.reference} · {result.data.connectors.length} connector(s)</p></div>
+          <div><Tag color="green">{mode === 'rotated' ? 'Credentials rotated' : 'Station created'}</Tag><h2>{result.data.name}</h2><p>{result.data.reference} - {result.data.connectors.length} connector(s)</p></div>
         </header>
 
         {commissioning.target === 'external' && (
@@ -69,5 +69,5 @@ export function StationCommissioningResultModal({ result, mode = 'created', onCl
 }
 
 function Credential({ label, value, secret, onCopy }: { label: string; value: string; secret?: boolean; onCopy: () => void }) {
-  return <div className="commissioning-credential"><span><small>{label}</small><code>{secret ? value.replace(/.(?=.{6})/g, '•') : value}</code></span><Button type="text" icon={<Clipboard size={15} />} onClick={onCopy}>Copy</Button></div>
+  return <div className="commissioning-credential"><span><small>{label}</small><code>{secret ? value.replace(/.(?=.{6})/g, '*') : value}</code></span><Button type="text" icon={<Clipboard size={15} />} onClick={onCopy}>Copy</Button></div>
 }

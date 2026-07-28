@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { Alert, Button, Divider, Drawer, Form, Input, InputNumber, Radio, Select, Steps } from 'antd'
-import { Building2, Cable, Check, Crosshair, Database, Keyboard, Plus, RadioTower, Server, Trash2, Zap } from 'lucide-react'
+import { Alert, Button, Divider, Drawer, Form, Input, InputNumber, Select, Steps } from 'antd'
+import { Building2, Cable, Check, Crosshair, Keyboard, Plus, Trash2, Zap } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { httpClient } from '../../api/httpClient'
-import type { CommissioningTarget, ConnectorPayload, StationCommissioningPayload } from '../../types/station'
+import type { ConnectorPayload, StationCommissioningPayload } from '../../types/station'
 import { useAuth } from '../auth/useAuth'
 import { LocationPickerMap } from '../maps/LocationPickerMap'
 import { formatCoordinates } from '../maps/mapUtils'
@@ -26,7 +26,6 @@ const connectorTypes: ConnectorPayload['type'][] = ['CCS2', 'Type 2', 'CHAdeMO']
 const steps = [
   { title: 'Station', icon: <Building2 size={16} /> },
   { title: 'Hardware', icon: <Cable size={16} /> },
-  { title: 'Connection', icon: <RadioTower size={16} /> },
   { title: 'Review', icon: <Check size={16} /> },
 ]
 
@@ -44,8 +43,6 @@ export function StationCommissioningDrawer({
   const isSuperAdmin = primaryRole === 'super_admin'
   const latitude = Form.useWatch('latitude', form) ?? 36.8065
   const longitude = Form.useWatch('longitude', form) ?? 10.1815
-  const target = Form.useWatch('commissioning_target', form) ?? 'external'
-  const reference = Form.useWatch('reference', form)
   const values = Form.useWatch([], form)
 
   const organizationsQuery = useQuery({
@@ -67,7 +64,7 @@ export function StationCommissioningDrawer({
       max_power_kw: 120,
       ocpp_version: 'OCPP 1.6J',
       model_image: '/assets/charger-terra-hp-150.png',
-      commissioning_target: 'external',
+      commissioning_target: 'simulator',
       connectors: [{
         external_id: 'A1',
         ocpp_connector_id: 1,
@@ -85,7 +82,6 @@ export function StationCommissioningDrawer({
         'name', 'reference', 'location_name', 'city', 'address', 'latitude', 'longitude',
       ],
       ['manufacturer', 'model', 'max_power_kw', 'ocpp_version', 'connectors'],
-      ['commissioning_target', 'ocpp_identity'],
     ]
     await form.validateFields(fieldGroups[currentStep] as never)
     setCurrentStep((step) => Math.min(step + 1, steps.length - 1))
@@ -104,7 +100,7 @@ export function StationCommissioningDrawer({
       open={open}
       onClose={close}
       destroyOnHidden
-      title={<div className="commissioning-drawer-title"><span>Commission a station</span><small>Create the station, its physical connectors and its OCPP access together.</small></div>}
+      title={<div className="commissioning-drawer-title"><span>Commission a station</span><small>Create the station, its physical connectors and its local OCPP simulator profile together.</small></div>}
       footer={(
         <div className="commissioning-footer">
           <Button onClick={currentStep === 0 ? close : () => setCurrentStep((step) => step - 1)}>
@@ -121,7 +117,11 @@ export function StationCommissioningDrawer({
         form={form}
         layout="vertical"
         requiredMark="optional"
-        onFinish={onSubmit}
+        onFinish={(formValues) => onSubmit({
+          ...formValues,
+          commissioning_target: 'simulator',
+          ocpp_identity: formValues.reference,
+        })}
       >
         <div hidden={currentStep !== 0}>
           <StepHeading eyebrow="01 / Station identity" title="Place the station on the network" description="Use a unique operational reference and set its exact public location." />
@@ -139,7 +139,7 @@ export function StationCommissioningDrawer({
             )}
             <Form.Item name="name" label="Station name" rules={[{ required: true, min: 2, max: 160 }]}><Input placeholder="Lac 1 Fast Hub" /></Form.Item>
             <Form.Item name="reference" label="Internal reference" rules={[{ required: true, max: 80, pattern: /^[A-Za-z0-9._:-]+$/, message: 'Use letters, numbers, dots, colons, underscores or hyphens.' }]}>
-              <Input placeholder="CT-TUN-101" onBlur={() => { if (!form.getFieldValue('ocpp_identity')) form.setFieldValue('ocpp_identity', form.getFieldValue('reference')) }} />
+              <Input placeholder="CT-TUN-101" />
             </Form.Item>
             <Form.Item name="location_name" label="Location name" rules={[{ required: true, max: 160 }]}><Input placeholder="Les Berges du Lac 1" /></Form.Item>
             <Form.Item name="city" label="City" rules={[{ required: true, max: 100 }]}><Input placeholder="Tunis" /></Form.Item>
@@ -206,27 +206,7 @@ export function StationCommissioningDrawer({
         </div>
 
         <div hidden={currentStep !== 2}>
-          <StepHeading eyebrow="03 / OCPP connection" title="Choose how this station will connect" description="Production credentials and local simulator configuration follow separate security boundaries." />
-          <Form.Item name="commissioning_target" rules={[{ required: true }]}>
-            <Radio.Group className="commissioning-targets">
-              <TargetOption value="external" icon={<RadioTower size={21} />} title="Physical or external station" description="Generate a unique Basic Auth secret and display it once for device configuration." />
-              <TargetOption value="simulator" icon={<Server size={21} />} title="Local SAP simulator" description="Prepare the database record, then register it through the local developer command." />
-              <TargetOption value="inventory" icon={<Database size={21} />} title="Inventory only" description="Create the asset and connectors without enabling OCPP access yet." />
-            </Radio.Group>
-          </Form.Item>
-          <div className="commissioning-identity-panel">
-            <div><span><RadioTower size={18} /></span><div><h3>Charge point identity</h3><p>Must exactly match the identity sent in the OCPP WebSocket URL.</p></div></div>
-            <Form.Item name="ocpp_identity" label="OCPP identity" rules={[{ required: true }, { pattern: /^[A-Za-z0-9._:-]+$/, message: 'Use letters, numbers, dots, colons, underscores or hyphens.' }]}>
-              <Input placeholder={reference || 'CT-TUN-101'} />
-            </Form.Item>
-          </div>
-          {target === 'external' && <Alert type="warning" showIcon title="Save the generated secret after creation" description="The plaintext station password will be displayed once. Only its secure hash is stored by the backend." />}
-          {target === 'simulator' && <Alert type="info" showIcon title="Local developer action required" description="After creation, run the generated command from the repository root and restart the simulator containers." />}
-          {target === 'inventory' && <Alert type="info" showIcon title="No live status until provisioning" description="The station remains unavailable to clients until OCPP credentials are configured later." />}
-        </div>
-
-        <div hidden={currentStep !== 3}>
-          <StepHeading eyebrow="04 / Review" title="Confirm the commissioning record" description="The station and every connector will be committed atomically." />
+          <StepHeading eyebrow="03 / Review" title="Confirm the simulator profile" description="The station, its connectors and its OCPP simulator identity will be committed atomically." />
           <section className="commissioning-review">
             <ReviewGroup title="Station">
               <ReviewValue label="Name" value={values?.name} />
@@ -234,19 +214,19 @@ export function StationCommissioningDrawer({
               <ReviewValue label="Location" value={[values?.location_name, values?.city].filter(Boolean).join(', ')} />
               <ReviewValue label="Position" value={formatCoordinates(Number(values?.latitude), Number(values?.longitude))} />
             </ReviewGroup>
-            <ReviewGroup title="Hardware">
+            <ReviewGroup title="Charger">
               <ReviewValue label="Charger" value={[values?.manufacturer, values?.model].filter(Boolean).join(' ')} />
               <ReviewValue label="Power" value={`${values?.max_power_kw ?? '-'} kW`} />
               <ReviewValue label="Protocol" value={values?.ocpp_version} />
               <ReviewValue label="Connectors" value={`${values?.connectors?.length ?? 0} configured`} />
             </ReviewGroup>
-            <ReviewGroup title="Connection">
-              <ReviewValue label="Target" value={targetLabels[target]} />
-              <ReviewValue label="OCPP identity" value={values?.ocpp_identity} />
-              <ReviewValue label="Initial state" value={target === 'external' ? 'Awaiting first connection' : target === 'simulator' ? 'Awaiting local registration' : 'Inventory only'} />
+            <ReviewGroup title="OCPP simulator">
+              <ReviewValue label="Profile" value="Local SAP simulator" />
+              <ReviewValue label="OCPP identity" value={values?.reference} />
+              <ReviewValue label="Initial state" value="Awaiting local registration" />
             </ReviewGroup>
           </section>
-          <Alert type="success" showIcon title="Ready to create" description="If any field is invalid or duplicated, nothing will be partially created." />
+          <Alert type="success" showIcon title="Ready to create" description="After creation, run the generated registration command and restart the OCPP simulator stack." />
         </div>
       </Form>
     </Drawer>
@@ -257,20 +237,10 @@ function StepHeading({ eyebrow, title, description }: { eyebrow: string; title: 
   return <header className="commissioning-step-heading"><span>{eyebrow}</span><h2>{title}</h2><p>{description}</p></header>
 }
 
-function TargetOption({ value, icon, title, description }: { value: CommissioningTarget; icon: React.ReactNode; title: string; description: string }) {
-  return <Radio value={value}><span className="commissioning-target-icon">{icon}</span><span><strong>{title}</strong><small>{description}</small></span></Radio>
-}
-
 function ReviewGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return <article><header>{title}</header><div>{children}</div></article>
 }
 
 function ReviewValue({ label, value }: { label: string; value?: string | number | null }) {
   return <span><small>{label}</small><strong>{value || '-'}</strong></span>
-}
-
-const targetLabels: Record<CommissioningTarget, string> = {
-  external: 'Physical or external station',
-  simulator: 'Local SAP simulator',
-  inventory: 'Inventory only',
 }
