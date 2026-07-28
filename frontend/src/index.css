@@ -4361,7 +4361,7 @@ html {
   background: #fbfdfc;
 }
 
-.station-verified-snapshot > header > span {
+.station-verified-snapshot > header > span:first-child {
   display: grid;
   width: 42px;
   height: 42px;
@@ -4459,6 +4459,173 @@ html {
   color: #1b2b23;
   font-size: 12px;
   text-align: right;
+}
+
+.station-telemetry {
+  border-top: 1px solid #e8eeeb;
+  background: #ffffff;
+}
+
+.station-telemetry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+}
+
+.station-telemetry-header h2,
+.station-telemetry-header p,
+.station-telemetry-chart h3,
+.station-telemetry-chart p {
+  margin: 0;
+}
+
+.station-telemetry-header h2 {
+  margin-top: 5px;
+  color: #17271f;
+  font-size: 16px;
+}
+
+.station-telemetry-header p {
+  margin-top: 3px;
+  color: #7b8981;
+  font-size: 11px;
+}
+
+.station-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #17865d;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.station-live-indicator i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a36c;
+  box-shadow: 0 0 0 4px rgba(22, 163, 108, 0.12);
+}
+
+.station-live-indicator.is-refreshing i {
+  animation: station-telemetry-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes station-telemetry-pulse {
+  50% { opacity: 0.4; transform: scale(0.78); }
+}
+
+.station-telemetry-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-block: 1px solid #e8eeeb;
+}
+
+.station-telemetry-summary > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  padding: 14px 18px;
+  border-right: 1px solid #e8eeeb;
+}
+
+.station-telemetry-summary > div:last-child {
+  border-right: 0;
+}
+
+.station-telemetry-summary span,
+.station-telemetry-summary small {
+  overflow: hidden;
+  color: #819087;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.station-telemetry-summary strong {
+  color: #17271f;
+  font-size: 17px;
+}
+
+.station-telemetry-charts {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+}
+
+.station-telemetry-chart {
+  min-width: 0;
+  padding: 18px;
+  border-right: 1px solid #e8eeeb;
+}
+
+.station-telemetry-chart:last-child {
+  border-right: 0;
+}
+
+.station-telemetry-chart > header {
+  min-height: 44px;
+}
+
+.station-telemetry-chart h3 {
+  color: #1b2c23;
+  font-size: 13px;
+}
+
+.station-telemetry-chart p {
+  margin-top: 3px;
+  color: #829087;
+  font-size: 10px;
+}
+
+.station-telemetry-chart > div {
+  height: 235px;
+}
+
+.station-telemetry-chart .recharts-text {
+  fill: #7c8981;
+  font-size: 9px;
+}
+
+.station-telemetry-empty {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px dashed #d9e4de;
+  border-radius: 8px;
+  color: #8b9891;
+  background: #fafcfb;
+  text-align: center;
+}
+
+.station-telemetry-empty svg {
+  margin-bottom: 4px;
+  color: #64ad90;
+}
+
+.station-telemetry-empty strong {
+  color: #43564c;
+  font-size: 12px;
+}
+
+.station-telemetry-empty span {
+  font-size: 10px;
+}
+
+.station-telemetry-loading {
+  min-height: 290px;
+  padding: 24px;
+}
+
+.station-telemetry-error {
+  margin: 0 18px 18px;
 }
 
 .station-chart-card,
@@ -4698,6 +4865,13 @@ html {
   .station-snapshot-grid { grid-template-columns: 1fr; }
   .station-snapshot-group { border-right: 0; border-bottom: 1px solid #e8eeeb; }
   .station-snapshot-group:last-child { border-bottom: 0; }
+  .station-telemetry-header { align-items: flex-start; flex-direction: column; }
+  .station-telemetry-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .station-telemetry-summary > div:nth-child(2) { border-right: 0; }
+  .station-telemetry-summary > div:nth-child(-n + 2) { border-bottom: 1px solid #e8eeeb; }
+  .station-telemetry-charts { grid-template-columns: 1fr; }
+  .station-telemetry-chart { border-right: 0; border-bottom: 1px solid #e8eeeb; }
+  .station-telemetry-chart:last-child { border-bottom: 0; }
   .station-commissioning-drawer .ant-drawer-body { padding-inline: 16px; }
   .commissioning-steps { margin-inline: -16px; padding-inline: 16px; }
   .commissioning-steps .ant-steps-item-title { display: none; }

@@ -28,6 +28,8 @@ export function createRealtimeClient(): ReverbEcho {
           const response = await backendClient.post(`${backendUrl}/broadcasting/auth`, {
             socket_id: params.socketId,
             channel_name: params.channelName,
+          }, {
+            timeout: import.meta.env.DEV ? 45_000 : 10_000,
           })
           callback(null, response.data)
         } catch (error) {

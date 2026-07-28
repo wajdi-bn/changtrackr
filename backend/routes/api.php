@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\ReportAnalyticsController;
 use App\Http\Controllers\Api\RolePermissionController;
 use App\Http\Controllers\Api\StationCommissioningController;
 use App\Http\Controllers\Api\StationController;
+use App\Http\Controllers\Api\StationTelemetryController;
 use App\Http\Controllers\Api\TariffAssignmentController;
 use App\Http\Controllers\Api\TariffController;
 use App\Http\Controllers\Api\UserController;
@@ -123,6 +124,7 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::get('/connector-qr/{token}', [ConnectorQrController::class, 'show']);
     Route::post('/stations/commission', [StationCommissioningController::class, 'store']);
     Route::post('/stations/{station}/commissioning/rotate-credentials', [StationCommissioningController::class, 'rotateCredentials']);
+    Route::get('/stations/{station}/telemetry', StationTelemetryController::class);
     Route::apiResource('stations', StationController::class);
     Route::get('/stations/{station}/documents', [AssetDocumentController::class, 'stationIndex']);
     Route::post('/stations/{station}/documents', [AssetDocumentController::class, 'stationStore']);

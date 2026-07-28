@@ -12,6 +12,7 @@ import type {
   StationMapResponse,
   StationPayload,
   StationStatus,
+  StationTelemetry,
   StationsResponse,
 } from '../../types/station'
 
@@ -34,6 +35,13 @@ export async function getStationMap(filters: StationMapFilters): Promise<Station
 
 export async function getStation(stationId: number): Promise<Station> {
   const response = await httpClient.get<{ data: Station }>(`/stations/${stationId}`)
+  return response.data.data
+}
+
+export async function getStationTelemetry(stationId: number, days: 1 | 7 | 30): Promise<StationTelemetry> {
+  const response = await httpClient.get<{ data: StationTelemetry }>(`/stations/${stationId}/telemetry`, {
+    params: { days },
+  })
   return response.data.data
 }
 

@@ -77,6 +77,42 @@ export interface Station {
   connectors: Connector[]
 }
 
+export interface StationTelemetryDay {
+  date: string
+  sessions: number
+  energy_kwh: number
+  revenue_millimes: number | null
+}
+
+export interface StationPowerPoint {
+  sampled_at: string
+  power_kw: number
+}
+
+export interface StationTelemetry {
+  window: {
+    days: 1 | 7 | 30
+    from: string
+    to: string
+    timezone: string
+  }
+  summary: {
+    sessions: number
+    energy_kwh: number
+    revenue_millimes: number | null
+    power_points: number
+    latest_power_kw: number | null
+    last_sample_at: string | null
+  }
+  daily: StationTelemetryDay[]
+  power: StationPowerPoint[]
+  sources: {
+    daily: 'charging_sessions'
+    power: 'ocpp_meter_values'
+    financials_visible: boolean
+  }
+}
+
 export interface StationPayload {
   name: string
   reference: string

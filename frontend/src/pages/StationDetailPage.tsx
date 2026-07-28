@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Avatar, Button, Card, Drawer, Empty, Form, Input, InputNumber, Modal, Popconfirm, Select, Skeleton, Table, Tag, Tabs, Tooltip } from 'antd'
+import { Alert, App, Avatar, Button, Card, Drawer, Empty, Form, Input, InputNumber, Modal, Popconfirm, Segmented, Select, Skeleton, Table, Tag, Tabs, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { isAxiosError } from 'axios'
 import dayjs from 'dayjs'
 import { QRCodeSVG } from 'qrcode.react'
+import { Area, AreaChart, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts'
 import {
   Activity,
   AlertTriangle,
@@ -26,7 +27,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { createConnector, deleteConnector, getStation, getStationCommands, restartStation, rotateStationCredentials, setStationMaintenanceMode, unlockStationConnector, updateConnector, updateStation } from '../features/stations/stationApi'
+import { createConnector, deleteConnector, getStation, getStationCommands, getStationTelemetry, restartStation, rotateStationCredentials, setStationMaintenanceMode, unlockStationConnector, updateConnector, updateStation } from '../features/stations/stationApi'
 import { StationCommissioningResultModal } from '../features/stations/StationCommissioningResultModal'
 import { StationStatusTag } from '../features/stations/StationStatusTag'
 import { availabilityReasonLabel } from '../features/stations/availabilityLabels'
@@ -36,7 +37,7 @@ import { DocumentManager } from '../features/documents/DocumentManager'
 import { getMaintenances } from '../features/operations/operationsApi'
 import { WorkflowTag } from '../features/operations/WorkflowTag'
 import type { InterventionItem, InterventionStatus } from '../types/operations'
-import type { Connector, ConnectorPayload, MaintenanceModeResponse, OcppCommand, OcppCommandStatus, Station, StationCommissioningResult } from '../types/station'
+import type { Connector, ConnectorPayload, MaintenanceModeResponse, OcppCommand, OcppCommandStatus, Station, StationCommissioningResult, StationTelemetry } from '../types/station'
 
 export function StationDetailPage() {
   const { stationId } = useParams()
@@ -46,9 +47,11 @@ export function StationDetailPage() {
   const { message, modal } = App.useApp()
   const { user, primaryRole } = useAuth()
   const [connectorDrawerOpen, setConnectorDrawerOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState('overview')
   const [selectedConnector, setSelectedConnector] = useState<Connector | null>(null)
   const [qrConnector, setQrConnector] = useState<Connector | null>(null)
   const [rotatedCredentials, setRotatedCredentials] = useState<StationCommissioningResult | null>(null)
+  const [telemetryDays, setTelemetryDays] = useState<1 | 7 | 30>(7)
   const canUpdate = user?.permissions.includes('stations.update') ?? false
   const canManageConnectors = canUpdate && (user?.permissions.includes('connectors.manage') ?? false)
   const canViewCommands = user?.permissions.includes('ocpp_commands.view') ?? false
@@ -62,22 +65,30 @@ export function StationDetailPage() {
     enabled: Number.isFinite(numericStationId),
   })
 
+  const telemetryQuery = useQuery({
+    queryKey: ['station-telemetry', numericStationId, telemetryDays],
+    queryFn: () => getStationTelemetry(numericStationId, telemetryDays),
+    enabled: Number.isFinite(numericStationId) && stationQuery.isSuccess,
+    refetchInterval: stationQuery.data?.ocpp_is_connected ? 10_000 : false,
+  })
+
   const commandsQuery = useQuery({
     queryKey: ['station-commands', numericStationId],
     queryFn: () => getStationCommands(numericStationId),
-    enabled: Number.isFinite(numericStationId) && canViewCommands,
+    enabled: Number.isFinite(numericStationId) && canViewCommands && activeTab === 'command-history',
     refetchInterval: (query) => query.state.data?.data.some((command) => ['queued', 'sent'].includes(command.status)) ? 2_000 : false,
   })
 
   const maintenanceQuery = useQuery({
     queryKey: ['maintenances', { station_id: numericStationId }],
     queryFn: () => getMaintenances({ station_id: numericStationId }),
-    enabled: Number.isFinite(numericStationId) && canViewMaintenance,
+    enabled: Number.isFinite(numericStationId) && canViewMaintenance && activeTab === 'maintenance',
   })
 
   const refreshStationData = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['station', numericStationId] }),
+      queryClient.invalidateQueries({ queryKey: ['station-telemetry', numericStationId] }),
       queryClient.invalidateQueries({ queryKey: ['stations'] }),
       queryClient.invalidateQueries({ queryKey: ['station-commands', numericStationId] }),
       queryClient.invalidateQueries({ queryKey: ['maintenances'] }),
@@ -232,6 +243,15 @@ export function StationDetailPage() {
               <SnapshotMetric icon={<Settings size={16} />} label="Commissioning" value={humanizeValue(station.commissioning_status)} />
             </SnapshotGroup>
           </div>
+          <StationTelemetryPanel
+            telemetry={telemetryQuery.data}
+            days={telemetryDays}
+            loading={telemetryQuery.isLoading}
+            fetching={telemetryQuery.isFetching}
+            error={telemetryQuery.isError}
+            onDaysChange={setTelemetryDays}
+            onRetry={() => void telemetryQuery.refetch()}
+          />
         </section>
       ),
     },
@@ -397,7 +417,7 @@ export function StationDetailPage() {
         <InfoFact label="Uptime" value={`${station.uptime_percent}%`} />
       </div>
 
-      <Tabs className="station-detail-tabs" defaultActiveKey="overview" items={tabItems} />
+      <Tabs className="station-detail-tabs" activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
 
       <ConnectorDrawer
         open={connectorDrawerOpen}
@@ -481,6 +501,135 @@ function SnapshotGroup({ title, description, children }: { title: string; descri
 
 function SnapshotMetric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return <div className="station-snapshot-metric"><span>{icon}{label}</span><strong>{value}</strong></div>
+}
+
+function StationTelemetryPanel({
+  telemetry,
+  days,
+  loading,
+  fetching,
+  error,
+  onDaysChange,
+  onRetry,
+}: {
+  telemetry: StationTelemetry | undefined
+  days: 1 | 7 | 30
+  loading: boolean
+  fetching: boolean
+  error: boolean
+  onDaysChange: (days: 1 | 7 | 30) => void
+  onRetry: () => void
+}) {
+  const daily = telemetry?.daily ?? []
+  const power = telemetry?.power ?? []
+  const hasDailyActivity = daily.some((item) => item.sessions > 0 || item.energy_kwh > 0)
+  const dailyChartData = daily.map((item) => ({
+    ...item,
+    label: days === 1 ? 'Today' : dayjs(item.date).format(days === 7 ? 'ddd' : 'DD MMM'),
+  }))
+  const powerChartData = power.map((item) => ({
+    ...item,
+    label: dayjs(item.sampled_at).format(days === 1 ? 'HH:mm:ss' : 'DD MMM HH:mm'),
+  }))
+
+  return <section className="station-telemetry">
+    <header className="station-telemetry-header">
+      <div>
+        <span className={`station-live-indicator${fetching ? ' is-refreshing' : ''}`}><i />{fetching ? 'Refreshing' : 'Verified telemetry'}</span>
+        <h2>Energy and OCPP measurements</h2>
+        <p>Session totals and station-reported power, without generated history.</p>
+      </div>
+      <Segmented
+        value={days}
+        options={[
+          { label: 'Today', value: 1 },
+          { label: '7 days', value: 7 },
+          { label: '30 days', value: 30 },
+        ]}
+        onChange={(value) => onDaysChange(value as 1 | 7 | 30)}
+      />
+    </header>
+
+    {error ? (
+      <Alert
+        className="station-telemetry-error"
+        type="error"
+        showIcon
+        title="Telemetry could not be loaded"
+        action={<Button size="small" onClick={onRetry}>Retry</Button>}
+      />
+    ) : loading ? (
+      <div className="station-telemetry-loading"><Skeleton active paragraph={{ rows: 5 }} /></div>
+    ) : telemetry ? (
+      <>
+        <div className="station-telemetry-summary">
+          <TelemetrySummary label="Energy delivered" value={`${telemetry.summary.energy_kwh.toFixed(3)} kWh`} detail={`${telemetry.summary.sessions} session${telemetry.summary.sessions === 1 ? '' : 's'}`} />
+          <TelemetrySummary label="Latest reported power" value={telemetry.summary.latest_power_kw === null ? 'No signal' : `${telemetry.summary.latest_power_kw.toFixed(1)} kW`} detail={telemetry.summary.last_sample_at ? dayjs(telemetry.summary.last_sample_at).format('DD MMM, HH:mm:ss') : 'Waiting for MeterValues'} />
+          {telemetry.sources.financials_visible && <TelemetrySummary label="Settled revenue" value={`${((telemetry.summary.revenue_millimes ?? 0) / 1000).toFixed(3)} TND`} detail="Paid sessions in period" />}
+          <TelemetrySummary label="Data provenance" value="Verified" detail="Sessions + OCPP 1.6J" />
+        </div>
+        <div className="station-telemetry-charts">
+          <TelemetryChart title="Daily charging activity" description="Energy delivered and session starts">
+            {hasDailyActivity ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={dailyChartData} margin={{ top: 8, right: 8, bottom: 0, left: -14 }}>
+                  <CartesianGrid stroke="#e7eeea" strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="energy" axisLine={false} tickLine={false} width={44} unit=" kWh" />
+                  <YAxis yAxisId="sessions" orientation="right" axisLine={false} tickLine={false} allowDecimals={false} width={24} />
+                  <ChartTooltip contentStyle={chartTooltipStyle} formatter={(value, name) => name === 'Energy' ? [`${Number(value).toFixed(3)} kWh`, name] : [value, name]} />
+                  <Bar yAxisId="energy" dataKey="energy_kwh" name="Energy" fill="#19aa70" radius={[5, 5, 0, 0]} maxBarSize={34} />
+                  <Line yAxisId="sessions" type="monotone" dataKey="sessions" name="Sessions" stroke="#7148f5" strokeWidth={2} dot={{ r: 3, fill: '#7148f5' }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            ) : <TelemetryEmpty title="No charging activity in this period" detail="Completed or active sessions will appear here." />}
+          </TelemetryChart>
+
+          <TelemetryChart title="Station-reported power" description="Power.Active.Import from MeterValues">
+            {powerChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={powerChartData} margin={{ top: 8, right: 8, bottom: 0, left: -14 }}>
+                  <defs>
+                    <linearGradient id="stationPowerFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#7148f5" stopOpacity={0.28} />
+                      <stop offset="100%" stopColor="#7148f5" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="#e7eeea" strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} minTickGap={34} />
+                  <YAxis axisLine={false} tickLine={false} width={42} unit=" kW" />
+                  <ChartTooltip contentStyle={chartTooltipStyle} formatter={(value) => [`${Number(value).toFixed(3)} kW`, 'Power']} />
+                  <Area type="monotone" dataKey="power_kw" stroke="#7148f5" strokeWidth={2.4} fill="url(#stationPowerFill)" activeDot={{ r: 4 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : <TelemetryEmpty title="No OCPP power samples yet" detail="Start a simulated transaction to receive MeterValues." />}
+          </TelemetryChart>
+        </div>
+      </>
+    ) : null}
+  </section>
+}
+
+function TelemetrySummary({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return <div><span>{label}</span><strong>{value}</strong><small>{detail}</small></div>
+}
+
+function TelemetryChart({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return <article className="station-telemetry-chart">
+    <header><h3>{title}</h3><p>{description}</p></header>
+    <div>{children}</div>
+  </article>
+}
+
+function TelemetryEmpty({ title, detail }: { title: string; detail: string }) {
+  return <div className="station-telemetry-empty"><Activity size={23} /><strong>{title}</strong><span>{detail}</span></div>
+}
+
+const chartTooltipStyle = {
+  border: '1px solid #dfe8e3',
+  borderRadius: 7,
+  boxShadow: '0 8px 24px rgba(19, 46, 33, 0.08)',
+  fontSize: 11,
 }
 
 function humanizeValue(value: string): string {
