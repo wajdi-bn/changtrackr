@@ -1,37 +1,204 @@
 \chapter{Captures des interfaces}
+\label{chap:interfaces}
 
-\section{Accueil, authentification et onboarding}
-\screenplaceholder{Landing page ChargeTrackr}{Présentation du produit et accès aux parcours publics}
-\screenplaceholder{Connexion et création de compte}{Connexion locale, Google OAuth et inscription client}
-\screenplaceholder{Onboarding personnalisé}{Première connexion adaptée au rôle et à l'organisation}
+\section*{Introduction}
 
-\section{Tableaux de bord et supervision}
-\screenplaceholder{Tableau de bord Super Administrateur}{Pilotage global de la plateforme}
-\screenplaceholder{Tableau de bord Administrateur}{Indicateurs métier et réseau de l'organisation}
-\screenplaceholder{Tableaux de bord Opérateur, Technicien et Client}{Vues adaptées aux responsabilités de chaque rôle}
+Ce chapitre présente le résultat visuel de \ProjectName{} et complète la
+description technique du chapitre précédent. Les captures ne servent donc pas à
+prouver une règle métier ou un échange protocolaire : elles montrent la manière
+dont les fonctions réalisées sont organisées pour les utilisateurs. Les trois
+captures strictement techniques du commissioning, de la connexion au simulateur
+SAP et de la télémétrie OCPP restent volontairement dans le
+chapitre~\ref{chap:implementation} afin d'éviter toute duplication.
 
-\section{Bornes, connecteurs et cartographie}
-\screenplaceholder{Inventaire des bornes}{Vues carte, grille, liste et table}
-\screenplaceholder{Mise en service d'une borne}{Création de la borne, des connecteurs et du profil OCPP}
-\screenplaceholder{Détail et télémétrie d'une borne}{État calculé, commandes, sessions, alertes et mesures OCPP}
+\section{Du prototype à l'interface réalisée}
 
-\section{Recharge, sessions et paiement}
-\screenplaceholder{Recherche d'une borne}{Carte, filtres, distance et itinéraire}
-\screenplaceholder{Workflow de recharge}{Sélection, branchement, autorisation, démarrage et suivi}
-\screenplaceholder{Session active et paiement}{Mesures en direct, arrêt, paiement simulé et reçu}
+Le prototype a joué le rôle de contrat visuel avant l'implémentation. Il a fixé
+une identité claire, une navigation latérale compacte, une barre supérieure
+stable, des bandeaux de contexte et des espaces de travail denses mais lisibles.
+La figure~\ref{fig:interfaces-prototype-public} rassemble la direction retenue
+pour l'entrée publique et les principales vues métier envisagées.
 
-\section{Alertes, interventions et maintenance}
-\screenplaceholder{Gestion des alertes}{Sévérité, SLA, assignation et historique}
-\screenplaceholder{Intervention technique}{Diagnostic, preuves, pièces, actions et rapport}
-\screenplaceholder{Maintenance}{Planification préventive et corrective}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\textwidth]{assets/screenshots/prototype-landing.png}
+  \caption{Prototype de référence de ChargeTrackr}
+  \label{fig:interfaces-prototype-public}
+\end{figure}
 
-\section{Administration, gestion commerciale et rapports}
-\screenplaceholder{Gestion des utilisateurs et organisations}{Employés, clients, invitations et isolation multi-tenant}
-\screenplaceholder{Tarifs et abonnements}{Tarification, plans clients et abonnement commercial}
-\screenplaceholder{Rapports et analyses}{Indicateurs par rôle, échange de rapports et exports}
-\screenplaceholder{Profil et paramètres}{Données personnelles, préférences et paramètres autorisés}
+L'application réalisée ne reproduit pas ces maquettes comme des images
+statiques. Les composants Ant Design ont été adaptés au système visuel du
+prototype, puis reliés aux autorisations, aux états de chargement, aux erreurs,
+aux filtres et aux données renvoyées par l'API. Les mêmes repères sont conservés
+sur l'ensemble du produit, mais le contenu et les actions diffèrent selon le
+rôle.
 
-\section{Conclusion}
-\plannedcontent{Résumer la cohérence visuelle, l'adaptation aux rôles et les parcours
-principaux illustrés dans ce chapitre.}
+\section{Entrée et prise en main}
 
+Les pages publiques donnent accès à la présentation du produit, à la demande de
+démonstration, à la connexion locale ou Google et à la création d'un compte
+client. Après l'authentification, un onboarding court remplace la visite
+exhaustive des fonctionnalités. Il rappelle le contexte d'accès, demande
+uniquement les informations utiles au rôle et conduit vers une première action
+concrète.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{assets/screenshots/onboarding-welcome.png}
+  \caption{Onboarding personnalisé de l'administrateur}
+  \label{fig:interfaces-onboarding}
+\end{figure}
+
+La progression reste visible dans la colonne latérale et les étapes déjà
+terminées peuvent être identifiées immédiatement. L'utilisateur peut quitter le
+parcours sans perdre l'accès à son espace. Pour un administrateur, la première
+valeur consiste à confirmer l'organisation, inviter son équipe et préparer son
+premier actif ; pour les autres rôles, les contenus sont adaptés à leur mission.
+
+\section{Navigation et adaptation aux rôles}
+
+La coque applicative reste commune afin de réduire l'effort d'apprentissage :
+logo et menu principal à gauche, recherche et notifications en haut, contenu
+contextuel au centre. Cette cohérence ne signifie pas que tous les utilisateurs
+reçoivent le même tableau de bord. Les routes, indicateurs et actions sont
+composés à partir du rôle et du périmètre autorisé.
+
+\begin{table}[H]
+  \centering
+  \caption{Orientation des interfaces selon le rôle}
+  \label{tab:interfaces-role-orientation}
+  \begin{tabularx}{\textwidth}{@{}p{3.2cm}Y Y@{}}
+    \toprule
+    \textbf{Rôle} & \textbf{Priorité de l'interface} &
+    \textbf{Actions mises en avant}\\
+    \midrule
+    Super administrateur & Gouvernance de la plateforme et portefeuille
+    d'organisations & Traiter les demandes, gérer les organisations, contrôler
+    les intégrations et les paramètres globaux.\\
+    Administrateur & Pilotage métier d'une organisation & Gérer les employés,
+    les actifs, les tarifs, l'abonnement commercial et les rapports.\\
+    Opérateur & Continuité du service & Superviser les stations, qualifier les
+    alertes, commander les bornes et affecter les interventions.\\
+    Technicien & Exécution du travail terrain & Consulter les missions, mettre à
+    jour leur avancement, joindre les preuves et soumettre un rapport.\\
+    Client & Recharge et dépenses personnelles & Rechercher une station,
+    démarrer une recharge, suivre la session, payer et consulter les reçus.\\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Pilotage de l'organisation}
+
+Le tableau de bord de l'administrateur associe un bandeau de période, l'identité
+de l'organisation, des raccourcis opérationnels et des indicateurs vérifiés.
+L'espace utilise la largeur disponible pour présenter les informations sans
+empiler inutilement des cartes. Les résultats restent néanmoins séparés par
+famille afin de faciliter la lecture.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.94\textwidth]{assets/screenshots/admin-overview.png}
+  \caption{Tableau de bord de l'administrateur d'organisation}
+  \label{fig:interfaces-admin-dashboard}
+\end{figure}
+
+La recherche globale, le centre de notifications et le profil restent accessibles
+sans changer de contexte. Les raccourcis conduisent vers des workflows complets,
+par exemple la création d'un employé, l'enregistrement d'une station ou la
+génération d'un rapport.
+
+\section{Stations et exploitation opérationnelle}
+
+L'inventaire des stations permet de basculer entre carte, grille, liste et table.
+Chaque mode répond à un besoin distinct : repérer géographiquement un actif,
+comparer rapidement quelques stations ou exploiter un ensemble plus dense. Les
+filtres et la recherche sont partagés entre les vues.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.94\textwidth]{assets/screenshots/stations-workspace.png}
+  \caption{Inventaire des stations avec disponibilité calculée}
+  \label{fig:interfaces-station-inventory}
+\end{figure}
+
+Les états visibles ne sont pas saisis dans l'interface. Ils proviennent des
+projections décrites au chapitre précédent. Les actions de création et de
+commissioning sont proposées à l'administrateur et à l'opérateur, alors que le
+technicien dispose d'une consultation orientée diagnostic et que le client ne
+voit que les stations utilisables.
+
+Le centre d'alertes conserve la liste et le détail dans le même écran. Cette
+disposition permet de qualifier plusieurs événements sans perdre les filtres, la
+sélection ou la chronologie.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.94\textwidth]{assets/screenshots/alerts-workspace.png}
+  \caption{Centre opérationnel des alertes}
+  \label{fig:interfaces-alerts}
+\end{figure}
+
+La couleur indique la sévérité ou l'état, mais elle n'est jamais l'unique
+information disponible : les libellés, références, dates et actions restent
+explicites. Les compteurs de navigation attirent l'attention sans remplacer le
+filtrage de la page.
+
+\section{Gestion commerciale et reporting}
+
+L'abonnement de l'organisation est séparé des paiements des conducteurs. La page
+commerciale présente le plan courant, la période d'évaluation ou de facturation,
+les capacités consommées et les demandes de changement. Cette séparation rend
+le rôle financier de chaque écran explicite.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.94\textwidth]{assets/screenshots/organization-billing.png}
+  \caption{Suivi de l'abonnement commercial de l'organisation}
+  \label{fig:interfaces-organization-billing}
+\end{figure}
+
+Le studio de performance complète le tableau de bord sans le dupliquer. Il
+propose des indicateurs plus détaillés, des répartitions, des tendances et des
+filtres de période. Les rapports internes peuvent ensuite être composés,
+accompagnés de pièces jointes et transmis dans le périmètre de l'organisation.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.94\textwidth]{assets/screenshots/administrator-reports.png}
+  \caption{Analyse et rapports de l'administrateur}
+  \label{fig:interfaces-admin-reports}
+\end{figure}
+
+Les exports PDF, CSV et JSON sont disponibles depuis les ressources auxquelles
+ils se rapportent. Cette proximité évite de transformer la page d'analyse en
+entrepôt de documents et permet de retrouver un reçu, une facture ou un rapport
+d'intervention dans son workflow d'origine.
+
+\section{Principes d'ergonomie retenus}
+
+Les interfaces réalisées appliquent les principes suivants :
+
+\begin{itemize}[leftmargin=7mm]
+  \item conserver une navigation et une hiérarchie visuelle stables entre les
+  rôles, sans exposer les fonctions non autorisées ;
+  \item proposer des contrôles adaptés aux données : carte et coordonnées pour
+  une position, sélecteur pour un état, calendrier pour une date et formats
+  dédiés pour les exports ;
+  \item afficher les états de chargement, les écrans vides et les erreurs au
+  niveau du contexte concerné ;
+  \item réduire les confirmations manuelles lorsque l'événement réel peut être
+  observé, notamment pendant le branchement OCPP ;
+  \item conserver les actions critiques explicites et demander une confirmation
+  avant une suppression, un arrêt de session ou une commande distante ;
+  \item adapter la densité aux écrans plus étroits sans superposer la carte, la
+  barre latérale ou les panneaux de détail.
+\end{itemize}
+
+\section*{Conclusion}
+
+Les captures montrent la continuité entre le prototype validé et l'application
+fonctionnelle. L'identité visuelle demeure commune, tandis que les priorités,
+les indicateurs et les actions varient réellement selon le rôle. Le chapitre
+précédent établit la réalité technique des échanges OCPP, du calcul de
+disponibilité et des services métier ; celui-ci montre comment ces capacités
+sont rendues accessibles dans des parcours cohérents et exploitables.

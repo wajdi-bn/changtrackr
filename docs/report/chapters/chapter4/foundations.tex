@@ -51,12 +51,8 @@ L'opérateur rejoint directement la supervision, le technicien consulte son
 travail assigné et le client recherche une station. Le parcours peut être quitté
 et repris ; il ne bloque pas l'application.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.92\textwidth]{assets/screenshots/onboarding-welcome.png}
-  \caption{Dernière étape de l'onboarding de l'administrateur}
-  \label{fig:implementation-onboarding}
-\end{figure}
+Le rendu de ce parcours et sa progression visuelle sont présentés dans la
+figure~\ref{fig:interfaces-onboarding} du chapitre consacré aux interfaces.
 
 Les classes \path{AccountInvitationService} et
 \path{DemoProvisioningService}, les contrôleurs d'authentification et les
@@ -82,12 +78,8 @@ recherche textuelle. L'opérateur et l'administrateur peuvent gérer les actifs 
 leur organisation. Le technicien les consulte sans création, tandis que le client
 ne voit que les stations publiques pertinentes.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.93\textwidth]{assets/screenshots/stations-workspace.png}
-  \caption{Inventaire des stations avec indicateurs de disponibilité}
-  \label{fig:implementation-station-inventory}
-\end{figure}
+La déclinaison de ce référentiel en vues opérationnelles est illustrée par la
+figure~\ref{fig:interfaces-station-inventory}.
 
 Leaflet et OpenStreetMap permettent de placer un marqueur par clic ou
 glisser-déposer. Les coordonnées restent éditables pour traiter les cas où la

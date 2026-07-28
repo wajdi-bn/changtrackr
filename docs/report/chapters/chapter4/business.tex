@@ -16,12 +16,8 @@ sont consultés. Les filtres de sévérité et d'état ne modifient pas la donn�
 sont convertis en paramètres API. Les compteurs de la barre latérale sont dérivés
 des notifications non lues liées à ce contexte.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.92\textwidth]{assets/screenshots/alerts-workspace.png}
-  \caption{Centre opérationnel des alertes}
-  \label{fig:implementation-alerts}
-\end{figure}
+La figure~\ref{fig:interfaces-alerts} présente l'organisation visuelle de ce
+centre opérationnel dans le chapitre suivant.
 
 \subsubsection{Interventions, maintenance et SLA}
 
@@ -160,12 +156,8 @@ limites avant la création d'un actif, tandis que
 \texttt{OrganizationSubscriptionLifecycleService} traite essai, activation,
 suspension, expiration et restauration.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.92\textwidth]{assets/screenshots/organization-billing.png}
-  \caption{Suivi de l'abonnement commercial d'une organisation}
-  \label{fig:implementation-organization-billing}
-\end{figure}
+L'interface de suivi de l'abonnement est reproduite dans la
+figure~\ref{fig:interfaces-organization-billing}.
 
 Le super administrateur gère le catalogue SaaS et le portefeuille global.
 L'administrateur consulte son offre, sa consommation de capacité et ses factures,
@@ -185,12 +177,8 @@ organisation. L'opérateur suit disponibilité, incidents et sessions. Le
 technicien voit sa charge terrain et ses SLA. Le client consulte ses recharges,
 paiements et abonnements.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.92\textwidth]{assets/screenshots/admin-overview.png}
-  \caption{Tableau de bord réel de l'administrateur}
-  \label{fig:implementation-admin-dashboard}
-\end{figure}
+La figure~\ref{fig:interfaces-admin-dashboard} montre la composition retenue
+pour le tableau de bord de l'administrateur.
 
 Les indicateurs utilisent les mêmes règles et périmètres que les écrans de détail.
 Par exemple, la disponibilité du tableau de bord passe par
@@ -207,12 +195,8 @@ distincts des exports : un employé peut composer un rapport, joindre des fichie
 choisir un destinataire de son organisation, l'envoyer, puis suivre lecture et
 archivage.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.92\textwidth]{assets/screenshots/administrator-reports.png}
-  \caption{Studio de performance de l'administrateur}
-  \label{fig:implementation-admin-reports}
-\end{figure}
+La figure~\ref{fig:interfaces-admin-reports} illustre cet espace d'analyse et
+d'échange.
 
 \subsubsection{Administration globale}
 
