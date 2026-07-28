@@ -28,5 +28,5 @@ preamble.tex     Mise en page et commandes communes
 main.tex         Point d'entrée
 ```
 
-Le chapitre 1 est entièrement rédigé. Les blocs "Périmètre prévu" des chapitres
-suivants seront remplacés progressivement par le contenu validé.
+Les chapitres 1 et 2 sont entièrement rédigés. Les blocs "Périmètre prévu" des
+chapitres suivants seront remplacés progressivement par le contenu validé.

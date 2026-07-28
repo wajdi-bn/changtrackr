@@ -1,0 +1,320 @@
+\section{Spécification des besoins}
+
+\subsection{Identification des acteurs}
+
+Un acteur représente une entité extérieure au système qui poursuit un objectif au
+moyen de celui-ci. Une base de données, un worker de file ou le scheduler Laravel ne
+sont donc pas des acteurs : ils appartiennent à l'implémentation interne. En revanche,
+une borne, Google OAuth ou un prestataire de paiement sont des acteurs secondaires,
+car ils échangent avec la plateforme par une interface clairement délimitée.
+
+La notion d'\textbf{utilisateur authentifié} est utilisée comme acteur abstrait pour
+regrouper les capacités communes : connexion, profil, paramètres personnels,
+onboarding et notifications. Les cinq rôles authentifiés spécialisés restent le
+Super Administrateur, l'Administrateur, l'Opérateur, le Technicien et le Client.
+
+\begin{longtable}{@{}C{3.15cm}C{2.15cm}p{8.15cm}@{}}
+  \caption{Acteurs humains de la plateforme}
+  \label{tab:human-actors}\\
+  \toprule
+  \textbf{Acteur} & \textbf{Catégorie} & \textbf{Responsabilités et périmètre}\\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Acteur} & \textbf{Catégorie} & \textbf{Responsabilités et périmètre}\\
+  \midrule
+  \endhead
+  Visiteur & Principal &
+  Consulte la présentation publique, les informations publiques des bornes, contacte
+  la plateforme, crée un compte client ou dépose une demande de démonstration.\\
+  Client & Principal &
+  Utilisateur global sans organisation fixe. Il peut utiliser les bornes de plusieurs
+  organisations, gérer ses abonnements, lancer ses propres sessions, payer et
+  consulter uniquement ses données.\\
+  Opérateur & Principal &
+  Employé d'une seule organisation. Il met en service les stations, supervise OCPP,
+  traite les alertes, exécute les commandes distantes, assigne les interventions et
+  planifie les maintenances dans son périmètre.\\
+  Technicien & Principal &
+  Employé d'une seule organisation. Il consulte les actifs en lecture, traite
+  uniquement les interventions et maintenances qui lui sont assignées, puis produit
+  les preuves et rapports techniques.\\
+  Administrateur & Principal &
+  Responsable d'une seule organisation. Il gère ses opérateurs et techniciens, ses
+  clients observés, ses actifs, tarifs, documents, rapports et son abonnement
+  commercial, sans administrer la plateforme globale.\\
+  Super Administrateur & Principal &
+  Gère les organisations et leurs administrateurs, les demandes de démonstration,
+  les offres SaaS, l'audit, les rôles, les paramètres globaux et l'état des
+  intégrations.\\
+  \bottomrule
+\end{longtable}
+
+\begin{longtable}{@{}C{3.15cm}C{2.15cm}p{8.15cm}@{}}
+  \caption{Acteurs secondaires et systèmes externes}
+  \label{tab:external-actors}\\
+  \toprule
+  \textbf{Acteur} & \textbf{Nature} & \textbf{Interaction avec \ProjectName{}}\\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Acteur} & \textbf{Nature} & \textbf{Interaction avec \ProjectName{}}\\
+  \midrule
+  \endhead
+  Borne ou simulateur OCPP & Système externe &
+  Ouvre une connexion WebSocket authentifiée, émet les messages OCPP, reçoit les
+  commandes distantes et retourne leur résultat.\\
+  Google OAuth & Fournisseur d'identité &
+  Authentifie un compte Google vérifié sans transmettre son mot de passe à la
+  plateforme.\\
+  Service de paiement & Service externe &
+  Autorise, capture ou libère un montant et envoie des webhooks signés. Dans le MVP,
+  ce service est simulé mais reste hors du domaine métier.\\
+  Service email & Service externe &
+  Distribue les vérifications, invitations, réinitialisations et notifications
+  transactionnelles placées dans la file.\\
+  Service cartographique & Service externe &
+  Fournit les tuiles et données nécessaires à l'affichage de la carte et à
+  l'ouverture d'un itinéraire.\\
+  \bottomrule
+\end{longtable}
+
+\begin{scopebox}[Clarification du rôle financier]
+  La \emph{finance} n'est pas modélisée comme un acteur autonome. Les décisions
+  commerciales sont prises par le Super Administrateur ou l'Administrateur selon
+  leur périmètre. Le seul acteur externe du paiement est le prestataire technique qui
+  traite une transaction. Cette distinction évite de confondre une fonction métier,
+  un rôle humain et un système tiers.
+\end{scopebox}
+
+\subsection{Besoins fonctionnels}
+
+Les besoins fonctionnels décrivent ce que le système doit permettre de réaliser. Ils
+sont regroupés par acteur, mais les contrôles d'autorisation restent appliqués côté
+API même lorsqu'une action n'est pas affichée dans l'interface.
+
+\subsubsection{Fonctions communes aux utilisateurs authentifiés}
+
+\begin{longtable}{@{}C{1.35cm}p{12.3cm}@{}}
+  \toprule
+  \textbf{Code} & \textbf{Besoin fonctionnel}\\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Code} & \textbf{Besoin fonctionnel}\\
+  \midrule
+  \endhead
+  BF-01 & Se connecter par email et mot de passe ou, lorsque le compte le permet,
+  par Google OAuth ; se déconnecter et récupérer son accès.\\
+  BF-02 & Consulter et modifier les données personnelles autorisées, l'adresse,
+  l'avatar et les liens professionnels pertinents.\\
+  BF-03 & Configurer le fuseau horaire, le rayon de recherche, les préférences de
+  notification et le mot de passe lorsqu'un mot de passe local existe.\\
+  BF-04 & Suivre un onboarding court adapté au rôle, puis retrouver des indications
+  contextuelles sans être bloqué dans une visite générique.\\
+  BF-05 & Consulter les notifications personnelles, leur contexte, leur statut lu ou
+  non lu et marquer un ensemble cohérent comme lu.\\
+  BF-06 & Utiliser une recherche globale limitée aux objets réellement accessibles.\\
+  \bottomrule
+\end{longtable}
+
+\subsubsection{Super Administrateur}
+
+\begin{longtable}{@{}C{1.35cm}p{12.3cm}@{}}
+  \toprule
+  \textbf{Code} & \textbf{Besoin fonctionnel}\\
+  \midrule
+  BF-07 & Qualifier, rejeter ou convertir une demande de démonstration en organisation
+  d'essai et invitation d'administrateur.\\
+  BF-08 & Créer, consulter, modifier, activer ou suspendre les organisations et gérer
+  leurs administrateurs.\\
+  BF-09 & Consulter les indicateurs globaux, l'audit filtrable et la matrice des rôles
+  et permissions.\\
+  BF-10 & Consulter l'état des intégrations sans exposer leurs secrets et modifier
+  uniquement les paramètres globaux autorisés.\\
+  BF-11 & Gérer les offres SaaS, essais, capacités, abonnements et factures des
+  organisations, avec historique des transitions.\\
+  BF-12 & Produire les analyses et exports globaux de la plateforme.\\
+  \bottomrule
+\end{longtable}
+
+\subsubsection{Administrateur d'organisation}
+
+\begin{longtable}{@{}C{1.35cm}p{12.3cm}@{}}
+  \toprule
+  \textbf{Code} & \textbf{Besoin fonctionnel}\\
+  \midrule
+  BF-13 & Inviter, modifier, désactiver ou supprimer les opérateurs et techniciens de
+  sa seule organisation, sans connaître leur mot de passe.\\
+  BF-14 & Consulter les clients ayant réellement utilisé les bornes de l'organisation,
+  sans modifier leur compte global ni leurs activités chez d'autres opérateurs.\\
+  BF-15 & Administrer les stations, connecteurs, commandes, alertes, interventions,
+  maintenances et documents de son organisation.\\
+  BF-16 & Définir les tarifs, plans clients et affectations applicables aux stations
+  ou connecteurs de son organisation.\\
+  BF-17 & Consulter les indicateurs métier, produire et échanger des rapports et
+  exporter les données autorisées.\\
+  BF-18 & Suivre l'offre commerciale, les quotas, les échéances et factures de son
+  organisation et demander un changement d'offre.\\
+  \bottomrule
+\end{longtable}
+
+\subsubsection{Opérateur}
+
+\begin{longtable}{@{}C{1.35cm}p{12.3cm}@{}}
+  \toprule
+  \textbf{Code} & \textbf{Besoin fonctionnel}\\
+  \midrule
+  BF-19 & Mettre en service une station et ses connecteurs de manière atomique, la
+  positionner sur la carte et préparer sa liaison à une borne physique ou simulée.\\
+  BF-20 & Consulter les stations en vue carte, liste ou tableau avec disponibilité
+  calculée, connexion, dernière preuve de vie et alertes.\\
+  BF-21 & Examiner une station, sa télémétrie vérifiée, ses connecteurs, événements,
+  commandes, sessions, maintenances, alertes et documents.\\
+  BF-22 & Exécuter les commandes OCPP autorisées : redémarrage logiciel,
+  déverrouillage et changement de disponibilité pour maintenance.\\
+  BF-23 & Filtrer, acquitter, assigner, suivre ou annuler une alerte dans le respect
+  de son cycle de vie et de son SLA.\\
+  BF-24 & Créer et suivre les interventions et maintenances préventives ou correctives,
+  y compris leur récurrence et leur calendrier.\\
+  BF-25 & Superviser les sessions et paiements de l'organisation sans agir à la place
+  d'un client sur ses données privées.\\
+  BF-26 & Consulter et échanger des rapports opérationnels adaptés à son rôle.\\
+  \bottomrule
+\end{longtable}
+
+\subsubsection{Technicien}
+
+\begin{longtable}{@{}C{1.35cm}p{12.3cm}@{}}
+  \toprule
+  \textbf{Code} & \textbf{Besoin fonctionnel}\\
+  \midrule
+  BF-27 & Consulter en lecture les stations, connecteurs, cartes et informations
+  techniques de son organisation.\\
+  BF-28 & Consulter les alertes, interventions et maintenances qui lui sont assignées,
+  avec priorité, échéance et historique.\\
+  BF-29 & Faire progresser une intervention selon les transitions autorisées, ajouter
+  des notes et téléverser des preuves avant/après privées.\\
+  BF-30 & Produire un rapport final comprenant diagnostic, actions, pièces, contrôles
+  terrain et résultat, puis demander un suivi lorsque nécessaire.\\
+  BF-31 & Consulter ses propres indicateurs de terrain et échanger des rapports avec
+  les destinataires autorisés de son organisation.\\
+  \bottomrule
+\end{longtable}
+
+\subsubsection{Client}
+
+\begin{longtable}{@{}C{1.35cm}p{12.3cm}@{}}
+  \toprule
+  \textbf{Code} & \textbf{Besoin fonctionnel}\\
+  \midrule
+  BF-32 & Rechercher les stations publiques des organisations actives, utiliser la
+  géolocalisation selon un rayon choisi et filtrer les résultats.\\
+  BF-33 & Consulter les connecteurs et le tarif effectif, copier les coordonnées ou
+  ouvrir un itinéraire vers la station sélectionnée.\\
+  BF-34 & Démarrer une recharge guidée : choisir station et connecteur, brancher le
+  câble, attendre sa détection OCPP, autoriser le paiement puis lancer la commande.\\
+  BF-35 & Suivre en temps réel la durée, l'énergie, la puissance et le coût provisoire,
+  puis arrêter la session manuellement ou par une limite configurée.\\
+  BF-36 & Consulter l'historique multi-organisations de ses sessions et paiements,
+  prévisualiser ou télécharger un reçu.\\
+  BF-37 & Consulter les plans proposés par les organisations et gérer plusieurs
+  abonnements indépendants avec leurs factures.\\
+  BF-38 & Utiliser un identifiant OCPP virtuel ; préparer l'évolution vers une carte
+  RFID ou la lecture d'un QR code physique sans exposer de secret.\\
+  \bottomrule
+\end{longtable}
+
+\subsubsection{Visiteur et traitements automatiques}
+
+\begin{longtable}{@{}C{1.35cm}p{12.3cm}@{}}
+  \toprule
+  \textbf{Code} & \textbf{Besoin fonctionnel}\\
+  \midrule
+  BF-39 & Présenter la solution et les moyens de contact, permettre l'inscription
+  client et la demande de démonstration sans exposer les données protégées.\\
+  BF-40 & Recevoir, authentifier et rendre idempotents les événements OCPP, puis
+  projeter les états métier et leurs transitions.\\
+  BF-41 & Détecter les absences de communication, défauts, échéances SLA ou
+  maintenances proches et produire les alertes et notifications correspondantes.\\
+  BF-42 & Traiter en tâche de fond les emails, occurrences récurrentes, contrôles de
+  SLA, exports volumineux et événements de paiement.\\
+  BF-43 & Vérifier les signatures et l'idempotence des webhooks de paiement, puis
+  réconcilier le paiement, la session et le reçu.\\
+  \bottomrule
+\end{longtable}
+
+\subsection{Besoins non fonctionnels}
+
+Les objectifs du cahier des charges sont transformés en exigences vérifiables. Les
+valeurs de production qui ne peuvent pas être garanties par un environnement local
+sont explicitement présentées comme des objectifs à valider lors du déploiement.
+
+\begin{longtable}{@{}C{1.45cm}C{3.0cm}p{9.2cm}@{}}
+  \caption{Exigences non fonctionnelles}
+  \label{tab:non-functional-requirements}\\
+  \toprule
+  \textbf{Code} & \textbf{Qualité} & \textbf{Exigence et critère de vérification}\\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Code} & \textbf{Qualité} & \textbf{Exigence et critère de vérification}\\
+  \midrule
+  \endhead
+  ENF-01 & Performance &
+  Sous charge nominale et avec pagination, une page courante doit devenir utilisable
+  en moins de deux secondes ; les opérations longues sont asynchrones et signalent
+  leur progression.\\
+  ENF-02 & Temps réel &
+  Un événement OCPP accepté doit mettre à jour sa projection et être diffusé sans
+  rechargement manuel. Une perte de communication est détectée après 90 secondes
+  sans message, conformément à la règle métier retenue.\\
+  ENF-03 & Disponibilité du service &
+  La cible de production est de 99,9\,\% hors maintenance planifiée. Cette cible doit
+  être mesurée par supervision après déploiement ; elle n'est pas déclarée atteinte
+  par le seul MVP local.\\
+  ENF-04 & Sécurité des accès &
+  Toute route protégée utilise une session Sanctum, la protection CSRF, RBAC et une
+  policy sur la ressource. Un identifiant deviné d'une autre organisation ne doit
+  retourner aucune donnée.\\
+  ENF-05 & Isolation multi-tenant &
+  Un administrateur, opérateur ou technicien appartient à exactement une organisation.
+  Toutes les lectures, écritures, diffusions et exports sont limités à ce périmètre.\\
+  ENF-06 & Protection des secrets &
+  Aucun secret OAuth, email, paiement ou OCPP n'est inclus dans le frontend, les logs
+  applicatifs ou une réponse API. Les mots de passe et jetons persistés sont condensés
+  ou chiffrés selon leur usage.\\
+  ENF-07 & Intégrité et idempotence &
+  Une station et ses connecteurs sont créés atomiquement. Les événements OCPP,
+  webhooks, commandes et tâches récurrentes supportent la répétition sans doublon
+  métier.\\
+  ENF-08 & Traçabilité &
+  Les changements sensibles conservent acteur, date, ancienne et nouvelle valeur ou
+  événement métier. Les rapports finaux et reçus restent reproductibles.\\
+  ENF-09 & Maintenabilité &
+  Les contrôleurs délèguent les règles aux services et policies ; les contrats
+  frontend sont centralisés ; les modules critiques sont couverts par des tests
+  automatisés et documentés.\\
+  ENF-10 & Extensibilité &
+  Les fournisseurs de paiement, email, cartographie et identité sont intégrés derrière
+  des contrats ou configurations remplaçables. OCPP reste séparé de l'API métier.\\
+  ENF-11 & Ergonomie &
+  Les parcours critiques utilisent des étapes courtes, des états de chargement et des
+  erreurs actionnables. L'interface reste cohérente entre rôles sans rendre leurs
+  tableaux de bord identiques.\\
+  ENF-12 & Responsive et compatibilité &
+  Les parcours principaux sont utilisables sur ordinateur et tablette, et les parcours
+  client essentiels sur mobile. Les dernières versions de Chrome, Edge et Firefox
+  sont ciblées.\\
+  ENF-13 & Confidentialité &
+  La position courante du client reste dans l'état transitoire du navigateur et n'est
+  pas persistée. Les pièces d'intervention privées sont servies après autorisation.\\
+  ENF-14 & Portabilité &
+  L'environnement peut être reproduit avec Git, PHP, Node.js, PostgreSQL et Docker
+  sous WSL2 pour les services simulés, sans dépendre d'un poste unique.\\
+  ENF-15 & Interopérabilité &
+  Les échanges métier utilisent une API REST JSON documentable par OpenAPI ; les
+  stations utilisent OCPP 1.6 JSON sur WebSocket et le paiement suit un contrat
+  fournisseur indépendant.\\
+  \bottomrule
+\end{longtable}

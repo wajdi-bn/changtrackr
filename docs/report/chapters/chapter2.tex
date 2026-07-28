@@ -1,80 +1,21 @@
 \chapter{Spécification et analyse des besoins}
 
 \section*{Introduction}
-\plannedcontent{Définir le périmètre fonctionnel et non fonctionnel retenu pour
-\ProjectName{} ainsi que sa planification.}
+Ce chapitre transforme le cahier des charges en un périmètre vérifiable. Il identifie
+les acteurs humains et externes, formalise les besoins fonctionnels et non
+fonctionnels, puis présente le Product Backlog révisé et son découpage en incréments.
+Enfin, un diagramme global et huit scénarios détaillés décrivent les interactions les
+plus risquées ou structurantes du produit.
 
-\section{Spécification des besoins}
-
-\subsection{Identification des acteurs}
-
-\begin{longtable}{@{}p{3.4cm}p{10.2cm}@{}}
-  \caption{Acteurs principaux du système}\\
-  \toprule
-  \textbf{Acteur} & \textbf{Responsabilité générale}\\
-  \midrule
-  \endfirsthead
-  \toprule
-  \textbf{Acteur} & \textbf{Responsabilité générale}\\
-  \midrule
-  \endhead
-  Visiteur & Consulter l'espace public, rechercher des bornes publiques et demander une démonstration.\\
-  Client & Rechercher une borne, démarrer et suivre une recharge, payer et gérer ses abonnements.\\
-  Opérateur & Exploiter les bornes et connecteurs de son organisation, superviser les sessions et traiter les alertes.\\
-  Technicien & Consulter les équipements autorisés, exécuter les interventions et remettre un rapport technique.\\
-  Administrateur & Administrer l'organisation, les employés, les clients, les tarifs, les ressources et les rapports.\\
-  Super Administrateur & Administrer la plateforme, les organisations, les paramètres globaux, les intégrations et l'audit.\\
-  Borne / simulateur OCPP & Transmettre les événements, statuts, heartbeats et mesures, puis exécuter les commandes distantes.\\
-  Services externes & Fournir l'authentification Google, la messagerie, la cartographie et le paiement simulé ou futur.\\
-  \bottomrule
-\end{longtable}
-
-\subsection{Besoins fonctionnels}
-\subsubsection{Super Administrateur}
-\plannedcontent{Gestion globale des organisations, demandes de démonstration, paramètres,
-intégrations, rôles, audit et supervision commerciale.}
-
-\subsubsection{Administrateur d'organisation}
-\plannedcontent{Gestion des employés et clients de son organisation, bornes, tarifs,
-abonnement commercial, rapports et paramètres organisationnels.}
-
-\subsubsection{Opérateur}
-\plannedcontent{Mise en service des bornes, gestion des connecteurs, supervision OCPP,
-sessions, alertes, interventions, maintenance et rapports opérationnels.}
-
-\subsubsection{Technicien}
-\plannedcontent{Consultation des bornes, traitement des alertes assignées, interventions,
-preuves, rapports et suivi de maintenance.}
-
-\subsubsection{Client}
-\plannedcontent{Inscription, recherche cartographique, sélection d'un connecteur, recharge,
-paiement, reçu, historique et abonnements aux réseaux.}
-
-\subsubsection{Visiteur}
-\plannedcontent{Consultation publique, recherche des bornes, contact et demande de
-démonstration sans accès aux données protégées.}
-
-\subsection{Besoins non fonctionnels}
-\plannedcontent{Sécurité, isolation multi-tenant, disponibilité, performance, temps réel,
-maintenabilité, extensibilité, ergonomie, traçabilité, portabilité et protection des
-secrets. Chaque exigence sera associée à un critère mesurable.}
-
-\section{Planification du projet}
-
-\subsection{Product Backlog}
-\plannedcontent{Insérer le backlog révisé en conservant les identifiants, la granularité,
-les priorités et les estimations Fibonacci. Ajouter une matrice de traçabilité vers les
-incréments, API, écrans et tests.}
-
-\subsection{Backlogs des incréments}
-\plannedcontent{Présenter les incréments effectivement réalisés : fondations, identité et
-multi-tenant, stations et cartographie, OCPP et disponibilité, recharge et paiement,
-alertes et maintenance, reporting et gestion commerciale, puis industrialisation.}
-
-\subsection{Analyse globale des besoins}
-\plannedcontent{Insérer le diagramme global de cas d'utilisation validé, clarifier les
-généralisations d'acteurs et distinguer les acteurs humains des systèmes externes.}
+\input{chapters/chapter2/requirements}
+\input{chapters/chapter2/planning}
+\input{chapters/chapter2/use-cases}
 
 \section*{Conclusion}
-\plannedcontent{Résumer le périmètre et annoncer les choix d'architecture et de conception.}
-
+La spécification distingue désormais clairement les responsabilités humaines, les
+systèmes externes et les composants internes. Le backlog de 42 user stories couvre
+l'entrée dans la plateforme, la supervision OCPP, l'exploitation terrain, la recharge,
+le commerce et le pilotage, tout en conservant le firmware comme évolution à haut
+risque. Les exigences non fonctionnelles rendent les objectifs de sécurité,
+performance, isolation et traçabilité contrôlables. Le chapitre suivant traduira ces
+besoins en architecture, composants, contrats et modèles de données.

@@ -224,12 +224,12 @@ Les critères ci-dessous supposent que les valeurs suivantes seront configurable
 - **CA-26.3** - Étant donné des filtres de statut, paiement, période ou recherche, lorsqu'ils sont appliqués, alors la liste et les totaux utilisent le même périmètre.
 - **CA-26.4** - Étant donné une session autorisée, lorsque son détail est ouvert, alors durée, énergie, coût, borne, connecteur, tarif et paiement sont consultables.
 
-## US-27 - Véhicules électriques du client
+## US-27 - Onboarding adapté au rôle
 
-- **CA-27.1** - Étant donné un client, lorsqu'il ajoute ou modifie un véhicule valide, alors ce véhicule est associé uniquement à son compte.
-- **CA-27.2** - Étant donné les types de connecteurs du véhicule, lorsque le client recherche une borne, alors l'interface peut signaler les connecteurs compatibles.
-- **CA-27.3** - Étant donné le véhicule d'un autre client, lorsque son identifiant est utilisé, alors toute lecture ou modification est refusée.
-- **CA-27.4** - Étant donné un véhicule référencé par l'historique, lorsque le client le supprime, alors les sessions passées restent cohérentes.
+- **CA-27.1** - Étant donné une première connexion, lorsque l'utilisateur ouvre l'application, alors un parcours court et adapté à son rôle lui est proposé.
+- **CA-27.2** - Étant donné un administrateur invité, lorsque l'onboarding atteint l'étape organisation, alors il peut vérifier les informations de son organisation et ajouter son logo sans modifier une autre organisation.
+- **CA-27.3** - Étant donné un utilisateur qui termine ou ignore l'onboarding, lorsque son choix est enregistré, alors il accède à son espace sans revoir le parcours à chaque connexion.
+- **CA-27.4** - Étant donné un parcours terminé, lorsque l'utilisateur utilise ensuite l'application, alors seules des indications contextuelles liées à une action réelle peuvent être affichées.
 
 ## US-28 - Identification RFID ou QR code
 
@@ -268,17 +268,18 @@ Les critères ci-dessous supposent que les valeurs suivantes seront configurable
 - **CA-32.3** - Étant donné une recharge, lorsque le client possède un abonnement courant auprès de l'organisation de la borne, alors seule la réduction de ce plan est appliquée.
 - **CA-32.4** - Étant donné un abonnement appartenant à un autre client, lorsque sa modification ou annulation est demandée, alors l'accès est refusé.
 
-## US-33 - Rapports opérationnels
+## US-33 - Analyses et échange de rapports
 
-- **CA-33.1** - Étant donné un opérateur et une période, lorsqu'il génère un rapport, alors disponibilité, utilisation, revenus, énergie et classement des bornes proviennent de son organisation.
+- **CA-33.1** - Étant donné un rôle et une période, lorsque la page d'analyse est ouverte, alors les indicateurs, répartitions et détails correspondent à ses responsabilités et à son périmètre.
 - **CA-33.2** - Étant donné les mêmes données et filtres, lorsque le rapport est régénéré, alors les indicateurs restent reproductibles et leurs formules sont documentées.
-- **CA-33.3** - Étant donné une période sans données, lorsque le rapport est généré, alors le document affiche des valeurs nulles explicites sans erreur.
-- **CA-33.4** - Étant donné un utilisateur d'une autre organisation, lorsque l'identifiant du rapport est utilisé, alors son contenu n'est pas accessible.
+- **CA-33.3** - Étant donné un rapport interne, lorsque son auteur ajoute des pièces jointes puis l'envoie à un destinataire autorisé, alors son état, sa lecture et son archivage sont traçables.
+- **CA-33.4** - Étant donné une période sans données, lorsque le rapport est généré, alors le document affiche des valeurs nulles explicites sans erreur.
+- **CA-33.5** - Étant donné un utilisateur d'une autre organisation ou non destinataire, lorsque l'identifiant du rapport est utilisé, alors son contenu et ses pièces jointes ne sont pas accessibles.
 
 ## US-34 - Exports autorisés
 
 - **CA-34.1** - Étant donné un utilisateur autorisé, lorsqu'il exporte une vue filtrée, alors le fichier respecte les filtres, colonnes et périmètre visibles.
-- **CA-34.2** - Étant donné un format PDF, Excel ou CSV supporté, lorsque l'export est demandé, alors le type de fichier, l'encodage et les valeurs sont valides.
+- **CA-34.2** - Étant donné un format PDF, JSON ou CSV supporté, lorsque l'export est demandé, alors le type de fichier, l'encodage et les valeurs sont valides.
 - **CA-34.3** - Étant donné un volume important, lorsque l'export dépasse le seuil synchrone, alors il est traité en tâche de fond et son résultat est notifié.
 - **CA-34.4** - Étant donné un utilisateur sans permission d'export, lorsque l'endpoint est appelé directement, alors l'accès est refusé.
 
@@ -324,3 +325,17 @@ Les critères ci-dessous supposent que les valeurs suivantes seront configurable
 - **CA-40.3** - Étant donné un utilisateur, lorsqu'il modifie ses préférences, alors il peut désactiver les notifications non obligatoires sans modifier celles d'un autre compte.
 - **CA-40.4** - Étant donné une erreur temporaire d'envoi, lorsque la tâche échoue, alors la stratégie de nouvelle tentative s'applique sans créer de doublons.
 - **CA-40.5** - Étant donné deux organisations, lorsqu'une alerte est notifiée, alors aucun utilisateur d'une autre organisation ne reçoit son contenu.
+
+## US-41 - Gestion commerciale globale
+
+- **CA-41.1** - Étant donné un super administrateur, lorsqu'il crée ou modifie une offre SaaS, alors son prix, son cycle, ses limites et son statut sont validés et audités.
+- **CA-41.2** - Étant donné une organisation en essai, lorsque la date d'expiration est atteinte, alors son état commercial évolue selon une règle déterministe sans supprimer ses données.
+- **CA-41.3** - Étant donné un abonnement suspendu ou expiré, lorsque l'organisation tente une opération protégée, alors l'accès métier est limité tout en conservant les écrans nécessaires à sa régularisation.
+- **CA-41.4** - Étant donné une facture organisationnelle, lorsque le super administrateur l'acquitte ou l'annule, alors la transition et son auteur sont historisés.
+
+## US-42 - Abonnement commercial de l'organisation
+
+- **CA-42.1** - Étant donné un administrateur, lorsqu'il ouvre la facturation de son organisation, alors il voit l'offre courante, la prochaine échéance, les limites et l'utilisation réelle.
+- **CA-42.2** - Étant donné une limite d'employés ou de stations atteinte, lorsque l'administrateur tente de dépasser cette capacité, alors l'action est refusée avec un message explicite.
+- **CA-42.3** - Étant donné une autre offre active, lorsque l'administrateur demande un changement, alors une demande traçable est créée sans modifier directement l'abonnement.
+- **CA-42.4** - Étant donné une facture de son organisation, lorsque l'administrateur la consulte, alors il peut prévisualiser ou télécharger son document sans accéder aux factures d'une autre organisation.

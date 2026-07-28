@@ -1,6 +1,6 @@
 # Backlog Produit - User Stories
 
-40 user stories - Total : 288 points
+42 user stories - Total : 301 points
 
 | ID | User Story | Priorité | Points |
 |---|---|---:|---:|
@@ -30,17 +30,19 @@
 | US-24 | En tant que client, je veux démarrer une session de recharge sur une borne disponible, quelle que soit l'organisation qui la possède. | Haute | 8 |
 | US-25 | En tant que client, je veux arrêter une session de recharge et consulter le résumé de durée, d'énergie et de coût. | Haute | 5 |
 | US-26 | En tant qu'utilisateur autorisé, je veux consulter l'historique des sessions relevant de mon périmètre avec durée, énergie, coût et borne utilisée. | Moyenne | 5 |
-| US-27 | En tant que client, je veux gérer mes véhicules électriques et leurs informations de compatibilité avec les connecteurs. | Moyenne | 5 |
+| US-27 | En tant que nouvel utilisateur, je veux bénéficier d'un onboarding adapté à mon rôle afin de configurer mon espace et atteindre rapidement une première action utile. | Moyenne | 5 |
 | US-28 | En tant que client, je veux utiliser une carte RFID ou un QR code pour m'identifier et lancer une recharge. | Moyenne | 8 |
-| US-29 | En tant que client, je veux payer mes sessions, suivre l'état du paiement et télécharger mes factures. | Moyenne | 8 |
+| US-29 | En tant que client, je veux payer mes sessions, suivre l'état du paiement et prévisualiser ou télécharger mes reçus. | Moyenne | 8 |
 | US-30 | En tant que plateforme, je veux traiter les paiements au moyen d'un adaptateur simulé et remplaçable afin de pouvoir intégrer un prestataire réel. | Moyenne | 8 |
 | US-31 | En tant qu'administrateur, je veux configurer les tarifs selon le kWh, la durée ou les plages horaires et les affecter aux bornes ou connecteurs. | Moyenne | 8 |
 | US-32 | En tant que client, je veux choisir les plans proposés par les organisations et gérer simultanément mes abonnements auprès de plusieurs organisations. | Moyenne | 8 |
-| US-33 | En tant qu'opérateur, je veux générer des rapports sur la disponibilité, l'utilisation, les revenus, l'énergie et les bornes les plus utilisées. | Moyenne | 8 |
-| US-34 | En tant qu'utilisateur autorisé, je veux exporter les données et rapports relevant de mon périmètre en PDF, Excel ou CSV. | Faible | 5 |
+| US-33 | En tant qu'utilisateur autorisé, je veux consulter des analyses adaptées à mon rôle et échanger des rapports opérationnels avec les membres autorisés de mon organisation. | Moyenne | 8 |
+| US-34 | En tant qu'utilisateur autorisé, je veux exporter les données et rapports relevant de mon périmètre en PDF, JSON ou CSV. | Faible | 5 |
 | US-35 | En tant qu'administrateur, je veux gérer les paramètres locaux de mon organisation : TVA, logo, langue, fuseau horaire et notifications. | Faible | 5 |
 | US-36 | En tant que super administrateur, je veux configurer les intégrations globales : paiement, notifications, cartographie, OAuth2, OCPP et sécurité. | Faible | 8 |
 | US-37 | En tant qu'administrateur, je veux gérer les documents liés aux bornes : contrats, garanties, notices et plans techniques. | Faible | 5 |
 | US-38 | En tant qu'administrateur, je veux gérer les mises à jour firmware des bornes à distance. | Faible | 13 |
 | US-39 | En tant que visiteur, je veux consulter la présentation de la plateforme, la contacter et envoyer une demande de démonstration. | Moyenne | 3 |
 | US-40 | En tant qu'utilisateur authentifié, je veux recevoir des notifications in-app et par email et gérer mes préférences de notification. | Moyenne | 5 |
+| US-41 | En tant que super administrateur, je veux gérer les offres SaaS, périodes d'essai, abonnements et factures des organisations. | Haute | 8 |
+| US-42 | En tant qu'administrateur, je veux suivre l'abonnement commercial, les limites d'usage et les factures de mon organisation et demander un changement d'offre. | Moyenne | 5 |
