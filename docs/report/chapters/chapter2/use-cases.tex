@@ -2,28 +2,32 @@
 
 \subsection{Diagramme global}
 
-Le diagramme global de la figure~\ref{fig:global-use-cases} reste volontairement
-macroscopique. Il présente les objectifs majeurs et les systèmes externes sans
-transformer l'authentification en une forêt de relations \texttt{include}.
-L'authentification est une précondition des cas protégés ; les rôles sont des
-spécialisations de l'utilisateur authentifié décrites dans le
-tableau~\ref{tab:human-actors}.
+Le diagramme global de la figure~\ref{fig:global-use-cases} regroupe les capacités
+communes et les fonctions propres à chaque rôle. Il distingue les acteurs humains,
+la borne de recharge et le service de paiement, puis explicite les dépendances
+\texttt{include}, l'extension liée à l'assignation d'une intervention et les
+généralisations d'acteurs. Les scénarios détaillés complètent cette vue en précisant
+les préconditions, les contrôles d'autorisation et les cas d'erreur.
 
 \begin{landscape}
   \begin{figure}[p]
     \centering
-    \resizebox{0.98\linewidth}{!}{\input{assets/diagrams/global-use-cases}}
+    \includegraphics[
+      width=0.95\linewidth,
+      height=0.82\textheight,
+      keepaspectratio
+    ]{assets/diagrams/global-use-cases.png}
     \caption{Diagramme global des cas d'utilisation de \ProjectName{}}
     \label{fig:global-use-cases}
   \end{figure}
 \end{landscape}
 
 \begin{scopebox}[Conventions du diagramme]
-  Les rectangles verts représentent les acteurs humains ; les rectangles bleus,
-  les systèmes externes ; les ellipses, les objectifs fournis par la plateforme.
-  Les relations en pointillés indiquent une dépendance fonctionnelle de haut niveau
-  et non une séquence complète. Les contrôles de permission, l'organisation et les
-  scénarios d'erreur sont détaillés ci-dessous.
+  Les acteurs humains sont représentés par des silhouettes, les systèmes externes
+  par des rectangles et les fonctionnalités par des ellipses placées dans la
+  frontière du système. Une ligne continue exprime une association ; une flèche en
+  pointillés précise une relation \texttt{include} ou \texttt{extend}. Les contrôles
+  de permission, l'organisation et les scénarios d'erreur sont détaillés ci-dessous.
 \end{scopebox}
 
 \subsection{Catalogue des cas majeurs}

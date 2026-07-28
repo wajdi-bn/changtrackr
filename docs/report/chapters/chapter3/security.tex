@@ -1,0 +1,202 @@
+\section{Sécurité et isolation multi-tenant}
+
+\subsection{Authentification de l'application web}
+
+L'application React est un client propriétaire de la même plateforme. Elle utilise
+donc Laravel Sanctum en mode \textbf{session stateful} plutôt qu'un JWT conservé dans
+le stockage du navigateur. Avant une connexion locale, le frontend récupère le
+cookie CSRF et envoie les requêtes avec les cookies activés. Le cookie de session est
+\texttt{HttpOnly}, ce qui réduit l'exposition du secret de session au code
+JavaScript.
+
+Google OAuth est orchestré par le backend. Le secret client Google n'est jamais
+fourni au frontend. Après le callback, Laravel exige un email vérifié, lie ou crée le
+compte local puis établit la même session Sanctum. Un compte Google ne reçoit aucun
+rôle privilégié du fournisseur : les rôles et l'organisation sont attribués
+uniquement par la plateforme. Dans le périmètre actuel, Microsoft OAuth est différé.
+
+Les mots de passe locaux sont hashés par le mécanisme Laravel. Les formulaires de
+récupération répondent de manière générique afin de limiter l'énumération des
+comptes. Les comptes exclusivement Google n'affichent pas une action de changement
+de mot de passe tant qu'une authentification locale n'a pas été activée.
+
+\subsection{Autorisation et périmètre organisationnel}
+
+L'autorisation repose sur trois niveaux complémentaires :
+
+\begin{enumerate}[leftmargin=8mm]
+  \item les permissions Spatie décrivent les capacités d'un rôle ;
+  \item les policies contrôlent l'action sur la ressource concrète ;
+  \item \texttt{canAccessOrganization} et les filtres de requête garantissent le
+  périmètre de données.
+\end{enumerate}
+
+\begin{table}[H]
+  \centering
+  \caption{Périmètre d'accès des rôles}
+  \label{tab:role-data-scope}
+  \begin{tabularx}{\textwidth}{@{}p{2.8cm}p{3.3cm}Y@{}}
+    \toprule
+    \textbf{Rôle} & \textbf{Association} & \textbf{Périmètre}\\
+    \midrule
+    Super administrateur & Global, sans organisation &
+    Organisations, intégrations, audit et commerce SaaS selon ses permissions.\\
+    Administrateur & Une organisation &
+    Employés, clients, actifs, tarifs, commerce et rapports de son organisation.\\
+    Opérateur & Une organisation &
+    Stations, connecteurs, sessions, alertes, maintenances et interventions de son
+    organisation.\\
+    Technicien & Une organisation &
+    Consultation des actifs et traitement des alertes, interventions ou maintenances
+    autorisées, sans création de station.\\
+    Client & Global, sans organisation &
+    Stations publiques et uniquement ses propres tentatives, sessions, paiements,
+    abonnements et notifications.\\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Le frontend adapte la navigation, mais l'absence d'un bouton ne constitue jamais une
+autorisation. Chaque endpoint sensible appelle une policy. L'administrateur ne peut
+pas gérer les employés d'une autre organisation, changer son propre rôle, désactiver
+son propre compte ni supprimer le dernier administrateur actif. Les identifiants
+présents dans l'URL sont donc revalidés afin de prévenir les accès directs de type
+IDOR.
+
+\subsection{Sécurité des frontières OCPP}
+
+Deux niveaux protègent la communication des bornes :
+
+\begin{itemize}[leftmargin=7mm]
+  \item la borne utilise une identité OCPP et un secret Basic Auth. Pour une borne
+  externe, le secret aléatoire est affiché une seule fois et seul son hash est
+  stocké ;
+  \item la passerelle signe ses requêtes internes avec HMAC-SHA256 sur le corps
+  exact, un timestamp Unix et un identifiant UUID.
+\end{itemize}
+
+Laravel rejette les signatures invalides, les timestamps trop anciens et les UUID
+déjà utilisés. L'identifiant métier de l'événement rend également l'ingestion
+idempotente : une répétition identique retourne l'enregistrement existant, tandis
+qu'un même identifiant associé à un contenu différent est refusé. Les payloads de
+commandes sont chiffrés au repos et expirent. Un seul gateway peut réclamer une
+commande en attente.
+
+HMAC garantit l'intégrité et l'authenticité du service, mais pas la confidentialité.
+En production, la borne utilise donc \texttt{wss://} et le gateway communique avec
+Laravel par HTTPS ou au sein d'un réseau privé chiffré. Le secret partagé du
+simulateur n'est acceptable que dans l'environnement local ; chaque borne physique
+doit recevoir un secret individuel.
+
+\subsection{Sécurité du paiement}
+
+Le simulateur n'accepte aucune carte réelle. L'API externe reçoit une référence, un
+montant, une devise, un résultat de simulation et une clé d'idempotence. Le webhook
+retour est signé et limité en fréquence. \texttt{PaymentProviderEvent} conserve
+l'identifiant du fournisseur, la signature vérifiée et le résultat de
+réconciliation. Les règles suivantes s'appliquent :
+
+\begin{itemize}[leftmargin=7mm]
+  \item aucune confirmation du frontend ne marque directement un paiement comme
+  réussi ;
+  \item un webhook invalide n'est pas traité ;
+  \item une répétition valide ne produit pas une seconde opération ;
+  \item un délai ou une indisponibilité technique est distingué d'un refus métier ;
+  \item les secrets, numéros de carte et payloads sensibles ne sont jamais journalisés.
+\end{itemize}
+
+L'intégration d'un prestataire réel nécessitera en plus la conformité aux exigences
+du fournisseur, TLS public, une politique de remboursement, la réconciliation
+financière et, selon le mode choisi, l'externalisation complète des données de carte.
+
+\subsection{Validation, limitation et gestion des erreurs}
+
+Les écritures utilisent des Form Requests et retournent une erreur métier contrôlée
+plutôt qu'une trace SQL ou une exception interne. Des buckets de limitation
+indépendants empêchent un parcours public de bloquer un autre :
+
+\begin{table}[H]
+  \centering
+  \caption{Principales limites applicatives}
+  \label{tab:rate-limits}
+  \begin{tabularx}{\textwidth}{@{}Y p{3.1cm}Y@{}}
+    \toprule
+    \textbf{Flux} & \textbf{Limite} & \textbf{Clé}\\
+    \midrule
+    Demande de démonstration & 3 par heure & Adresse IP\\
+    Inspection d'invitation & 10 par minute & Adresse IP\\
+    Acceptation d'invitation & 5 par minute & IP et hash de l'email\\
+    Gestion des invitations employé & 10 par minute & Utilisateur authentifié\\
+    API interne OCPP & 600 par minute & Adresse de la passerelle\\
+    Webhook de paiement & 120 par minute & Adresse du fournisseur\\
+    Changement de mot de passe & 5 par minute & Session authentifiée\\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+La déduplication métier complète le throttling. Par exemple, une demande récente
+ayant la même identité n'est pas recréée, et les alertes automatiques utilisent une
+clé stable. Cette combinaison traite à la fois les abus volumétriques et les doubles
+clics légitimes.
+
+\subsection{Secrets, fichiers et journalisation}
+
+Les fichiers \texttt{.env} contiennent les clés Laravel, Google, Resend, Reverb,
+OCPP et paiement. Ils sont ignorés par Git ; seuls les \texttt{.env.example} sans
+valeurs privées sont versionnés. Le frontend ne reçoit que les paramètres publics
+préfixés \texttt{VITE\_}. Les secrets de bornes, tokens OAuth, mots de passe,
+en-têtes \texttt{Authorization} et signatures ne doivent pas apparaître dans les
+logs.
+
+Les photos d'intervention, rapports et documents techniques utilisent le disque
+Laravel privé. Un contrôleur autorisé lit le fichier et le diffuse après policy ;
+une URL de stockage publique ne contourne donc pas le périmètre organisationnel. Les
+types MIME, tailles et extensions sont validés avant enregistrement.
+
+\texttt{PlatformAuditLog} conserve les actions sensibles : gestion de comptes et
+rôles, changement de paramètres, commissioning, rotation de credentials, tarifs,
+abonnements et états financiers. L'auteur, l'organisation, la cible, l'action et un
+résumé sont enregistrés sans inclure le secret modifié. Une tâche quotidienne
+applique la politique de rétention.
+
+\subsection{Analyse synthétique des risques}
+
+\begin{longtable}{@{}p{3.2cm}p{4.4cm}p{6.6cm}@{}}
+  \caption{Risques principaux et mesures de réduction}
+  \label{tab:security-risk-summary}\\
+  \toprule
+  \textbf{Risque} & \textbf{Exemple} & \textbf{Mesures}\\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Risque} & \textbf{Exemple} & \textbf{Mesures}\\
+  \midrule
+  \endhead
+  Vol de session & Script lisant un token du navigateur &
+  Cookie HttpOnly, Sanctum stateful, CSRF, rotation et TLS.\\
+  IDOR multi-tenant & Accès à \texttt{/stations/11} d'une autre organisation &
+  Policies, scoping organisationnel, tests d'isolation.\\
+  Rejeu OCPP & Réémission d'un événement signé &
+  Timestamp, UUID de requête, HMAC et identifiant d'événement idempotent.\\
+  Faux paiement & Callback frontend ou webhook forgé &
+  Confirmation serveur, signature HMAC et événements fournisseur uniques.\\
+  Double facturation & Répétition d'une capture après timeout &
+  Clés d'idempotence et réconciliation persistée.\\
+  Exposition documentaire & URL publique d'une photo technique &
+  Stockage privé, validation et téléchargement soumis à policy.\\
+  Secret dans Git & Commit d'un client secret OAuth &
+  \texttt{.gitignore}, exemples vides et injection par environnement.\\
+  Déni de service logique & Soumission répétée de demandes ou invitations &
+  Rate limiting indépendant, honeypot et déduplication.\\
+  \bottomrule
+\end{longtable}
+
+\subsection{Limites de sécurité du prototype}
+
+Le socle protège les parcours implémentés, mais ne remplace pas un audit de
+production. Il reste notamment à automatiser un scan des dépendances, renforcer les
+en-têtes HTTP, exécuter des tests de charge OCPP, définir la rotation des secrets,
+déployer une terminaison TLS, superviser les processus et tester les sauvegardes.
+Une borne physique et un fournisseur de paiement réel devront être homologués
+séparément. Ces limites sont documentées afin de ne pas confondre un MVP sécurisé
+par conception avec une certification d'exploitation.

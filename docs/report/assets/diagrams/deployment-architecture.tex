@@ -1,0 +1,42 @@
+\begin{tikzpicture}[
+  font=\sffamily\small,
+  process/.style={
+    draw=ctline, rounded corners=2mm, thick, fill=white,
+    minimum width=34mm, minimum height=13mm, align=center
+  },
+  hostproc/.style={process, draw=ctgreen, fill=ctmint},
+  container/.style={process, draw=ctblue, fill=blue!5},
+  optional/.style={process, dashed, draw=ctgray, fill=gray!4},
+  flow/.style={{Latex[length=2.2mm]}-{Latex[length=2.2mm]}, thick, draw=ctgray},
+  zone/.style={draw=ctline, rounded corners=3mm, dashed, inner sep=6mm}
+]
+  \node[hostproc] (vite) at (0,2.2) {Vite\\\texttt{:5173}};
+  \node[hostproc] (laravel) at (5.0,2.2) {Laravel API\\\texttt{:8000}};
+  \node[hostproc] (reverb) at (10.0,2.2) {Reverb\\\texttt{:8080}};
+  \node[hostproc] (worker) at (2.5,-0.1) {Queue worker};
+  \node[hostproc] (scheduler) at (7.5,-0.1) {Scheduler};
+
+  \node[container] (postgres) at (0,-4.2) {PostgreSQL\\\texttt{:5432}};
+  \node[optional] (redis) at (5.0,-4.2) {Redis optionnel\\\texttt{:6379}};
+  \node[optional] (mailpit) at (10.0,-4.2) {Mailpit optionnel\\\texttt{:8025/1025}};
+  \node[container] (gateway) at (0,-6.8) {Gateway OCPP\\\texttt{:9000}};
+  \node[container] (sap) at (5.0,-6.8) {Simulateur SAP\\\texttt{:8082}};
+  \node[container] (wiremock) at (10.0,-6.8) {WireMock\\\texttt{:9090}};
+
+  \draw[flow] (vite) -- (laravel);
+  \draw[flow] (vite) to[bend left=18] (reverb);
+  \draw[flow] (laravel) -- (reverb);
+  \draw[flow] (laravel) -- (worker);
+  \draw[flow] (laravel) -- (scheduler);
+  \draw[flow] (laravel.south) to[out=-115,in=75] (postgres.north);
+  \draw[dashed, flow] (laravel) -- (redis);
+  \draw[dashed, flow] (worker.south) to[out=-35,in=160] (mailpit.west);
+  \draw[flow] (laravel.south) to[out=-145,in=70] (gateway.north);
+  \draw[flow] (gateway) -- (sap);
+  \draw[flow] (laravel.south east) to[out=-35,in=95] (wiremock.north);
+
+  \node[zone, fit=(vite)(laravel)(reverb)(worker)(scheduler),
+    label={[ctgreen]above:\textbf{Processus hôte}}] {};
+  \node[zone, fit=(postgres)(redis)(mailpit)(gateway)(sap)(wiremock),
+    label={[ctblue]above:\textbf{Docker Desktop / WSL2}}] {};
+\end{tikzpicture}

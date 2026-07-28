@@ -1,0 +1,31 @@
+\begin{tikzpicture}[
+  font=\sffamily\scriptsize,
+  participant/.style={draw=ctline, rounded corners=1.5mm, fill=white,
+    minimum width=27mm, minimum height=9mm, align=center},
+  call/.style={-{Latex[length=2mm]}, thick, draw=ctgray},
+  return/.style={-{Latex[length=2mm]}, dashed, draw=ctgreen}
+]
+  \node[participant] (visitor) at (0,0) {Visiteur};
+  \node[participant] (react) at (3.2,0) {React};
+  \node[participant] (laravel) at (6.4,0) {Laravel};
+  \node[participant] (db) at (9.6,0) {PostgreSQL};
+  \node[participant] (mail) at (12.8,0) {Service email};
+  \node[participant] (admin) at (16,0) {Super admin};
+
+  \foreach \x in {0,3.2,6.4,9.6,12.8,16}
+    \draw[densely dashed, ctline] (\x,-0.5) -- (\x,-6.2);
+
+  \draw[call] (0,-0.9) -- node[above]{Envoyer la demande} (3.2,-0.9);
+  \draw[call] (3.2,-1.25) -- node[above]{POST \texttt{/demo-requests}} (6.4,-1.25);
+  \draw[call] (6.4,-1.6) -- node[above]{Valider et enregistrer} (9.6,-1.6);
+  \draw[call] (6.4,-2.0) -- node[above]{Accusé de réception} (12.8,-2.0);
+  \draw[return] (12.8,-2.35) -- (0,-2.35);
+  \draw[call] (16,-2.8) -- node[above]{Lancer la revue} (6.4,-2.8);
+  \draw[call] (16,-3.2) -- node[above]{Accepter et provisionner} (6.4,-3.2);
+  \draw[call] (6.4,-3.65) -- node[above, align=center]{Transaction : organisation, essai,\\admin pending, invitation hashée} (9.6,-3.65);
+  \draw[call] (6.4,-4.25) -- node[above]{Envoyer le lien d'activation} (12.8,-4.25);
+  \draw[return] (12.8,-4.65) -- node[above]{Lien temporaire} (0,-4.65);
+  \draw[call] (0,-5.1) -- node[above]{Choisir le mot de passe} (6.4,-5.1);
+  \draw[call] (6.4,-5.55) -- node[above]{Activer et consommer le token} (9.6,-5.55);
+  \draw[return] (6.4,-5.95) -- node[above]{Accès à l'onboarding} (3.2,-5.95);
+\end{tikzpicture}

@@ -1,0 +1,150 @@
+\section{Modèle de données et diagrammes de classes}
+
+\subsection{Principes de modélisation}
+
+Le schéma relationnel est organisé autour de l'organisation, de la station et de la
+session. La majorité des enregistrements opérationnels possèdent un
+\texttt{organization\_id}. Cette redondance contrôlée permet de filtrer rapidement
+les requêtes, d'appliquer les policies et de conserver le périmètre d'une preuve
+même lorsque l'association technique est chargée séparément.
+
+Le modèle distingue les événements immuables des projections modifiables. Les
+journaux OCPP, d'alertes, d'interventions, d'abonnements et d'audit expliquent
+l'historique ; \texttt{Station}, \texttt{Connector}, \texttt{Alert} ou
+\texttt{ChargingSession} portent l'état courant nécessaire à l'interface. Ce choix
+ne constitue pas un \emph{event sourcing} complet : les événements les plus
+critiques sont conservés, mais les agrégats restent persistés directement.
+
+Les montants sont stockés en \textbf{millimes entiers} afin d'éviter les erreurs
+d'arrondi des nombres flottants. Les dates techniques sont normalisées en UTC ;
+le fuseau du compte sert uniquement à l'affichage. Les suppressions logiques sont
+utilisées pour les actifs et tarifs qui doivent rester référencés par l'historique.
+
+\subsection{Identité, actifs et recharge}
+
+La figure~\ref{fig:core-domain-model} présente le noyau qui relie l'organisation,
+les utilisateurs, les bornes, OCPP, la session et le paiement. Pour alléger la
+figure, toutes les associations organisationnelles secondaires ne sont pas
+dessinées ; leur présence est signalée par l'attribut \texttt{organization\_id}.
+
+\begin{landscape}
+\begin{figure}[p]
+  \centering
+  \resizebox{0.96\linewidth}{!}{\input{assets/diagrams/core-domain-model}}
+  \caption{Diagramme de classes conceptuel du noyau station--recharge}
+  \label{fig:core-domain-model}
+\end{figure}
+\end{landscape}
+
+\subsubsection{Organisation et utilisateur}
+
+Une organisation possède ses employés, stations, tarifs, plans, sessions,
+paiements et opérations. Un utilisateur porte exactement un rôle principal.
+\texttt{admin}, \texttt{operator} et \texttt{technician} appartiennent à une seule
+organisation active. \texttt{super\_admin} et \texttt{client} sont globaux et
+conservent \texttt{organization\_id} à \texttt{null}. Le client peut néanmoins
+utiliser les bornes de plusieurs organisations : la relation est portée par ses
+sessions et abonnements, pas par son compte.
+
+\subsubsection{Station et connecteur}
+
+Une station appartient à une organisation et possède un ou plusieurs connecteurs.
+Elle contient à la fois les données d'inventaire, la dernière preuve OCPP et la
+projection de disponibilité. Le connecteur associe un libellé lisible, un identifiant
+OCPP, un type physique, un courant, une puissance et deux statuts : brut et métier.
+L'unicité de l'identifiant OCPP est imposée dans le périmètre de la station.
+
+\subsubsection{Transaction et session}
+
+\texttt{OcppTransaction} représente la transaction du protocole, même si elle est
+refusée. Elle référence ses événements de début et de fin et contient plusieurs
+\texttt{OcppMeterSample}. \texttt{ChargingSession} n'existe que pour une transaction
+acceptée et conserve le client, l'énergie, le coût, les limites et les instantanés
+de tarification. Une session possède au plus un paiement final.
+
+\subsection{Exploitation et commerce}
+
+La figure~\ref{fig:supporting-domain-model} regroupe les agrégats qui complètent le
+noyau : traitement des incidents, documents, tarification, abonnements clients et
+contrat commercial de l'organisation.
+
+\begin{landscape}
+\begin{figure}[p]
+  \centering
+  \resizebox{0.96\linewidth}{!}{\input{assets/diagrams/supporting-domain-model}}
+  \caption{Diagramme de classes conceptuel des domaines d'exploitation et commerciaux}
+  \label{fig:supporting-domain-model}
+\end{figure}
+\end{landscape}
+
+\subsubsection{Agrégat d'exploitation}
+
+Une alerte appartient à une station et, éventuellement, à un connecteur. Elle
+possède un historique et peut produire plusieurs interventions dans le temps. Une
+intervention peut également provenir d'un plan de maintenance. L'assignation pointe
+vers un technicien de la même organisation. Les photos, le rapport structuré et les
+documents polymorphes constituent les preuves terrain.
+
+\subsubsection{Agrégat de tarification client}
+
+Un tarif appartient à une organisation et possède plusieurs affectations. Une
+affectation cible soit une station, soit un connecteur. Un plan de recharge décrit
+une offre client ; \texttt{PlanSubscription} relie un client global à ce plan et à
+l'organisation. Les factures d'abonnement client sont distinctes des paiements
+d'une session de recharge.
+
+\subsubsection{Agrégat commercial SaaS}
+
+\texttt{SaasPlan} définit les droits vendus aux organisations.
+\texttt{OrganizationSubscription} matérialise l'essai, l'offre active, la période de
+grâce ou la suspension. Ses événements assurent la traçabilité du cycle de vie, et
+\texttt{OrganizationInvoice} représente la facturation entre la plateforme et
+l'organisation. Cette modélisation évite de mélanger le conducteur qui paye une
+recharge et l'organisation qui paye l'accès au logiciel.
+
+\subsection{Contraintes et invariants principaux}
+
+\begin{longtable}{@{}p{3.7cm}p{10.8cm}@{}}
+  \caption{Invariants structurants du modèle}
+  \label{tab:domain-invariants}\\
+  \toprule
+  \textbf{Domaine} & \textbf{Invariant}\\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Domaine} & \textbf{Invariant}\\
+  \midrule
+  \endhead
+  Identité &
+  Un utilisateur actif possède exactement un rôle ; un rôle organisationnel exige
+  une organisation active, alors qu'un rôle global interdit cette association.\\
+  Multi-tenant &
+  Toute lecture ou écriture opérationnelle est limitée à l'organisation de
+  l'utilisateur, sauf permission explicite du super administrateur.\\
+  Commissioning &
+  La station et ses connecteurs sont créés dans une même transaction ; la référence
+  et l'identité OCPP sont uniques.\\
+  Disponibilité &
+  Le statut métier est dérivé des overrides et preuves OCPP récentes ; il n'est pas
+  saisi directement pour une station provisionnée.\\
+  Recharge &
+  Un client et un connecteur ne peuvent participer qu'à une tentative ou session
+  active à la fois.\\
+  OCPP &
+  Un \texttt{StartTransaction} refusé reste auditable mais ne crée pas de session
+  facturable.\\
+  Mesure &
+  L'énergie ne diminue jamais ; le compteur effectif est le maximum entre le départ,
+  la dernière mesure et le compteur reçu.\\
+  Paiement &
+  Chaque opération possède une clé d'idempotence ; un événement fournisseur est
+  traité une seule fois.\\
+  Tarification &
+  Le tarif et la remise sont figés au début de la session.\\
+  Intervention &
+  Le technicien assigné, la station et l'intervention appartiennent à la même
+  organisation.\\
+  Documents &
+  Le contenu privé n'est jamais exposé par une URL publique permanente.\\
+  \bottomrule
+\end{longtable}

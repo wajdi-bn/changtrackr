@@ -1,0 +1,308 @@
+\section{Conception détaillée}
+
+\subsection{Identité, demandes de démonstration et invitations}
+
+Trois parcours créent des comptes, chacun avec une règle différente :
+
+\begin{enumerate}[leftmargin=8mm]
+  \item un visiteur peut créer directement un compte \textbf{client}. L'adresse doit
+  être vérifiée avant la connexion locale ;
+  \item un client peut utiliser Google OAuth. L'identité Google est liée à un compte
+  local, mais ne fournit ni rôle ni organisation ;
+  \item un administrateur, opérateur ou technicien est toujours créé par invitation.
+  Le destinataire active lui-même son compte et choisit son mot de passe.
+\end{enumerate}
+
+La demande de démonstration constitue l'entrée commerciale d'une organisation. Le
+visiteur renseigne ses coordonnées, la société, la taille du réseau et plusieurs
+objectifs opérationnels. Une confirmation est envoyée au demandeur sans lien
+interne. Le super administrateur ouvre ensuite la demande, la rejette ou lance sa
+revue. Une acceptation provisionne, dans une transaction, l'organisation, son
+administrateur en état \texttt{pending}, l'essai commercial et une invitation
+temporaire. Le compte ne devient actif qu'après acceptation du lien à usage unique.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{0.96\textwidth}{!}{\input{assets/diagrams/account-provisioning-sequence}}
+  \caption{Provisionnement d'une organisation à partir d'une demande de démonstration}
+  \label{fig:account-provisioning-sequence}
+\end{figure}
+
+Les invitations suivent les invariants suivants :
+
+\begin{itemize}[leftmargin=7mm]
+  \item le token aléatoire n'est envoyé qu'une fois et seul son condensat SHA-256 est
+  stocké ;
+  \item le lien possède une expiration et devient inutilisable après acceptation,
+  révocation ou remplacement ;
+  \item un rappel renouvelle le token, car sa valeur originale ne peut pas être
+  récupérée ;
+  \item un administrateur ne peut inviter que des opérateurs ou techniciens de son
+  organisation ;
+  \item l'utilisateur invité choisit son secret ; l'administrateur ne connaît jamais
+  son mot de passe.
+\end{itemize}
+
+\subsection{Mise en service d'une station}
+
+Le commissioning rassemble la station, son emplacement, son matériel, ses
+connecteurs et sa cible OCPP dans un assistant unique. La création est atomique :
+si une référence, une identité OCPP ou un connecteur est invalide, aucune partie
+incomplète n'est conservée.
+
+\begin{table}[H]
+  \centering
+  \caption{Cibles de mise en service OCPP}
+  \label{tab:commissioning-targets}
+  \begin{tabularx}{\textwidth}{@{}p{3.5cm}Y Y@{}}
+    \toprule
+    \textbf{Cible} & \textbf{Comportement} & \textbf{Usage}\\
+    \midrule
+    Borne physique ou externe &
+    Génération d'un secret Basic Auth individuel de 48 caractères, affiché une
+    seule fois et stocké uniquement sous forme de hash. &
+    Intégration future d'un chargeur réel ou d'un simulateur tiers.\\
+    Simulateur SAP local &
+    Création de l'inventaire puis ajout du profil au manifeste local par une commande
+    Artisan dédiée. &
+    Tests reproductibles du stage.\\
+    Inventaire seul &
+    Création sans identité ni secret OCPP. L'état reste non disponible jusqu'au
+    provisioning. &
+    Préparation administrative d'un futur actif.\\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+La référence interne et l'identité OCPP peuvent différer, mais leur égalité simplifie
+l'exploitation. Le libellé \texttt{A1} d'un connecteur est destiné à l'utilisateur ;
+\texttt{ocpp\_connector\_id} est l'entier réellement transmis par la borne. Pour le
+simulateur SAP, ces identifiants doivent être contigus à partir de 1. Après
+provisionnement, la borne se connecte à
+\texttt{/ocpp/<identité>} avec le sous-protocole \texttt{ocpp1.6}.
+
+\subsection{Ingestion OCPP et disponibilité calculée}
+
+\subsubsection{Séparation entre preuve brute et projection métier}
+
+Un statut reçu de la borne n'est pas directement présenté comme vérité métier.
+L'événement complet est d'abord enregistré dans \texttt{ocpp\_events}. Les champs
+\texttt{ocpp\_*} de la station et du connecteur forment ensuite une projection
+technique, tandis que les champs \texttt{status}, \texttt{availability\_reason} et
+\texttt{availability\_source} constituent la projection métier.
+
+Cette séparation apporte trois garanties :
+
+\begin{itemize}[leftmargin=7mm]
+  \item un événement tardif ne remplace pas une preuve plus récente ;
+  \item les règles peuvent évoluer sans supprimer l'historique technique ;
+  \item chaque changement visible peut être expliqué par une transition et son
+  événement source.
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \resizebox{0.98\textwidth}{!}{\input{assets/diagrams/availability-pipeline}}
+  \caption{Chaîne de traitement d'un événement OCPP}
+  \label{fig:availability-pipeline}
+\end{figure}
+
+\subsubsection{Règles de disponibilité}
+
+La résolution applique les règles par priorité. Une décision manuelle ou une
+maintenance planifiée domine toujours la télémétrie. Ensuite, une fermeture
+WebSocket explicite ou 90 secondes sans message produit l'état
+\texttt{offline}. Le délai représente trois périodes de heartbeat de 30 secondes.
+Enfin, les états des connecteurs déterminent la capacité réelle de la station.
+
+\begin{longtable}{@{}p{1.0cm}p{5.2cm}p{3.5cm}p{4.4cm}@{}}
+  \caption{Matrice de décision de disponibilité}
+  \label{tab:availability-decision-matrix}\\
+  \toprule
+  \textbf{Prio.} & \textbf{Preuve ou règle} & \textbf{État station} &
+  \textbf{Conséquence}\\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Prio.} & \textbf{Preuve ou règle} & \textbf{État station} &
+  \textbf{Conséquence}\\
+  \midrule
+  \endhead
+  1 & Désactivation manuelle & \texttt{unavailable} &
+  Recharge interdite jusqu'à levée de l'override.\\
+  2 & Maintenance active & \texttt{maintenance} &
+  Indisponibilité planifiée et commande \texttt{ChangeAvailability}.\\
+  3 & Déconnexion ou silence supérieur à 90 secondes & \texttt{offline} &
+  Connecteurs hors ligne et alerte de communication.\\
+  4 & Au moins un connecteur \texttt{Available} & \texttt{available} &
+  Démarrage distant autorisé si l'organisation est active.\\
+  5 & Aucun libre, au moins un en transaction & \texttt{charging} &
+  Station vivante mais sans place libre correspondante.\\
+  6 & Aucun libre, au moins un réservé & \texttt{reserved} &
+  Réservation visible ; recharge publique non immédiate.\\
+  7 & Aucun utilisable, au moins un \texttt{Faulted} & \texttt{faulted} &
+  Alerte de défaut dédupliquée.\\
+  8 & Connectée sans preuve exploitable & \texttt{unavailable} &
+  Attente d'un \texttt{StatusNotification} valide.\\
+  \bottomrule
+\end{longtable}
+
+Chaque variation de l'état, de la raison ou de la source crée une
+\texttt{AvailabilityTransition}. Les alertes automatiques utilisent une clé de
+déduplication stable : la même panne ne crée pas une série d'alertes identiques,
+mais une récurrence après résolution rouvre le suivi. L'événement
+\texttt{StationAvailabilityChanged} invalide les vues React concernées via Reverb.
+
+\subsection{Parcours de recharge et transaction OCPP}
+
+\subsubsection{Assistant côté client}
+
+Le parcours client suit cinq étapes afin de correspondre aux actions physiques :
+
+\begin{enumerate}[leftmargin=8mm]
+  \item choisir une station publique disponible ou ouvrir directement une station ;
+  \item sélectionner un connecteur compatible et libre ;
+  \item brancher le câble ; l'interface attend réellement le statut OCPP
+  \texttt{Preparing} et n'utilise pas une confirmation manuelle ;
+  \item choisir le moyen de paiement et, facultativement, une limite d'énergie, de
+  montant ou de durée ;
+  \item autoriser le paiement puis demander le démarrage distant.
+\end{enumerate}
+
+Le rayon \emph{Near me} est une préférence de compte. La géolocalisation n'est
+demandée qu'après une action explicite et reste dans le navigateur. Un QR de
+connecteur contient un lien profond vers la station et le connecteur ; il ne
+contient ni idTag, ni secret OCPP, ni jeton de paiement.
+
+\subsubsection{Tentative, session et transaction}
+
+Trois objets distincts évitent de facturer une énergie qui n'a pas été délivrée :
+
+\begin{description}[leftmargin=34mm,style=nextline]
+  \item[\texttt{ChargingAttempt}] intention du client, préautorisation et commande de
+  démarrage ;
+  \item[\texttt{OcppTransaction}] preuve technique issue de la borne ;
+  \item[\texttt{ChargingSession}] session métier créée seulement après un
+  \texttt{StartTransaction} accepté.
+\end{description}
+
+\begin{landscape}
+\begin{figure}[p]
+  \centering
+  \resizebox{0.95\linewidth}{!}{\input{assets/diagrams/charging-payment-sequence}}
+  \caption{Séquence de recharge distante et paiement simulé}
+  \label{fig:charging-payment-sequence}
+\end{figure}
+\end{landscape}
+
+Une préautorisation réussie ne prouve donc pas que la recharge a commencé. Laravel
+crée une commande \texttt{RemoteStartTransaction} chiffrée au repos et limitée dans
+le temps. La passerelle la réclame, l'envoie à la connexion active, puis retourne le
+résultat. Seul le \texttt{StartTransaction} ultérieur crée la session facturable.
+Les \texttt{MeterValues} actualisent l'énergie, la puissance, l'état de charge et
+l'estimation de coût. Une limite atteinte produit une commande
+\texttt{RemoteStopTransaction}.
+
+L'arrêt manuel du client suit le même mécanisme distant. Le
+\texttt{StopTransaction} final fournit le compteur et la raison de fin. Si la borne
+se déconnecte avant ce message, la transaction passe en
+\texttt{awaiting\_reconciliation} et la session est interrompue sans inventer de
+compteur final. Un message tardif peut la réconcilier.
+
+\subsection{Paiement et reçu}
+
+Le paiement applique le patron \textbf{Adapter}. Le domaine dépend de
+\texttt{PaymentGateway}, pas d'un fournisseur. Le contrat expose quatre opérations :
+préautoriser, capturer, libérer et débiter. Deux implémentations existent :
+
+\begin{itemize}[leftmargin=7mm]
+  \item \texttt{SimulatedPaymentAdapter}, rapide et déterministe pour les tests ;
+  \item \texttt{WireMockPaymentAdapter}, qui appelle une API HTTP externe simulée.
+\end{itemize}
+
+WireMock reproduit quatre résultats : succès, refus métier, délai dépassé et erreur
+fournisseur. Les callbacks portent une signature HMAC-SHA256. Laravel vérifie la
+signature, enregistre l'identifiant fournisseur une seule fois et protège chaque
+opération par une clé d'idempotence. Une répétition du webhook ne peut donc ni
+capturer deux fois le paiement ni doubler le chiffre d'affaires.
+
+La préautorisation par défaut est de 30 TND et expire après 15 minutes. Elle est
+libérée si la station refuse le démarrage ou si la tentative expire. Après
+\texttt{StopTransaction}, le worker capture uniquement le montant final calculé à
+partir du tarif figé au démarrage. Le reçu PDF est généré côté serveur à partir de
+la session et du paiement persistés. Il peut être prévisualisé ou téléchargé sans
+exposer les données d'un autre client.
+
+\subsection{Alertes, interventions et maintenance}
+
+Ces trois notions appartiennent au même cycle opérationnel mais répondent à des
+questions différentes :
+
+\begin{description}[leftmargin=31mm,style=nextline]
+  \item[Alerte] Quel problème a été détecté, avec quelle gravité et quel SLA ?
+  \item[Intervention] Qui traite concrètement ce problème, quand et avec quelles
+  preuves ?
+  \item[Maintenance] Quelle action préventive ou corrective doit être planifiée,
+  éventuellement de façon récurrente ?
+\end{description}
+
+\begin{figure}[H]
+  \centering
+  \resizebox{0.96\textwidth}{!}{\input{assets/diagrams/operations-lifecycle}}
+  \caption{Cycle opérationnel des alertes, interventions et maintenances}
+  \label{fig:operations-lifecycle}
+\end{figure}
+
+L'opérateur qualifie l'alerte, assigne un technicien et peut créer une intervention.
+Le technicien accepte le travail, ajoute notes, diagnostic, photos avant/après et
+rapport, puis indique sa résolution. L'opérateur contrôle les preuves et clôture le
+suivi. Les changements sont conservés dans des journaux d'événements, et les
+notifications SLA sont dédupliquées pour ne pas produire de rappels multiples.
+
+Une maintenance peut exister sans alerte, par exemple un contrôle trimestriel. Le
+scheduler génère ses occurrences et peut les transformer en interventions
+assignées. À l'inverse, une intervention corrective peut être créée directement
+depuis une alerte. Les documents et photos sont conservés sur un disque privé et
+servis uniquement après vérification de policy.
+
+\subsection{Tarification, plans et gestion commerciale}
+
+La conception distingue deux marchés qui ne doivent pas être mélangés :
+
+\begin{itemize}[leftmargin=7mm]
+  \item le \textbf{tarif de recharge} appartient à l'organisation exploitante et
+  calcule le coût d'une session selon le kWh, les frais de session, l'inactivité et
+  un minimum ;
+  \item le \textbf{plan client} est un abonnement du conducteur à une organisation
+  et peut fournir une remise. Un client peut posséder plusieurs abonnements auprès
+  d'organisations différentes ;
+  \item le \textbf{plan SaaS} est le contrat entre la plateforme et une organisation.
+  Il fixe notamment les limites d'employés et de stations.
+\end{itemize}
+
+Le tarif effectif est résolu du plus spécifique au plus général : affectation au
+connecteur, à la station, puis tarif par défaut de l'organisation. Lors du démarrage,
+la session conserve un instantané du tarif et du plan client. Une modification
+ultérieure ne change donc pas rétroactivement une recharge en cours.
+
+La demande de démonstration crée un essai commercial. À l'échéance, le cycle de vie
+peut entrer en période de grâce, être activé sur une offre ou suspendre les
+opérations dépassant les droits. Le super administrateur gère le catalogue SaaS,
+les essais et les factures ; l'administrateur d'organisation ne consulte que son
+contrat, son usage et ses demandes de changement.
+
+\subsection{Rapports, documents et exports}
+
+Les analyses ne sont pas un écran générique dont seules les valeurs changent. Le
+super administrateur suit l'adoption et le portefeuille d'organisations ;
+l'administrateur suit les revenus et les capacités ; l'opérateur suit la
+disponibilité, les incidents et l'énergie ; le technicien suit ses SLA et résultats
+terrain. Les contrôleurs de reporting exposent donc des contrats distincts
+\texttt{platform}, \texttt{organization}, \texttt{operations} et \texttt{field}.
+
+Les exports CSV et JSON utilisent les mêmes filtres et le même périmètre que la vue.
+Les PDF sont générés côté serveur afin de garantir une identité visuelle stable et
+une source vérifiée. Les rapports internes possèdent un émetteur, un destinataire,
+un statut, des pièces jointes privées et une version PDF. Ils permettent les
+passations entre employés et l'envoi d'un bilan à l'administrateur sans utiliser un
+canal externe non audité.

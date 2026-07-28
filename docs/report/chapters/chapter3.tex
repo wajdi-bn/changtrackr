@@ -1,83 +1,30 @@
 \chapter{Conception}
 
-\section{Introduction}
-\plannedcontent{Présenter les décisions de conception qui traduisent les besoins en une
-solution modulaire, sécurisée et extensible.}
+\section*{Introduction}
+Le chapitre précédent a défini ce que la plateforme doit accomplir. Le présent
+chapitre décrit comment ces besoins sont traduits en composants, contrats,
+processus et données. Les choix présentés ne constituent pas une architecture
+théorique : ils sont alignés sur les dépendances, les services, les routes et les
+modèles présents dans le dépôt au moment de la rédaction.
 
-\section{Conception générale}
+La conception poursuit quatre objectifs : séparer les responsabilités métier des
+adaptateurs techniques, conserver une source de vérité unique, isoler strictement
+les organisations et rendre les intégrations remplaçables. Cette démarche conduit
+à un monolithe Laravel modulaire complété par une application React, une passerelle
+OCPP spécialisée et des services d'infrastructure indépendants.
 
-\subsection{Architecture physique}
+\input{chapters/chapter3/architecture}
+\input{chapters/chapter3/detailed-design}
+\input{chapters/chapter3/domain-model}
+\input{chapters/chapter3/security}
 
-\subsubsection{Architecture client-serveur}
-\plannedcontent{Décrire les échanges HTTPS entre l'application React et l'API Laravel,
-les connexions WebSocket de l'interface et des bornes, puis les services externes.}
-
-\subsubsection{Modèle en couches}
-\plannedcontent{Présenter les couches présentation, API et métier, persistance, services
-asynchrones, temps réel, gateway OCPP et simulateurs.}
-
-\subsubsection{Architecture de déploiement}
-\plannedcontent{Montrer les processus nécessaires : frontend, backend, PostgreSQL, cache,
-queue worker, scheduler, Reverb, gateway OCPP, simulateur de borne et simulateur de
-paiement.}
-
-\subsection{Architecture logique}
-
-\subsubsection{Architecture technique}
-\plannedcontent{Insérer le diagramme technique final synchronisé avec les dépendances et
-les variables d'environnement réellement utilisées.}
-
-\subsubsection{Architecture logicielle}
-\plannedcontent{Expliquer l'organisation frontend par fonctionnalités, les contrôleurs,
-policies, requests, resources et services Laravel, ainsi que les projections OCPP.}
-
-\subsubsection{Sécurité et isolation multi-tenant}
-\plannedcontent{Décrire Sanctum, Google OAuth, CSRF, permissions, policies, invitations,
-isolation par organisation, gestion des secrets et journaux d'audit.}
-
-\section{Conception détaillée}
-
-\subsection{Authentification, invitations et demande de démonstration}
-\plannedcontent{Description textuelle, scénario nominal, alternatives, règles de sécurité
-et diagrammes de séquence pour l'accès local, Google OAuth et l'activation par invitation.}
-
-\subsection{Mise en service d'une borne et de ses connecteurs}
-\plannedcontent{Création atomique, identité OCPP, association au simulateur local,
-configuration des connecteurs et cycle de commissioning.}
-
-\subsection{Connexion OCPP et calcul de disponibilité}
-\plannedcontent{BootNotification, Heartbeat, StatusNotification, MeterValues, délais de
-connectivité, projection des états et déclenchement des alertes.}
-
-\subsection{Recherche d'une borne et démarrage d'une recharge}
-\plannedcontent{Cartographie, filtre de distance, sélection de la borne et du connecteur,
-connexion physique, autorisation et RemoteStartTransaction.}
-
-\subsection{Suivi et arrêt d'une session}
-\plannedcontent{Mesures en temps réel, compteur d'énergie, estimation du coût, arrêt manuel
-ou distant, fin de transaction et mise à jour de la disponibilité.}
-
-\subsection{Paiement et génération du reçu}
-\plannedcontent{Adapter de paiement, préautorisation, capture, webhooks simulés,
-idempotence, erreurs, facture et extension future vers un prestataire réel.}
-
-\subsection{Alertes, interventions et maintenance}
-\plannedcontent{Détection, SLA, assignation, intervention, preuves, rapport, résolution et
-maintenance préventive ou corrective.}
-
-\subsection{Tarifs, plans et abonnements}
-\plannedcontent{Tarification de la recharge, plans clients liés aux organisations,
-abonnement commercial de l'organisation, limites d'usage et renouvellement.}
-
-\subsection{Rapports et exports}
-\plannedcontent{Rapports adaptés aux rôles, échange interne, pièces jointes, prévisualisation
-et export PDF, CSV ou JSON.}
-
-\section{Modèle de données et diagramme de classes}
-\plannedcontent{Présenter les agrégats Organisation, Utilisateur, Station, Connecteur,
-Session, Transaction OCPP, Paiement, Alerte, Intervention, Maintenance, Tarif, Abonnement,
-Rapport et Document, puis insérer le diagramme de classes final.}
-
-\section{Conclusion}
-\plannedcontent{Synthétiser la conception et introduire sa réalisation incrémentale.}
-
+\section*{Conclusion}
+La conception retenue combine la simplicité transactionnelle d'un monolithe
+modulaire et l'isolation d'une passerelle dédiée aux connexions OCPP longues. Les
+états métier ne sont jamais assimilés aux messages bruts des bornes : des services
+de projection reconstruisent la disponibilité, les sessions et les alertes à
+partir de preuves horodatées. La séparation par contrats rend le paiement, la
+messagerie et les équipements remplaçables, tandis que les policies et le
+\emph{scoping} organisationnel protègent les données. Le chapitre suivant montrera
+comment cette conception a été réalisée de façon incrémentale et validée par des
+tests.

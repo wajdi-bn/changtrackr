@@ -1,0 +1,27 @@
+\begin{tikzpicture}[
+  font=\sffamily\small,
+  pipelinebox/.style={draw=ctline, rounded corners=2mm, thick, fill=white,
+    minimum width=29mm, minimum height=13mm, align=center},
+  pipelinefocus/.style={pipelinebox, draw=ctgreen, fill=ctmint},
+  flow/.style={-{Latex[length=2.2mm]}, thick, draw=ctgray}
+]
+  \node[pipelinebox] (station) {Borne ou\\simulateur};
+  \node[pipelinebox, right=7mm of station] (gateway) {Passerelle\\OCPP};
+  \node[pipelinebox, right=7mm of gateway] (event) {Événement brut\\immuable};
+  \node[pipelinefocus, right=7mm of event] (project) {Projection\\technique};
+  \node[pipelinefocus, right=7mm of project] (rules) {Moteur de\\disponibilité};
+  \node[pipelinebox, right=7mm of rules] (business) {État métier +\\transition};
+  \node[pipelinebox, below=10mm of business] (alerts) {Alerte\\dédupliquée};
+  \node[pipelinebox, below=10mm of rules] (reverb) {Événement Reverb\\mis en queue};
+  \node[pipelinebox, below=10mm of project] (ui) {Carte, détail,\\tableaux de bord};
+
+  \draw[flow] (station) -- node[above, font=\scriptsize]{WS} (gateway);
+  \draw[flow] (gateway) -- node[above, font=\scriptsize]{HMAC} (event);
+  \draw[flow] (event) -- (project);
+  \draw[flow] (project) -- (rules);
+  \draw[flow] (rules) -- (business);
+  \draw[flow] (business) -- (alerts);
+  \draw[flow] (business) -- (reverb);
+  \draw[flow] (reverb) -- (ui);
+  \draw[flow] (alerts.south) -- ++(0,-5mm) -| (ui.south);
+\end{tikzpicture}

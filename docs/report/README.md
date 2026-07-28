@@ -28,5 +28,7 @@ preamble.tex     Mise en page et commandes communes
 main.tex         Point d'entrée
 ```
 
-Les chapitres 1 et 2 sont entièrement rédigés. Les blocs "Périmètre prévu" des
-chapitres suivants seront remplacés progressivement par le contenu validé.
+Les chapitres 1 à 3 sont entièrement rédigés. Le troisième chapitre documente
+l'architecture globale et locale, les séquences métier, les modèles de domaine,
+la sécurité et l'isolation multi-tenant. Les blocs "Périmètre prévu" des chapitres
+suivants seront remplacés progressivement par le contenu validé.

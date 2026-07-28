@@ -1,0 +1,66 @@
+\begin{tikzpicture}[
+  font=\sffamily\small,
+  component/.style={
+    draw=ctline, rounded corners=2mm, thick, fill=white,
+    minimum width=35mm, minimum height=13mm, align=center
+  },
+  core/.style={component, draw=ctgreen, fill=ctmint},
+  protocol/.style={component, draw=ctblue, fill=blue!5},
+  external/.style={component, dashed, draw=ctamber, fill=yellow!7},
+  storage/.style={component, draw=ctblue, fill=purple!5},
+  optional/.style={component, dashed, draw=ctgray, fill=gray!4},
+  flow/.style={-{Latex[length=2.3mm]}, thick, draw=ctgray},
+  bidir/.style={{Latex[length=2.3mm]}-{Latex[length=2.3mm]}, thick, draw=ctgray},
+  zone/.style={draw=ctline, rounded corners=3mm, dashed, inner sep=4mm}
+]
+  % Services externes : deux points d'entrée lisibles au lieu d'un réseau
+  % de flèches qui masquerait les composants applicatifs.
+  \node[external] (osm) at (0,3.2)
+    {\textbf{OpenStreetMap}\\tuiles cartographiques};
+  \node[external, minimum width=96mm] (services) at (13,3.2)
+    {\textbf{Services applicatifs externes}\\
+     Google OAuth 2.0 \quad|\quad Resend / SMTP \quad|\quad WireMock / futur PSP};
+
+  % Chaîne synchrone principale.
+  \node[component, fill=purple!7] (browser) at (0,0)
+    {\textbf{Navigateur}\\React + TypeScript};
+  \node[core] (api) at (6.5,0)
+    {\textbf{API Laravel}\\REST, policies, services};
+  \node[protocol] (gateway) at (13,0)
+    {\textbf{Passerelle OCPP}\\Python + WebSocket};
+  \node[external] (stations) at (19.5,0)
+    {\textbf{Bornes}\\physiques ou SAP};
+
+  % Services internes et persistance.
+  \node[core] (reverb) at (0,-3.0)
+    {\textbf{Reverb}\\canaux privés};
+  \node[core] (async) at (6.5,-3.0)
+    {\textbf{Worker + Scheduler}\\jobs et tâches};
+  \node[storage] (postgres) at (13,-3.0)
+    {\textbf{PostgreSQL}\\données, queue, cache};
+  \node[optional] (redis) at (19.5,-3.0)
+    {\textbf{Redis}\\optionnel};
+
+  % Flux principaux. Les protocoles ne sont indiqués que lorsqu'ils apportent
+  % une information d'architecture utile.
+  \draw[flow] (osm) -- (browser);
+  \draw[bidir] (browser) -- node[above, fill=white, inner sep=1pt]{HTTPS / JSON} (api);
+  \draw[bidir] (api) -- node[above, fill=white, inner sep=1pt]{HTTP signé HMAC} (gateway);
+  \draw[bidir] (gateway) -- node[above, fill=white, inner sep=1pt]{OCPP 1.6J} (stations);
+
+  \draw[bidir] (browser) -- node[left, fill=white, inner sep=1pt]{WebSocket} (reverb);
+  \draw[flow] (api) -- (async);
+  \draw[bidir] (async) -- (postgres);
+  \draw[bidir] (api.south east) to[out=-35,in=145] (postgres.north west);
+  \draw[dashed, bidir] (postgres) -- (redis);
+  \draw[flow] (api.south west) to[out=-145,in=35] (reverb.north east);
+
+  \draw[bidir] (services.south west) to[out=-120,in=70] (api.north east);
+
+  \node[zone, fit=(browser)(api)(reverb)(async),
+    label={[ctgreen]below:\textbf{Cœur applicatif}}] {};
+  \node[zone, fit=(postgres)(redis),
+    label={[ctblue]below:\textbf{Données et cache}}] {};
+  \node[zone, fit=(osm)(services),
+    label={[ctamber]above:\textbf{Services externes}}] {};
+\end{tikzpicture}

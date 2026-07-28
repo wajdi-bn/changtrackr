@@ -1,0 +1,28 @@
+\begin{tikzpicture}[
+  font=\sffamily\small,
+  state/.style={draw=ctline, rounded corners=2mm, thick, fill=white,
+    minimum width=28mm, minimum height=12mm, align=center},
+  active/.style={state, draw=ctgreen, fill=ctmint},
+  flow/.style={-{Latex[length=2.2mm]}, thick, draw=ctgray}
+]
+  \node[state] (detect) {Événement ou\\détection};
+  \node[active, right=7mm of detect] (alert) {Alerte\\ouverte};
+  \node[active, right=7mm of alert] (qualify) {Qualification\\et SLA};
+  \node[active, right=7mm of qualify] (assign) {Assignation\\technicien};
+  \node[active, right=7mm of assign] (work) {Intervention\\en cours};
+  \node[state, below=11mm of work] (evidence) {Diagnostic, actions,\\photos et rapport};
+  \node[state, left=7mm of evidence] (review) {Contrôle\\opérateur};
+  \node[state, left=7mm of review] (close) {Résolution et\\clôture};
+  \node[state, below=11mm of qualify] (maintenance) {Plan de maintenance\\ponctuel ou récurrent};
+
+  \draw[flow] (detect) -- (alert);
+  \draw[flow] (alert) -- (qualify);
+  \draw[flow] (qualify) -- (assign);
+  \draw[flow] (assign) -- (work);
+  \draw[flow] (work) -- (evidence);
+  \draw[flow] (evidence) -- (review);
+  \draw[flow] (review) -- (close);
+  \draw[flow] (maintenance) -| (assign);
+  \draw[flow] (alert) |- node[pos=0.25, left, font=\scriptsize]{préventif} (maintenance);
+  \draw[flow] (review) to[bend left=38] (work);
+\end{tikzpicture}

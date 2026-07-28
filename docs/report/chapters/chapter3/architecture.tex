@@ -1,0 +1,239 @@
+\section{Conception générale}
+
+\subsection{Style architectural retenu}
+
+\ProjectName{} adopte une architecture \textbf{client--serveur} avec une séparation
+entre la présentation, le cœur métier, la persistance et les intégrations. Le cœur
+est un \textbf{monolithe modulaire Laravel} : les domaines fonctionnels partagent
+une même application et une même base PostgreSQL, mais leurs règles sont organisées
+dans des services, policies, requêtes de validation et ressources dédiés. Cette
+solution est adaptée à un projet réalisé par un seul stagiaire, car elle évite le
+coût opérationnel de microservices tout en conservant des frontières explicites.
+
+Une exception volontaire concerne OCPP. Les connexions WebSocket avec les bornes
+sont longues, concurrentes et orientées protocole. Elles sont donc prises en charge
+par une \textbf{passerelle Python indépendante}. Cette passerelle ne contient aucune
+règle métier et n'accède jamais directement à PostgreSQL. Elle traduit OCPP 1.6 JSON
+en événements signés transmis à Laravel, qui reste l'unique propriétaire des
+données et des décisions métier.
+
+\begin{scopebox}[Principes structurants]
+\begin{itemize}[leftmargin=7mm]
+  \item PostgreSQL est la source de vérité de l'application ;
+  \item Laravel est le seul composant autorisé à modifier les données métier ;
+  \item la passerelle OCPP transporte et normalise le protocole sans calculer la
+  disponibilité ;
+  \item le frontend ne décide jamais des autorisations ni des états définitifs ;
+  \item les fournisseurs externes sont placés derrière des contrats ou adaptateurs ;
+  \item les traitements lents ou récurrents sont confiés au worker et au scheduler.
+\end{itemize}
+\end{scopebox}
+
+\subsection{Architecture technique globale}
+
+La figure~\ref{fig:technical-architecture} montre les composants exécutables et les
+protocoles qui les relient. Les services en pointillé sont des intégrations externes
+ou des simulateurs ; ils peuvent être remplacés sans modifier les règles du domaine.
+
+\begin{landscape}
+\begin{figure}[p]
+  \centering
+  \resizebox{0.96\linewidth}{!}{\input{assets/diagrams/technical-architecture}}
+  \caption{Architecture technique globale de \ProjectName{}}
+  \label{fig:technical-architecture}
+\end{figure}
+\end{landscape}
+
+\subsubsection{Application web React}
+
+L'interface est une application monopage écrite en React et TypeScript
+\cite{react}. Vite assure le serveur de développement et la compilation. Ant Design
+fournit les contrôles accessibles et cohérents ; TanStack Query gère l'état serveur
+et son invalidation ; Axios centralise les appels HTTP. React Router applique les
+routes publiques, protégées, orientées rôle ou permission. Leaflet et
+OpenStreetMap affichent les bornes et permettent de sélectionner une position
+\cite{leaflet,openStreetMap}. Recharts produit les graphiques et Laravel Echo
+consomme les événements Reverb.
+
+Les appels API sont sortis des composants visuels et regroupés par fonctionnalité
+dans \texttt{src/features}. Cette organisation évite de dupliquer l'authentification,
+la sérialisation et la gestion d'erreur. L'état serveur reste dans TanStack Query ;
+les états temporaires d'interface, comme l'étape d'un assistant ou la géolocalisation
+du navigateur, restent locaux au frontend.
+
+\subsubsection{API et cœur métier Laravel}
+
+Laravel 13 expose l'API REST, valide les entrées, applique les autorisations et
+orchestre les cas d'utilisation \cite{laravel}. La chaîne de traitement d'une
+requête protégée est la suivante :
+
+\begin{enumerate}[leftmargin=8mm]
+  \item le middleware Sanctum identifie la session et contrôle le cookie CSRF ;
+  \item le middleware organisationnel refuse les comptes inactifs ou incohérents ;
+  \item la \emph{Form Request} valide et normalise les données entrantes ;
+  \item la policy vérifie l'action sur la ressource et son organisation ;
+  \item le contrôleur appelle un service métier ;
+  \item le service exécute les invariants, transactions et événements ;
+  \item une API Resource limite et structure la réponse renvoyée.
+\end{enumerate}
+
+Les services couvrent notamment le commissioning des stations, la projection de
+disponibilité, les transactions OCPP, les tentatives de recharge, le paiement, la
+maintenance, les notifications, les abonnements et les exports. Les contrôleurs
+restent ainsi des adaptateurs HTTP plutôt que des conteneurs de logique métier.
+
+\subsubsection{Persistance, asynchronisme et temps réel}
+
+PostgreSQL 16 stocke les comptes, actifs, événements techniques, projections,
+transactions et journaux \cite{postgresql}. Les opérations atomiques, telles que la
+création d'une station avec ses connecteurs ou la réception d'un
+\texttt{StartTransaction}, sont protégées par des transactions et, lorsque
+nécessaire, des verrous \texttt{FOR UPDATE}.
+
+Dans la configuration de référence actuelle, le cache et la file d'attente utilisent
+également PostgreSQL. Redis 7 est fourni dans le fichier d'infrastructure pour un
+passage ultérieur à un cache ou une queue dédiés, mais il n'est pas indispensable au
+fonctionnement local. Cette précision évite de présenter Redis comme une dépendance
+active alors que \texttt{CACHE\_STORE=database} et
+\texttt{QUEUE\_CONNECTION=database}.
+
+Le worker traite les emails, notifications et captures de paiement. Le scheduler
+recalcule la disponibilité toutes les 30 secondes, expire les commandes OCPP,
+génère les maintenances récurrentes, vérifie les SLA et synchronise les abonnements.
+Reverb diffuse ensuite les changements sur des canaux privés liés à un utilisateur,
+une organisation ou une session.
+
+\subsubsection{Passerelle OCPP}
+
+La passerelle est réalisée en Python 3.11 avec les bibliothèques \texttt{ocpp},
+\texttt{websockets} et \texttt{httpx}. Elle accepte les connexions
+\texttt{ocpp1.6}, authentifie l'identité de la borne auprès de Laravel, publie chaque
+message normalisé et interroge l'API interne pour les commandes distantes. Elle
+supporte notamment \texttt{BootNotification}, \texttt{Heartbeat},
+\texttt{StatusNotification}, \texttt{Authorize}, \texttt{StartTransaction},
+\texttt{MeterValues} et \texttt{StopTransaction}, ainsi que les commandes
+\texttt{RemoteStartTransaction}, \texttt{RemoteStopTransaction},
+\texttt{Reset}, \texttt{UnlockConnector} et \texttt{ChangeAvailability}.
+
+Le protocole OCPP 1.6 JSON est retenu car il correspond au simulateur et au périmètre
+du stage \cite{ocaOcpp16,sapSimulator}. OCPP 2.0.1 reste une évolution distincte,
+car son modèle de sécurité et ses cas d'utilisation nécessitent une validation
+supplémentaire.
+
+\subsubsection{Services externes et adaptateurs}
+
+\begin{table}[H]
+  \centering
+  \caption{Intégrations techniques et responsabilités}
+  \label{tab:external-integrations}
+  \begin{tabularx}{\textwidth}{@{}p{3.2cm}p{3.0cm}Y Y@{}}
+    \toprule
+    \textbf{Intégration} & \textbf{Technologie} & \textbf{Responsabilité} &
+    \textbf{Frontière}\\
+    \midrule
+    Identité sociale & Google OAuth 2.0 & Vérifier l'identité Google et l'email &
+    Les rôles et organisations restent locaux.\\
+    Email transactionnel & Resend ou SMTP & Vérification, invitations, récupération,
+    alertes & Les secrets et l'envoi restent côté serveur.\\
+    Cartographie & Leaflet / OpenStreetMap & Tuiles, marqueurs, position et itinéraire &
+    La position courante du client n'est pas persistée.\\
+    Paiement & Adaptateur de paiement & Autoriser, capturer, libérer ou
+    débiter & Le fournisseur ne modifie jamais directement une session.\\
+    Simulateur de paiement & WireMock 3 & Succès, refus, délai, erreur et webhook &
+    Aucun moyen de paiement réel n'est utilisé.\\
+    Simulateur de borne & SAP e-mobility simulator & Connexion et messages OCPP réels &
+    Il ne lit ni l'API métier ni la base.\\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Architecture de déploiement}
+
+Le développement local associe des processus Windows et des conteneurs Docker. Les
+ports ne décrivent pas une obligation de production ; ils rendent les interactions
+reproductibles sur la machine de développement.
+
+\begin{landscape}
+\begin{figure}[p]
+  \centering
+  \resizebox{0.72\linewidth}{!}{\input{assets/diagrams/deployment-architecture}}
+  \caption{Architecture de déploiement de l'environnement local}
+  \label{fig:deployment-architecture}
+\end{figure}
+\end{landscape}
+
+\begin{longtable}{@{}p{3.0cm}p{2.3cm}p{2.3cm}p{6.7cm}@{}}
+  \caption{Processus nécessaires dans l'environnement de développement}
+  \label{tab:development-processes}\\
+  \toprule
+  \textbf{Processus} & \textbf{Port} & \textbf{Exécution} & \textbf{Rôle}\\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Processus} & \textbf{Port} & \textbf{Exécution} & \textbf{Rôle}\\
+  \midrule
+  \endhead
+  Frontend Vite & 5173 & Hôte & Interface React et rechargement à chaud.\\
+  API Laravel & 8000 & Hôte & API REST, OAuth, webhooks et API interne OCPP.\\
+  Queue worker & --- & Hôte & Emails, notifications et captures différées.\\
+  Scheduler & --- & Hôte & Disponibilité, SLA, maintenance et synchronisations.\\
+  Reverb & 8080 & Hôte & WebSocket temps réel de l'application.\\
+  PostgreSQL & 5432 & Local ou Docker & Source de vérité et queue/cache par défaut.\\
+  Redis & 6379 & Docker, optionnel & Cache ou queue de remplacement.\\
+  Passerelle OCPP & 9000 & Docker & WebSocket OCPP et adaptateur vers Laravel.\\
+  Simulateur SAP & 8082 & Docker & Flotte de bornes et interface de simulation.\\
+  WireMock & 9090 & Docker & API de paiement externe simulée.\\
+  Mailpit & 8025/1025 & Docker, optionnel & Boîte de réception locale si SMTP est utilisé.\\
+  \bottomrule
+\end{longtable}
+
+En production, Vite est remplacé par des fichiers statiques servis derrière HTTPS,
+Laravel est exécuté par un serveur PHP supervisé, et tous les flux publics utilisent
+TLS. Les connexions des bornes passent de \texttt{ws://} à \texttt{wss://}. Les
+workers, le scheduler, Reverb et la passerelle OCPP doivent être surveillés et
+redémarrés automatiquement. Les secrets restent injectés par l'environnement et ne
+sont jamais incorporés aux images ni au dépôt.
+
+\subsection{Architecture logicielle}
+
+\subsubsection{Organisation du frontend}
+
+Le frontend suit une organisation par fonctionnalités :
+
+\begin{itemize}[leftmargin=7mm]
+  \item \texttt{features/auth} contient la session, les gardes de routes et la
+  configuration des rôles ;
+  \item \texttt{features/stations}, \texttt{maps} et \texttt{charging} regroupent
+  les parcours de station et de recharge ;
+  \item \texttt{features/operations} couvre alertes, interventions et maintenance ;
+  \item \texttt{features/commercial}, \texttt{subscriptions} et \texttt{tariffs}
+  séparent les deux niveaux de commerce ;
+  \item \texttt{features/realtime} encapsule Echo/Reverb ;
+  \item \texttt{pages} compose ces modules sans réimplémenter leurs contrats API.
+\end{itemize}
+
+L'interface dérive ses menus et tableaux de bord du rôle retourné par le backend.
+Cette adaptation améliore l'expérience utilisateur, mais elle n'est pas utilisée
+comme barrière de sécurité : une route masquée reste protégée côté Laravel.
+
+\subsubsection{Organisation du backend}
+
+Le backend suit les responsabilités de Laravel sans imposer une couche générique de
+\emph{repository} au-dessus d'Eloquent :
+
+\begin{description}[leftmargin=35mm,style=nextline]
+  \item[\texttt{Http/Controllers}] adaptation des requêtes et réponses ;
+  \item[\texttt{Http/Requests}] validation, normalisation et préconditions ;
+  \item[\texttt{Policies}] autorisation par action, rôle et organisation ;
+  \item[\texttt{Services}] orchestration transactionnelle et règles métier ;
+  \item[\texttt{Models}] relations, attributs, conversions et invariants locaux ;
+  \item[\texttt{Jobs/Events}] traitements asynchrones et diffusion temps réel ;
+  \item[\texttt{Contracts}] interfaces des intégrations remplaçables.
+\end{description}
+
+L'interface \texttt{PaymentGateway} illustre cette séparation. Les services de
+recharge appellent les opérations \texttt{authorize}, \texttt{capture},
+\texttt{release} et \texttt{charge} sans connaître WireMock. L'injection de
+dépendances sélectionne l'adaptateur selon \texttt{PAYMENT\_DRIVER}. Un futur
+adaptateur ClicToPay, e-DINAR/D17, GPGCheckout, Konnect ou Flouci pourra respecter le
+même contrat.
