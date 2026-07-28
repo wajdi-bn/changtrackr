@@ -4351,6 +4351,24 @@ html {
   background: #ffffff;
 }
 
+.station-overview-workspace {
+  display: grid;
+  gap: 12px;
+}
+
+.station-overview-viewbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.station-overview-viewbar > span {
+  color: #77857d;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .station-verified-snapshot > header {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) auto;
@@ -4464,6 +4482,12 @@ html {
 .station-telemetry {
   border-top: 1px solid #e8eeeb;
   background: #ffffff;
+}
+
+.station-telemetry.is-standalone {
+  overflow: hidden;
+  border: 1px solid #dfe7e3;
+  border-radius: 9px;
 }
 
 .station-telemetry-header {
@@ -4865,6 +4889,9 @@ html {
   .station-snapshot-grid { grid-template-columns: 1fr; }
   .station-snapshot-group { border-right: 0; border-bottom: 1px solid #e8eeeb; }
   .station-snapshot-group:last-child { border-bottom: 0; }
+  .station-overview-viewbar { align-items: stretch; flex-direction: column; }
+  .station-overview-viewbar .ant-segmented { width: 100%; }
+  .station-overview-viewbar .ant-segmented-group { display: grid; grid-template-columns: 1fr 1fr; }
   .station-telemetry-header { align-items: flex-start; flex-direction: column; }
   .station-telemetry-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .station-telemetry-summary > div:nth-child(2) { border-right: 0; }

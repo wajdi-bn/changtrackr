@@ -48,6 +48,7 @@ export function StationDetailPage() {
   const { user, primaryRole } = useAuth()
   const [connectorDrawerOpen, setConnectorDrawerOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  const [overviewView, setOverviewView] = useState<'snapshot' | 'telemetry'>('snapshot')
   const [selectedConnector, setSelectedConnector] = useState<Connector | null>(null)
   const [qrConnector, setQrConnector] = useState<Connector | null>(null)
   const [rotatedCredentials, setRotatedCredentials] = useState<StationCommissioningResult | null>(null)
@@ -68,7 +69,10 @@ export function StationDetailPage() {
   const telemetryQuery = useQuery({
     queryKey: ['station-telemetry', numericStationId, telemetryDays],
     queryFn: () => getStationTelemetry(numericStationId, telemetryDays),
-    enabled: Number.isFinite(numericStationId) && stationQuery.isSuccess,
+    enabled: Number.isFinite(numericStationId)
+      && stationQuery.isSuccess
+      && activeTab === 'overview'
+      && overviewView === 'telemetry',
     refetchInterval: stationQuery.data?.ocpp_is_connected ? 10_000 : false,
   })
 
@@ -217,42 +221,59 @@ export function StationDetailPage() {
       key: 'overview',
       label: 'Overview',
       children: (
-        <section className="station-verified-snapshot">
-          <header>
-            <span><Activity size={19} /></span>
-            <div>
-              <h2>Verified station snapshot</h2>
-              <p>Current projections returned by the backend. No synthetic historical series are displayed.</p>
-            </div>
-            <Tag color={station.ocpp_is_connected ? 'green' : 'default'}>{station.ocpp_is_connected ? 'Connected' : 'Offline'}</Tag>
-          </header>
-          <div className="station-snapshot-grid">
-            <SnapshotGroup title="Today's activity" description="Completed sessions and settled payments">
-              <SnapshotMetric icon={<Zap size={16} />} label="Energy delivered" value={`${station.energy_today_kwh} kWh`} />
-              <SnapshotMetric icon={<Activity size={16} />} label="Charging sessions" value={station.sessions_today.toString()} />
-              <SnapshotMetric icon={<Power size={16} />} label="Settled revenue" value={`${station.revenue_today} TND`} />
-            </SnapshotGroup>
-            <SnapshotGroup title="OCPP health" description="Latest gateway projection">
-              <SnapshotMetric icon={<Activity size={16} />} label="Connection" value={station.ocpp_is_connected ? 'Connected' : 'Offline'} />
-              <SnapshotMetric icon={<Zap size={16} />} label="Station status" value={humanizeValue(station.status)} />
-              <SnapshotMetric icon={<RefreshCw size={16} />} label="Last station signal" value={station.last_heartbeat_relative} />
-            </SnapshotGroup>
-            <SnapshotGroup title="Operational attention" description="Current station-side workload">
-              <SnapshotMetric icon={<CableIcon size={16} />} label="Available connectors" value={`${station.available_connectors_count ?? 0} / ${station.connectors_count ?? station.connectors.length}`} />
-              <SnapshotMetric icon={<AlertTriangle size={16} />} label="Open alerts" value={station.open_alerts_count.toString()} />
-              <SnapshotMetric icon={<Settings size={16} />} label="Commissioning" value={humanizeValue(station.commissioning_status)} />
-            </SnapshotGroup>
+        <div className="station-overview-workspace">
+          <div className="station-overview-viewbar">
+            <span>Overview view</span>
+            <Segmented
+              value={overviewView}
+              options={[
+                { label: 'Operational snapshot', value: 'snapshot' },
+                { label: 'Telemetry', value: 'telemetry' },
+              ]}
+              onChange={(value) => setOverviewView(value as 'snapshot' | 'telemetry')}
+            />
           </div>
-          <StationTelemetryPanel
-            telemetry={telemetryQuery.data}
-            days={telemetryDays}
-            loading={telemetryQuery.isLoading}
-            fetching={telemetryQuery.isFetching}
-            error={telemetryQuery.isError}
-            onDaysChange={setTelemetryDays}
-            onRetry={() => void telemetryQuery.refetch()}
-          />
-        </section>
+          {overviewView === 'snapshot' ? (
+            <section className="station-verified-snapshot">
+              <header>
+                <span><Activity size={19} /></span>
+                <div>
+                  <h2>Verified station snapshot</h2>
+                  <p>Current projections returned by the backend. No synthetic historical series are displayed.</p>
+                </div>
+                <Tag color={station.ocpp_is_connected ? 'green' : 'default'}>{station.ocpp_is_connected ? 'Connected' : 'Offline'}</Tag>
+              </header>
+              <div className="station-snapshot-grid">
+                <SnapshotGroup title="Today's activity" description="Completed sessions and settled payments">
+                  <SnapshotMetric icon={<Zap size={16} />} label="Energy delivered" value={`${station.energy_today_kwh} kWh`} />
+                  <SnapshotMetric icon={<Activity size={16} />} label="Charging sessions" value={station.sessions_today.toString()} />
+                  <SnapshotMetric icon={<Power size={16} />} label="Settled revenue" value={`${station.revenue_today} TND`} />
+                </SnapshotGroup>
+                <SnapshotGroup title="OCPP health" description="Latest gateway projection">
+                  <SnapshotMetric icon={<Activity size={16} />} label="Connection" value={station.ocpp_is_connected ? 'Connected' : 'Offline'} />
+                  <SnapshotMetric icon={<Zap size={16} />} label="Station status" value={humanizeValue(station.status)} />
+                  <SnapshotMetric icon={<RefreshCw size={16} />} label="Last station signal" value={station.last_heartbeat_relative} />
+                </SnapshotGroup>
+                <SnapshotGroup title="Operational attention" description="Current station-side workload">
+                  <SnapshotMetric icon={<CableIcon size={16} />} label="Available connectors" value={`${station.available_connectors_count ?? 0} / ${station.connectors_count ?? station.connectors.length}`} />
+                  <SnapshotMetric icon={<AlertTriangle size={16} />} label="Open alerts" value={station.open_alerts_count.toString()} />
+                  <SnapshotMetric icon={<Settings size={16} />} label="Commissioning" value={humanizeValue(station.commissioning_status)} />
+                </SnapshotGroup>
+              </div>
+            </section>
+          ) : (
+            <StationTelemetryPanel
+              standalone
+              telemetry={telemetryQuery.data}
+              days={telemetryDays}
+              loading={telemetryQuery.isLoading}
+              fetching={telemetryQuery.isFetching}
+              error={telemetryQuery.isError}
+              onDaysChange={setTelemetryDays}
+              onRetry={() => void telemetryQuery.refetch()}
+            />
+          )}
+        </div>
       ),
     },
     {
@@ -511,6 +532,7 @@ function StationTelemetryPanel({
   error,
   onDaysChange,
   onRetry,
+  standalone = false,
 }: {
   telemetry: StationTelemetry | undefined
   days: 1 | 7 | 30
@@ -519,6 +541,7 @@ function StationTelemetryPanel({
   error: boolean
   onDaysChange: (days: 1 | 7 | 30) => void
   onRetry: () => void
+  standalone?: boolean
 }) {
   const daily = telemetry?.daily ?? []
   const power = telemetry?.power ?? []
@@ -532,7 +555,7 @@ function StationTelemetryPanel({
     label: dayjs(item.sampled_at).format(days === 1 ? 'HH:mm:ss' : 'DD MMM HH:mm'),
   }))
 
-  return <section className="station-telemetry">
+  return <section className={`station-telemetry${standalone ? ' is-standalone' : ''}`}>
     <header className="station-telemetry-header">
       <div>
         <span className={`station-live-indicator${fetching ? ' is-refreshing' : ''}`}><i />{fetching ? 'Refreshing' : 'Verified telemetry'}</span>
