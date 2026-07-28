@@ -3,20 +3,20 @@
 namespace App\Console\Commands;
 
 use App\Models\Station;
-use App\Services\Availability\AvailabilityProjectionService;
+use App\Services\Ocpp\OcppStationProvisioningService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Hash;
 
 class ProvisionOcppStation extends Command
 {
     protected $signature = 'ocpp:provision-station
         {station : Existing station reference or OCPP identity}
         {--identity= : Stable OCPP identity; defaults to the station reference}
-        {--secret= : Station Basic Auth secret; defaults to OCPP_SIMULATOR_STATION_SECRET}';
+        {--secret= : Station Basic Auth secret; defaults to OCPP_SIMULATOR_STATION_SECRET}
+        {--target=external : Provisioning target: external or simulator}';
 
     protected $description = 'Provision an OCPP 1.6 station identity and hashed Basic Auth secret';
 
-    public function handle(AvailabilityProjectionService $availabilityProjector): int
+    public function handle(OcppStationProvisioningService $provisioning): int
     {
         $lookup = (string) $this->argument('station');
         $station = Station::query()
@@ -38,6 +38,7 @@ class ProvisionOcppStation extends Command
 
         $identity = (string) ($this->option('identity') ?: $station->ocpp_identity ?: $station->reference);
         $secret = (string) ($this->option('secret') ?: config('ocpp.simulator.station_secret'));
+        $target = (string) $this->option('target');
 
         if (strlen($secret) < 32) {
             $this->error('The station secret must contain at least 32 characters.');
@@ -51,16 +52,11 @@ class ProvisionOcppStation extends Command
             return self::FAILURE;
         }
 
-        $station->update([
-            'ocpp_identity' => $identity,
-            'ocpp_auth_secret_hash' => Hash::make($secret),
-            'ocpp_registration_status' => 'unknown',
-            'availability_monitoring_started_at' => now(),
-        ]);
+        $station->ocpp_identity = $identity;
+        $station->save();
+        $provisioning->provision($station, $secret, $target);
 
-        $availabilityProjector->project($station->id);
-
-        $this->info("Station [{$station->reference}] provisioned as [{$identity}].");
+        $this->info("Station [{$station->reference}] provisioned as [{$identity}] for [{$target}].");
 
         return self::SUCCESS;
     }

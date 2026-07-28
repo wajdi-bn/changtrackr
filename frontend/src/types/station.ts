@@ -3,6 +3,8 @@ import type { OrganizationSummary } from './auth'
 export type StationStatus = 'available' | 'charging' | 'faulted' | 'offline' | 'maintenance' | 'reserved' | 'unavailable'
 export type AvailabilityOverride = 'maintenance' | 'disabled'
 export type ConnectorType = 'CCS2' | 'Type 2' | 'CHAdeMO'
+export type CommissioningTarget = 'external' | 'simulator' | 'inventory'
+export type CommissioningStatus = 'not_provisioned' | 'awaiting_connection' | 'connected' | 'offline' | 'rejected'
 
 export interface Connector {
   id: number
@@ -46,6 +48,9 @@ export interface Station {
   availability_source: string | null
   availability_calculated_at: string | null
   ocpp_identity: string | null
+  ocpp_commissioning_target: CommissioningTarget
+  commissioning_status: CommissioningStatus
+  ocpp_secret_configured: boolean
   ocpp_registration_status: string | null
   ocpp_status: string | null
   ocpp_error_code: string | null
@@ -87,6 +92,30 @@ export interface StationPayload {
   manufacturer: string
   ocpp_version: Station['ocpp_version']
   model_image?: string | null
+}
+
+export interface StationCommissioningPayload extends Omit<StationPayload, 'status' | 'availability_override'> {
+  organization_id?: number
+  ocpp_identity: string
+  commissioning_target: CommissioningTarget
+  connectors: Array<Required<Pick<ConnectorPayload, 'external_id' | 'ocpp_connector_id' | 'type' | 'current_type' | 'max_power_kw'>>>
+}
+
+export interface StationCommissioningInstructions {
+  status: CommissioningStatus
+  target: CommissioningTarget
+  gateway_url: string
+  connection_url: string
+  identity: string
+  username: string
+  secret: string | null
+  secret_visible_once: boolean
+  simulator_command: string | null
+}
+
+export interface StationCommissioningResult {
+  data: Station
+  commissioning: StationCommissioningInstructions
 }
 
 export interface StationMapMarker {

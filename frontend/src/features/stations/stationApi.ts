@@ -6,6 +6,8 @@ import type {
   OcppCommand,
   OcppCommandsResponse,
   Station,
+  StationCommissioningPayload,
+  StationCommissioningResult,
   StationMapFilters,
   StationMapResponse,
   StationPayload,
@@ -43,6 +45,16 @@ export async function resolveConnectorQr(token: string): Promise<ConnectorQrTarg
 export async function createStation(payload: StationPayload): Promise<Station> {
   const response = await httpClient.post<{ data: Station }>('/stations', payload)
   return response.data.data
+}
+
+export async function commissionStation(payload: StationCommissioningPayload): Promise<StationCommissioningResult> {
+  const response = await httpClient.post<StationCommissioningResult>('/stations/commission', payload)
+  return response.data
+}
+
+export async function rotateStationCredentials(stationId: number): Promise<StationCommissioningResult> {
+  const response = await httpClient.post<StationCommissioningResult>(`/stations/${stationId}/commissioning/rotate-credentials`)
+  return response.data
 }
 
 export async function updateStation(stationId: number, payload: Partial<StationPayload>): Promise<Station> {

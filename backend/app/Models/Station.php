@@ -16,7 +16,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'availability_override', 'maintenance_intervention_id', 'status_before_maintenance',
     'availability_reason', 'availability_source',
     'availability_calculated_at', 'availability_monitoring_started_at',
-    'ocpp_version', 'ocpp_auth_secret_hash', 'ocpp_registration_status', 'ocpp_status',
+    'ocpp_version', 'ocpp_commissioning_target', 'ocpp_auth_secret_hash',
+    'ocpp_registration_status', 'ocpp_status',
     'ocpp_error_code', 'ocpp_connected_at', 'ocpp_disconnected_at', 'ocpp_last_message_at',
     'ocpp_last_status_at', 'model_image', 'last_heartbeat_at', 'uptime_percent',
     'energy_today_kwh', 'sessions_today', 'utilization_percent', 'revenue_today',
@@ -100,6 +101,27 @@ class Station extends Model
     public function isOcppManaged(): bool
     {
         return $this->ocpp_version === 'OCPP 1.6J' && $this->ocpp_auth_secret_hash !== null;
+    }
+
+    public function commissioningStatus(): string
+    {
+        if (! $this->isOcppManaged()) {
+            return 'not_provisioned';
+        }
+
+        if ($this->ocpp_registration_status === 'rejected') {
+            return 'rejected';
+        }
+
+        if ($this->hasFreshOcppConnection()) {
+            return 'connected';
+        }
+
+        if ($this->ocpp_connected_at !== null || $this->ocpp_registration_status === 'accepted') {
+            return 'offline';
+        }
+
+        return 'awaiting_connection';
     }
 
     public function hasFreshOcppConnection(): bool

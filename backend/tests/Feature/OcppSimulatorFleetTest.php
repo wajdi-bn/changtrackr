@@ -23,15 +23,17 @@ class OcppSimulatorFleetTest extends TestCase
             flags: JSON_THROW_ON_ERROR,
         );
 
-        $this->assertCount(9, $manifest);
-        $this->assertSame(9, Station::query()->count());
+        $stations = Station::query()
+            ->with(['connectors' => fn ($query) => $query->orderBy('ocpp_connector_id')])
+            ->get();
+        $manifestByIdentity = collect($manifest)->keyBy('identity');
 
-        foreach ($manifest as $simulatorStation) {
-            $station = Station::query()
-                ->with(['connectors' => fn ($query) => $query->orderBy('ocpp_connector_id')])
-                ->where('reference', $simulatorStation['identity'])
-                ->firstOrFail();
+        $this->assertCount(9, $stations);
+        $this->assertGreaterThanOrEqual($stations->count(), count($manifest));
 
+        foreach ($stations as $station) {
+            $simulatorStation = $manifestByIdentity->get($station->reference);
+            $this->assertNotNull($simulatorStation, "Station [{$station->reference}] is missing from the simulator manifest.");
             $this->assertSame('OCPP 1.6J', $station->ocpp_version);
             $this->assertSame('offline', $station->status);
             $this->assertNull($station->last_heartbeat_at);

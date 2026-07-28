@@ -14,7 +14,7 @@ $stations = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 Push-Location $backendPath
 try {
     foreach ($station in $stations) {
-        & $php artisan ocpp:provision-station $station.identity
+        & $php artisan ocpp:provision-station $station.identity --target=simulator
         if ($LASTEXITCODE -ne 0) {
             throw "Could not provision OCPP station $($station.identity)."
         }

@@ -1,6 +1,7 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Button, Card, Empty, Input, Popconfirm, Segmented, Skeleton, Table, Tabs, Tooltip, type TableColumnsType } from 'antd'
+import { isAxiosError } from 'axios'
 import {
   ChevronRight,
   Clock3,
@@ -17,13 +18,15 @@ import {
   Zap,
 } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { createStation, deleteStation, getStations, updateStation } from '../features/stations/stationApi'
+import { commissionStation, deleteStation, getStations, updateStation } from '../features/stations/stationApi'
+import { StationCommissioningDrawer } from '../features/stations/StationCommissioningDrawer'
+import { StationCommissioningResultModal } from '../features/stations/StationCommissioningResultModal'
 import { StationFormDrawer } from '../features/stations/StationFormDrawer'
 import { StationStatusTag } from '../features/stations/StationStatusTag'
 import { availabilityReasonLabel } from '../features/stations/availabilityLabels'
 import { useAuth } from '../features/auth/useAuth'
 import { StationMapView } from '../features/maps/StationMapView'
-import type { Station, StationPayload, StationStatus } from '../types/station'
+import type { Station, StationCommissioningPayload, StationCommissioningResult, StationPayload, StationStatus } from '../types/station'
 
 type StationView = 'grid' | 'list' | 'table' | 'map'
 
@@ -44,6 +47,8 @@ export function StationsPage() {
   const deferredSearch = useDeferredValue(search)
   const [searchParams, setSearchParams] = useSearchParams()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [commissioningOpen, setCommissioningOpen] = useState(false)
+  const [commissioningResult, setCommissioningResult] = useState<StationCommissioningResult | null>(null)
   const [selectedStation, setSelectedStation] = useState<Station | null>(null)
   const [initialCoordinates, setInitialCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
   const navigate = useNavigate()
@@ -69,17 +74,27 @@ export function StationsPage() {
   })
 
   const saveStation = useMutation({
-    mutationFn: (values: StationPayload) => selectedStation
-      ? updateStation(selectedStation.id, values)
-      : createStation(values),
+    mutationFn: (values: StationPayload) => updateStation((selectedStation as Station).id, values),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['stations'] })
       setDrawerOpen(false)
       setSelectedStation(null)
       setInitialCoordinates(null)
-      void message.success(selectedStation ? 'Station updated successfully.' : 'Station added successfully.')
+      void message.success('Station updated successfully.')
     },
-    onError: () => void message.error('The station could not be saved. Check the form and try again.'),
+    onError: (error) => void message.error(apiErrorMessage(error, 'The station could not be saved. Check the form and try again.')),
+  })
+
+  const commissioningMutation = useMutation({
+    mutationFn: (values: StationCommissioningPayload) => commissionStation(values),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['stations'] })
+      setCommissioningOpen(false)
+      setInitialCoordinates(null)
+      setCommissioningResult(result)
+      void message.success('Station and connectors created successfully.')
+    },
+    onError: (error) => void message.error(apiErrorMessage(error, 'The station could not be commissioned. Review the entered information.')),
   })
 
   const removeStation = useMutation({
@@ -95,9 +110,13 @@ export function StationsPage() {
   const stations = stationsQuery.data?.data ?? []
 
   function openDrawer(station?: Station, coordinates?: { latitude: number; longitude: number }) {
-    setSelectedStation(station ?? null)
+    if (station) {
+      setSelectedStation(station)
+      setDrawerOpen(true)
+      return
+    }
     setInitialCoordinates(coordinates ?? null)
-    setDrawerOpen(true)
+    setCommissioningOpen(true)
   }
 
   function changeView(nextView: StationView) {
@@ -273,6 +292,14 @@ export function StationsPage() {
         onClose={() => { setDrawerOpen(false); setSelectedStation(null); setInitialCoordinates(null) }}
         onSubmit={(values) => saveStation.mutate(values)}
       />
+      <StationCommissioningDrawer
+        open={commissioningOpen}
+        submitting={commissioningMutation.isPending}
+        initialCoordinates={initialCoordinates}
+        onClose={() => { setCommissioningOpen(false); setInitialCoordinates(null) }}
+        onSubmit={(values) => commissioningMutation.mutate(values)}
+      />
+      <StationCommissioningResultModal result={commissioningResult} onClose={() => setCommissioningResult(null)} />
     </div>
   )
 }
@@ -291,4 +318,10 @@ function StationActions({ station, canUpdate, canDelete, deleting, onView, onEdi
     {canUpdate && <Tooltip title={`Edit ${station.name}`}><Button size="small" type="text" icon={<PencilLine size={15} />} onClick={onEdit} /></Tooltip>}
     {canDelete && <Popconfirm title="Delete this station?" description="The station will be removed from the active inventory." okText="Delete" okButtonProps={{ danger: true, loading: deleting }} cancelText="Cancel" onConfirm={onDelete}><Tooltip title={`Delete ${station.name}`}><Button size="small" type="text" danger icon={<Trash2 size={15} />} /></Tooltip></Popconfirm>}
   </div>
+}
+
+function apiErrorMessage(error: unknown, fallback: string): string {
+  if (!isAxiosError(error)) return fallback
+  const response = error.response?.data as { message?: string; errors?: Record<string, string[]> } | undefined
+  return Object.values(response?.errors ?? {})[0]?.[0] ?? response?.message ?? fallback
 }

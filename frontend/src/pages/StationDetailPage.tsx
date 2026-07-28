@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   LockOpen,
+  KeyRound,
   MapPin,
   PencilLine,
   Download,
@@ -25,7 +26,8 @@ import {
 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts'
-import { createConnector, deleteConnector, getStation, getStationCommands, restartStation, setStationMaintenanceMode, unlockStationConnector, updateConnector, updateStation } from '../features/stations/stationApi'
+import { createConnector, deleteConnector, getStation, getStationCommands, restartStation, rotateStationCredentials, setStationMaintenanceMode, unlockStationConnector, updateConnector, updateStation } from '../features/stations/stationApi'
+import { StationCommissioningResultModal } from '../features/stations/StationCommissioningResultModal'
 import { StationStatusTag } from '../features/stations/StationStatusTag'
 import { availabilityReasonLabel } from '../features/stations/availabilityLabels'
 import { useAuth } from '../features/auth/useAuth'
@@ -34,7 +36,7 @@ import { DocumentManager } from '../features/documents/DocumentManager'
 import { getMaintenances } from '../features/operations/operationsApi'
 import { WorkflowTag } from '../features/operations/WorkflowTag'
 import type { InterventionItem, InterventionStatus } from '../types/operations'
-import type { Connector, ConnectorPayload, MaintenanceModeResponse, OcppCommand, OcppCommandStatus, Station } from '../types/station'
+import type { Connector, ConnectorPayload, MaintenanceModeResponse, OcppCommand, OcppCommandStatus, Station, StationCommissioningResult } from '../types/station'
 
 const utilizationData = [
   { label: '08:00', value: 42 }, { label: '10:00', value: 58 }, { label: '12:00', value: 76 },
@@ -56,6 +58,7 @@ export function StationDetailPage() {
   const [connectorDrawerOpen, setConnectorDrawerOpen] = useState(false)
   const [selectedConnector, setSelectedConnector] = useState<Connector | null>(null)
   const [qrConnector, setQrConnector] = useState<Connector | null>(null)
+  const [rotatedCredentials, setRotatedCredentials] = useState<StationCommissioningResult | null>(null)
   const canUpdate = user?.permissions.includes('stations.update') ?? false
   const canManageConnectors = canUpdate && (user?.permissions.includes('connectors.manage') ?? false)
   const canViewCommands = user?.permissions.includes('ocpp_commands.view') ?? false
@@ -125,6 +128,15 @@ export function StationDetailPage() {
     onError: (error) => void message.error(apiErrorMessage(error, 'Station maintenance mode could not be updated.')),
   })
 
+  const rotateCredentialsMutation = useMutation({
+    mutationFn: () => rotateStationCredentials(numericStationId),
+    onSuccess: async (result) => {
+      await refreshStationData()
+      setRotatedCredentials(result)
+    },
+    onError: (error) => void message.error(apiErrorMessage(error, 'The OCPP credentials could not be rotated.')),
+  })
+
   const connectorMutation = useMutation({
     mutationFn: (values: ConnectorPayload) => selectedConnector
       ? updateConnector(numericStationId, selectedConnector.id, values)
@@ -187,6 +199,16 @@ export function StationDetailPage() {
       okText: leaving ? 'Leave maintenance' : 'Enable maintenance',
       cancelText: 'Cancel',
       onOk: () => maintenanceMutation.mutateAsync(station),
+    })
+  }
+  const confirmCredentialRotation = () => {
+    modal.confirm({
+      title: 'Rotate the station credentials?',
+      content: 'The current Basic Auth password will stop working. Configure the new one on the physical station before its next connection.',
+      okText: 'Rotate credentials',
+      cancelText: 'Cancel',
+      okButtonProps: { danger: true },
+      onOk: () => rotateCredentialsMutation.mutateAsync(),
     })
   }
   const metrics = [
@@ -346,6 +368,9 @@ export function StationDetailPage() {
                 </span>
               </Tooltip>
             )}
+            {canManageConnectors && station.ocpp_commissioning_target === 'external' && (
+              <Button icon={<KeyRound size={15} />} loading={rotateCredentialsMutation.isPending} onClick={confirmCredentialRotation}>Rotate credentials</Button>
+            )}
             <Tooltip title={station.maintenance_intervention_id ? 'Maintenance mode is controlled by the active technician intervention.' : undefined}>
               <span>
                 <Button className="maintenance-button" disabled={station.maintenance_intervention_id !== null} icon={<Wrench size={15} />} loading={maintenanceMutation.isPending} onClick={confirmMaintenance}>
@@ -368,6 +393,8 @@ export function StationDetailPage() {
         <InfoFact label="Manufacturer" value={station.manufacturer} />
         <InfoFact label="OCPP version" value={station.ocpp_version} />
         <InfoFact label="OCPP identity" value={station.ocpp_identity ?? 'Not configured'} />
+        <InfoFact label="Commissioning target" value={commissioningTargetLabel(station.ocpp_commissioning_target)} />
+        <InfoFact label="Commissioning status" value={commissioningStatusLabel(station.commissioning_status)} />
         <InfoFact label="OCPP connection" value={station.ocpp_is_connected ? 'Connected' : 'Offline'} />
         <InfoFact label="Power" value={`${station.max_power_kw} kW`} />
         <InfoFact label="Last heartbeat" value={station.last_heartbeat_relative} />
@@ -386,8 +413,27 @@ export function StationDetailPage() {
         onSubmit={(values) => connectorMutation.mutate(values)}
       />
       <ConnectorQrModal station={station} connector={qrConnector} onClose={() => setQrConnector(null)} />
+      <StationCommissioningResultModal mode="rotated" result={rotatedCredentials} onClose={() => setRotatedCredentials(null)} />
     </div>
   )
+}
+
+function commissioningTargetLabel(target: Station['ocpp_commissioning_target']): string {
+  return {
+    external: 'Physical / external',
+    simulator: 'Local SAP simulator',
+    inventory: 'Inventory only',
+  }[target]
+}
+
+function commissioningStatusLabel(status: Station['commissioning_status']): string {
+  return {
+    not_provisioned: 'Not provisioned',
+    awaiting_connection: 'Awaiting connection',
+    connected: 'Connected',
+    offline: 'Provisioned, offline',
+    rejected: 'Registration rejected',
+  }[status]
 }
 
 function ConnectorQrModal({ station, connector, onClose }: { station: Station; connector: Connector | null; onClose: () => void }) {

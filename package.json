@@ -16,6 +16,7 @@
     "test:backend": "cd backend && C:/php/php.exe artisan test",
     "ocpp:configure": "powershell -ExecutionPolicy Bypass -File scripts/configure-ocpp-env.ps1",
     "ocpp:provision-fleet": "powershell -ExecutionPolicy Bypass -File scripts/provision-ocpp-simulator-fleet.ps1",
+    "ocpp:add-simulator-station": "cd backend && C:/php/php.exe artisan ocpp:register-simulator-station",
     "ocpp:up": "node scripts/start-ocpp.mjs",
     "ocpp:down": "docker compose --env-file infra/ocpp/.env -f infra/ocpp/compose.yaml down",
     "ocpp:scenario": "node scripts/ocpp-control.mjs scenario",

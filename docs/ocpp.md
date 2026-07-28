@@ -2,7 +2,7 @@
 
 ## Scope
 
-This integration establishes real OCPP 1.6 JSON connections between nine simulated charging
+This integration establishes real OCPP 1.6 JSON connections between a configurable fleet of simulated charging
 stations and ChargeTrackr. Laravel stores the raw technical evidence, calculates business availability,
 creates deduplicated operational alerts and broadcasts state changes to the web application.
 
@@ -10,7 +10,7 @@ creates deduplicated operational alerts and broadcasts state changes to the web 
 
 ```mermaid
 flowchart LR
-    S["SAP station simulator, 9 stations"] <-->|"WebSocket, OCPP 1.6J, Basic Auth"| G["Python OCPP gateway"]
+    S["SAP station simulator fleet"] <-->|"WebSocket, OCPP 1.6J, Basic Auth"| G["Python OCPP gateway"]
     G <-->|"Signed events and command polling"| L["Laravel API"]
     L -->|"Raw events, projections and transitions"| P[("PostgreSQL")]
     L -->|"REST and private Reverb channels"| R["Availability API"]
@@ -27,6 +27,31 @@ Responsibilities:
   current business status.
 
 The gateway must not calculate availability, access PostgreSQL directly or expose station secrets.
+
+## Station commissioning
+
+Administrators and operators create a station through one atomic workflow:
+
+1. Define the station identity and exact map position.
+2. Define the charger hardware and every physical connector.
+3. Select the connection target.
+4. Review and create the station and connectors in one database transaction.
+
+The three targets have separate security behavior:
+
+| Target | Result |
+|---|---|
+| Physical or external station | Generates an independent 48-character Basic Auth secret, displays it once and stores only its hash. |
+| Local SAP simulator | Creates the inventory record without returning a secret. A local-only Artisan command provisions the shared simulator credential and updates the development manifest. |
+| Inventory only | Creates the station and connectors without OCPP credentials. It remains unavailable until later provisioning. |
+
+The OCPP identity is unique and can differ from the internal reference, although keeping both equal
+is recommended. Connector labels such as `A1` are user-facing; `ocpp_connector_id` must match the
+integer sent by the device. The SAP simulator additionally requires contiguous IDs starting at `1`.
+
+For an external station, configure the device with the WebSocket URL, username and one-time password
+shown after creation. Credential rotation invalidates the previous password and applies when the
+station reconnects. The plaintext password is never returned by station detail APIs.
 
 ## Availability rules
 
@@ -194,9 +219,23 @@ npm run ocpp:provision-fleet
 npm run ocpp:up
 ```
 
-The fleet manifest is `infra/ocpp/simulator/stations.json`. It currently defines nine identities,
-each with two connectors. `npm run ocpp:up` builds both runtime images and the shared simulator CLI
+The fleet manifest is `infra/ocpp/simulator/stations.json`. `npm run ocpp:up` builds both runtime images and the shared simulator CLI
 image before starting the gateway and simulator.
+
+To add a station created with the `Local SAP simulator` target, run the command shown by the
+commissioning result:
+
+```bash
+npm run ocpp:add-simulator-station -- CT-TUN-101
+npm run ocpp:down
+npm run ocpp:up
+npm run ocpp:status -- CT-TUN-101
+```
+
+The command is restricted to local and test environments. It reads the station and connectors from
+PostgreSQL, updates or inserts the corresponding manifest entry and provisions the ignored shared
+simulator secret. It refuses missing connectors, unsupported protocol versions and non-contiguous
+OCPP connector IDs.
 
 Run the queue, scheduler and Reverb server in separate terminals:
 
