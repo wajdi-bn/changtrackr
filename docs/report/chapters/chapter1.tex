@@ -1,0 +1,85 @@
+\chapter{État de l'art et fondements métiers}
+
+\section*{Introduction}
+\plannedcontent{Présenter le rôle de ce chapitre : situer le stage, introduire la gestion
+des infrastructures de recharge, formuler la problématique et justifier la solution.}
+
+\section{Cadre du projet}
+
+\subsection{Cadre académique}
+\plannedcontent{Stage d'été réalisé après la première année du cycle ingénieur en génie
+logiciel (IGL3), au Département des Sciences de l'Informatique de la Faculté des Sciences
+de Tunis. Présenter les objectifs pédagogiques et les compétences mobilisées.}
+
+\subsection{Présentation de l'organisme d'accueil}
+\plannedcontent{Présenter \CompanyName{}, son domaine d'activité, son organisation et le
+contexte dans lequel le sujet a été proposé. Les informations institutionnelles seront
+validées avec M. \CompanySupervisor{} avant rédaction définitive.}
+
+\subsection{Présentation du domaine d'application}
+
+\subsubsection{Mobilité électrique et infrastructures de recharge}
+\plannedcontent{Introduire les enjeux de la mobilité électrique, les réseaux de recharge,
+les bornes, les connecteurs et les principales parties prenantes.}
+
+\subsubsection{Supervision d'un réseau de bornes}
+\plannedcontent{Expliquer le rôle d'un CSMS, la remontée d'événements, le suivi des
+sessions, la maintenance et la nécessité d'une information opérationnelle fiable.}
+
+\subsubsection{OCPP et interopérabilité}
+\plannedcontent{Présenter OCPP 1.6 JSON, les échanges WebSocket, les messages de statut,
+les heartbeats et les commandes distantes utiles au projet.}
+
+\subsubsection{Disponibilité et qualité de service}
+\plannedcontent{Définir les notions de disponible, occupée, en défaut, hors ligne et en
+maintenance. Introduire les règles de projection et les délais de connectivité.}
+
+\section{Problématique}
+\plannedcontent{Décrire la difficulté de connaître l'état réel d'une borne, la fragmentation
+des informations, les pannes silencieuses, les effets sur les conducteurs et la nécessité
+d'une coordination multi-rôle et multi-organisation.}
+
+\section{Étude de l'existant}
+
+\subsection{Solutions existantes}
+\plannedcontent{Étudier des plateformes de gestion et de recharge comparables, leurs
+parcours de recharge, leur supervision, leur tarification et leurs mécanismes de
+maintenance. Les solutions et critères seront documentés avec des sources à jour.}
+
+\subsection{Standards, outils et simulateurs}
+\plannedcontent{Comparer les outils de simulation OCPP, les solutions cartographiques,
+les approches de paiement et les moyens de notification pertinents pour un MVP.}
+
+\subsection{Synthèse comparative}
+\plannedcontent{Présenter un tableau de comparaison : temps réel, OCPP, cartographie,
+multi-tenant, recharge, paiement, alertes, maintenance, rapports et extensibilité.}
+
+\section{Solution proposée}
+
+\subsection{Espace public et création d'accès}
+\plannedcontent{Landing page, demande de démonstration, inscription client, OAuth Google,
+invitations et activation des comptes administrateur, opérateur et technicien.}
+
+\subsection{Espaces authentifiés par rôle}
+\plannedcontent{Présenter les responsabilités du Super Administrateur, de l'Administrateur,
+de l'Opérateur, du Technicien et du Client.}
+
+\subsection{Supervision OCPP et simulation}
+\plannedcontent{Expliquer le rôle du gateway OCPP, du simulateur de borne, des projections
+de disponibilité et du simulateur de paiement dans l'environnement de développement.}
+
+\section{Méthodologie de travail}
+
+\subsection{Approche itérative et incrémentale}
+\plannedcontent{Décrire une démarche individuelle inspirée de l'agilité : backlog,
+incréments verticaux, démonstration, validation et amélioration continue, sans prétendre
+appliquer toutes les cérémonies d'une équipe Scrum complète.}
+
+\subsection{Organisation et suivi}
+\plannedcontent{Présenter le découpage en blocs, la gestion Git, les validations
+fonctionnelles, les tests automatisés et le suivi de l'avancement.}
+
+\section*{Conclusion}
+\plannedcontent{Synthétiser le contexte et introduire la spécification détaillée des
+besoins.}
+

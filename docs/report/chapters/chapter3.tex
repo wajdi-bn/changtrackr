@@ -1,0 +1,83 @@
+\chapter{Conception}
+
+\section{Introduction}
+\plannedcontent{Présenter les décisions de conception qui traduisent les besoins en une
+solution modulaire, sécurisée et extensible.}
+
+\section{Conception générale}
+
+\subsection{Architecture physique}
+
+\subsubsection{Architecture client-serveur}
+\plannedcontent{Décrire les échanges HTTPS entre l'application React et l'API Laravel,
+les connexions WebSocket de l'interface et des bornes, puis les services externes.}
+
+\subsubsection{Modèle en couches}
+\plannedcontent{Présenter les couches présentation, API et métier, persistance, services
+asynchrones, temps réel, gateway OCPP et simulateurs.}
+
+\subsubsection{Architecture de déploiement}
+\plannedcontent{Montrer les processus nécessaires : frontend, backend, PostgreSQL, cache,
+queue worker, scheduler, Reverb, gateway OCPP, simulateur de borne et simulateur de
+paiement.}
+
+\subsection{Architecture logique}
+
+\subsubsection{Architecture technique}
+\plannedcontent{Insérer le diagramme technique final synchronisé avec les dépendances et
+les variables d'environnement réellement utilisées.}
+
+\subsubsection{Architecture logicielle}
+\plannedcontent{Expliquer l'organisation frontend par fonctionnalités, les contrôleurs,
+policies, requests, resources et services Laravel, ainsi que les projections OCPP.}
+
+\subsubsection{Sécurité et isolation multi-tenant}
+\plannedcontent{Décrire Sanctum, Google OAuth, CSRF, permissions, policies, invitations,
+isolation par organisation, gestion des secrets et journaux d'audit.}
+
+\section{Conception détaillée}
+
+\subsection{Authentification, invitations et demande de démonstration}
+\plannedcontent{Description textuelle, scénario nominal, alternatives, règles de sécurité
+et diagrammes de séquence pour l'accès local, Google OAuth et l'activation par invitation.}
+
+\subsection{Mise en service d'une borne et de ses connecteurs}
+\plannedcontent{Création atomique, identité OCPP, association au simulateur local,
+configuration des connecteurs et cycle de commissioning.}
+
+\subsection{Connexion OCPP et calcul de disponibilité}
+\plannedcontent{BootNotification, Heartbeat, StatusNotification, MeterValues, délais de
+connectivité, projection des états et déclenchement des alertes.}
+
+\subsection{Recherche d'une borne et démarrage d'une recharge}
+\plannedcontent{Cartographie, filtre de distance, sélection de la borne et du connecteur,
+connexion physique, autorisation et RemoteStartTransaction.}
+
+\subsection{Suivi et arrêt d'une session}
+\plannedcontent{Mesures en temps réel, compteur d'énergie, estimation du coût, arrêt manuel
+ou distant, fin de transaction et mise à jour de la disponibilité.}
+
+\subsection{Paiement et génération du reçu}
+\plannedcontent{Adapter de paiement, préautorisation, capture, webhooks simulés,
+idempotence, erreurs, facture et extension future vers un prestataire réel.}
+
+\subsection{Alertes, interventions et maintenance}
+\plannedcontent{Détection, SLA, assignation, intervention, preuves, rapport, résolution et
+maintenance préventive ou corrective.}
+
+\subsection{Tarifs, plans et abonnements}
+\plannedcontent{Tarification de la recharge, plans clients liés aux organisations,
+abonnement commercial de l'organisation, limites d'usage et renouvellement.}
+
+\subsection{Rapports et exports}
+\plannedcontent{Rapports adaptés aux rôles, échange interne, pièces jointes, prévisualisation
+et export PDF, CSV ou JSON.}
+
+\section{Modèle de données et diagramme de classes}
+\plannedcontent{Présenter les agrégats Organisation, Utilisateur, Station, Connecteur,
+Session, Transaction OCPP, Paiement, Alerte, Intervention, Maintenance, Tarif, Abonnement,
+Rapport et Document, puis insérer le diagramme de classes final.}
+
+\section{Conclusion}
+\plannedcontent{Synthétiser la conception et introduire sa réalisation incrémentale.}
+

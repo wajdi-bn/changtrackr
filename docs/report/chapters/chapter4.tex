@@ -1,0 +1,90 @@
+\chapter{Réalisation et validation}
+
+\section{Introduction à la réalisation}
+
+\subsection{Objectifs}
+\plannedcontent{Rappeler les objectifs du MVP vertical : borne simulée, OCPP, disponibilité,
+carte, session, tarification, paiement, reçu et exploitation opérationnelle.}
+
+\subsection{Enjeux liés à la mise en œuvre}
+\plannedcontent{Interopérabilité, temps réel, cohérence des états, sécurité, isolation des
+organisations, expérience utilisateur et reproductibilité de l'environnement.}
+
+\section{Environnement de développement}
+
+\subsection{Outils et choix technologiques}
+\plannedcontent{Documenter Git et GitHub, Docker et WSL2, Postman/Swagger, pgAdmin,
+simulateur SAP, WireMock, Resend et les outils de modélisation réellement employés.}
+
+\subsection{Langages, frameworks et bibliothèques}
+\plannedcontent{Présenter PHP et Laravel, TypeScript, React, Ant Design, PostgreSQL,
+WebSocket/Reverb, CSS, Python pour le gateway OCPP et les bibliothèques de cartographie
+et de visualisation.}
+
+\section{Réalisation par incréments}
+
+\subsection{Fondations, authentification et multi-tenant}
+\plannedcontent{Initialisation du dépôt, séparation frontend/backend, base de données,
+Sanctum, OAuth Google, invitations, rôles et isolation des organisations.}
+
+\subsection{Bornes, connecteurs et cartographie}
+\plannedcontent{CRUD, vues carte/liste/table, géolocalisation, itinéraires, QR des
+connecteurs et commissioning guidé.}
+
+\subsection{OCPP et disponibilité}
+\plannedcontent{Gateway OCPP 1.6 JSON, simulateur SAP, événements, commandes distantes,
+projection des états, heartbeats, alertes de connectivité et télémétrie réelle.}
+
+\subsection{Sessions de recharge et paiement}
+\plannedcontent{Workflow client, détection de branchement, RemoteStartTransaction,
+MeterValues, RemoteStopTransaction, calcul tarifaire, paiement simulé et reçus.}
+
+\subsection{Alertes, interventions et maintenance}
+\plannedcontent{Cycle de vie opérationnel, assignation, SLA, preuves terrain, rapport,
+historique et maintenance planifiée.}
+
+\subsection{Gestion commerciale, reporting et administration}
+\plannedcontent{Plans clients, abonnement des organisations, limites, rapports par rôle,
+exports, paramètres, intégrations et Super Administration.}
+
+\section{Utilisation d'UML pour guider l'implémentation}
+\plannedcontent{Mettre en relation les principaux diagrammes avec les modules effectivement
+implémentés et signaler les adaptations réalisées pendant le développement.}
+
+\section{Tests et débogage}
+
+\subsection{Stratégie de tests}
+\plannedcontent{Tests unitaires, tests d'intégration API, tests des policies, tests OCPP,
+tests frontend, scénarios E2E et vérification visuelle. Relier chaque résultat au cahier
+de tests.}
+
+\subsection{Processus de débogage}
+\plannedcontent{Présenter des anomalies représentatives, leur diagnostic, la correction et
+les tests de non-régression, sans exposer de secrets ou de données personnelles.}
+
+\section{Intégration des composants}
+\plannedcontent{Décrire les flux bout en bout entre React, Laravel, PostgreSQL, queue,
+Reverb, gateway OCPP, simulateur de borne, messagerie et paiement.}
+
+\section{Validation et vérification}
+\plannedcontent{Présenter les résultats mesurés, les démonstrations fonctionnelles et la
+traçabilité avec les critères d'acceptation du backlog.}
+
+\section{Optimisation des performances}
+\plannedcontent{Index de base de données, chargement différé, cache, pagination, fréquence
+de rafraîchissement, traitement asynchrone et maîtrise des volumes de télémétrie.}
+
+\section{Déploiement, sécurité et limites}
+\plannedcontent{Configuration des environnements, TLS, secrets, CORS/CSRF, permissions,
+sauvegardes, logs, supervision, limites du simulateur et différences avec une borne
+physique ou un prestataire de paiement réel.}
+
+\section{Documentation technique}
+\plannedcontent{Référencer le guide d'installation, l'OpenAPI, les variables d'environnement,
+les commandes des processus, le manuel utilisateur, le manuel administrateur et le
+cahier de tests.}
+
+\section{Conclusion du chapitre}
+\plannedcontent{Résumer la réalisation, les résultats de validation et les limites encore
+ouvertes.}
+

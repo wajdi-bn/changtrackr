@@ -1,0 +1,47 @@
+\begin{titlepage}
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[ctmint] (current page.north west) rectangle ([yshift=-2.3cm]current page.north east);
+    \fill[ctgreen] (current page.south west) rectangle ([yshift=1.6cm]current page.south east);
+    \fill[white,opacity=0.18] ([xshift=-1cm,yshift=0.35cm]current page.south west)
+      .. controls +(3cm,1cm) and +(-3cm,-0.4cm) ..
+      ([xshift=1cm,yshift=1.15cm]current page.south east)
+      -- (current page.south east) -- (current page.south west) -- cycle;
+  \end{tikzpicture}
+
+  \begin{center}
+    {\small\bfseries \UniversityName}\\[2pt]
+    {\small \FacultyName}\\
+    {\small \DepartmentName}\\[1.3cm]
+
+    \includegraphics[width=3.2cm]{assets/brand/chargetrackr-logo.png}\\[0.3cm]
+    {\Large\bfseries\color{ctgreen}\ProjectName}\\[1cm]
+
+    {\large\bfseries \DocumentType}\\[0.35cm]
+    {\color{ctgreen}\rule{0.72\textwidth}{1.2pt}}\\[0.55cm]
+    {\LARGE\bfseries\color{ctdark}\ProjectTitle}\\[0.55cm]
+    {\color{ctgreen}\rule{0.72\textwidth}{1.2pt}}\\[1.2cm]
+
+    \begin{tcolorbox}[
+      width=0.82\textwidth,
+      colback=white,
+      colframe=ctline,
+      boxrule=0.8pt,
+      arc=2mm,
+      left=7mm,
+      right=7mm,
+      top=5mm,
+      bottom=5mm
+    ]
+      \begin{tabularx}{\linewidth}{@{}Y Y@{}}
+        \textbf{Réalisé par} & \textbf{Encadré en entreprise par}\\
+        \StudentName & M. \CompanySupervisor\\[7mm]
+        \textbf{Formation} & \textbf{Organisme d'accueil}\\
+        \ProgramName & \CompanyName
+      \end{tabularx}
+    \end{tcolorbox}
+
+    \vfill
+    {\bfseries \InternshipPeriod}\\
+    {Année universitaire \AcademicYear}
+  \end{center}
+\end{titlepage}
