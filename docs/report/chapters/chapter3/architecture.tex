@@ -158,29 +158,29 @@ reproductibles sur la machine de développement.
   \label{fig:deployment-architecture}
 \end{figure}
 
-\begin{longtable}{@{}p{3.0cm}p{2.3cm}p{2.3cm}p{6.7cm}@{}}
+\begin{longtable}{|p{3.0cm}|p{2.3cm}|p{2.3cm}|p{6.7cm}|}
   \caption{Processus nécessaires dans l'environnement de développement}
   \label{tab:development-processes}\\
-  \toprule
+  \hline
   \textbf{Processus} & \textbf{Port} & \textbf{Exécution} & \textbf{Rôle}\\
-  \midrule
+  \hline
   \endfirsthead
-  \toprule
+  \hline
   \textbf{Processus} & \textbf{Port} & \textbf{Exécution} & \textbf{Rôle}\\
-  \midrule
+  \hline
   \endhead
-  Frontend Vite & 5173 & Hôte & Interface React et rechargement à chaud.\\
-  API Laravel & 8000 & Hôte & API REST, OAuth, webhooks et API interne OCPP.\\
-  Queue worker & --- & Hôte & Emails, notifications et captures différées.\\
-  Scheduler & --- & Hôte & Disponibilité, SLA, maintenance et synchronisations.\\
-  Reverb & 8080 & Hôte & WebSocket temps réel de l'application.\\
-  PostgreSQL & 5432 & Local ou Docker & Source de vérité et queue/cache par défaut.\\
-  Redis & 6379 & Docker, optionnel & Cache ou queue de remplacement.\\
-  Passerelle OCPP & 9000 & Docker & WebSocket OCPP et adaptateur vers Laravel.\\
-  Simulateur SAP & 8082 & Docker & Flotte de bornes et interface de simulation.\\
-  WireMock & 9090 & Docker & API de paiement externe simulée.\\
+  Frontend Vite & 5173 & Hôte & Interface React et rechargement à chaud.\\\hline
+  API Laravel & 8000 & Hôte & API REST, OAuth, webhooks et API interne OCPP.\\\hline
+  Queue worker & --- & Hôte & Emails, notifications et captures différées.\\\hline
+  Scheduler & --- & Hôte & Disponibilité, SLA, maintenance et synchronisations.\\\hline
+  Reverb & 8080 & Hôte & WebSocket temps réel de l'application.\\\hline
+  PostgreSQL & 5432 & Local ou Docker & Source de vérité et queue/cache par défaut.\\\hline
+  Redis & 6379 & Docker, optionnel & Cache ou queue de remplacement.\\\hline
+  Passerelle OCPP & 9000 & Docker & WebSocket OCPP et adaptateur vers Laravel.\\\hline
+  Simulateur SAP & 8082 & Docker & Flotte de bornes et interface de simulation.\\\hline
+  WireMock & 9090 & Docker & API de paiement externe simulée.\\\hline
   Mailpit & 8025/1025 & Docker, optionnel & Boîte de réception locale si SMTP est utilisé.\\
-  \bottomrule
+  \hline
 \end{longtable}
 
 En production, Vite est remplacé par des fichiers statiques servis derrière HTTPS,

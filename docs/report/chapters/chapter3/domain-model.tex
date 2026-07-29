@@ -100,47 +100,47 @@ recharge et l'organisation qui paye l'accès au logiciel.
 
 \subsection{Contraintes et invariants principaux}
 
-\begin{longtable}{@{}p{3.7cm}p{10.8cm}@{}}
+\begin{longtable}{|p{3.7cm}|p{10.8cm}|}
   \caption{Invariants structurants du modèle}
   \label{tab:domain-invariants}\\
-  \toprule
+  \hline
   \textbf{Domaine} & \textbf{Invariant}\\
-  \midrule
+  \hline
   \endfirsthead
-  \toprule
+  \hline
   \textbf{Domaine} & \textbf{Invariant}\\
-  \midrule
+  \hline
   \endhead
   Identité &
   Un utilisateur actif possède exactement un rôle ; un rôle organisationnel exige
-  une organisation active, alors qu'un rôle global interdit cette association.\\
+  une organisation active, alors qu'un rôle global interdit cette association.\\\hline
   Multi-tenant &
   Toute lecture ou écriture opérationnelle est limitée à l'organisation de
-  l'utilisateur, sauf permission explicite du super administrateur.\\
+  l'utilisateur, sauf permission explicite du super administrateur.\\\hline
   Commissioning &
   La station et ses connecteurs sont créés dans une même transaction ; la référence
-  et l'identité OCPP sont uniques.\\
+  et l'identité OCPP sont uniques.\\\hline
   Disponibilité &
   Le statut métier est dérivé des overrides et preuves OCPP récentes ; il n'est pas
-  saisi directement pour une station provisionnée.\\
+  saisi directement pour une station provisionnée.\\\hline
   Recharge &
   Un client et un connecteur ne peuvent participer qu'à une tentative ou session
-  active à la fois.\\
+  active à la fois.\\\hline
   OCPP &
   Un \texttt{StartTransaction} refusé reste auditable mais ne crée pas de session
-  facturable.\\
+  facturable.\\\hline
   Mesure &
   L'énergie ne diminue jamais ; le compteur effectif est le maximum entre le départ,
-  la dernière mesure et le compteur reçu.\\
+  la dernière mesure et le compteur reçu.\\\hline
   Paiement &
   Chaque opération possède une clé d'idempotence ; un événement fournisseur est
-  traité une seule fois.\\
+  traité une seule fois.\\\hline
   Tarification &
-  Le tarif et la remise sont figés au début de la session.\\
+  Le tarif et la remise sont figés au début de la session.\\\hline
   Intervention &
   Le technicien assigné, la station et l'intervention appartiennent à la même
-  organisation.\\
+  organisation.\\\hline
   Documents &
   Le contenu privé n'est jamais exposé par une URL publique permanente.\\
-  \bottomrule
+  \hline
 \end{longtable}

@@ -161,34 +161,34 @@ applique la politique de rétention.
 
 \subsection{Analyse synthétique des risques}
 
-\begin{longtable}{@{}p{3.2cm}p{4.4cm}p{6.6cm}@{}}
+\begin{longtable}{|p{3.2cm}|p{4.4cm}|p{6.6cm}|}
   \caption{Risques principaux et mesures de réduction}
   \label{tab:security-risk-summary}\\
-  \toprule
+  \hline
   \textbf{Risque} & \textbf{Exemple} & \textbf{Mesures}\\
-  \midrule
+  \hline
   \endfirsthead
-  \toprule
+  \hline
   \textbf{Risque} & \textbf{Exemple} & \textbf{Mesures}\\
-  \midrule
+  \hline
   \endhead
   Vol de session & Script lisant un token du navigateur &
-  Cookie HttpOnly, Sanctum stateful, CSRF, rotation et TLS.\\
+  Cookie HttpOnly, Sanctum stateful, CSRF, rotation et TLS.\\\hline
   IDOR multi-tenant & Accès à \texttt{/stations/11} d'une autre organisation &
-  Policies, scoping organisationnel, tests d'isolation.\\
+  Policies, scoping organisationnel, tests d'isolation.\\\hline
   Rejeu OCPP & Réémission d'un événement signé &
-  Timestamp, UUID de requête, HMAC et identifiant d'événement idempotent.\\
+  Timestamp, UUID de requête, HMAC et identifiant d'événement idempotent.\\\hline
   Faux paiement & Callback frontend ou webhook forgé &
-  Confirmation serveur, signature HMAC et événements fournisseur uniques.\\
+  Confirmation serveur, signature HMAC et événements fournisseur uniques.\\\hline
   Double facturation & Répétition d'une capture après timeout &
-  Clés d'idempotence et réconciliation persistée.\\
+  Clés d'idempotence et réconciliation persistée.\\\hline
   Exposition documentaire & URL publique d'une photo technique &
-  Stockage privé, validation et téléchargement soumis à policy.\\
+  Stockage privé, validation et téléchargement soumis à policy.\\\hline
   Secret dans Git & Commit d'un client secret OAuth &
-  \texttt{.gitignore}, exemples vides et injection par environnement.\\
+  \texttt{.gitignore}, exemples vides et injection par environnement.\\\hline
   Déni de service logique & Soumission répétée de demandes ou invitations &
   Rate limiting indépendant, honeypot et déduplication.\\
-  \bottomrule
+  \hline
 \end{longtable}
 
 \subsection{Limites de sécurité du prototype}

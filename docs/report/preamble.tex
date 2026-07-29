@@ -4,6 +4,7 @@
 \frenchsetup{SmallCapsFigTabCaptions=false}
 \usepackage{lmodern}
 \usepackage{microtype}
+\usepackage{etoolbox}
 \usepackage[a4paper,top=2.6cm,bottom=2.4cm,left=3cm,right=2.3cm,headheight=25pt]{geometry}
 \usepackage{setspace}
 \usepackage{graphicx}
@@ -110,3 +111,4 @@
 
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\AtBeginEnvironment{longtable}{\setlength{\tabcolsep}{3pt}}

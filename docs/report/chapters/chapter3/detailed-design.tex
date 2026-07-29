@@ -115,36 +115,36 @@ WebSocket explicite ou 90 secondes sans message produit l'état
 \texttt{offline}. Le délai représente trois périodes de heartbeat de 30 secondes.
 Enfin, les états des connecteurs déterminent la capacité réelle de la station.
 
-\begin{longtable}{@{}p{1.0cm}p{5.2cm}p{3.5cm}p{4.4cm}@{}}
+\begin{longtable}{|p{1.0cm}|p{5.2cm}|p{3.5cm}|p{4.4cm}|}
   \caption{Matrice de décision de disponibilité}
   \label{tab:availability-decision-matrix}\\
-  \toprule
+  \hline
   \textbf{Prio.} & \textbf{Preuve ou règle} & \textbf{État station} &
   \textbf{Conséquence}\\
-  \midrule
+  \hline
   \endfirsthead
-  \toprule
+  \hline
   \textbf{Prio.} & \textbf{Preuve ou règle} & \textbf{État station} &
   \textbf{Conséquence}\\
-  \midrule
+  \hline
   \endhead
   1 & Désactivation manuelle & \texttt{unavailable} &
-  Recharge interdite jusqu'à levée de l'override.\\
+  Recharge interdite jusqu'à levée de l'override.\\\hline
   2 & Maintenance active & \texttt{maintenance} &
-  Indisponibilité planifiée et commande \texttt{ChangeAvailability}.\\
+  Indisponibilité planifiée et commande \texttt{ChangeAvailability}.\\\hline
   3 & Déconnexion ou silence supérieur à 90 secondes & \texttt{offline} &
-  Connecteurs hors ligne et alerte de communication.\\
+  Connecteurs hors ligne et alerte de communication.\\\hline
   4 & Au moins un connecteur \texttt{Available} & \texttt{available} &
-  Démarrage distant autorisé si l'organisation est active.\\
+  Démarrage distant autorisé si l'organisation est active.\\\hline
   5 & Aucun libre, au moins un en transaction & \texttt{charging} &
-  Station vivante mais sans place libre correspondante.\\
+  Station vivante mais sans place libre correspondante.\\\hline
   6 & Aucun libre, au moins un réservé & \texttt{reserved} &
-  Réservation visible ; recharge publique non immédiate.\\
+  Réservation visible ; recharge publique non immédiate.\\\hline
   7 & Aucun utilisable, au moins un \texttt{Faulted} & \texttt{faulted} &
-  Alerte de défaut dédupliquée.\\
+  Alerte de défaut dédupliquée.\\\hline
   8 & Connectée sans preuve exploitable & \texttt{unavailable} &
   Attente d'un \texttt{StatusNotification} valide.\\
-  \bottomrule
+  \hline
 \end{longtable}
 
 Chaque variation de l'état, de la raison ou de la source crée une

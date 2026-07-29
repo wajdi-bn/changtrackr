@@ -114,7 +114,7 @@ organisationnels sont également synchronisés toutes les heures. L'option
 \texttt{withoutOverlapping} empêche qu'une nouvelle occurrence commence alors
 que la précédente n'est pas terminée.
 
-\subsection{Gestion incrémentale avec Git}
+\subsection{Suivi des Sprints avec Git}
 
 La chronologie des commits reflète les risques du produit. Les premières
 modifications ont initialisé l'authentification, PostgreSQL et l'isolation
@@ -130,36 +130,39 @@ Chaque bloc fonctionnel est suivi d'un commit cohérent puis poussé sur la bran
 conserve un historique exploitable pour le rapport. Les fichiers d'environnement,
 les dépendances installées et les sorties de compilation ne sont pas versionnés.
 
-\subsection{État synthétique des incréments}
+\subsection{État synthétique des objectifs de Sprint}
 
-\begin{longtable}{@{}C{1.2cm}p{3.8cm}p{4.8cm}p{3.8cm}@{}}
+\begin{longtable}{|C{1.5cm}|p{3.7cm}|p{4.7cm}|p{3.7cm}|}
   \caption{État de réalisation au 28 juillet 2026}
-  \label{tab:increment-implementation-status}\\
-  \toprule
-  \textbf{Inc.} & \textbf{Capacité démontrable} & \textbf{Validation actuelle} &
+  \label{tab:sprint-implementation-status}\\
+  \hline
+  \textbf{Sprint} & \textbf{Capacité démontrable} & \textbf{Validation actuelle} &
   \textbf{Limite principale}\\
-  \midrule
+  \hline
   \endfirsthead
-  \toprule
-  \textbf{Inc.} & \textbf{Capacité démontrable} & \textbf{Validation actuelle} &
+  \hline
+  \textbf{Sprint} & \textbf{Capacité démontrable} & \textbf{Validation actuelle} &
   \textbf{Limite principale}\\
-  \midrule
+  \hline
   \endhead
-  INC-01 & Comptes, Google OAuth, invitations, démo, onboarding et rôles &
-  API et parcours web testés & Microsoft OAuth reporté.\\
-  INC-02 & Stations, connecteurs, cartes, documents et commissioning &
-  CRUD, policies et création atomique testés & Pas de borne physique.\\
-  INC-03 & OCPP, heartbeats, disponibilité, commandes et télémétrie &
-  Simulateur SAP et projections testés & OCPP 2.0.1 hors périmètre.\\
-  INC-04 & Alertes, interventions, maintenance, SLA et notifications &
-  Cycles de vie et documents testés & Recette terrain à réaliser.\\
-  INC-05 & Recharge, mesures, arrêt, paiement et reçu &
-  Parcours vertical avec paiement simulé & Aucun débit bancaire réel.\\
-  INC-06 & Tarifs, plans clients et contrat SaaS organisationnel &
-  Règles, limites et factures testées & Souscription SaaS non encaissée.\\
-  INC-07 & Dashboards, rapports, audit, paramètres et intégrations &
-  APIs par rôle et exports testés & Finitions UX encore itératives.\\
-  INC-08 & Exports généralisés et préparation documentaire &
+  S01 & Cadrage, backlog, architecture et prototype navigable &
+  Documents de conception et parcours de référence validés & Ajustements continus
+  selon les retours.\\\hline
+  S02 & Comptes, Google OAuth, invitations, démo, onboarding et rôles &
+  API et parcours web testés & Microsoft OAuth reporté.\\\hline
+  S03 & Stations, connecteurs, cartes, documents et commissioning &
+  CRUD, policies et création atomique testés & Pas de borne physique.\\\hline
+  S04 & OCPP, heartbeats, disponibilité, commandes et télémétrie &
+  Simulateur SAP et projections testés & OCPP 2.0.1 hors périmètre.\\\hline
+  S05 & Recharge, mesures, arrêt, paiement et reçu &
+  Parcours vertical avec paiement simulé & Aucun débit bancaire réel.\\\hline
+  S06 & Alertes, interventions, maintenance, SLA et notifications &
+  Cycles de vie et documents testés & Recette terrain à réaliser.\\\hline
+  S07 & Tarifs, plans clients et contrat SaaS organisationnel &
+  Règles, limites et factures testées & Souscription SaaS non encaissée.\\\hline
+  S08 & Dashboards, rapports, audit, paramètres et intégrations &
+  APIs par rôle et exports testés & Finitions UX encore itératives.\\\hline
+  S09 & Exports généralisés et préparation documentaire &
   CSV, JSON et PDF disponibles par périmètre & Firmware et CI/CD reportés.\\
-  \bottomrule
+  \hline
 \end{longtable}

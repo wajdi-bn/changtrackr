@@ -38,7 +38,7 @@ fournissent une base mesurable et reproductible pour le MVP.
 Ce travail a permis de mobiliser les différentes étapes d'un projet de génie
 logiciel : clarification des acteurs et des règles métier, construction d'un
 Product Backlog, modélisation UML, choix d'une architecture, développement
-incrémental, intégration de services externes, tests et documentation. Il a
+organisé en Sprints, intégration de services externes, tests et documentation. Il a
 également renforcé des compétences techniques en React et TypeScript, Laravel,
 PostgreSQL, WebSocket, OCPP, Docker, sécurité multi-tenant et génération de
 documents.
@@ -52,11 +52,11 @@ du remplacement futur d'un simulateur par un service ou un équipement réel.
 
 \section*{Difficultés et réponses apportées}
 
-Les principales difficultés ont concerné les dépendances entre les incréments.
+Les principales difficultés ont concerné les dépendances entre les objectifs des Sprints.
 Une session de recharge fiable dépend du commissioning, de la connexion OCPP,
-des états de connecteur, du tarif et du paiement. La démarche incrémentale a donc
-été appliquée sans supposer que les fonctionnalités étaient indépendantes :
-chaque bloc consolidait les contrats nécessaires au suivant.
+des états de connecteur, du tarif et du paiement. La progression par Sprints a donc
+été organisée sans supposer que les fonctionnalités étaient indépendantes :
+chaque Sprint consolidait les contrats nécessaires au suivant.
 
 La deuxième difficulté a porté sur la distinction entre données simulées et
 preuves réelles. L'interface n'affiche pas de télémétrie synthétique lorsque la

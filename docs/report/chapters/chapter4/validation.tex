@@ -50,41 +50,41 @@ base SQLite en mémoire, une queue synchrone, un mailer en mémoire et un diffus
 nul. Ils restent ainsi reproductibles et n'envoient ni email réel ni événement
 WebSocket pendant la campagne.
 
-\begin{longtable}{@{}p{2.8cm}p{3.9cm}p{3.9cm}p{2.8cm}@{}}
+\begin{longtable}{|p{2.8cm}|p{3.9cm}|p{3.9cm}|p{2.8cm}|}
   \caption{Niveaux de validation appliqués}
   \label{tab:implementation-test-strategy}\\
-  \toprule
+  \hline
   \textbf{Niveau} & \textbf{Objet} & \textbf{Exemples} &
   \textbf{Preuve}\\
-  \midrule
+  \hline
   \endfirsthead
-  \toprule
+  \hline
   \textbf{Niveau} & \textbf{Objet} & \textbf{Exemples} &
   \textbf{Preuve}\\
-  \midrule
+  \hline
   \endhead
   Tests métier & Invariants, projections et transitions &
   disponibilité, transactions OCPP, tarifs, cycles commerciaux &
-  Assertions PHPUnit.\\
+  Assertions PHPUnit.\\\hline
   Tests API & Validation, autorisation, sérialisation et effets &
   authentification, stations, alertes, rapports, paiement &
-  Réponses et base vérifiées.\\
+  Réponses et base vérifiées.\\\hline
   Tests d'isolation & Accès croisé entre organisations &
   utilisateurs, actifs, interventions, exports &
-  Réponses 403/404 attendues.\\
+  Réponses 403/404 attendues.\\\hline
   Tests d'adaptateur & Contrat avec un service remplaçable &
   WireMock, webhook signé, Google OAuth simulé &
-  Doubles et serveur local.\\
+  Doubles et serveur local.\\\hline
   Tests OCPP & Lecture des profils et scénarios du simulateur &
   connexion, plug/unplug, transactions, projections &
-  Node Test et PHPUnit.\\
+  Node Test et PHPUnit.\\\hline
   Qualité frontend & Types, imports et règles statiques &
   compilation Vite et Oxlint &
-  Commandes sans erreur.\\
+  Commandes sans erreur.\\\hline
   Vérification visuelle & Mise en page et parcours représentatifs &
   dashboards, stations, cartes, formulaires, documents &
   Inspection navigateur/PDF.\\
-  \bottomrule
+  \hline
 \end{longtable}
 
 \subsection{Résultats mesurés}
@@ -117,7 +117,7 @@ La campagne exécutée le 28 juillet 2026 produit les résultats suivants :
 La réussite de la compilation ne prouve pas seule la qualité UX, et le nombre de
 tests ne remplace pas une recette. Elle montre néanmoins que les contrats
 principaux, les migrations et la majorité des cycles de vie restent cohérents
-après l'intégration des incréments.
+après l'intégration des développements successifs.
 
 \subsection{Anomalies représentatives et non-régression}
 
@@ -206,46 +206,49 @@ supervision des événements anormaux.
 \end{itemize}
 \end{scopebox}
 
-\subsection{Traçabilité avec le backlog}
+\subsection{Traçabilité avec le backlog et les Sprints}
 
-\begin{longtable}{@{}C{1.2cm}p{3.4cm}p{4.6cm}p{4.1cm}@{}}
-  \caption{Preuves de réalisation par incrément}
+\begin{longtable}{|C{1.5cm}|p{3.3cm}|p{4.5cm}|p{4.0cm}|}
+  \caption{Preuves de réalisation par Sprint}
   \label{tab:implementation-traceability}\\
-  \toprule
-  \textbf{Inc.} & \textbf{User stories} & \textbf{Preuves dans le code} &
+  \hline
+  \textbf{Sprint} & \textbf{User stories} & \textbf{Preuves dans le code} &
   \textbf{Tests principaux}\\
-  \midrule
+  \hline
   \endfirsthead
-  \toprule
-  \textbf{Inc.} & \textbf{User stories} & \textbf{Preuves dans le code} &
+  \hline
+  \textbf{Sprint} & \textbf{User stories} & \textbf{Preuves dans le code} &
   \textbf{Tests principaux}\\
-  \midrule
+  \hline
   \endhead
-  INC-01 & US-01--04, 06, 27, 39 &
+  S01 & US-27, 39 et travaux de conception &
+  Backlog, cas d'utilisation global, architecture et prototype &
+  Relectures, validation des parcours et démonstration du prototype.\\\hline
+  S02 & US-01--04, 06 &
   Auth, Google, invitations, démo, onboarding, policies &
-  Auth, OAuth, onboarding, utilisateurs, organisations.\\
-  INC-02 & US-07--13, 37 &
+  Auth, OAuth, onboarding, utilisateurs, organisations.\\\hline
+  S03 & US-07--13, 37 &
   Stations, connecteurs, cartes, commissioning, documents &
-  Station API, commissioning, documents.\\
-  INC-03 & US-14--16, 19 &
+  Station API, commissioning, documents.\\\hline
+  S04 & US-14--16, 19 &
   Gateway, ingestion, projection, commandes, télémétrie &
-  OCPP gateway, flotte, supervision, disponibilité, télémétrie.\\
-  INC-04 & US-20--23, 40 &
-  Alertes, interventions, maintenance, SLA, notifications &
-  Alertes, rapports terrain, maintenance, notifications.\\
-  INC-05 & US-24--26, 28--30 &
+  OCPP gateway, flotte, supervision, disponibilité, télémétrie.\\\hline
+  S05 & US-24--26, 28--30 &
   Tentatives, sessions, transactions, paiements, reçus &
-  Recharge distante, session/paiement, webhook WireMock.\\
-  INC-06 & US-31, 32, 41, 42 &
+  Recharge distante, session/paiement, webhook WireMock.\\\hline
+  S06 & US-20--23, 40 &
+  Alertes, interventions, maintenance, SLA, notifications &
+  Alertes, rapports terrain, maintenance, notifications.\\\hline
+  S07 & US-31, 32, 41, 42 &
   Tarifs, plans, abonnements clients et SaaS &
-  Tarifs, plans, commercial organisationnel.\\
-  INC-07 & US-05, 17, 18, 33--36 &
+  Tarifs, plans, commercial organisationnel.\\\hline
+  S08 & US-05, 17, 18, 33--36 &
   Dashboards, reporting, audit, paramètres, intégrations &
-  Dashboard, rapports, gouvernance, recherche.\\
-  INC-08 & US-34, 38 &
-  Exports PDF/JSON/CSV ; firmware documenté mais différé &
-  Exports couverts dans les tests de chaque domaine.\\
-  \bottomrule
+  Dashboard, rapports, gouvernance, recherche.\\\hline
+  S09 & Stabilisation et livrables &
+  Exports, documentation, cahier de tests et préparation de la recette &
+  Compilation, contrôles transversaux et validation des documents.\\
+  \hline
 \end{longtable}
 
 \section{Documentation technique produite et restante}

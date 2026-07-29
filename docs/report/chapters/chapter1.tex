@@ -2,14 +2,13 @@
 
 \section*{Introduction}
 
-Ce chapitre situe le projet dans son cadre académique et professionnel, puis présente
-les fondements métiers indispensables à la compréhension d'une plateforme de gestion
-de bornes de recharge. Il précise notamment le rôle d'un système central de gestion,
-les échanges OCPP et la différence entre un état simplement enregistré et une
-disponibilité réellement déduite des événements du terrain. Une étude de solutions
-existantes permet ensuite de dégager les fonctions attendues, leurs limites au regard
-du stage et le positionnement retenu pour \ProjectName{}. Le chapitre se termine par
-la démarche de réalisation adoptée.
+Ce chapitre présente le cadre académique et professionnel du projet, puis introduit
+le domaine de la recharge électrique et les principales difficultés liées à la
+supervision d'un réseau de bornes. L'étude de l'existant met en évidence les services
+habituellement proposés par les plateformes du secteur et leurs limites au regard
+du sujet de stage. La solution retenue est ensuite décrite sous un angle fonctionnel,
+avant de présenter la méthodologie Scrum adoptée et son adaptation à un travail
+individuel.
 
 \section{Cadre du projet}
 
@@ -21,17 +20,17 @@ après la première année du cycle ingénieur en génie logiciel (IGL3), au Dé
 des Sciences de l'Informatique de la Faculté des Sciences de Tunis, rattachée à
 l'Université de Tunis El Manar.
 
-Le stage vise à mobiliser, dans un contexte professionnel, les compétences acquises
-en analyse des besoins, modélisation, développement d'applications web, conception
-d'API, gestion de bases de données, sécurité et tests logiciels. Au-delà de la
-réalisation d'interfaces, le sujet exige de traiter une problématique distribuée :
-l'état observé dans l'application dépend de messages émis par des équipements
-distants, de délais de communication et de règles métier vérifiables.
+Le stage vise à mettre en pratique les connaissances acquises en analyse des besoins,
+modélisation, développement d'applications web, conception d'API, gestion de bases de
+données, sécurité et tests logiciels. Le sujet demande également d'aborder une
+problématique de système communicant : les informations présentées aux utilisateurs
+dépendent d'événements produits par des équipements distants et doivent rester
+cohérentes malgré les erreurs, les retards ou les interruptions de communication.
 
-Le travail est encadré en entreprise par M. \CompanySupervisor{}. Le livrable principal
-est un prototype fonctionnel couvrant un parcours vertical : création et supervision
-d'une station, réception de ses événements OCPP, calcul de sa disponibilité, conduite
-d'une session de recharge, paiement simulé et exploitation des informations produites.
+Le travail est encadré en entreprise par M. \CompanySupervisor{}. Le résultat attendu
+est une application fonctionnelle permettant de visualiser et de suivre la
+disponibilité de bornes de recharge, tout en couvrant les principaux parcours
+d'exploitation et d'utilisation associés.
 
 \subsection{Présentation de l'organisme d'accueil}
 
@@ -43,195 +42,152 @@ mentionne également une expertise dans les services IP/MPLS destinés au secteu
 tunisien des télécommunications, ainsi que des activités de développement web et
 logiciel \cite{tacticLinkedIn}.
 
-Ce positionnement rend pertinent un sujet associant systèmes communicants,
-interopérabilité et développement d'une plateforme web. Le projet \ProjectName{}
-s'inscrit dans cette logique : il ne se limite pas à afficher une liste d'équipements,
-mais doit établir une chaîne cohérente entre les bornes, les services backend et les
-différents espaces utilisateurs.
+Ce positionnement rend pertinent un sujet associant équipements communicants,
+interopérabilité et développement d'une plateforme web. Le stage s'inscrit ainsi
+dans un environnement où la qualité du logiciel dépend autant de la conception de
+l'application que de sa capacité à échanger de manière fiable avec des systèmes
+externes.
 
 \subsection{Présentation du domaine d'application}
 
-\subsubsection{Mobilité électrique et infrastructures de recharge}
+\subsubsection{Mobilité électrique et infrastructure de recharge}
 
 Le développement de la mobilité électrique augmente la dépendance des conducteurs,
 des entreprises et des collectivités à des infrastructures de recharge accessibles
 et fiables. Selon l'Agence internationale de l'énergie, près de 1,8 million de points
 de recharge publics ont été ajoutés dans le monde en 2025, portant le parc total à
 plus de sept millions à la fin de cette année \cite{ieaGlobalEV2026}. Dans ce contexte,
-la disponibilité opérationnelle devient un indicateur essentiel : une station
-référencée sur une carte mais hors ligne, en défaut ou entièrement occupée ne répond
-pas au besoin immédiat du conducteur.
+la disponibilité d'une infrastructure devient un indicateur essentiel : une station
+référencée mais inaccessible, hors service ou entièrement occupée ne répond pas au
+besoin immédiat du conducteur.
 
-Une infrastructure de recharge peut être décrite à plusieurs niveaux :
+Une infrastructure de recharge s'organise généralement autour des éléments suivants :
 
 \begin{itemize}[leftmargin=7mm]
-  \item la \textbf{station} ou borne représente l'équipement physique raccordé au
-  réseau électrique et au système d'information ;
-  \item le \textbf{connecteur} désigne un point de raccordement de la station. Une
-  même borne peut proposer plusieurs connecteurs, de types et puissances différents ;
-  \item la \textbf{session de recharge} enregistre l'utilisation d'un connecteur par
-  un client entre un début et une fin, avec des mesures d'énergie et un coût ;
-  \item l'\textbf{exploitant} supervise les équipements et leurs événements, tandis
-  que le technicien traite les incidents et opérations de maintenance ;
-  \item le \textbf{client} localise une borne, choisit un connecteur, lance sa recharge
-  et consulte ses paiements ou abonnements.
+  \item la \textbf{station de recharge}, qui représente l'équipement physique installé
+  sur un site et raccordé au réseau électrique ;
+  \item le \textbf{connecteur}, qui constitue le point de raccordement utilisé par le
+  véhicule. Une station peut proposer plusieurs connecteurs de types et de puissances
+  différents ;
+  \item la \textbf{session de recharge}, qui décrit l'utilisation d'un connecteur entre
+  le début et la fin d'une opération, avec une durée, une quantité d'énergie et un
+  coût éventuel ;
+  \item le \textbf{système central de gestion}, chargé de suivre les équipements,
+  d'autoriser certaines opérations et de conserver les informations utiles à
+  l'exploitation ;
+  \item les \textbf{acteurs humains}, notamment les conducteurs, les exploitants, les
+  techniciens et les responsables des organisations.
 \end{itemize}
 
-Ces objets ne sont pas indépendants. L'état d'une station résulte de l'état de ses
-connecteurs et de sa capacité à communiquer. De même, une session client produit des
-informations utiles à la facturation, aux statistiques, à la maintenance et à
-l'évaluation de la qualité de service.
+Ces éléments sont interdépendants. L'état global d'une station dépend de sa capacité
+à communiquer et de l'état de ses connecteurs. Une session produit, quant à elle, des
+informations utiles à la facturation, aux statistiques, au support et à la maintenance.
 
-\subsubsection{Supervision d'un réseau de bornes}
+\subsubsection{Système central de gestion des bornes}
 
 Le système central chargé de piloter un réseau de recharge est couramment appelé
-\emph{Charging Station Management System} (CSMS). Il reçoit les messages des bornes,
-maintient une représentation de leur état, conserve les transactions, autorise les
-utilisateurs et émet des commandes distantes. Il fournit ensuite aux acteurs humains
-des vues adaptées : carte publique, tableau de bord opérationnel, alertes, historique,
-interventions, tarifs, paiements et rapports.
+\emph{Charging Station Management System} (CSMS). Il maintient une représentation
+du réseau, reçoit les informations des stations, conserve les transactions, applique
+les politiques d'accès et peut transmettre des commandes à distance. Il fournit
+ensuite des vues adaptées aux besoins des acteurs : carte des stations, tableau de
+bord opérationnel, alertes, historique des sessions, interventions, tarification,
+paiements et rapports.
 
-La supervision doit distinguer au moins trois temporalités :
+La supervision d'un réseau doit prendre en compte trois temporalités complémentaires :
 
 \begin{enumerate}[leftmargin=8mm]
-  \item le \textbf{temps protocolaire}, constitué des connexions WebSocket et des
-  messages OCPP reçus en continu ;
+  \item le \textbf{temps de communication}, constitué des connexions et messages
+  échangés avec les équipements ;
   \item le \textbf{temps opérationnel}, durant lequel une anomalie est détectée,
   qualifiée, assignée puis résolue ;
-  \item le \textbf{temps analytique}, utilisé pour agréger l'énergie, la disponibilité,
+  \item le \textbf{temps analytique}, utilisé pour étudier l'énergie, la disponibilité,
   les revenus et les performances sur une période.
 \end{enumerate}
 
-Une plateforme fiable ne doit donc pas utiliser le même mécanisme pour ces trois
-besoins. Les événements de terrain alimentent une projection courante ; les
-transitions importantes sont historisées ; les indicateurs sont calculés à partir
-des données vérifiées et d'une période explicitement choisie.
+La qualité d'un CSMS dépend donc de sa capacité à distinguer l'état courant, l'historique
+des événements et les indicateurs agrégés. Une information ancienne ne doit pas être
+présentée comme une preuve actuelle de fonctionnement.
 
-\subsubsection{OCPP et interopérabilité}
+\subsubsection{Interopérabilité avec les bornes}
 
-L'\emph{Open Charge Point Protocol} (OCPP), maintenu par l'Open Charge Alliance, est
-un protocole ouvert qui standardise les échanges entre une station de recharge et un
-CSMS. Cette normalisation évite de lier la plateforme à un seul constructeur et
-permet de centraliser le contrôle d'équipements hétérogènes
-\cite{ocaOcpp16,ov2xPlatform}.
+Les stations de recharge peuvent provenir de constructeurs différents. Sans protocole
+commun, chaque intégration nécessiterait un mécanisme propriétaire, ce qui augmenterait
+les coûts et limiterait l'évolution du réseau. L'\emph{Open Charge Point Protocol}
+(OCPP), maintenu par l'Open Charge Alliance, standardise les échanges entre une station
+et un système central \cite{ocaOcpp16,ov2xPlatform}.
 
-Le projet adopte OCPP 1.6 JSON sur WebSocket. Une station s'identifie lors de sa
-connexion, puis échange des messages structurés avec la passerelle OCPP. Les messages
-principaux utilisés par \ProjectName{} sont :
-
-\begin{itemize}[leftmargin=7mm]
-  \item \texttt{BootNotification}, pour enregistrer le démarrage et négocier
-  l'intervalle de heartbeat ;
-  \item \texttt{Heartbeat}, pour apporter une preuve régulière de connectivité ;
-  \item \texttt{StatusNotification}, pour transmettre l'état d'une station ou d'un
-  connecteur et, le cas échéant, un code d'erreur ;
-  \item \texttt{Authorize}, \texttt{StartTransaction}, \texttt{MeterValues} et
-  \texttt{StopTransaction}, pour couvrir l'autorisation, le début, les mesures et la
-  fin d'une transaction ;
-  \item \texttt{RemoteStartTransaction}, \texttt{RemoteStopTransaction},
-  \texttt{Reset}, \texttt{UnlockConnector} et \texttt{ChangeAvailability}, pour les
-  commandes distantes nécessaires aux parcours client et opérateur.
-\end{itemize}
-
-Les scénarios de conformité OCPP montrent qu'une recharge ne correspond pas à un
-simple changement booléen. Dans un scénario où le câble est branché avant
-l'autorisation, le connecteur passe notamment par l'état \texttt{Preparing}, puis une
-transaction est démarrée avant le passage à \texttt{Charging}. Une fin distante
-entraîne l'arrêt de transaction, l'état \texttt{Finishing}, puis le retour à
-\texttt{Available} \cite{ocaCompliancyTests}.
-
-Le protocole contribue à l'interopérabilité, mais ne définit pas à lui seul toutes
-les règles fonctionnelles de l'application. Le délai après lequel une borne est
-considérée hors ligne, la priorité d'une maintenance planifiée ou la manière
-d'agréger plusieurs connecteurs restent des décisions du système central.
+OCPP couvre notamment l'enregistrement d'une station, la preuve périodique de
+connectivité, la transmission de l'état des connecteurs, l'autorisation d'un utilisateur,
+le déroulement d'une transaction, les mesures d'énergie et certaines commandes
+distantes. Il contribue ainsi à l'interopérabilité du réseau, mais ne définit pas
+toutes les règles fonctionnelles de la plateforme. Par exemple, la durée au-delà de
+laquelle une station est considérée comme déconnectée, la priorité donnée à une
+maintenance ou la manière d'agréger l'état de plusieurs connecteurs restent des
+décisions du système central.
 
 \subsubsection{Disponibilité et qualité de service}
 
-Dans \ProjectName{}, la disponibilité n'est pas uniquement une valeur saisie dans un
-formulaire. Elle constitue une \textbf{projection métier} recalculée à partir des
-preuves les plus récentes. L'Open Charge Alliance recommande justement d'exploiter
-la connexion WebSocket, le heartbeat et les messages \texttt{StatusNotification}
-pour améliorer la mesure du temps de fonctionnement \cite{ocaUptime2024}.
+La disponibilité d'une station ne peut pas être réduite à une valeur saisie manuellement.
+Elle résulte d'un ensemble de preuves : présence d'une connexion, réception récente
+d'un message, état des connecteurs, transaction en cours, défaut déclaré, réservation
+ou maintenance planifiée. L'Open Charge Alliance recommande d'exploiter conjointement
+la connexion, les messages de présence et les notifications d'état afin d'améliorer
+la mesure du temps de fonctionnement \cite{ocaUptime2024}.
 
-La projection implémentée applique l'ordre de priorité suivant :
+Sur le plan métier, plusieurs situations doivent être distinguées :
 
-\begin{enumerate}[leftmargin=8mm]
-  \item une désactivation manuelle rend la station \texttt{unavailable} ;
-  \item une maintenance planifiée la place en \texttt{maintenance} ;
-  \item une fermeture explicite de la connexion ou 90 secondes sans aucun message
-  OCPP la place \texttt{offline} ;
-  \item si la communication est valide, les états OCPP les plus récents des
-  connecteurs déterminent l'état opérationnel.
-\end{enumerate}
+\begin{itemize}[leftmargin=7mm]
+  \item une station \textbf{disponible} possède au moins un connecteur utilisable ;
+  \item une station \textbf{occupée} communique correctement, mais ses connecteurs
+  utilisables sont engagés dans des sessions ;
+  \item une station \textbf{réservée} ne peut temporairement pas être proposée à un
+  autre conducteur ;
+  \item une station \textbf{en défaut} signale une anomalie nécessitant un diagnostic ;
+  \item une station \textbf{en maintenance} est volontairement retirée du service ;
+  \item une station \textbf{hors ligne} ne fournit plus de preuve de communication
+  suffisamment récente.
+\end{itemize}
 
-\begin{table}[H]
-  \centering
-  \caption{Règles métier de projection de la disponibilité}
-  \label{tab:availability-rules}
-  \small
-  \begin{tabularx}{\textwidth}{@{}Y C{3.1cm} Y@{}}
-    \toprule
-    \textbf{Preuve observée} & \textbf{État de la station} &
-    \textbf{Interprétation métier}\\
-    \midrule
-    Au moins un connecteur \texttt{Available} & Disponible &
-    Une nouvelle recharge peut être initiée.\\
-    Aucun connecteur libre et au moins un connecteur actif & Occupée &
-    La station communique, mais tous les points utilisables sont engagés.\\
-    Aucun connecteur libre et au moins une réservation & Réservée &
-    Les ressources disponibles sont réservées.\\
-    Aucun connecteur utilisable et présence d'un défaut & En défaut &
-    Une intervention ou un diagnostic est nécessaire.\\
-    Station connectée sans état exploitable & Non disponible &
-    La plateforme attend une preuve de statut cohérente.\\
-    Connexion fermée ou absence de message pendant 90 secondes & Hors ligne &
-    La communication avec le CSMS n'est plus considérée fiable.\\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-Le heartbeat négocié est de 30 secondes ; le seuil de 90 secondes correspond donc à
-trois périodes manquées. Tout autre message OCPP plus récent constitue également une
-preuve de vie. Les transitions sont historisées afin de permettre l'audit, et les
-alertes de perte de communication ou de défaut utilisent une clé de déduplication :
-elles sont rouvertes en cas de récurrence et résolues automatiquement lorsque la
-condition disparaît.
+La valeur affichée doit être explicable et accompagnée d'une date de dernière
+observation. Cette exigence protège le conducteur contre un déplacement inutile et
+permet à l'exploitant de différencier une occupation normale d'une panne ou d'une
+perte de communication.
 
 \section{Problématique}
 
-La difficulté principale ne consiste pas à dessiner une carte ou à stocker une colonne
-\texttt{status}. Une borne peut être physiquement alimentée mais déconnectée du système,
-connectée mais sans statut récent, disponible au niveau station mais en défaut sur un
-connecteur, ou entièrement occupée. Une valeur ancienne conservée en base peut alors
-induire l'utilisateur en erreur.
+La difficulté principale ne consiste pas à afficher des stations sur une carte ou à
+stocker une colonne d'état. Une station peut être alimentée mais déconnectée du
+système, connectée mais sans statut récent, disponible au niveau global mais en défaut
+sur un connecteur, ou entièrement occupée. Une valeur ancienne conservée dans la base
+peut alors induire l'utilisateur en erreur.
 
-Cette incertitude affecte plusieurs acteurs :
+Cette incertitude affecte l'ensemble des acteurs :
 
 \begin{itemize}[leftmargin=7mm]
   \item le client risque de se déplacer vers une borne inutilisable ;
   \item l'opérateur peut détecter trop tard une perte de communication ;
   \item le technicien peut recevoir une intervention sans historique ni contexte ;
   \item l'administrateur manque d'indicateurs fiables pour piloter son organisation ;
-  \item le super administrateur doit contrôler l'isolation des organisations et le
-  fonctionnement global sans accéder arbitrairement à leurs données métier.
+  \item le responsable de la plateforme doit garantir le fonctionnement global et
+  l'isolation des données de chaque organisation.
 \end{itemize}
 
-À ces contraintes s'ajoutent l'hétérogénéité des équipements, la gestion de plusieurs
-organisations, la tarification, les autorisations, la traçabilité des actions et la
-nécessité de tester sans disposer en permanence d'une borne physique ou d'un
-prestataire de paiement réel.
+À ces difficultés s'ajoutent l'hétérogénéité des équipements, la gestion de plusieurs
+organisations, les autorisations, la tarification, la traçabilité des actions et la
+nécessité de tester les parcours sans disposer en permanence d'une borne physique ou
+d'un prestataire financier réel.
 
 \begin{scopebox}[Problématique centrale]
   Comment concevoir une plateforme web multi-rôle capable de visualiser et de suivre
   de manière fiable la disponibilité d'un réseau de bornes, en transformant les
-  événements OCPP en états métier, alertes et parcours opérationnels, tout en restant
-  testable par simulation, sécurisée et extensible vers des services réels ?
+  événements techniques en informations et parcours métier compréhensibles, tout en
+  restant sécurisée, traçable, testable et extensible ?
 \end{scopebox}
 
-La réponse attendue doit donc relier le terrain et l'application. Elle doit éviter les
-données purement décoratives, expliciter l'origine de chaque état, garantir qu'un
-acteur n'agit que dans son périmètre et couvrir un scénario complet jusqu'au paiement
-et à la production d'une preuve de transaction.
+La réponse attendue doit relier les équipements et les usages. Elle doit garantir
+l'origine et la fraîcheur de chaque état, présenter à chaque acteur les fonctions
+correspondant à ses responsabilités et couvrir un parcours cohérent allant de la
+recherche d'une station à l'exploitation des informations produites.
 
 \section{Étude de l'existant}
 
@@ -240,167 +196,185 @@ et à la production d'une preuve de transaction.
 \subsubsection{ChargePoint}
 
 ChargePoint propose une plateforme commerciale de gestion de recharge incluant la
-visibilité en temps réel, des tableaux de bord, des rapports, la gestion de l'accès
-et des prix ainsi que la prise en charge de matériels compatibles OCPP. Son approche
-illustre l'intérêt d'unifier opérations, politiques d'accès et analyse dans une même
-interface \cite{chargePointSoftware}. Elle constitue toutefois un service propriétaire
-complet : son objectif n'est pas de servir de base pédagogique modifiable pour étudier
-les règles internes de projection de disponibilité.
+visibilité en temps réel, des tableaux de bord, des rapports ainsi que la gestion des
+accès et des prix. Elle illustre l'intérêt d'unifier la supervision du réseau, les
+politiques d'utilisation et l'analyse dans un même environnement
+\cite{chargePointSoftware}. Son caractère propriétaire ne permet toutefois pas
+d'étudier ou d'adapter librement ses règles internes.
 
 \subsubsection{Driivz}
 
 Driivz se positionne comme une plateforme de gestion de réseaux de recharge à grande
 échelle. Sa documentation présente la surveillance en temps réel, les alertes, la
-gestion des incidents, l'automatisation de certaines corrections, la facturation,
-les services conducteurs et des capacités multi-tenant \cite{driivzOperations}.
-Cette couverture fonctionnelle confirme que disponibilité, maintenance et commerce
-ne doivent pas être conçus comme des modules isolés.
+gestion des incidents, la facturation, les services destinés aux conducteurs et des
+capacités multi-tenant \cite{driivzOperations}. Cette couverture confirme que
+disponibilité, maintenance et gestion commerciale doivent partager une information
+cohérente.
 
 \subsubsection{Monta}
 
 Monta Hub fournit aux opérateurs un environnement de gestion des points de recharge
 avec suivi d'état, contrôle d'accès, configuration des prix, automatisation
-opérationnelle et rapports \cite{montaHub}. La solution met l'accent sur l'expérience
-des équipes et des conducteurs. Elle sert de référence pour la simplicité des parcours,
-mais reste une offre commerciale dont les règles internes et les adaptations
-académiques ne sont pas directement maîtrisables.
+opérationnelle et rapports \cite{montaHub}. La solution met particulièrement l'accent
+sur la simplicité des parcours proposés aux équipes et aux conducteurs. Elle reste
+cependant une offre commerciale dont le fonctionnement interne n'est pas destiné à
+être adapté dans un contexte pédagogique.
 
 \subsubsection{CitrineOS}
 
-CitrineOS est un CSMS Open Source porté par LF Energy. Il prend en charge OCPP 1.6 et
-OCPP 2.0.1 et fournit une base modulaire pour le provisionnement, le contrôle, les
-transactions, le suivi de disponibilité et la consommation \cite{citrineOS}. Il est
-particulièrement pertinent pour comprendre l'architecture d'un backend OCPP
-extensible. En revanche, il ne remplace pas à lui seul le produit métier, les espaces
-utilisateurs, la politique multi-organisation et les parcours UX propres au sujet.
-
-\subsection{Standards, outils et simulateurs}
-
-\subsubsection{Référentiel OCPP et sécurité}
-
-La documentation de l'Open Charge Alliance fournit la référence fonctionnelle du
-protocole, ses scénarios de conformité et des recommandations de sécurité. Pour OCPP
-1.6, la quatrième édition du livre blanc de sécurité couvre notamment l'établissement
-de connexions sécurisées, la journalisation d'événements et la mise à jour sécurisée
-du firmware \cite{ocaSecurity2026}. Ces éléments justifient l'authentification des
-stations, le stockage d'un secret sous forme de condensat, la traçabilité des commandes
-et la séparation entre environnement local et déploiement.
-
-\subsubsection{Simulation des stations}
-
-Le simulateur \emph{e-mobility-charging-stations-simulator} publié par SAP est un outil
-Open Source en TypeScript destiné à simuler des stations OCPP-J 1.6 et 2.0
-\cite{sapSimulator}. Il permet de reproduire la connexion, les heartbeats, les
-notifications de statut et les transactions sans borne physique. Dans le projet, il
-est utilisé comme source externe d'événements ; la plateforme ne modifie pas
-artificiellement les états en base pour faire croire à une connexion réelle.
-
-\subsubsection{Cartographie et paiement}
-
-La cartographie repose sur Leaflet et les données OpenStreetMap. Ce choix permet
-d'afficher les stations, de sélectionner des coordonnées sur la carte et de proposer
-un itinéraire externe sans dépendre d'un composant propriétaire unique
-\cite{leaflet,openStreetMap}.
-
-Le paiement est encapsulé derrière un adaptateur. Le MVP utilise un fournisseur simulé
-externe et traite sa réponse ainsi que ses webhooks comme le ferait une intégration
-réelle. Cette séparation permet de tester les succès, refus, délais et doublons sans
-transaction financière, puis d'ajouter ultérieurement un adaptateur pour un prestataire
-compatible avec le marché ciblé.
+CitrineOS est un système central Open Source porté par LF Energy. Il fournit une base
+modulaire pour le provisionnement, le contrôle, les transactions et le suivi des
+équipements \cite{citrineOS}. Il constitue une référence pertinente pour comprendre
+la structure d'un backend de recharge extensible. En revanche, il ne définit pas à
+lui seul les espaces utilisateurs, les règles organisationnelles ni l'expérience
+métier d'un produit complet.
 
 \subsection{Synthèse comparative}
 
-Le tableau~\ref{tab:existing-comparison} synthétise le positionnement des solutions à
-partir de leurs fonctions publiquement documentées. Il ne constitue pas un benchmark
-commercial exhaustif ; il met en évidence les critères utiles au périmètre du stage.
+Le tableau~\ref{tab:existing-comparison} synthétise les caractéristiques utiles au
+sujet de stage à partir des informations publiées par les éditeurs. Les identités
+visuelles reproduites proviennent de leurs ressources officielles
+\cite{chargePointSoftware,driivzOperations,montaHub,citrineOS}.
 
 \begin{table}[H]
   \centering
   \caption{Comparaison synthétique des solutions étudiées}
   \label{tab:existing-comparison}
   \scriptsize
-  \begin{tabularx}{\textwidth}{@{}C{2.25cm} C{2.15cm} Y Y Y@{}}
-    \toprule
-    \textbf{Solution} & \textbf{Nature} & \textbf{Supervision et OCPP} &
-    \textbf{Parcours métier} & \textbf{Positionnement}\\
-    \midrule
-    ChargePoint & Plateforme commerciale &
-    Visibilité temps réel et matériel OCPP &
-    Accès, prix, tableaux de bord et rapports &
-    Produit mature, mais fonctionnement interne propriétaire.\\
-    Driivz & Plateforme commerciale &
-    Monitoring, alertes, incidents et automatisation &
-    Conducteurs, facturation, analytique et multi-tenant &
-    Couverture large adaptée aux grands réseaux.\\
-    Monta Hub & Plateforme commerciale &
-    État des points, disponibilité et opérations &
-    Accès, tarification, automatisation et rapports &
-    Forte orientation expérience opérateur et conducteur.\\
-    CitrineOS & CSMS Open Source &
-    OCPP 1.6/2.0.1, contrôle et transactions &
-    Briques backend à intégrer dans un produit &
-    Base technique extensible, sans UX métier imposée.\\
-    \ProjectName{} & Prototype de stage &
-    OCPP 1.6J, simulation, projection et alertes &
-    Cinq espaces métier, recharge et paiement simulé &
-    Chaîne verticale maîtrisée et adaptée au contexte pédagogique.\\
-    \bottomrule
+  \renewcommand{\arraystretch}{1.28}
+  \begin{tabularx}{\textwidth}{|C{2.55cm}|C{2.15cm}|Y|Y|}
+    \hline
+    \textbf{Solution} & \textbf{Nature} & \textbf{Fonctions principales} &
+    \textbf{Limites pour le sujet de stage}\\
+    \hline
+    \includegraphics[width=2.05cm,height=0.72cm,keepaspectratio]
+      {assets/brand/solutions/chargepoint.png}\newline
+    \textbf{ChargePoint}
+    & Plateforme commerciale
+    & Supervision, accès, tarification, tableaux de bord et rapports.
+    & Fonctionnement interne propriétaire et personnalisation limitée au cadre
+    proposé par l'éditeur.\\
+    \hline
+    \includegraphics[width=2.05cm,height=0.72cm,keepaspectratio]
+      {assets/brand/solutions/driivz-lockup.png}\newline
+    \textbf{Driivz}
+    & Plateforme commerciale
+    & Monitoring, alertes, incidents, conducteurs, facturation et analytique.
+    & Solution destinée aux réseaux industriels, non modifiable pour l'étude des
+    règles internes.\\
+    \hline
+    \includegraphics[width=2.05cm,height=0.72cm,keepaspectratio]
+      {assets/brand/solutions/monta-lockup.png}\newline
+    \textbf{Monta Hub}
+    & Plateforme commerciale
+    & État des points, accès, prix, automatisation, parcours conducteur et rapports.
+    & Logique propriétaire et dépendance au modèle de service de l'éditeur.\\
+    \hline
+    \includegraphics[width=2.05cm,height=0.72cm,keepaspectratio]
+      {assets/brand/solutions/citrineos.png}\newline
+    \textbf{CitrineOS}
+    & CSMS Open Source
+    & Provisionnement, contrôle, transactions et suivi des équipements.
+    & Briques techniques à intégrer dans un produit métier et une expérience
+    utilisateur complète.\\
+    \hline
   \end{tabularx}
 \end{table}
 
-L'étude montre qu'un produit utile doit réunir deux qualités. Premièrement, la vérité
-opérationnelle doit provenir du protocole et être explicable. Deuxièmement, cette
-vérité doit être présentée différemment selon l'objectif de chaque acteur. C'est ce
-double principe qui guide la solution proposée.
+L'étude montre qu'une solution de gestion de recharge doit réunir deux qualités.
+Premièrement, l'état opérationnel doit provenir de preuves techniques récentes et
+rester explicable. Deuxièmement, cette information doit être transformée en services
+adaptés au conducteur, à l'exploitation, à la maintenance et au pilotage. Les
+solutions commerciales couvrent largement ces besoins, tandis que CitrineOS apporte
+une référence ouverte pour le système central. Aucune ne constitue toutefois, à elle
+seule, un support directement adapté au périmètre pédagogique et organisationnel du
+stage.
 
 \section{Solution proposée}
 
-\subsection{Périmètre fonctionnel}
+\subsection{Vue d'ensemble fonctionnelle}
 
-\ProjectName{} est une application web de visualisation, de supervision et de gestion
-d'infrastructures de recharge électrique. Elle associe un frontend React, une API
-REST Laravel, une base PostgreSQL, une passerelle OCPP et des services asynchrones.
-La plateforme couvre :
+La solution proposée, nommée \ProjectName{}, est une plateforme web de visualisation,
+de suivi et de gestion d'infrastructures de recharge électrique. Elle met en relation
+les informations provenant des stations avec les besoins des différents utilisateurs.
+Son objectif principal est de présenter une disponibilité fiable tout en assurant la
+continuité entre supervision, recharge, paiement, maintenance et pilotage.
+
+La plateforme couvre les fonctions suivantes :
 
 \begin{itemize}[leftmargin=7mm]
-  \item un espace public avec présentation, carte, demande de démonstration,
-  inscription client et authentification locale ou Google ;
-  \item l'activation par invitation des administrateurs, opérateurs et techniciens ;
-  \item la gestion des organisations, utilisateurs, stations, connecteurs, tarifs et
-  abonnements ;
-  \item la réception des messages OCPP, le calcul de disponibilité, l'historique des
-  transitions, les alertes et les commandes distantes ;
-  \item le parcours client de sélection, connexion, autorisation, recharge, arrêt,
-  paiement simulé et consultation du reçu ;
-  \item les interventions, la maintenance, les notifications, les tableaux de bord,
-  les rapports et les exports adaptés aux rôles.
+  \item présenter le service au public et permettre la consultation des stations ;
+  \item gérer les organisations, les comptes, les rôles et les invitations ;
+  \item administrer les stations, leurs connecteurs et leurs informations de
+  localisation ;
+  \item recevoir les événements des équipements et en déduire leur état opérationnel ;
+  \item permettre au client de rechercher une station, démarrer une recharge, suivre
+  sa session et obtenir une preuve de paiement ;
+  \item traiter les alertes, interventions et opérations de maintenance ;
+  \item configurer les tarifs, les abonnements et le cycle commercial des
+  organisations ;
+  \item produire des indicateurs, rapports et exports adaptés aux responsabilités de
+  chaque utilisateur.
 \end{itemize}
 
-\subsection{Espaces authentifiés par rôle}
+\subsection{Espaces et responsabilités des utilisateurs}
 
-L'interface et les autorisations sont spécialisées afin d'éviter un tableau de bord
-générique :
+L'application ne propose pas un tableau de bord générique. Chaque espace est limité
+aux responsabilités de son utilisateur, comme le résume le
+tableau~\ref{tab:role-spaces}.
 
-\begin{description}[leftmargin=4.1cm,style=nextline]
-  \item[Super administrateur] supervise la plateforme, les organisations, les demandes
-  de démonstration, les paramètres globaux, les intégrations et l'audit.
-  \item[Administrateur] pilote une seule organisation, ses employés, ses clients, ses
-  actifs de recharge, sa tarification, son abonnement commercial et ses rapports.
-  \item[Opérateur] surveille les stations de son organisation, traite les alertes,
-  commande les équipements et assigne les interventions.
-  \item[Technicien] consulte les stations concernées, exécute les interventions,
-  documente les opérations avant/après et met à jour leur avancement.
-  \item[Client] recherche une station, démarre et suit ses sessions, paie, consulte
-  ses reçus et gère ses abonnements aux réseaux.
-\end{description}
+\begin{table}[H]
+  \centering
+  \caption{Espaces et responsabilités des utilisateurs}
+  \label{tab:role-spaces}
+  \small
+  \renewcommand{\arraystretch}{1.22}
+  \begin{tabularx}{\textwidth}{|C{2.65cm}|C{3.2cm}|Y|}
+    \hline
+    \textbf{Acteur} & \textbf{Périmètre} & \textbf{Responsabilités principales}\\
+    \hline
+    Visiteur
+    & Espace public
+    & Découvrir la plateforme, consulter les stations publiques, contacter le service,
+    demander une démonstration ou créer un compte client.\\
+    \hline
+    Super administrateur
+    & Ensemble de la plateforme
+    & Superviser les organisations, traiter les demandes de démonstration, contrôler
+    les paramètres globaux, les intégrations et l'audit.\\
+    \hline
+    Administrateur
+    & Une organisation
+    & Piloter les employés, les clients liés à l'organisation, les stations, la
+    tarification, l'abonnement commercial et les rapports.\\
+    \hline
+    Opérateur
+    & Réseau de son organisation
+    & Surveiller les stations, traiter les alertes, exécuter les commandes autorisées
+    et assigner les interventions.\\
+    \hline
+    Technicien
+    & Interventions de son organisation
+    & Consulter les stations concernées, réaliser les opérations affectées, documenter
+    le travail et mettre à jour son avancement.\\
+    \hline
+    Client
+    & Compte personnel multi-réseau
+    & Rechercher une station, suivre ses sessions, payer, consulter ses reçus et gérer
+    ses adhésions aux organisations.\\
+    \hline
+  \end{tabularx}
+\end{table}
 
-Les employés appartiennent à une seule organisation. Un client reste un utilisateur
-indépendant et peut adhérer à plusieurs réseaux sans dupliquer son compte. Cette
-distinction réduit l'ambiguïté entre identité globale et relation commerciale.
+Les employés, à savoir les administrateurs, opérateurs et techniciens, appartiennent
+à une seule organisation. Un client possède en revanche une identité indépendante et
+peut utiliser plusieurs réseaux ou souscrire à plusieurs offres sans créer plusieurs
+comptes. Cette séparation évite de confondre la propriété d'un actif, l'appartenance
+d'un employé et la relation commerciale d'un conducteur.
 
-\subsection{Chaîne verticale de fonctionnement}
+\subsection{Périmètre du MVP}
 
-Le cœur du MVP peut être résumé par la chaîne suivante :
+Le produit minimum viable doit démontrer un parcours complet et cohérent :
 
 \begin{center}
   \begin{tcolorbox}[
@@ -411,120 +385,134 @@ Le cœur du MVP peut être résumé par la chaîne suivante :
     arc=2mm,
     halign=center
   ]
-    \textbf{Station simulée}
-    $\rightarrow$ OCPP
-    $\rightarrow$ passerelle
-    $\rightarrow$ événements
-    $\rightarrow$ disponibilité\\[2mm]
+    \textbf{Équipement simulé}
+    $\rightarrow$ événements de terrain
+    $\rightarrow$ disponibilité\\[1mm]
     $\rightarrow$ carte et alertes
-    $\rightarrow$ session
-    $\rightarrow$ tarification
+    $\rightarrow$ session de recharge
+    $\rightarrow$ tarification\\[1mm]
     $\rightarrow$ paiement simulé
     $\rightarrow$ reçu
   \end{tcolorbox}
 \end{center}
 
-Chaque étape conserve une responsabilité précise. La passerelle traduit le protocole
-en événements applicatifs ; le backend applique les règles métier et persiste les
-transitions ; le frontend consomme l'API et les mises à jour temps réel. Le paiement
-et la messagerie sont traités comme des intégrations remplaçables. Cette organisation
-facilite les tests et évite que l'interface contienne des règles critiques.
-
-\subsection{Périmètre du MVP et extensions}
-
-Le MVP vise une démonstration crédible avec OCPP 1.6J, un simulateur de station et un
-paiement simulé. Il ne prétend pas certifier un matériel, traiter de l'argent réel ni
-assurer immédiatement une exploitation industrielle. L'intégration d'une borne
-physique, d'un prestataire financier réel, d'OCPP 2.0.1, de la gestion distante du
-firmware ou d'une prédiction de panne par intelligence artificielle constitue une
-évolution ultérieure. La priorité est d'abord donnée à la cohérence du domaine, à la
-traçabilité et à la sécurité du parcours principal.
+Le MVP inclut également les fonctions indispensables à l'exploitation de ce parcours :
+authentification, rôles, organisations, invitations, interventions, maintenance,
+notifications, tableaux de bord et rapports. Il ne prétend pas certifier un matériel
+physique ni traiter immédiatement de l'argent réel. La connexion à une borne réelle,
+l'intégration d'un prestataire financier en production, la gestion distante du
+firmware et les fonctions prédictives constituent des perspectives d'évolution.
 
 \section{Méthodologie de travail}
 
-\subsection{Approche itérative et incrémentale}
+\subsection{Le framework Scrum}
 
-Le projet est réalisé individuellement. Une application stricte de Scrum, qui suppose
-des responsabilités et des événements pensés pour une équipe, ne serait donc pas
-adaptée. La démarche retenue est \textbf{itérative et incrémentale, inspirée des
-principes agiles}. Le Scrum Guide est utilisé comme référence pour la transparence,
-l'inspection et l'adaptation, sans revendiquer l'ensemble du cadre Scrum
+Scrum est un framework agile fondé sur des cycles courts appelés \emph{Sprints}. Il
+organise le travail autour d'un \emph{Product Backlog} ordonné, d'un objectif de
+Sprint, d'un \emph{Sprint Backlog} et d'un résultat utilisable inspecté à la fin de
+chaque cycle. Ses piliers sont la transparence, l'inspection et l'adaptation
 \cite{scrumGuide2020}.
 
-Le backlog produit fournit une vision globale et des user stories estimées. Les
-dépendances ne sont pas ignorées : les incréments sont ordonnés de manière à construire
-progressivement une chaîne verticale utilisable. Un incrément peut dépendre d'une
-fondation antérieure tout en produisant un résultat observable et testable.
+Le fonctionnement général adopté est représenté par la
+figure~\ref{fig:scrum-cycle}. Les retours obtenus lors de la revue alimentent le
+Product Backlog, tandis que la rétrospective permet d'améliorer la manière de
+travailler pour le Sprint suivant.
 
-\begin{table}[H]
+\begin{figure}[H]
   \centering
-  \caption{Organisation des incréments de réalisation}
-  \label{tab:increments}
-  \small
-  \begin{tabularx}{\textwidth}{@{}C{2.1cm} Y Y@{}}
-    \toprule
-    \textbf{Incrément} & \textbf{Objectif principal} & \textbf{Résultat vérifiable}\\
-    \midrule
-    Cadrage & Acteurs, backlog, cas d'utilisation, architecture et prototype &
-    Périmètre partagé et parcours validables.\\
-    Fondations & Authentification, invitations, rôles et isolation &
-    Accès sécurisé selon le rôle et l'organisation.\\
-    Réseau & Stations, connecteurs, carte, OCPP et disponibilité &
-    État calculé à partir d'une station simulée.\\
-    Recharge & Parcours client, transaction, mesures et paiement &
-    Session complète jusqu'au reçu.\\
-    Exploitation & Alertes, interventions, maintenance et notifications &
-    Incident traçable de sa détection à sa résolution.\\
-    Pilotage & Tableaux de bord, commerce, rapports et exports &
-    Indicateurs et documents adaptés à chaque acteur.\\
-    Stabilisation & Sécurité, tests, déploiement et documentation &
-    Produit démontrable, contrôlé et transmissible.\\
-    \bottomrule
-  \end{tabularx}
-\end{table}
+  \begin{tikzpicture}[
+    node distance=6mm and 5mm,
+    stage/.style={
+      draw=ctline,
+      fill=ctpaper,
+      rounded corners=2mm,
+      minimum height=12mm,
+      text width=2.2cm,
+      align=center,
+      font=\footnotesize
+    },
+    sprint/.style={
+      stage,
+      draw=ctgreen,
+      fill=ctmint,
+      line width=0.9pt,
+      text width=2.35cm
+    },
+    flow/.style={-{Stealth[length=2.2mm]}, line width=0.8pt, draw=ctgreen}
+  ]
+    \node[stage] (backlog) {\textbf{Product Backlog}\\besoins ordonnés};
+    \node[stage, right=of backlog] (planning) {\textbf{Sprint Planning}\\objectif et sélection};
+    \node[sprint, right=of planning] (sprint) {\textbf{Sprint}\\conception, réalisation et tests};
+    \node[stage, right=of sprint] (review) {\textbf{Sprint Review}\\démonstration et retours};
+    \node[stage, below=of sprint] (retro) {\textbf{Rétro\-spective}\\amélioration du processus};
 
-\subsection{Cycle de traitement d'un bloc}
+    \draw[flow] (backlog) -- (planning);
+    \draw[flow] (planning) -- (sprint);
+    \draw[flow] (sprint) -- (review);
+    \draw[flow] (review) |- (retro);
+    \draw[flow] (retro) -| (backlog);
+  \end{tikzpicture}
+  \caption{Cycle Scrum adopté pour le projet}
+  \label{fig:scrum-cycle}
+\end{figure}
 
-Avant chaque bloc, le périmètre, les règles, les sources externes et les critères
-d'acceptation sont explicités. Après validation, le travail suit généralement les
-étapes suivantes :
+\subsection{Justification du choix}
 
-\begin{enumerate}[leftmargin=8mm]
-  \item analyse des user stories et des règles métier concernées ;
-  \item conception du parcours et des contrats API ;
-  \item implémentation backend et frontend en parallèle lorsque les contrats sont
-  stabilisés ;
-  \item tests automatisés ciblés, compilation et vérification visuelle ;
-  \item démonstration du scénario, correction des retours puis versionnement Git.
-\end{enumerate}
+Une démarche strictement séquentielle aurait nécessité de figer très tôt les règles
+de disponibilité, les échanges avec les stations et les parcours utilisateurs. Or
+ces éléments ont besoin d'être confrontés rapidement à des scénarios exécutables.
+Scrum a été retenu afin de :
 
-Cette organisation réduit le risque de développer longtemps sur une hypothèse
-incorrecte. Elle permet également de faire évoluer le backlog lorsqu'un besoin
-technique important apparaît, comme l'intégration d'un simulateur OCPP ou le calcul
-des états à partir des heartbeats.
+\begin{itemize}[leftmargin=7mm]
+  \item construire progressivement une chaîne fonctionnelle démontrable ;
+  \item intégrer les remarques de l'encadrant sans attendre la fin du stage ;
+  \item réordonner le backlog lorsqu'une dépendance métier ou technique apparaît ;
+  \item associer conception, implémentation et validation dans un même cycle ;
+  \item conserver une visibilité régulière sur les résultats obtenus et le travail
+  restant.
+\end{itemize}
 
-\subsection{Traçabilité et contrôle de la qualité}
+Les dépendances entre fonctionnalités ne s'opposent pas à Scrum. Un Sprint peut
+s'appuyer sur une fondation produite précédemment, à condition que son objectif soit
+clair et que le résultat obtenu soit vérifiable. Le détail des Sprints et des user
+stories associées est présenté au chapitre suivant.
 
-Le dépôt Git constitue la référence du code source et de la documentation. Les
-changements sont regroupés dans des commits cohérents et publiés sur le dépôt distant.
-Les règles sensibles sont couvertes par des tests unitaires ou d'intégration, notamment
-la projection de disponibilité, l'isolation des organisations, les autorisations, les
-webhooks et les transitions de workflow. Les parcours majeurs font aussi l'objet de
-tests manuels scénarisés avec les services nécessaires : API Laravel, worker de file,
-serveur WebSocket, passerelle et simulateur OCPP.
+\subsection{Adaptation au contexte d'un stage individuel}
 
-La qualité visuelle est vérifiée dans plusieurs tailles d'écran, mais elle reste
-subordonnée à la vérité fonctionnelle : un graphique ou un indicateur ne doit pas
-présenter une donnée synthétique comme si elle provenait du terrain. Cette règle guide
-également la documentation et les démonstrations du projet.
+Le projet est développé par un seul stagiaire. Scrum est donc adapté sans créer
+artificiellement une équipe ou attribuer des titres qui ne correspondent pas à
+l'organisation réelle :
+
+\begin{itemize}[leftmargin=7mm]
+  \item le stagiaire assure l'analyse, la conception, le développement, les tests et
+  la tenue du Product Backlog ;
+  \item l'encadrant d'entreprise joue le rôle de \textbf{validateur métier} : il
+  clarifie les attentes, examine les résultats et fournit les retours nécessaires ;
+  \item le Sprint Planning prend la forme d'une sélection d'objectifs réalistes et de
+  critères d'acceptation avant le démarrage du travail ;
+  \item la Sprint Review correspond à la démonstration du scénario réalisé ;
+  \item la rétrospective est une analyse courte des difficultés, des écarts et des
+  améliorations à appliquer au cycle suivant.
+\end{itemize}
+
+La cadence retenue est hebdomadaire. Avant chaque Sprint, les règles métier, les
+sources externes et les critères d'acceptation sont précisés. Pendant le Sprint, les
+contrats d'API permettent de faire progresser le frontend et le backend de manière
+coordonnée. La fin du Sprint comprend les tests automatisés ciblés, une vérification
+visuelle, une démonstration et le versionnement des changements dans Git.
+
+Cette adaptation conserve les mécanismes utiles de Scrum --- backlog ordonné,
+objectif court, inspection et adaptation --- tout en restant fidèle au contexte
+réel du stage.
 
 \section*{Conclusion}
 
-Ce chapitre a présenté le contexte du stage, les acteurs et mécanismes fondamentaux
-d'un réseau de recharge, ainsi que la difficulté de transformer des messages techniques
-en une disponibilité métier fiable. L'étude de ChargePoint, Driivz, Monta et CitrineOS
-montre l'importance d'unifier supervision, expérience client et opérations, tandis que
-les références OCPP encadrent les échanges avec les bornes. \ProjectName{} retient une
-architecture testable par simulation, des espaces spécialisés par rôle et une démarche
-incrémentale. Le chapitre suivant formalise les besoins fonctionnels et non fonctionnels
-qui découlent de ce cadrage.
+Ce chapitre a présenté le contexte du stage et les fondements d'un système de gestion
+des bornes de recharge. L'étude du domaine montre que la disponibilité doit être
+déduite de preuves récentes et interprétée selon l'état des équipements. L'analyse de
+ChargePoint, Driivz, Monta et CitrineOS confirme également la nécessité de relier
+supervision, expérience client, maintenance et pilotage. En réponse à cette
+problématique, \ProjectName{} propose des espaces spécialisés et un parcours métier
+complet. Le projet est conduit selon Scrum, adapté à un stage individuel et organisé
+en Sprints courts. Le chapitre suivant formalise les besoins, le Product Backlog et
+la planification de ces Sprints.

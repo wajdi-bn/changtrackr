@@ -20,61 +20,56 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   \label{fig:global-use-cases}
 \end{figure}
 
-\begin{scopebox}[Conventions du diagramme]
-  Les acteurs humains sont représentés par des silhouettes, les systèmes externes
-  par des rectangles et les fonctionnalités par des ellipses placées dans la
-  frontière du système. Une ligne continue exprime une association ; une flèche en
-  pointillés précise une relation \texttt{include} ou \texttt{extend}. Les contrôles
-  de permission, l'organisation et les scénarios d'erreur sont détaillés ci-dessous.
-\end{scopebox}
-
 \subsection{Catalogue des cas majeurs}
 
-\begin{longtable}{@{}C{1.35cm}p{4.0cm}p{3.3cm}p{5.3cm}@{}}
+\begingroup
+\setlength{\tabcolsep}{5pt}
+\begin{longtable}{|C{1.35cm}|p{4.0cm}|p{3.3cm}|p{5.3cm}|}
   \caption{Catalogue des cas d'utilisation majeurs}
   \label{tab:use-case-catalog}\\
-  \toprule
+  \hline
   \textbf{ID} & \textbf{Cas d'utilisation} & \textbf{Acteur principal} &
   \textbf{Résultat métier}\\
-  \midrule
+  \hline
   \endfirsthead
-  \toprule
+  \hline
   \textbf{ID} & \textbf{Cas d'utilisation} & \textbf{Acteur principal} &
   \textbf{Résultat métier}\\
-  \midrule
+  \hline
   \endhead
   UC-01 & Demander une démonstration et provisionner une organisation &
   Visiteur, Super Administrateur &
   Une organisation d'essai et son administrateur invité sont créés après décision
-  explicite.\\
+  explicite.\\\hline
   UC-02 & Inviter et activer un employé &
   Administrateur &
   Un opérateur ou technicien définit lui-même son mot de passe et rejoint la bonne
-  organisation.\\
+  organisation.\\\hline
   UC-03 & Mettre en service une station OCPP &
   Opérateur &
   La station, ses connecteurs et son identité OCPP sont créés atomiquement et prêts à
-  être reliés au simulateur ou au matériel.\\
+  être reliés au simulateur ou au matériel.\\\hline
   UC-04 & Calculer la disponibilité &
   Borne / plateforme &
   Les preuves OCPP deviennent un état métier, une transition et, si nécessaire, une
-  alerte.\\
+  alerte.\\\hline
   UC-05 & Effectuer une recharge et payer &
   Client &
   Une transaction technique produit une session mesurée, un paiement réconcilié et
-  un reçu.\\
+  un reçu.\\\hline
   UC-06 & Traiter une alerte et une intervention &
   Opérateur, Technicien &
-  L'incident est qualifié, assigné, documenté et clôturé avec une chronologie.\\
+  L'incident est qualifié, assigné, documenté et clôturé avec une chronologie.\\\hline
   UC-07 & Gérer le cycle commercial d'une organisation &
   Super Administrateur, Administrateur &
   L'essai, l'offre, les limites et factures évoluent sans supprimer les données de
-  l'organisation.\\
+  l'organisation.\\\hline
   UC-08 & Générer et échanger un rapport &
   Utilisateur autorisé &
   Une analyse adaptée au rôle est exportée ou envoyée avec pièces jointes et suivi.\\
-  \bottomrule
+  \hline
 \end{longtable}
+\endgroup
 
 \subsection{UC-01 -- Demander une démonstration et provisionner une organisation}
 
