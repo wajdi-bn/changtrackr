@@ -1,0 +1,39 @@
+\begin{tikzpicture}[
+  font=\sffamily\tiny,
+  participant/.style={draw=ctline, rounded corners=1.5mm, fill=white,
+    minimum width=21mm, minimum height=8mm, align=center},
+  call/.style={-{Latex[length=1.8mm]}, thick, draw=ctgray},
+  return/.style={-{Latex[length=1.8mm]}, dashed, draw=ctgreen},
+  msg/.style={fill=white, inner sep=0.7pt, font=\sffamily\tiny}
+]
+  \node[participant] (operator) at (0,0) {Opérateur};
+  \node[participant] (app) at (2.55,0) {Application};
+  \node[participant] (api) at (5.1,0) {Laravel};
+  \node[participant] (db) at (7.65,0) {PostgreSQL};
+  \node[participant] (gateway) at (10.2,0) {Passerelle OCPP};
+  \node[participant] (station) at (12.75,0) {Borne / simulateur};
+
+  \foreach \x in {0,2.55,5.1,7.65,10.2,12.75}
+    \draw[densely dashed, ctline] (\x,-0.45) -- (\x,-8.2);
+
+  \draw[call] (operator.center |- 0,-0.8) -- node[msg, above]{Configurer station et connecteurs} (app.center |- 0,-0.8);
+  \draw[call] (app.center |- 0,-1.2) -- node[msg, above]{Créer atomiquement} (api.center |- 0,-1.2);
+  \draw[call] (api.center |- 0,-1.65) -- node[msg, above]{Contrôler quota et unicité} (db.center |- 0,-1.65);
+  \draw[call] (api.center |- 0,-2.1) -- node[msg, above]{Station + connecteurs + identité} (db.center |- 0,-2.1);
+  \draw[return] (api.center |- 0,-2.55) -- node[msg, above]{Commande locale ou secret unique} (app.center |- 0,-2.55);
+  \draw[return] (app.center |- 0,-2.95) -- node[msg, above]{Instructions de connexion} (operator.center |- 0,-2.95);
+  \draw[call] (station.center |- 0,-3.45) -- node[msg, above]{Ouvrir WebSocket OCPP} (gateway.center |- 0,-3.45);
+  \draw[call] (gateway.center |- 0,-3.85) -- node[msg, above]{Authentifier l'identité} (api.center |- 0,-3.85);
+  \draw[call] (api.center |- 0,-4.25) -- node[msg, above]{Vérifier le secret hashé} (db.center |- 0,-4.25);
+  \draw[return] (api.center |- 0,-4.65) -- node[msg, above]{Connexion autorisée} (gateway.center |- 0,-4.65);
+  \draw[call] (station.center |- 0,-5.1) -- node[msg, above]{BootNotification} (gateway.center |- 0,-5.1);
+  \draw[call] (gateway.center |- 0,-5.5) -- node[msg, above]{Événement interne signé} (api.center |- 0,-5.5);
+  \draw[call] (station.center |- 0,-5.95) -- node[msg, above]{StatusNotification} (gateway.center |- 0,-5.95);
+  \draw[call] (gateway.center |- 0,-6.35) -- node[msg, above]{État des connecteurs} (api.center |- 0,-6.35);
+  \draw[call] (api.center |- 0,-6.75) -- node[msg, above]{Projeter connexion et disponibilité} (db.center |- 0,-6.75);
+  \draw[return] (api.center |- 0,-7.2) -- node[msg, above]{État connecté en temps réel} (app.center |- 0,-7.2);
+
+  \draw[dashed, ctamber] (1.9,-7.55) rectangle (13.2,-8.1);
+  \node[anchor=west, text=ctamber] at (2.05,-7.82)
+    {\textbf{Alternative :} référence ou identité dupliquée $\rightarrow$ aucune création partielle.};
+\end{tikzpicture}

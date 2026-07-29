@@ -1,0 +1,37 @@
+\begin{tikzpicture}[
+  font=\sffamily\tiny,
+  participant/.style={draw=ctline, rounded corners=1.5mm, fill=white,
+    minimum width=21mm, minimum height=8mm, align=center},
+  call/.style={-{Latex[length=1.8mm]}, thick, draw=ctgray},
+  return/.style={-{Latex[length=1.8mm]}, dashed, draw=ctgreen},
+  msg/.style={fill=white, inner sep=0.7pt, font=\sffamily\tiny}
+]
+  \node[participant] (admin) at (0,0) {Administrateur};
+  \node[participant] (app) at (2.55,0) {Application};
+  \node[participant] (api) at (5.1,0) {Laravel};
+  \node[participant] (db) at (7.65,0) {PostgreSQL};
+  \node[participant] (mail) at (10.2,0) {Email};
+  \node[participant] (employee) at (12.75,0) {Employé};
+
+  \foreach \x in {0,2.55,5.1,7.65,10.2,12.75}
+    \draw[densely dashed, ctline] (\x,-0.45) -- (\x,-7.4);
+
+  \draw[call] (admin.center |- 0,-0.8) -- node[msg, above]{Saisir l'employé et le rôle} (app.center |- 0,-0.8);
+  \draw[call] (app.center |- 0,-1.2) -- node[msg, above]{Créer l'invitation} (api.center |- 0,-1.2);
+  \draw[call] (api.center |- 0,-1.6) -- node[msg, above]{Vérifier rôle, organisation, quota} (db.center |- 0,-1.6);
+  \draw[call] (api.center |- 0,-2.05) -- node[msg, above]{Compte pending + token hashé} (db.center |- 0,-2.05);
+  \draw[call] (api.center |- 0,-2.5) -- node[msg, above]{Envoyer le lien temporaire} (mail.center |- 0,-2.5);
+  \draw[return] (mail.center |- 0,-2.9) -- node[msg, above]{Invitation} (employee.center |- 0,-2.9);
+  \draw[call] (employee.center |- 0,-3.4) -- node[msg, above]{Ouvrir le lien} (app.center |- 0,-3.4);
+  \draw[call] (app.center |- 0,-3.8) -- node[msg, above]{Inspecter le token} (api.center |- 0,-3.8);
+  \draw[return] (api.center |- 0,-4.2) -- node[msg, above]{Identité et rôle non modifiables} (app.center |- 0,-4.2);
+  \draw[call] (employee.center |- 0,-4.65) -- node[msg, above]{Définir le mot de passe} (app.center |- 0,-4.65);
+  \draw[call] (app.center |- 0,-5.05) -- node[msg, above]{Accepter l'invitation} (api.center |- 0,-5.05);
+  \draw[call] (api.center |- 0,-5.45) -- node[msg, above]{Activer + consommer le token} (db.center |- 0,-5.45);
+  \draw[return] (api.center |- 0,-5.9) -- node[msg, above]{Session authentifiée} (app.center |- 0,-5.9);
+  \draw[return] (app.center |- 0,-6.3) -- node[msg, above]{Onboarding du rôle} (employee.center |- 0,-6.3);
+
+  \draw[dashed, ctamber] (1.9,-6.7) rectangle (13.2,-7.25);
+  \node[anchor=west, text=ctamber] at (2.05,-6.97)
+    {\textbf{Alternative :} token expiré, révoqué ou déjà consommé $\rightarrow$ activation refusée.};
+\end{tikzpicture}

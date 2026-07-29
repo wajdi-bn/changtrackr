@@ -1,0 +1,37 @@
+\begin{tikzpicture}[
+  font=\sffamily\tiny,
+  participant/.style={draw=ctline, rounded corners=1.5mm, fill=white,
+    minimum width=22mm, minimum height=8mm, align=center},
+  call/.style={-{Latex[length=1.8mm]}, thick, draw=ctgray},
+  return/.style={-{Latex[length=1.8mm]}, dashed, draw=ctgreen},
+  msg/.style={fill=white, inner sep=0.7pt, font=\sffamily\tiny}
+]
+  \node[participant] (admin) at (0,0) {Administrateur};
+  \node[participant] (super) at (2.75,0) {Super admin};
+  \node[participant] (api) at (5.5,0) {Laravel};
+  \node[participant] (db) at (8.25,0) {PostgreSQL};
+  \node[participant] (scheduler) at (11,0) {Scheduler};
+  \node[participant] (billing) at (13.75,0) {Facturation};
+
+  \foreach \x in {0,2.75,5.5,8.25,11,13.75}
+    \draw[densely dashed, ctline] (\x,-0.45) -- (\x,-7.65);
+
+  \draw[call] (super.center |- 0,-0.8) -- node[msg, above]{Publier une offre SaaS} (api.center |- 0,-0.8);
+  \draw[call] (api.center |- 0,-1.2) -- node[msg, above]{Prix, cycle, quotas, fonctions} (db.center |- 0,-1.2);
+  \draw[call] (admin.center |- 0,-1.65) -- node[msg, above]{Consulter contrat et usage} (api.center |- 0,-1.65);
+  \draw[call] (api.center |- 0,-2.05) -- node[msg, above]{Mesurer stations et employés} (db.center |- 0,-2.05);
+  \draw[return] (api.center |- 0,-2.45) -- node[msg, above]{Échéance, capacités, factures} (admin.center |- 0,-2.45);
+  \draw[call] (admin.center |- 0,-2.9) -- node[msg, above]{Demander un changement} (api.center |- 0,-2.9);
+  \draw[call] (api.center |- 0,-3.3) -- node[msg, above]{Créer la demande auditée} (db.center |- 0,-3.3);
+  \draw[return] (api.center |- 0,-3.75) -- node[msg, above]{Soumettre à décision} (super.center |- 0,-3.75);
+  \draw[call] (super.center |- 0,-4.2) -- node[msg, above]{Accepter et affecter l'offre} (api.center |- 0,-4.2);
+  \draw[call] (api.center |- 0,-4.6) -- node[msg, above]{Mettre à jour abonnement et quotas} (db.center |- 0,-4.6);
+  \draw[call] (scheduler.center |- 0,-5.05) -- node[msg, above]{Traiter l'échéance} (api.center |- 0,-5.05);
+  \draw[call] (api.center |- 0,-5.45) -- node[msg, above]{Produire la facture} (billing.center |- 0,-5.45);
+  \draw[call] (billing.center |- 0,-5.85) -- node[msg, above]{Facture et événement} (db.center |- 0,-5.85);
+
+  \draw[dashed, ctamber] (4.75,-6.25) rectangle (14.2,-7.45);
+  \node[anchor=west, text=ctamber] at (4.9,-6.52)
+    {\textbf{alt essai expiré sans régularisation}};
+  \draw[call] (scheduler.center |- 0,-6.95) -- node[msg, above]{Limiter les opérations, conserver les données} (api.center |- 0,-6.95);
+\end{tikzpicture}

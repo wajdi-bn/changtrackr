@@ -1,0 +1,38 @@
+\begin{tikzpicture}[
+  font=\sffamily\tiny,
+  participant/.style={draw=ctline, rounded corners=1.5mm, fill=white,
+    minimum width=22mm, minimum height=8mm, align=center},
+  call/.style={-{Latex[length=1.8mm]}, thick, draw=ctgray},
+  return/.style={-{Latex[length=1.8mm]}, dashed, draw=ctgreen},
+  msg/.style={fill=white, inner sep=0.7pt, font=\sffamily\tiny}
+]
+  \node[participant] (source) at (0,0) {Moteur d'alertes};
+  \node[participant] (api) at (2.75,0) {Laravel};
+  \node[participant] (db) at (5.5,0) {PostgreSQL};
+  \node[participant] (operator) at (8.25,0) {Opérateur};
+  \node[participant] (notify) at (11,0) {Notifications};
+  \node[participant] (tech) at (13.75,0) {Technicien};
+
+  \foreach \x in {0,2.75,5.5,8.25,11,13.75}
+    \draw[densely dashed, ctline] (\x,-0.45) -- (\x,-8.05);
+
+  \draw[call] (source.center |- 0,-0.8) -- node[msg, above]{Signaler l'anomalie} (api.center |- 0,-0.8);
+  \draw[call] (api.center |- 0,-1.2) -- node[msg, above]{Créer ou actualiser l'alerte} (db.center |- 0,-1.2);
+  \draw[return] (api.center |- 0,-1.65) -- node[msg, above]{Alerte et échéance SLA} (operator.center |- 0,-1.65);
+  \draw[call] (operator.center |- 0,-2.1) -- node[msg, above]{Acquitter et assigner} (api.center |- 0,-2.1);
+  \draw[call] (api.center |- 0,-2.5) -- node[msg, above]{Créer l'intervention} (db.center |- 0,-2.5);
+  \draw[call] (api.center |- 0,-2.9) -- node[msg, above]{Notifier l'assignation} (notify.center |- 0,-2.9);
+  \draw[return] (notify.center |- 0,-3.3) -- node[msg, above]{Mission et priorité} (tech.center |- 0,-3.3);
+  \draw[call] (tech.center |- 0,-3.75) -- node[msg, above]{Accepter puis démarrer} (api.center |- 0,-3.75);
+  \draw[call] (api.center |- 0,-4.15) -- node[msg, above]{Tracer les transitions} (db.center |- 0,-4.15);
+  \draw[call] (tech.center |- 0,-4.6) -- node[msg, above]{Diagnostic, actions et preuves} (api.center |- 0,-4.6);
+  \draw[call] (api.center |- 0,-5.0) -- node[msg, above]{Stocker rapport et pièces privées} (db.center |- 0,-5.0);
+  \draw[call] (tech.center |- 0,-5.45) -- node[msg, above]{Soumettre le résultat} (api.center |- 0,-5.45);
+  \draw[return] (api.center |- 0,-5.85) -- node[msg, above]{Résultat à contrôler} (operator.center |- 0,-5.85);
+  \draw[call] (operator.center |- 0,-6.3) -- node[msg, above]{Clôturer le suivi} (api.center |- 0,-6.3);
+  \draw[call] (api.center |- 0,-6.7) -- node[msg, above]{Fermer intervention et alerte} (db.center |- 0,-6.7);
+
+  \draw[dashed, ctamber] (2.0,-7.1) rectangle (14.2,-7.85);
+  \node[anchor=west, text=ctamber] at (2.15,-7.47)
+    {\textbf{Alternative :} anomalie encore présente ou suivi requis $\rightarrow$ alerte maintenue ouverte.};
+\end{tikzpicture}

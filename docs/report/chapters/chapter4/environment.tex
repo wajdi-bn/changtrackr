@@ -12,35 +12,36 @@ assure la traçabilité du code et GitHub centralise le dépôt distant.
   \centering
   \caption{Environnement technique effectivement utilisé}
   \label{tab:implementation-toolchain}
-  \begin{tabularx}{\textwidth}{@{}p{3.2cm}p{4.0cm}Y@{}}
-    \toprule
-    \textbf{Domaine} & \textbf{Technologies} & \textbf{Usage dans le projet}\\
-    \midrule
+  \begin{tabularx}{\textwidth}{|p{3.2cm}|p{4.0cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Domaine} & \textbf{Technologies} & \textbf{Usage dans le projet}\\\hline
+
     Frontend & React 19, TypeScript 6, Vite 8 &
-    Application monopage, typage statique et compilation de production.\\
+    Application monopage, typage statique et compilation de production.\\\hline
     Interface & Ant Design 6, Recharts, Leaflet, GSAP &
-    Composants, graphiques, cartes et animations ciblées.\\
+    Composants, graphiques, cartes et animations ciblées.\\\hline
     État et échanges & TanStack Query, Axios, Zustand &
-    Cache serveur, appels HTTP et états locaux transverses.\\
+    Cache serveur, appels HTTP et états locaux transverses.\\\hline
     Backend & PHP 8.5, Laravel 13 &
-    API REST, logique métier, validation, autorisation et tâches planifiées.\\
+    API REST, logique métier, validation, autorisation et tâches planifiées.\\\hline
     Identité & Sanctum, Socialite, Spatie Permission &
-    Session SPA, Google OAuth 2.0, rôles et permissions.\\
+    Session SPA, Google OAuth 2.0, rôles et permissions.\\\hline
     Données & PostgreSQL 16, Eloquent &
-    Persistance transactionnelle, relations et migrations.\\
+    Persistance transactionnelle, relations et migrations.\\\hline
     Temps réel & Reverb, Laravel Echo &
-    Notifications et mises à jour poussées par WebSocket.\\
+    Notifications et mises à jour poussées par WebSocket.\\\hline
     OCPP & Python 3.11, OCPP 1.6J, simulateur SAP &
-    Passerelle WebSocket, messages de borne et scénarios de test.\\
+    Passerelle WebSocket, messages de borne et scénarios de test.\\\hline
     Paiement & Contrat \texttt{PaymentGateway}, WireMock 3 &
-    Fournisseur externe simulé, webhooks et scénarios d'erreur.\\
+    Fournisseur externe simulé, webhooks et scénarios d'erreur.\\\hline
     Email & Resend, queue Laravel &
-    Vérification d'email, invitations et notifications asynchrones.\\
+    Vérification d'email, invitations et notifications asynchrones.\\\hline
     Qualité & PHPUnit 12, Oxlint, TypeScript &
-    Tests backend, analyse frontend et validation de compilation.\\
+    Tests backend, analyse frontend et validation de compilation.\\\hline
     Documentation & \LaTeX, TikZ, OpenAPI prévu &
-    Rapport, schémas et future spécification de l'API.\\
-    \bottomrule
+    Rapport, schémas et future spécification de l'API.\\\hline
+
   \end{tabularx}
 \end{table}
 
@@ -87,23 +88,24 @@ suivants :
   \centering
   \caption{Commandes principales de l'environnement local}
   \label{tab:implementation-commands}
-  \begin{tabularx}{\textwidth}{@{}p{4.4cm}Y@{}}
-    \toprule
-    \textbf{Commande} & \textbf{Responsabilité}\\
-    \midrule
-    \texttt{pnpm dev:frontend} & Lance Vite sur le port 5173.\\
-    \texttt{pnpm dev:backend} & Lance l'API Laravel sur le port 8000.\\
-    \texttt{pnpm dev:queue} & Traite les emails et travaux asynchrones.\\
-    \texttt{pnpm dev:scheduler} & Exécute les règles périodiques.\\
-    \texttt{pnpm dev:reverb} & Lance le serveur WebSocket applicatif.\\
-    \texttt{pnpm ocpp:up} & Démarre la passerelle et le simulateur OCPP.\\
-    \texttt{pnpm ocpp:status} & Affiche l'état d'une borne simulée.\\
+  \begin{tabularx}{\textwidth}{|p{4.4cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Commande} & \textbf{Responsabilité}\\\hline
+
+    \texttt{pnpm dev:frontend} & Lance Vite sur le port 5173.\\\hline
+    \texttt{pnpm dev:backend} & Lance l'API Laravel sur le port 8000.\\\hline
+    \texttt{pnpm dev:queue} & Traite les emails et travaux asynchrones.\\\hline
+    \texttt{pnpm dev:scheduler} & Exécute les règles périodiques.\\\hline
+    \texttt{pnpm dev:reverb} & Lance le serveur WebSocket applicatif.\\\hline
+    \texttt{pnpm ocpp:up} & Démarre la passerelle et le simulateur OCPP.\\\hline
+    \texttt{pnpm ocpp:status} & Affiche l'état d'une borne simulée.\\\hline
     \texttt{pnpm ocpp:plug} / \texttt{ocpp:unplug} &
-    Simule la connexion ou le retrait physique d'un câble.\\
-    \texttt{pnpm payment:up} & Démarre le fournisseur WireMock.\\
-    \texttt{pnpm build:frontend} & Type-check et compile le frontend.\\
-    \texttt{pnpm test:backend} & Exécute la campagne PHPUnit.\\
-    \bottomrule
+    Simule la connexion ou le retrait physique d'un câble.\\\hline
+    \texttt{pnpm payment:up} & Démarre le fournisseur WireMock.\\\hline
+    \texttt{pnpm build:frontend} & Type-check et compile le frontend.\\\hline
+    \texttt{pnpm test:backend} & Exécute la campagne PHPUnit.\\\hline
+
   \end{tabularx}
 \end{table}
 

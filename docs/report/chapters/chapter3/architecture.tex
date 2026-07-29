@@ -86,26 +86,31 @@ environnements d'exécution. Les cadres en pointillés représentent des systèm
 externes ou simulés. PostgreSQL est la source de vérité ; ni le frontend, ni la
 passerelle OCPP, ni les simulateurs ne modifient directement les données métier.
 
-\begin{figure}[p]
+\clearpage
+\begin{scopebox}[Principes structurants]
+\small
+\begin{minipage}[t]{0.48\linewidth}
+\begin{itemize}[leftmargin=5mm,nosep]
+  \item PostgreSQL est la source de vérité ;
+  \item Laravel centralise les décisions métier et l'autorisation ;
+  \item la passerelle OCPP transporte et normalise le protocole.
+\end{itemize}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{itemize}[leftmargin=5mm,nosep]
+  \item le frontend adapte l'expérience au rôle ;
+  \item les services externes sont isolés par des adaptateurs ;
+  \item le worker et le scheduler exécutent les tâches différées.
+\end{itemize}
+\end{minipage}
+\end{scopebox}
+
+\begin{figure}[H]
   \centering
-  \resizebox{0.96\textwidth}{!}{\input{assets/diagrams/technical-architecture}}
+  \resizebox{0.88\textwidth}{!}{\input{assets/diagrams/technical-architecture}}
   \caption{Architecture technique globale de \ProjectName{}}
   \label{fig:technical-architecture}
 \end{figure}
-
-\begin{scopebox}[Principes structurants]
-\begin{itemize}[leftmargin=7mm]
-  \item PostgreSQL constitue la source de vérité de la plateforme ;
-  \item Laravel centralise l'autorisation et les décisions métier ;
-  \item la passerelle OCPP transporte et normalise le protocole sans calculer la
-  disponibilité ;
-  \item le frontend adapte l'expérience au rôle, mais ne remplace jamais les
-  contrôles du backend ;
-  \item les intégrations externes sont encapsulées dans des adaptateurs ;
-  \item les traitements différés et périodiques sont exécutés par le worker et le
-  scheduler.
-\end{itemize}
-\end{scopebox}
 
 \subsection{Description des composants}
 
@@ -184,24 +189,25 @@ OCPP 1.6 JSON correspond au simulateur et au périmètre du stage
   \centering
   \caption{Intégrations techniques et responsabilités}
   \label{tab:external-integrations}
-  \begin{tabularx}{\textwidth}{@{}p{3.0cm}p{3.1cm}Y Y@{}}
-    \toprule
+  \begin{tabularx}{\textwidth}{|p{3.0cm}|p{3.1cm}|Y|Y|}
+    \hline
+    \rowcolor{ctmint}
     \textbf{Intégration} & \textbf{Technologie} & \textbf{Responsabilité} &
-    \textbf{Frontière}\\
-    \midrule
+    \textbf{Frontière}\\\hline
+
     Identité sociale & Google OAuth 2.0 & Vérifier l'identité Google et l'email &
-    Les rôles et organisations restent locaux.\\
+    Les rôles et organisations restent locaux.\\\hline
     Email transactionnel & Resend & Envoyer vérifications, invitations et alertes &
-    Les secrets et l'envoi restent côté serveur.\\
+    Les secrets et l'envoi restent côté serveur.\\\hline
     Cartographie & Leaflet / OpenStreetMap & Tuiles, marqueurs, position et
-    itinéraire & La position courante du client n'est pas persistée.\\
+    itinéraire & La position courante du client n'est pas persistée.\\\hline
     Paiement & Adaptateur de paiement & Autoriser, capturer, libérer ou débiter &
-    Le fournisseur ne modifie jamais directement une session.\\
+    Le fournisseur ne modifie jamais directement une session.\\\hline
     Simulation du paiement & WireMock 3 & Reproduire succès, refus, délai, erreur et
-    webhook & Aucun moyen de paiement réel n'est utilisé.\\
+    webhook & Aucun moyen de paiement réel n'est utilisé.\\\hline
     Simulation des bornes & Simulateur SAP & Produire des connexions et messages
-    OCPP & Le simulateur ne lit ni l'API métier ni la base.\\
-    \bottomrule
+    OCPP & Le simulateur ne lit ni l'API métier ni la base.\\\hline
+
   \end{tabularx}
 \end{table}
 

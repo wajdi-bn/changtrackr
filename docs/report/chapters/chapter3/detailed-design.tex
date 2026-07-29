@@ -20,13 +20,8 @@ interne. Le super administrateur ouvre ensuite la demande, la rejette ou lance s
 revue. Une acceptation provisionne, dans une transaction, l'organisation, son
 administrateur en état \texttt{pending}, l'essai commercial et une invitation
 temporaire. Le compte ne devient actif qu'après acceptation du lien à usage unique.
-
-\begin{figure}[H]
-  \centering
-  \resizebox{0.96\textwidth}{!}{\input{assets/diagrams/account-provisioning-sequence}}
-  \caption{Provisionnement d'une organisation à partir d'une demande de démonstration}
-  \label{fig:account-provisioning-sequence}
-\end{figure}
+Le diagramme de séquence de la figure~\ref{fig:uc01-sequence} précise les échanges
+entre le visiteur, le super administrateur, l'API, la base et le service email.
 
 Les invitations suivent les invariants suivants :
 
@@ -54,23 +49,24 @@ incomplète n'est conservée.
   \centering
   \caption{Cibles de mise en service OCPP}
   \label{tab:commissioning-targets}
-  \begin{tabularx}{\textwidth}{@{}p{3.5cm}Y Y@{}}
-    \toprule
-    \textbf{Cible} & \textbf{Comportement} & \textbf{Usage}\\
-    \midrule
+  \begin{tabularx}{\textwidth}{|p{3.5cm}|Y|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Cible} & \textbf{Comportement} & \textbf{Usage}\\\hline
+
     Borne physique ou externe &
     Génération d'un secret Basic Auth individuel de 48 caractères, affiché une
     seule fois et stocké uniquement sous forme de hash. &
-    Intégration future d'un chargeur réel ou d'un simulateur tiers.\\
+    Intégration future d'un chargeur réel ou d'un simulateur tiers.\\\hline
     Simulateur SAP local &
     Création de l'inventaire puis ajout du profil au manifeste local par une commande
     Artisan dédiée. &
-    Tests reproductibles du stage.\\
+    Tests reproductibles du stage.\\\hline
     Inventaire seul &
     Création sans identité ni secret OCPP. L'état reste non disponible jusqu'au
     provisioning. &
-    Préparation administrative d'un futur actif.\\
-    \bottomrule
+    Préparation administrative d'un futur actif.\\\hline
+
   \end{tabularx}
 \end{table}
 
@@ -186,12 +182,8 @@ Trois objets distincts évitent de facturer une énergie qui n'a pas été déli
   \texttt{StartTransaction} accepté.
 \end{description}
 
-\begin{figure}[p]
-  \centering
-  \resizebox{0.96\textwidth}{!}{\input{assets/diagrams/charging-payment-sequence}}
-  \caption{Séquence de recharge distante et paiement simulé}
-  \label{fig:charging-payment-sequence}
-\end{figure}
+La figure~\ref{fig:uc05-sequence} présente la séquence système complète, depuis la
+sélection du connecteur jusqu'à la capture du paiement final.
 
 Une préautorisation réussie ne prouve donc pas que la recharge a commencé. Laravel
 crée une commande \texttt{RemoteStartTransaction} chiffrée au repos et limitée dans

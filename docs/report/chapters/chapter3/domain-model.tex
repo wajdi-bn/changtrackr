@@ -8,6 +8,13 @@ client qui utilise ce service et la session qui matérialise la recharge. Les au
 classes complètent ce noyau pour couvrir l'exploitation et les deux relations
 commerciales de la plateforme.
 
+La notation suit les conventions UML usuelles : une classe est séparée en
+compartiments, les attributs portent un nom et un type, et chaque extrémité
+d'association indique sa multiplicité \cite{audibertUmlClasses}. Une composition
+n'est employée que lorsque la partie dépend du cycle de vie du tout. Les attributs
+précédés de \texttt{/} sont dérivés de preuves techniques plutôt que saisis
+directement.
+
 La conception respecte les principes de normalisation relationnelle. Une
 information métier n'est portée que par l'entité qui en est responsable : les
 connecteurs sont séparés des stations, les paiements des sessions et les offres des
@@ -16,7 +23,8 @@ d'association, notamment l'adhésion d'un client à un plan et l'abonnement d'un
 organisation à une offre SaaS. Cette organisation évite les groupes répétitifs et
 les dépendances partielles.
 
-Le diagramme reste volontairement conceptuel. Les tables de journalisation, les
+Le diagramme reste volontairement conceptuel et ne contient pas les opérations de
+framework. Les tables de journalisation, les
 événements OCPP, les échantillons de mesure, les fichiers et les notifications ne
 sont pas représentés afin de préserver sa lisibilité. Ces éléments techniques
 conservent l'historique, mais ne modifient pas la structure des concepts métier
@@ -115,8 +123,10 @@ confondre le paiement d'une recharge et la facturation du logiciel.
 
 La figure~\ref{fig:conceptual-domain-model} présente une vue unique des classes
 métier principales. Les attributs sont limités aux informations nécessaires pour
-comprendre la responsabilité de chaque classe. Les cardinalités décrivent les
-relations fonctionnelles et non les détails propres à Eloquent ou aux migrations.
+comprendre la responsabilité de chaque classe. Les relations utilisent des tracés
+orthogonaux ou directs, sans boucle réflexive ni circuit décoratif. Les cardinalités
+décrivent les relations fonctionnelles et non les détails propres à Eloquent ou aux
+migrations.
 
 \begin{figure}[H]
   \centering

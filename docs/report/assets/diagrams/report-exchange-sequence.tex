@@ -1,0 +1,37 @@
+\begin{tikzpicture}[
+  font=\sffamily\tiny,
+  participant/.style={draw=ctline, rounded corners=1.5mm, fill=white,
+    minimum width=21mm, minimum height=8mm, align=center},
+  call/.style={-{Latex[length=1.8mm]}, thick, draw=ctgray},
+  return/.style={-{Latex[length=1.8mm]}, dashed, draw=ctgreen},
+  msg/.style={fill=white, inner sep=0.7pt, font=\sffamily\tiny}
+]
+  \node[participant] (author) at (0,0) {Auteur};
+  \node[participant] (app) at (2.55,0) {Application};
+  \node[participant] (api) at (5.1,0) {Laravel};
+  \node[participant] (db) at (7.65,0) {PostgreSQL};
+  \node[participant] (queue) at (10.2,0) {Queue / PDF};
+  \node[participant] (recipient) at (12.75,0) {Destinataire};
+
+  \foreach \x in {0,2.55,5.1,7.65,10.2,12.75}
+    \draw[densely dashed, ctline] (\x,-0.45) -- (\x,-7.75);
+
+  \draw[call] (author.center |- 0,-0.8) -- node[msg, above]{Choisir période et filtres} (app.center |- 0,-0.8);
+  \draw[call] (app.center |- 0,-1.2) -- node[msg, above]{Charger l'analyse du rôle} (api.center |- 0,-1.2);
+  \draw[call] (api.center |- 0,-1.6) -- node[msg, above]{Agréger dans le périmètre autorisé} (db.center |- 0,-1.6);
+  \draw[return] (api.center |- 0,-2.05) -- node[msg, above]{Indicateurs et détails} (app.center |- 0,-2.05);
+  \draw[call] (author.center |- 0,-2.5) -- node[msg, above]{Composer le rapport} (app.center |- 0,-2.5);
+  \draw[call] (app.center |- 0,-2.9) -- node[msg, above]{Destinataire, priorité, pièces} (api.center |- 0,-2.9);
+  \draw[call] (api.center |- 0,-3.3) -- node[msg, above]{Valider le périmètre et enregistrer} (db.center |- 0,-3.3);
+  \draw[call] (api.center |- 0,-3.7) -- node[msg, above]{Générer le PDF} (queue.center |- 0,-3.7);
+  \draw[call] (queue.center |- 0,-4.1) -- node[msg, above]{Version PDF privée} (db.center |- 0,-4.1);
+  \draw[return] (api.center |- 0,-4.55) -- node[msg, above]{Notifier l'envoi} (recipient.center |- 0,-4.55);
+  \draw[call] (recipient.center |- 0,-5.0) -- node[msg, above]{Ouvrir le rapport} (app.center |- 0,-5.0);
+  \draw[call] (app.center |- 0,-5.4) -- node[msg, above]{Autoriser et marquer lu} (api.center |- 0,-5.4);
+  \draw[call] (api.center |- 0,-5.8) -- node[msg, above]{Tracer la lecture} (db.center |- 0,-5.8);
+  \draw[return] (api.center |- 0,-6.25) -- node[msg, above]{Prévisualisation sécurisée} (recipient.center |- 0,-6.25);
+
+  \draw[dashed, ctamber] (1.9,-6.65) rectangle (13.2,-7.55);
+  \node[anchor=west, text=ctamber] at (2.05,-6.92)
+    {\textbf{Alternative :} export volumineux $\rightarrow$ traitement différé puis notification de disponibilité.};
+\end{tikzpicture}

@@ -1,0 +1,39 @@
+\begin{tikzpicture}[
+  font=\sffamily\tiny,
+  participant/.style={draw=ctline, rounded corners=1.5mm, fill=white,
+    minimum width=21mm, minimum height=8mm, align=center},
+  call/.style={-{Latex[length=1.8mm]}, thick, draw=ctgray},
+  return/.style={-{Latex[length=1.8mm]}, dashed, draw=ctgreen},
+  msg/.style={fill=white, inner sep=0.7pt, font=\sffamily\tiny}
+]
+  \node[participant] (station) at (0,0) {Borne};
+  \node[participant] (gateway) at (2.55,0) {Passerelle};
+  \node[participant] (ingest) at (5.1,0) {Ingestion Laravel};
+  \node[participant] (projection) at (7.65,0) {Projection};
+  \node[participant] (db) at (10.2,0) {PostgreSQL};
+  \node[participant] (realtime) at (12.75,0) {Alertes / Reverb};
+
+  \foreach \x in {0,2.55,5.1,7.65,10.2,12.75}
+    \draw[densely dashed, ctline] (\x,-0.45) -- (\x,-7.55);
+
+  \draw[call] (station.center |- 0,-0.8) -- node[msg, above]{Heartbeat ou statut} (gateway.center |- 0,-0.8);
+  \draw[call] (gateway.center |- 0,-1.2) -- node[msg, above]{Événement normalisé et signé} (ingest.center |- 0,-1.2);
+  \draw[call] (ingest.center |- 0,-1.6) -- node[msg, above]{Dédupliquer et persister} (db.center |- 0,-1.6);
+  \draw[call] (ingest.center |- 0,-2.05) -- node[msg, above]{Projeter la station} (projection.center |- 0,-2.05);
+  \draw[call] (projection.center |- 0,-2.45) -- node[msg, above]{Lire preuves et contraintes} (db.center |- 0,-2.45);
+  \draw[return] (db.center |- 0,-2.85) -- node[msg, above]{Dernier signal, statuts, maintenance} (projection.center |- 0,-2.85);
+  \draw[call] (projection.center |- 0,-3.3) -- node[msg, above]{État + raison + transition} (db.center |- 0,-3.3);
+  \draw[call] (projection.center |- 0,-3.75) -- node[msg, above]{Diffuser le changement} (realtime.center |- 0,-3.75);
+
+  \draw[dashed, ctamber] (4.4,-4.2) rectangle (13.2,-5.35);
+  \node[anchor=west, text=ctamber] at (4.55,-4.47)
+    {\textbf{alt défaut ou silence supérieur à 90 s}};
+  \draw[call] (projection.center |- 0,-4.9) -- node[msg, above]{Créer ou rouvrir l'alerte dédupliquée} (realtime.center |- 0,-4.9);
+
+  \draw[dashed, ctgreen] (4.4,-5.7) rectangle (13.2,-6.85);
+  \node[anchor=west, text=ctgreen] at (4.55,-5.97)
+    {\textbf{else retour à un état sain}};
+  \draw[call] (projection.center |- 0,-6.4) -- node[msg, above]{Résoudre l'alerte automatique} (realtime.center |- 0,-6.4);
+
+  \draw[return] (realtime.center |- 0,-7.05) -- node[msg, above]{Vues et compteurs actualisés} (ingest.center |- 0,-7.05);
+\end{tikzpicture}

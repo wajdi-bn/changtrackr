@@ -159,24 +159,25 @@ indisponible.
   \centering
   \caption{Exemples de règles de disponibilité réalisées}
   \label{tab:implementation-availability-rules}
-  \begin{tabularx}{\textwidth}{@{}p{3.3cm}p{5.1cm}Y@{}}
-    \toprule
+  \begin{tabularx}{\textwidth}{|p{3.3cm}|p{5.1cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
     \textbf{État projeté} & \textbf{Preuve dominante} &
-    \textbf{Conséquence}\\
-    \midrule
+    \textbf{Conséquence}\\\hline
+
     Disponible & Statut OCPP \texttt{Available}, signal récent et aucune
-    contrainte prioritaire & Le connecteur peut être proposé au client.\\
+    contrainte prioritaire & Le connecteur peut être proposé au client.\\\hline
     Occupé & Transaction OCPP active ou statut \texttt{Charging} &
-    Le connecteur n'est plus sélectionnable pour une nouvelle session.\\
+    Le connecteur n'est plus sélectionnable pour une nouvelle session.\\\hline
     Réservé & Statut \texttt{Reserved} ou réservation valide &
-    L'accès est limité au bénéficiaire attendu.\\
+    L'accès est limité au bénéficiaire attendu.\\\hline
     Maintenance & Fenêtre de maintenance active ou commande de changement de
-    disponibilité & Le connecteur est retiré du service.\\
+    disponibilité & Le connecteur est retiré du service.\\\hline
     En défaut & Code d'erreur ou statut \texttt{Faulted} &
-    Une alerte opérationnelle est créée ou actualisée.\\
+    Une alerte opérationnelle est créée ou actualisée.\\\hline
     Déconnecté & Aucun heartbeat ou événement dans le délai configuré &
-    La station est indisponible et une alerte de communication est ouverte.\\
-    \bottomrule
+    La station est indisponible et une alerte de communication est ouverte.\\\hline
+
   \end{tabularx}
 \end{table}
 

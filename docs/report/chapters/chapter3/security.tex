@@ -35,24 +35,25 @@ L'autorisation repose sur trois niveaux complémentaires :
   \centering
   \caption{Périmètre d'accès des rôles}
   \label{tab:role-data-scope}
-  \begin{tabularx}{\textwidth}{@{}p{2.8cm}p{3.3cm}Y@{}}
-    \toprule
-    \textbf{Rôle} & \textbf{Association} & \textbf{Périmètre}\\
-    \midrule
+  \begin{tabularx}{\textwidth}{|p{2.8cm}|p{3.3cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Rôle} & \textbf{Association} & \textbf{Périmètre}\\\hline
+
     Super administrateur & Global, sans organisation &
-    Organisations, intégrations, audit et commerce SaaS selon ses permissions.\\
+    Organisations, intégrations, audit et commerce SaaS selon ses permissions.\\\hline
     Administrateur & Une organisation &
-    Employés, clients, actifs, tarifs, commerce et rapports de son organisation.\\
+    Employés, clients, actifs, tarifs, commerce et rapports de son organisation.\\\hline
     Opérateur & Une organisation &
     Stations, connecteurs, sessions, alertes, maintenances et interventions de son
-    organisation.\\
+    organisation.\\\hline
     Technicien & Une organisation &
     Consultation des actifs et traitement des alertes, interventions ou maintenances
-    autorisées, sans création de station.\\
+    autorisées, sans création de station.\\\hline
     Client & Global, sans organisation &
     Stations publiques et uniquement ses propres tentatives, sessions, paiements,
-    abonnements et notifications.\\
-    \bottomrule
+    abonnements et notifications.\\\hline
+
   \end{tabularx}
 \end{table}
 
@@ -119,18 +120,19 @@ indépendants empêchent un parcours public de bloquer un autre :
   \centering
   \caption{Principales limites applicatives}
   \label{tab:rate-limits}
-  \begin{tabularx}{\textwidth}{@{}Y p{3.1cm}Y@{}}
-    \toprule
-    \textbf{Flux} & \textbf{Limite} & \textbf{Clé}\\
-    \midrule
-    Demande de démonstration & 3 par heure & Adresse IP\\
-    Inspection d'invitation & 10 par minute & Adresse IP\\
-    Acceptation d'invitation & 5 par minute & IP et hash de l'email\\
-    Gestion des invitations employé & 10 par minute & Utilisateur authentifié\\
-    API interne OCPP & 600 par minute & Adresse de la passerelle\\
-    Webhook de paiement & 120 par minute & Adresse du fournisseur\\
-    Changement de mot de passe & 5 par minute & Session authentifiée\\
-    \bottomrule
+  \begin{tabularx}{\textwidth}{|Y|p{3.1cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Flux} & \textbf{Limite} & \textbf{Clé}\\\hline
+
+    Demande de démonstration & 3 par heure & Adresse IP\\\hline
+    Inspection d'invitation & 10 par minute & Adresse IP\\\hline
+    Acceptation d'invitation & 5 par minute & IP et hash de l'email\\\hline
+    Gestion des invitations employé & 10 par minute & Utilisateur authentifié\\\hline
+    API interne OCPP & 600 par minute & Adresse de la passerelle\\\hline
+    Webhook de paiement & 120 par minute & Adresse du fournisseur\\\hline
+    Changement de mot de passe & 5 par minute & Session authentifiée\\\hline
+
   \end{tabularx}
 \end{table}
 

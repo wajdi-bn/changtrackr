@@ -2,17 +2,18 @@
 
 Cette section complète la spécification par une conception orientée scénarios.
 Elle part du diagramme global, identifie les cas majeurs, puis détaille pour chacun
-le contrat fonctionnel, le déroulement nominal et les exceptions. Deux emplacements
-UML sont réservés à la suite de chaque fiche : un diagramme de cas d'utilisation
-raffiné et un diagramme de séquence système. Leur contenu sera produit à partir des
-scénarios validés, sans introduire d'opération absente du Product Backlog.
+le contrat fonctionnel, le déroulement nominal et les exceptions. Chaque fiche est
+suivie d'un emplacement titré pour son diagramme de cas d'utilisation raffiné et
+d'un diagramme de séquence système construit à partir du scénario validé. Les
+séquences décrivent uniquement des interactions présentes dans le Product Backlog
+et dans la réalisation.
 
-\newcommand{\UseCaseUmlPlate}[1]{%
+\newcommand{\UseCaseUmlPlate}[3]{%
   \begin{figure}[p]
     \centering
     \begin{tcolorbox}[
       width=0.94\textwidth,
-      height=6.2cm,
+      height=7.0cm,
       colback=ctpaper,
       colframe=ctline,
       boxrule=0.8pt,
@@ -21,33 +22,25 @@ scénarios validés, sans introduire d'opération absente du Product Backlog.
       halign=center
     ]
       {\large\bfseries\color{ctdark}Diagramme de cas d'utilisation raffiné}\\[2mm]
+      {\bfseries #1}\\[2mm]
       {\color{ctgray}Emplacement réservé pour #1}\\[1mm]
       {\small Acteurs, frontière du système, spécialisations et relations
       \texttt{include}/\texttt{extend}.}
     \end{tcolorbox}
+    \caption{Emplacement du diagramme de cas d'utilisation raffiné -- #1}
+    \label{fig:#2-refined-use-case}
+  \end{figure}
 
-    \vspace{5mm}
-
-    \begin{tcolorbox}[
-      width=0.94\textwidth,
-      height=6.2cm,
-      colback=ctpaper,
-      colframe=ctline,
-      boxrule=0.8pt,
-      arc=2mm,
-      valign=center,
-      halign=center
-    ]
-      {\large\bfseries\color{ctdark}Diagramme de séquence système}\\[2mm]
-      {\color{ctgray}Emplacement réservé pour #1}\\[1mm]
-      {\small Acteur principal, plateforme, systèmes externes, alternatives et
-      réponses observables.}
-    \end{tcolorbox}
+  \begin{figure}[p]
+    \centering
+    \resizebox{0.96\textwidth}{!}{\input{#3}}
+    \caption{Diagramme de séquence système -- #1}
+    \label{fig:#2-sequence}
   \end{figure}
   \clearpage
 }
 
-\subsection{Diagramme global}
+\subsection{Diagramme de cas d'utilisation global}
 
 Le diagramme global de la figure~\ref{fig:global-use-cases} regroupe les capacités
 communes et les fonctions propres à chaque rôle. Il distingue les acteurs humains,
@@ -63,7 +56,7 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
     height=0.78\textheight,
     keepaspectratio
   ]{assets/diagrams/global-use-cases.png}
-  \caption{Diagramme global des cas d'utilisation de \ProjectName{}}
+  \caption{Diagramme de cas d'utilisation global de \ProjectName{}}
   \label{fig:global-use-cases}
 \end{figure}
 \clearpage
@@ -123,18 +116,23 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
 
 \begin{table}[H]
   \centering
-  \begin{tabularx}{\textwidth}{@{}C{3.3cm}Y@{}}
-    \toprule
+  \begin{tabularx}{\textwidth}{|C{3.3cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
     \textbf{Objectif} & Convertir une demande publique qualifiée en organisation
-    d'essai et compte administrateur sécurisé.\\
+    d'essai et compte administrateur sécurisé.\\\hline
+    \rowcolor{ctmint}
     \textbf{Acteurs} & Visiteur et Super Administrateur ; service email comme acteur
-    secondaire.\\
+    secondaire.\\\hline
+    \rowcolor{ctmint}
     \textbf{Préconditions} & Les demandes de démonstration sont activées ; l'adresse
-    n'est pas bloquée par les protections anti-abus.\\
-    \textbf{Déclencheur} & Le visiteur valide le formulaire public.\\
+    n'est pas bloquée par les protections anti-abus.\\\hline
+    \rowcolor{ctmint}
+    \textbf{Déclencheur} & Le visiteur valide le formulaire public.\\\hline
+    \rowcolor{ctmint}
     \textbf{Postconditions} & La demande est rejetée ou reliée à une organisation
-    d'essai et à une invitation administrateur traçable.\\
-    \bottomrule
+    d'essai et à une invitation administrateur traçable.\\\hline
+
   \end{tabularx}
 \end{table}
 
@@ -167,23 +165,31 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   des statuts sélectionnables manuellement.
 \end{itemize}
 
-\UseCaseUmlPlate{UC-01 -- Demande de démonstration et provisionnement}
+\UseCaseUmlPlate
+  {UC-01 -- Demande de démonstration et provisionnement}
+  {uc01}
+  {assets/diagrams/account-provisioning-sequence}
 
 \subsection{UC-02 -- Inviter et activer un employé}
 
 \begin{table}[H]
   \centering
-  \begin{tabularx}{\textwidth}{@{}C{3.3cm}Y@{}}
-    \toprule
+  \begin{tabularx}{\textwidth}{|C{3.3cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
     \textbf{Objectif} & Donner un accès opérateur ou technicien sans transmettre de
-    mot de passe initial.\\
-    \textbf{Acteurs} & Administrateur, employé invité et service email.\\
+    mot de passe initial.\\\hline
+    \rowcolor{ctmint}
+    \textbf{Acteurs} & Administrateur, employé invité et service email.\\\hline
+    \rowcolor{ctmint}
     \textbf{Préconditions} & L'administrateur et son organisation sont actifs ; la
-    limite d'employés de l'offre commerciale n'est pas atteinte.\\
-    \textbf{Déclencheur} & L'administrateur choisit \emph{Ajouter un employé}.\\
+    limite d'employés de l'offre commerciale n'est pas atteinte.\\\hline
+    \rowcolor{ctmint}
+    \textbf{Déclencheur} & L'administrateur choisit \emph{Ajouter un employé}.\\\hline
+    \rowcolor{ctmint}
     \textbf{Postconditions} & Le compte activé appartient à exactement une
-    organisation et possède uniquement le rôle choisi.\\
-    \bottomrule
+    organisation et possède uniquement le rôle choisi.\\\hline
+
   \end{tabularx}
 \end{table}
 
@@ -213,23 +219,31 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   passe de l'employé.
 \end{itemize}
 
-\UseCaseUmlPlate{UC-02 -- Invitation et activation d'un employé}
+\UseCaseUmlPlate
+  {UC-02 -- Invitation et activation d'un employé}
+  {uc02}
+  {assets/diagrams/employee-invitation-sequence}
 
 \subsection{UC-03 -- Mettre en service une station OCPP}
 
 \begin{table}[H]
   \centering
-  \begin{tabularx}{\textwidth}{@{}C{3.3cm}Y@{}}
-    \toprule
+  \begin{tabularx}{\textwidth}{|C{3.3cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
     \textbf{Objectif} & Créer une station exploitable, ses connecteurs physiques et
-    son identité de communication dans une seule opération.\\
-    \textbf{Acteurs} & Opérateur ou Administrateur ; borne physique ou simulateur SAP.\\
+    son identité de communication dans une seule opération.\\\hline
+    \rowcolor{ctmint}
+    \textbf{Acteurs} & Opérateur ou Administrateur ; borne physique ou simulateur SAP.\\\hline
+    \rowcolor{ctmint}
     \textbf{Préconditions} & L'organisation est autorisée à ajouter une station et
-    n'a pas atteint sa capacité commerciale.\\
-    \textbf{Déclencheur} & L'utilisateur ouvre l'assistant de mise en service.\\
+    n'a pas atteint sa capacité commerciale.\\\hline
+    \rowcolor{ctmint}
+    \textbf{Déclencheur} & L'utilisateur ouvre l'assistant de mise en service.\\\hline
+    \rowcolor{ctmint}
     \textbf{Postconditions} & La station est persistée avec ses connecteurs et une
-    cible de commissioning ; son secret en clair n'est affiché qu'une fois si requis.\\
-    \bottomrule
+    cible de commissioning ; son secret en clair n'est affiché qu'une fois si requis.\\\hline
+
   \end{tabularx}
 \end{table}
 
@@ -263,24 +277,32 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   publique de la station.
 \end{itemize}
 
-\UseCaseUmlPlate{UC-03 -- Mise en service d'une station OCPP}
+\UseCaseUmlPlate
+  {UC-03 -- Mise en service d'une station OCPP}
+  {uc03}
+  {assets/diagrams/station-commissioning-sequence}
 
 \subsection{UC-04 -- Calculer la disponibilité}
 
 \begin{table}[H]
   \centering
-  \begin{tabularx}{\textwidth}{@{}C{3.3cm}Y@{}}
-    \toprule
+  \begin{tabularx}{\textwidth}{|C{3.3cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
     \textbf{Objectif} & Transformer les preuves OCPP et les dérogations autorisées en
-    état métier explicable.\\
-    \textbf{Acteurs} & Borne ou simulateur ; moteur de projection de la plateforme.\\
+    état métier explicable.\\\hline
+    \rowcolor{ctmint}
+    \textbf{Acteurs} & Borne ou simulateur ; moteur de projection de la plateforme.\\\hline
+    \rowcolor{ctmint}
     \textbf{Préconditions} & La station est provisionnée pour OCPP et ses connecteurs
-    sont connus.\\
+    sont connus.\\\hline
+    \rowcolor{ctmint}
     \textbf{Déclencheur} & Connexion, fermeture, message OCPP ou contrôle périodique
-    de connectivité.\\
+    de connectivité.\\\hline
+    \rowcolor{ctmint}
     \textbf{Postconditions} & Les états courants, transitions, alertes et diffusions
-    temps réel sont cohérents et audités.\\
-    \bottomrule
+    temps réel sont cohérents et audités.\\\hline
+
   \end{tabularx}
 \end{table}
 
@@ -310,23 +332,31 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   n'est pas artificiellement projetée.
 \end{itemize}
 
-\UseCaseUmlPlate{UC-04 -- Calcul de la disponibilité}
+\UseCaseUmlPlate
+  {UC-04 -- Calcul de la disponibilité}
+  {uc04}
+  {assets/diagrams/availability-projection-sequence}
 
 \subsection{UC-05 -- Effectuer une recharge et payer}
 
 \begin{table}[H]
   \centering
-  \begin{tabularx}{\textwidth}{@{}C{3.3cm}Y@{}}
-    \toprule
+  \begin{tabularx}{\textwidth}{|C{3.3cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
     \textbf{Objectif} & Permettre au client de réaliser une recharge mesurée et de
-    régler le montant final sans créer de session fictive.\\
-    \textbf{Acteurs} & Client, borne OCPP et service de paiement.\\
+    régler le montant final sans créer de session fictive.\\\hline
+    \rowcolor{ctmint}
+    \textbf{Acteurs} & Client, borne OCPP et service de paiement.\\\hline
+    \rowcolor{ctmint}
     \textbf{Préconditions} & Client actif et vérifié, station publique connectée,
-    connecteur disponible, tarif effectif et aucune session concurrente.\\
-    \textbf{Déclencheur} & Le client choisit \emph{Recharger} sur une station.\\
+    connecteur disponible, tarif effectif et aucune session concurrente.\\\hline
+    \rowcolor{ctmint}
+    \textbf{Déclencheur} & Le client choisit \emph{Recharger} sur une station.\\\hline
+    \rowcolor{ctmint}
     \textbf{Postconditions} & La transaction est arrêtée, le montant final est
-    capturé ou signalé impayé, et un reçu consultable est associé.\\
-    \bottomrule
+    capturé ou signalé impayé, et un reçu consultable est associé.\\\hline
+
   \end{tabularx}
 \end{table}
 
@@ -366,24 +396,32 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   \item un webhook dupliqué ne provoque ni double capture ni double revenu.
 \end{itemize}
 
-\UseCaseUmlPlate{UC-05 -- Recharge et paiement}
+\UseCaseUmlPlate
+  {UC-05 -- Recharge et paiement}
+  {uc05}
+  {assets/diagrams/charging-payment-sequence}
 
 \subsection{UC-06 -- Traiter une alerte et une intervention}
 
 \begin{table}[H]
   \centering
-  \begin{tabularx}{\textwidth}{@{}C{3.3cm}Y@{}}
-    \toprule
+  \begin{tabularx}{\textwidth}{|C{3.3cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
     \textbf{Objectif} & Transformer une anomalie détectée en action terrain traçable
-    jusqu'à la résolution.\\
+    jusqu'à la résolution.\\\hline
+    \rowcolor{ctmint}
     \textbf{Acteurs} & Opérateur et Technicien ; service email pour les événements
-    critiques ou assignations.\\
+    critiques ou assignations.\\\hline
+    \rowcolor{ctmint}
     \textbf{Préconditions} & L'alerte appartient à l'organisation et l'opérateur
-    dispose du droit de gestion.\\
-    \textbf{Déclencheur} & Création automatique d'une alerte ou signalement autorisé.\\
+    dispose du droit de gestion.\\\hline
+    \rowcolor{ctmint}
+    \textbf{Déclencheur} & Création automatique d'une alerte ou signalement autorisé.\\\hline
+    \rowcolor{ctmint}
     \textbf{Postconditions} & L'alerte est résolue ou documentée pour suivi ; le
-    rapport et les preuves restent accessibles aux acteurs autorisés.\\
-    \bottomrule
+    rapport et les preuves restent accessibles aux acteurs autorisés.\\\hline
+
   \end{tabularx}
 \end{table}
 
@@ -412,25 +450,33 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   supprimé.
 \end{itemize}
 
-\UseCaseUmlPlate{UC-06 -- Traitement d'une alerte et d'une intervention}
+\UseCaseUmlPlate
+  {UC-06 -- Traitement d'une alerte et d'une intervention}
+  {uc06}
+  {assets/diagrams/alert-intervention-sequence}
 
 \subsection{UC-07 -- Gérer le cycle commercial d'une organisation}
 
 \begin{table}[H]
   \centering
-  \begin{tabularx}{\textwidth}{@{}C{3.3cm}Y@{}}
-    \toprule
+  \begin{tabularx}{\textwidth}{|C{3.3cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
     \textbf{Objectif} & Maintenir un lien cohérent entre période d'essai, offre SaaS,
-    limites, accès commercial et facturation de l'organisation.\\
+    limites, accès commercial et facturation de l'organisation.\\\hline
+    \rowcolor{ctmint}
     \textbf{Acteurs} & Super Administrateur et Administrateur ; service de paiement
-    simulé pour les règlements futurs.\\
+    simulé pour les règlements futurs.\\\hline
+    \rowcolor{ctmint}
     \textbf{Préconditions} & L'organisation existe et possède un abonnement
-    commercial ou un essai.\\
+    commercial ou un essai.\\\hline
+    \rowcolor{ctmint}
     \textbf{Déclencheur} & Échéance, demande de changement ou action du Super
-    Administrateur.\\
+    Administrateur.\\\hline
+    \rowcolor{ctmint}
     \textbf{Postconditions} & Le statut commercial, les capacités et les factures
-    restent cohérents et audités.\\
-    \bottomrule
+    restent cohérents et audités.\\\hline
+
   \end{tabularx}
 \end{table}
 
@@ -460,23 +506,31 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   SaaS de l'organisation.
 \end{itemize}
 
-\UseCaseUmlPlate{UC-07 -- Cycle commercial d'une organisation}
+\UseCaseUmlPlate
+  {UC-07 -- Cycle commercial d'une organisation}
+  {uc07}
+  {assets/diagrams/organization-commercial-sequence}
 
 \subsection{UC-08 -- Générer et échanger un rapport}
 
 \begin{table}[H]
   \centering
-  \begin{tabularx}{\textwidth}{@{}C{3.3cm}Y@{}}
-    \toprule
+  \begin{tabularx}{\textwidth}{|C{3.3cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
     \textbf{Objectif} & Transformer les données du périmètre en analyse adaptée au
-    rôle, export ou rapport interne traçable.\\
-    \textbf{Acteurs} & Super Administrateur, Administrateur, Opérateur ou Technicien.\\
+    rôle, export ou rapport interne traçable.\\\hline
+    \rowcolor{ctmint}
+    \textbf{Acteurs} & Super Administrateur, Administrateur, Opérateur ou Technicien.\\\hline
+    \rowcolor{ctmint}
     \textbf{Préconditions} & L'utilisateur possède les permissions de consultation,
-    d'export ou d'échange correspondantes.\\
-    \textbf{Déclencheur} & Sélection d'une période ou création d'un brouillon.\\
+    d'export ou d'échange correspondantes.\\\hline
+    \rowcolor{ctmint}
+    \textbf{Déclencheur} & Sélection d'une période ou création d'un brouillon.\\\hline
+    \rowcolor{ctmint}
     \textbf{Postconditions} & L'export est téléchargé ou le rapport est envoyé à un
-    destinataire autorisé avec son historique.\\
-    \bottomrule
+    destinataire autorisé avec son historique.\\\hline
+
   \end{tabularx}
 \end{table}
 
@@ -505,4 +559,7 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   sans présenter de données étrangères au rôle.
 \end{itemize}
 
-\UseCaseUmlPlate{UC-08 -- Génération et échange d'un rapport}
+\UseCaseUmlPlate
+  {UC-08 -- Génération et échange d'un rapport}
+  {uc08}
+  {assets/diagrams/report-exchange-sequence}

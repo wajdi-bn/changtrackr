@@ -95,22 +95,23 @@ La campagne exécutée le 28 juillet 2026 produit les résultats suivants :
   \centering
   \caption{Résultats de validation du dépôt}
   \label{tab:implementation-test-results}
-  \begin{tabularx}{\textwidth}{@{}p{4.5cm}p{3.2cm}Y@{}}
-    \toprule
-    \textbf{Contrôle} & \textbf{Résultat} & \textbf{Portée}\\
-    \midrule
+  \begin{tabularx}{\textwidth}{|p{4.5cm}|p{3.2cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Contrôle} & \textbf{Résultat} & \textbf{Portée}\\\hline
+
     \texttt{php artisan test --compact} &
     201 tests, 1\,489 assertions & 37 classes de tests Feature et tests unitaires
-    chargés par PHPUnit.\\
+    chargés par PHPUnit.\\\hline
     \texttt{pnpm test:ocpp-tools} &
-    2 tests, 0 échec & Lecture et contrôle des états du simulateur.\\
+    2 tests, 0 échec & Lecture et contrôle des états du simulateur.\\\hline
     \texttt{pnpm lint:frontend} &
-    Succès & Analyse Oxlint du code TypeScript/React.\\
+    Succès & Analyse Oxlint du code TypeScript/React.\\\hline
     \texttt{pnpm build:frontend} &
-    Succès & Type-check TypeScript et bundle Vite de production.\\
+    Succès & Type-check TypeScript et bundle Vite de production.\\\hline
     Inventaire des routes &
-    186 routes, dont 177 API & 75 GET, 67 POST, 23 PATCH/PUT et 12 DELETE.\\
-    \bottomrule
+    186 routes, dont 177 API & 75 GET, 67 POST, 23 PATCH/PUT et 12 DELETE.\\\hline
+
   \end{tabularx}
 \end{table}
 

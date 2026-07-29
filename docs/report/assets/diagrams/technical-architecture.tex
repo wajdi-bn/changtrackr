@@ -1,94 +1,155 @@
 \begin{tikzpicture}[
   font=\sffamily\scriptsize,
-  component/.style={
-    draw=ctline, rounded corners=2mm, thick, fill=white,
-    minimum height=18mm, align=center, inner sep=2.2mm
+  service/.style={
+    draw=ctline, rounded corners=1.7mm, thick, fill=white,
+    minimum height=16mm, align=center, inner sep=2mm
   },
-  backend/.style={component, draw=ctgreen, fill=ctmint},
-  protocol/.style={component, draw=ctblue, fill=blue!5},
-  external/.style={component, dashed, draw=ctamber, fill=yellow!7},
-  storage/.style={component, draw=ctblue, fill=purple!5},
+  frontend-service/.style={service, draw=ctblue, fill=blue!4, text width=27mm},
+  backend-service/.style={service, draw=ctgreen, fill=ctmint, text width=37mm},
+  data-service/.style={service, draw=ctblue, fill=purple!4, text width=26mm,
+    minimum height=13mm},
+  external-service/.style={service, dashed, draw=ctamber, fill=yellow!7,
+    text width=34mm, minimum height=12mm},
+  station-service/.style={service, dashed, draw=ctblue, fill=blue!3,
+    text width=34mm, minimum height=12mm},
   flow/.style={-{Latex[length=2.1mm]}, thick, draw=ctgray},
   bidir/.style={{Latex[length=2.1mm]}-{Latex[length=2.1mm]}, thick, draw=ctgray},
-  label/.style={fill=white, inner sep=1.2pt, font=\sffamily\tiny},
-  frame/.style={draw=ctline, rounded corners=3mm, thick},
-  frame-title/.style={font=\sffamily\bfseries\small, text=ctdark, anchor=west}
+  flow-label/.style={fill=white, inner sep=1.2pt, font=\sffamily\tiny,
+    text=ctgray},
+  environment/.style={draw=ctline, rounded corners=3mm, thick},
+  environment-title/.style={font=\sffamily\bfseries\small, text=ctdark,
+    anchor=west}
 ]
-  \draw[frame, fill=blue!2] (-6.8,8.1) rectangle (6.8,11.5);
-  \node[frame-title] at (-6.45,11.15) {Environnement Frontend};
-  \node[component, minimum width=124mm, minimum height=22mm] (browser) at (0,9.55) {
-    \textbf{Application web monopage dans le navigateur}\\[1.5mm]
-    \includegraphics[height=5mm]{assets/brand/technologies/react.png}\ React
-    \quad
-    \includegraphics[height=5mm]{assets/brand/technologies/typescript.png}\ TypeScript
-    \quad
-    \includegraphics[height=5mm]{assets/brand/technologies/antdesign.png}\ Ant Design
-    \quad
-    \includegraphics[height=5mm]{assets/brand/technologies/vite.png}\ Vite\\[1mm]
-    \includegraphics[height=4.5mm]{assets/brand/technologies/leaflet.png}\ Leaflet
-    \quad
-    \includegraphics[height=4.5mm]{assets/brand/technologies/openstreetmap.png}\ OpenStreetMap
-    \quad Axios \quad TanStack Query \quad Echo
+  % Frontend environment
+  \draw[environment, fill=blue!2] (-7.0,12.1) rectangle (7.0,15.9);
+  \node[environment-title] at (-6.65,15.55) {Environnement Frontend};
+
+  \node[frontend-service] (ui) at (-5.15,13.75) {
+    \includegraphics[height=4.5mm]{assets/brand/technologies/react.png}\quad
+    \includegraphics[height=4.5mm]{assets/brand/technologies/typescript.png}\\[1mm]
+    \textbf{Interface par rôle}\\
+    React, TypeScript
+  };
+  \node[frontend-service] (design) at (-1.72,13.75) {
+    \includegraphics[height=4.5mm]{assets/brand/technologies/antdesign.png}\\[1mm]
+    \textbf{Composants et vues}\\
+    Ant Design, Recharts
+  };
+  \node[frontend-service] (clientdata) at (1.72,13.75) {
+    \includegraphics[height=4.5mm]{assets/brand/technologies/vite.png}\\[1mm]
+    \textbf{Accès aux données}\\
+    Axios, TanStack Query
+  };
+  \node[frontend-service] (maps) at (5.15,13.75) {
+    \includegraphics[height=4.3mm]{assets/brand/technologies/leaflet.png}\quad
+    \includegraphics[height=4.3mm]{assets/brand/technologies/openstreetmap.png}\\[1mm]
+    \textbf{Carte et temps réel}\\
+    Leaflet, Echo
   };
 
-  \draw[frame, fill=ctmint!35] (-6.8,1.7) rectangle (6.8,7.35);
-  \node[frame-title] at (-6.45,7.0) {Environnement Backend};
+  % Backend environment with explicit business services
+  \draw[environment, fill=ctmint!32] (-7.0,5.0) rectangle (7.0,11.35);
+  \node[environment-title] at (-6.65,11.0) {Environnement Backend};
 
-  \node[backend, text width=39mm, minimum height=31mm] (api) at (-4.15,4.75) {
-    \includegraphics[height=6mm]{assets/brand/technologies/laravel.png}\quad
-    \includegraphics[height=5mm]{assets/brand/technologies/php.png}\\[1mm]
-    \textbf{API Laravel / PHP}\\
-    REST, Sanctum, policies, services métier
+  \node[backend-service] (api) at (-4.7,9.15) {
+    \includegraphics[height=4.8mm]{assets/brand/technologies/laravel.png}\quad
+    \includegraphics[height=4.2mm]{assets/brand/technologies/php.png}\\[1mm]
+    \textbf{API REST}\\
+    Controllers, Requests, Resources
   };
-  \node[backend, text width=37mm, minimum height=31mm] (runtime) at (0,4.75) {
-    \includegraphics[height=5.5mm]{assets/brand/technologies/laravel.png}\\[1mm]
+  \node[backend-service] (identity) at (0,9.15) {
+    \textbf{Identité et gouvernance}\\
+    Sanctum, OAuth, rôles, policies\\
+    organisations et audit
+  };
+  \node[backend-service] (ocppdomain) at (4.7,9.15) {
+    \textbf{Réseau de recharge}\\
+    commissioning, commandes OCPP\\
+    disponibilité et télémétrie
+  };
+
+  \node[backend-service] (charging) at (-4.7,6.65) {
+    \textbf{Recharge et commerce}\\
+    sessions, tarification, plans\\
+    paiements et factures
+  };
+  \node[backend-service] (operations) at (0,6.65) {
+    \textbf{Exploitation}\\
+    alertes, interventions\\
+    maintenance et rapports
+  };
+  \node[backend-service] (runtime) at (4.7,6.65) {
     \textbf{Services d'exécution}\\
-    Queue worker, scheduler et Reverb
+    queue worker, scheduler\\
+    Reverb et notifications
   };
-  \node[protocol, text width=39mm, minimum height=31mm] (gateway) at (4.15,4.75) {
-    \includegraphics[height=6mm]{assets/brand/technologies/python.png}\\[1mm]
+
+  \draw[flow] (api) -- (identity);
+  \draw[flow] (identity) -- (ocppdomain);
+  \draw[flow] (api) -- (charging);
+  \draw[flow] (identity) -- (operations);
+  \draw[flow] (ocppdomain) -- (runtime);
+
+  % Infrastructure and external boundaries
+  \draw[environment, dashed, fill=yellow!3] (-7.0,-1.9) rectangle (-2.5,3.95);
+  \node[environment-title] at (-6.65,3.6) {Services externes};
+  \node[external-service] (oauth) at (-4.75,2.35) {
+    \includegraphics[height=4mm]{assets/brand/technologies/google.png}\quad
+    \textbf{Google OAuth 2.0}
+  };
+  \node[external-service] (email) at (-4.75,0.85) {
+    \includegraphics[height=4mm]{assets/brand/technologies/resend.png}\quad
+    \textbf{Resend / email}
+  };
+  \node[external-service] (externalmap) at (-4.75,-0.65) {
+    \textbf{OpenStreetMap}\\
+    tuiles et itinéraires
+  };
+
+  \draw[environment, fill=purple!3] (-2.15,-1.9) rectangle (2.15,3.95);
+  \node[environment-title] at (-1.8,3.6) {Base de données};
+  \node[data-service] (postgres) at (0,2.15) {
+    \includegraphics[height=5mm]{assets/brand/technologies/postgresql.png}\\
+    \textbf{PostgreSQL 16}
+  };
+  \node[data-service] (businessdata) at (0,0.65) {
+    \textbf{Données métier}\\
+    comptes, actifs, opérations
+  };
+  \node[data-service] (supportdata) at (0,-0.85) {
+    \textbf{Données de support}\\
+    jobs, cache, audit, événements
+  };
+
+  \draw[environment, dashed, fill=blue!2] (2.5,-1.9) rectangle (7.0,3.95);
+  \node[environment-title] at (2.85,3.6) {Écosystème OCPP et paiement};
+  \node[station-service] (gateway) at (4.75,2.35) {
+    \includegraphics[height=4mm]{assets/brand/technologies/python.png}\quad
     \textbf{Passerelle OCPP}\\
-    Python, WebSocket OCPP 1.6J et HTTP signé
+    WebSocket 1.6J / HTTP signé
+  };
+  \node[station-service] (chargers) at (4.75,0.65) {
+    \includegraphics[height=4mm]{assets/brand/technologies/sap.png}\quad
+    \textbf{Simulateur SAP}\\
+    ou bornes physiques
+  };
+  \node[external-service] (payment) at (4.75,-0.95) {
+    \textbf{WireMock paiement}\\
+    futur prestataire réel
   };
 
-  \draw[frame, fill=yellow!3, dashed] (-6.8,-2.0) rectangle (-2.25,1.0);
-  \node[frame-title] at (-6.45,0.65) {Services externes};
-  \node[external, text width=36mm, minimum height=17mm] (services) at (-4.5,-0.55) {
-    \includegraphics[height=4.7mm]{assets/brand/technologies/google.png}\ Google OAuth
-    \quad
-    \includegraphics[height=4.7mm]{assets/brand/technologies/resend.png}\ Resend\\[1mm]
-    WireMock / futur prestataire de paiement
-  };
+  % Cross-environment flows, routed outside service boxes
+  \draw[bidir] (clientdata.south) -- ++(0,-0.45) -|
+    node[flow-label, near start, below]{HTTPS / JSON} (api.north);
+  \draw[bidir] (maps.south) -- ++(0,-0.55) -|
+    node[flow-label, near start, right]{WebSocket applicatif} (runtime.north);
 
-  \draw[frame, fill=purple!3] (-1.8,-2.0) rectangle (1.8,1.0);
-  \node[frame-title] at (-1.45,0.65) {Base de données};
-  \node[storage, text width=27mm, minimum height=17mm] (postgres) at (0,-0.55) {
-    \includegraphics[height=6mm]{assets/brand/technologies/postgresql.png}\\[0.5mm]
-    \textbf{PostgreSQL}\\
-    données, file et cache
-  };
-
-  \draw[frame, fill=blue!2, dashed] (2.25,-2.0) rectangle (6.8,1.0);
-  \node[frame-title] at (2.6,0.65) {Réseau de recharge};
-  \node[external, text width=36mm, minimum height=17mm] (stations) at (4.5,-0.55) {
-    \includegraphics[height=5mm]{assets/brand/technologies/sap.png}\ Simulateur SAP\\[1mm]
-    Bornes physiques et connecteurs
-  };
-
-  \draw[bidir] (browser.south west) to[out=-90,in=90]
-    node[label, left]{HTTPS / JSON} (api.north);
-  \draw[bidir] (browser.south) to[out=-90,in=90]
-    node[label, right]{WebSocket applicatif} (runtime.north);
-  \draw[bidir] (api) -- node[label, above]{jobs et événements} (runtime);
-  \draw[bidir] (api.south) -- ++(0,-0.45) -|
-    node[label, near start, below]{HTTP interne signé} (gateway.south);
-  \draw[bidir] (runtime.south) -- node[label, right]{SQL} (postgres.north);
-  \draw[bidir] (api.south east) to[out=-65,in=140]
-    node[label, below]{transactions} (postgres.north west);
-  \draw[bidir] (api.south west) to[out=-120,in=90]
-    node[label, left]{OAuth, email, paiement} (services.north);
-  \draw[bidir] (gateway.south) to[out=-90,in=90]
-    node[label, right]{OCPP 1.6J} (stations.north);
-  \draw[flow] (services.west) -- ++(-0.35,0) |- node[label, near end, left]
-    {tuiles HTTPS} (browser.west);
+  \draw[bidir] (0,5.0) -- node[flow-label, right]{SQL transactionnel} (postgres.north);
+  \draw[bidir] (-7.0,7.7) -- ++(-0.45,0) |- node[flow-label, left]
+    {OAuth, email, cartographie} (oauth.west);
+  \draw[bidir] (ocppdomain.south east) to[out=-45,in=90]
+    node[flow-label, right]{HTTP interne signé} (gateway.north);
+  \draw[bidir] (gateway) -- node[flow-label, right]{OCPP 1.6J} (chargers);
+  \draw[bidir] (charging.south) -- ++(0,-0.45) -|
+    node[flow-label, near start, below]{API / webhooks signés} (payment.west);
 \end{tikzpicture}

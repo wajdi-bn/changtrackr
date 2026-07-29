@@ -1,75 +1,225 @@
 \begin{tikzpicture}[
   font=\sffamily\tiny,
-  class/.style={
-    draw=ctline, rounded corners=1.5mm, thick, fill=white,
-    text width=29mm, minimum height=16mm, align=left, inner sep=2mm
+  umlclass/.style={
+    draw=ctline, thick, fill=white, text width=30mm,
+    minimum height=24mm, align=left, inner sep=1.8mm
   },
-  identity/.style={class, draw=ctblue, fill=blue!5},
-  network/.style={class, draw=ctgreen, fill=ctmint},
-  operations/.style={class, draw=ctblue, fill=cyan!4},
-  commerce/.style={class, draw=ctamber, fill=yellow!7},
-  rel/.style={thick, draw=ctgray},
-  card/.style={fill=white, inner sep=1pt, font=\sffamily\tiny, text=ctgray}
+  identity/.style={umlclass, draw=ctblue, fill=blue!4},
+  network/.style={umlclass, draw=ctgreen, fill=ctmint},
+  operations/.style={umlclass, draw=ctblue, fill=cyan!4},
+  commerce/.style={umlclass, draw=ctamber, fill=yellow!7},
+  association/.style={thick, draw=ctgray},
+  card/.style={fill=white, inner sep=0.8pt, font=\sffamily\tiny\bfseries,
+    text=ctdark},
+  relation-name/.style={fill=white, inner sep=1pt, font=\sffamily\tiny,
+    text=ctgray},
+  composition-mark/.style={diamond, draw=ctdark, fill=ctdark,
+    minimum size=4.2pt, inner sep=0pt}
 ]
-  \node[identity] (user) at (-4.8,10.0)
-    {\textbf{Utilisateur}\\\rule{28mm}{0.2pt}\\identité, rôle\\statut};
-  \node[identity] (org) at (0,10.0)
-    {\textbf{Organisation}\\\rule{28mm}{0.2pt}\\nom, statut\\coordonnées};
-  \node[commerce] (saas) at (4.8,10.0)
-    {\textbf{Offre SaaS}\\\rule{28mm}{0.2pt}\\capacités, prix\\statut};
+  % Platform and SaaS contract
+  \node[identity] (organization) at (0,12.8) {
+    \centering\textbf{Organisation}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - nom : String\\
+    - emailContact : String\\
+    - statut : StatutOrganisation\\
+    - logoUrl : String [0..1]
+  };
+  \node[commerce] (saasplan) at (4.6,12.8) {
+    \centering\textbf{OffreSaaS}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - nom : String\\
+    - prix : Decimal\\
+    - limiteStations : Integer\\
+    - limiteEmployés : Integer
+  };
 
-  \node[commerce] (plan) at (-4.8,7.0)
-    {\textbf{Plan de recharge}\\\rule{28mm}{0.2pt}\\abonnement, remise\\validité};
-  \node[network] (station) at (0,7.0)
-    {\textbf{Station}\\\rule{28mm}{0.2pt}\\référence, position\\disponibilité};
-  \node[commerce] (orgsub) at (4.8,7.0)
-    {\textbf{Abonnement organisation}\\\rule{28mm}{0.2pt}\\essai, période\\état};
+  % Commercial plans and charging network
+  \node[commerce] (chargingplan) at (-4.6,9.6) {
+    \centering\textbf{PlanRecharge}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - nom : String\\
+    - prixMensuel : Decimal\\
+    - remisePourcent : Decimal\\
+    - statut : StatutPlan
+  };
+  \node[network] (station) at (0,9.6) {
+    \centering\textbf{Station}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - référence : String\\
+    - identitéOcpp : String\\
+    - position : GeoPoint\\
+    - /disponibilité : StatutStation
+  };
+  \node[commerce] (orgsubscription) at (4.6,9.6) {
+    \centering\textbf{AbonnementOrganisation}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - début : DateTime\\
+    - finEssai : DateTime [0..1]\\
+    - prochaineÉchéance : DateTime\\
+    - statut : StatutCommercial
+  };
 
-  \node[commerce] (plansub) at (-4.8,4.0)
-    {\textbf{Adhésion client}\\\rule{28mm}{0.2pt}\\période, renouvellement\\état};
-  \node[network] (connector) at (0,4.0)
-    {\textbf{Connecteur}\\\rule{28mm}{0.2pt}\\identifiant OCPP\\type, puissance, état};
-  \node[operations] (maintenance) at (4.8,4.0)
-    {\textbf{Plan de maintenance}\\\rule{28mm}{0.2pt}\\fréquence, échéance\\état};
+  % Client subscription, physical connector and maintenance
+  \node[commerce] (plansubscription) at (-4.6,6.4) {
+    \centering\textbf{AbonnementClient}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - début : DateTime\\
+    - fin : DateTime [0..1]\\
+    - renouvellementAuto : Boolean\\
+    - statut : StatutAbonnement
+  };
+  \node[network] (connector) at (0,6.4) {
+    \centering\textbf{Connecteur}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - identifiantOcpp : Integer\\
+    - type : TypeConnecteur\\
+    - puissanceMaxKw : Decimal\\
+    - /statut : StatutConnecteur
+  };
+  \node[operations] (maintenance) at (4.6,6.4) {
+    \centering\textbf{PlanMaintenance}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - type : TypeMaintenance\\
+    - fréquence : Périodicité [0..1]\\
+    - prochaineÉchéance : DateTime\\
+    - statut : StatutMaintenance
+  };
 
-  \node[commerce] (tariff) at (-4.8,1.0)
-    {\textbf{Tarif}\\\rule{28mm}{0.2pt}\\prix énergie, frais\\période de validité};
-  \node[network] (session) at (-0.4,1.0)
-    {\textbf{Session de recharge}\\\rule{28mm}{0.2pt}\\début, fin, énergie\\coût, état};
-  \node[operations] (alert) at (3.5,1.0)
-    {\textbf{Alerte}\\\rule{28mm}{0.2pt}\\type, sévérité\\état};
+  % Client, charging session and alert
+  \node[identity] (user) at (-4.6,3.2) {
+    \centering\textbf{Utilisateur}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - nomComplet : String\\
+    - email : String\\
+    - rôle : RôleUtilisateur\\
+    - statut : StatutCompte
+  };
+  \node[network] (session) at (0,3.2) {
+    \centering\textbf{SessionRecharge}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - début : DateTime\\
+    - fin : DateTime [0..1]\\
+    - énergieKwh : Decimal\\
+    - coûtFinal : Decimal [0..1]\\
+    - statut : StatutSession
+  };
+  \node[operations] (alert) at (4.6,3.2) {
+    \centering\textbf{Alerte}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - type : TypeAlerte\\
+    - sévérité : Sévérité\\
+    - échéanceSla : DateTime [0..1]\\
+    - statut : StatutAlerte
+  };
 
-  \node[commerce] (payment) at (-0.4,-2.0)
-    {\textbf{Paiement}\\\rule{28mm}{0.2pt}\\référence, montant\\état};
-  \node[operations] (intervention) at (4.8,-2.0)
-    {\textbf{Intervention}\\\rule{28mm}{0.2pt}\\priorité, SLA\\affectation, état};
+  % Financial and operational outcomes
+  \node[commerce] (tariff) at (-4.6,0) {
+    \centering\textbf{Tarif}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - prixKwh : Decimal\\
+    - fraisSession : Decimal\\
+    - prixInactivité : Decimal\\
+    - actifDu : DateTime
+  };
+  \node[commerce] (payment) at (0,0) {
+    \centering\textbf{Paiement}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - référence : String\\
+    - montantAutorisé : Decimal\\
+    - montantCapturé : Decimal\\
+    - statut : StatutPaiement
+  };
+  \node[operations] (intervention) at (4.6,0) {
+    \centering\textbf{Intervention}\\
+    \rule{29mm}{0.25pt}\\[-1mm]
+    \raggedright
+    - id : UUID\\
+    - priorité : Priorité\\
+    - planifiéeLe : DateTime [0..1]\\
+    - résultat : Résultat [0..1]\\
+    - statut : StatutIntervention
+  };
 
-  \draw[rel] (user) -- node[card, above]{0..* employés \quad 0..1} (org);
-  \draw[rel] (org) -- node[card, right]{1 \quad 0..*} (station);
-  \draw[rel] (org.south west) -- node[card, above left]{1 \quad 0..*} (plan.north east);
-  \draw[rel] (org.south east) -- node[card, above right]{1 \quad 0..1} (orgsub.north west);
-  \draw[rel] (saas) -- node[card, right]{1 \quad 0..*} (orgsub);
+  % Direct associations: no reflexive link and no decorative loop
+  \draw[association] (organization.south west) --
+    node[card, near start, above left]{1}
+    node[card, near end, above right]{0..*} (chargingplan.north east);
+  \draw[association] (organization.south) --
+    node[card, near start, right]{1}
+    node[card, near end, right]{0..*} (station.north);
+  \node[composition-mark] at (organization.south) {};
+  \draw[association] (organization.south east) --
+    node[card, near start, above right]{1}
+    node[card, near end, above left]{0..*} (orgsubscription.north west);
+  \draw[association] (saasplan.south) --
+    node[card, near start, right]{1}
+    node[card, near end, right]{0..*} (orgsubscription.north);
 
-  \draw[rel] (plan) -- node[card, right]{1 \quad 0..*} (plansub);
-  \draw[rel] (user.west) -- ++(-0.55,0) |- node[card, near end, left]
-    {1 \quad 0..*} (plansub.west);
+  \draw[association] (chargingplan.south) --
+    node[card, near start, right]{1}
+    node[card, near end, right]{0..*} (plansubscription.north);
+  \draw[association] (plansubscription.south) --
+    node[card, near start, right]{0..*}
+    node[card, near end, right]{1} (user.north);
 
-  \draw[rel] (station) -- node[card, right]{1 \quad 1..*} (connector);
-  \draw[rel] (station.south east) -- node[card, above right]{1 \quad 0..*}
-    (maintenance.north west);
-  \draw[rel] (station.south east) to[out=-35,in=105]
-    node[card, above]{1 \quad 0..*} (alert.north);
+  \draw[association] (station.south) --
+    node[card, near start, right]{1}
+    node[card, near end, right]{1..*} (connector.north);
+  \node[composition-mark] at (station.south) {};
+  \draw[association] (station.south east) --
+    node[card, near start, above right]{1}
+    node[card, near end, above left]{0..*} (maintenance.north west);
 
-  \draw[rel] (connector) -- node[card, right]{1 \quad 0..*} (session);
-  \draw[rel] (user.south west) -- ++(-0.9,0) |- (-6.2,-0.15) --
-    node[card, below]{client 1 \quad 0..*} (session.south west);
-  \draw[rel] (plansub.south east) to[out=-25,in=155]
-    node[card, above]{0..1 \quad 0..*} (session.north west);
-  \draw[rel] (tariff) -- node[card, above]{0..1 \quad 0..*} (session);
-  \draw[rel] (session) -- node[card, right]{1 \quad 0..1} (payment);
+  \draw[association] (connector.south) --
+    node[card, near start, right]{1}
+    node[card, near end, right]{0..*} (session.north);
+  \draw[association] (user.east) --
+    node[card, near start, above]{1}
+    node[card, near end, above]{0..*}
+    node[relation-name, below]{démarre} (session.west);
 
-  \draw[rel] (alert) -- node[card, above right]{0..1 \quad 0..*}
-    (intervention.north west);
-  \draw[rel] (maintenance.east) -- ++(0.45,0) |-
-    node[card, near end, right]{0..1 \quad 0..*} (intervention.east);
+  \draw[association] (tariff.north east) --
+    node[card, near start, above left]{0..1}
+    node[card, near end, below right]{0..*} (session.south west);
+  \draw[association] (session.south) --
+    node[card, near start, right]{1}
+    node[card, near end, right]{0..1} (payment.north);
+  \node[composition-mark] at (session.south) {};
+
+  \draw[association] (station.south east) --
+    node[card, near start, below right]{1}
+    node[card, near end, above left]{0..*} (alert.north west);
+  \draw[association] (alert.south) --
+    node[card, near start, right]{0..1}
+    node[card, near end, right]{0..*} (intervention.north);
+
+  \node[anchor=west, text=ctgray, font=\sffamily\tiny] at (-6.1,-1.55)
+    {Losange plein : composition. Le préfixe / désigne un attribut dérivé.};
 \end{tikzpicture}
