@@ -4,10 +4,13 @@ namespace App\Providers;
 
 use App\Contracts\PaymentGateway;
 use App\Models\User;
+use App\OpenApi\NormalizeOperationMetadata;
 use App\Services\PlatformSettingService;
+use Dedoc\Scramble\Scramble;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
@@ -43,6 +46,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Scramble::configure()
+            ->withOperationTransformers(NormalizeOperationMetadata::class);
+
+        Gate::define('viewApiDocs', fn (?User $user = null): bool => app()->environment('local')
+            || ($user?->hasRole('super_admin') ?? false));
+
         RateLimiter::for('demo-request-submit', fn (Request $request) => Limit::perHour(3)
             ->by('demo-submit:'.$request->ip()));
         RateLimiter::for('invitation-inspect', fn (Request $request) => Limit::perMinute(10)
