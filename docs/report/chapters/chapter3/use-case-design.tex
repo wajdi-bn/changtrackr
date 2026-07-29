@@ -1,4 +1,51 @@
-\section{Analyse globale des cas d'utilisation}
+\section{Conception fonctionnelle et scénarios d'utilisation}
+
+Cette section complète la spécification par une conception orientée scénarios.
+Elle part du diagramme global, identifie les cas majeurs, puis détaille pour chacun
+le contrat fonctionnel, le déroulement nominal et les exceptions. Deux emplacements
+UML sont réservés à la suite de chaque fiche : un diagramme de cas d'utilisation
+raffiné et un diagramme de séquence système. Leur contenu sera produit à partir des
+scénarios validés, sans introduire d'opération absente du Product Backlog.
+
+\newcommand{\UseCaseUmlPlate}[1]{%
+  \begin{figure}[p]
+    \centering
+    \begin{tcolorbox}[
+      width=0.94\textwidth,
+      height=6.2cm,
+      colback=ctpaper,
+      colframe=ctline,
+      boxrule=0.8pt,
+      arc=2mm,
+      valign=center,
+      halign=center
+    ]
+      {\large\bfseries\color{ctdark}Diagramme de cas d'utilisation raffiné}\\[2mm]
+      {\color{ctgray}Emplacement réservé pour #1}\\[1mm]
+      {\small Acteurs, frontière du système, spécialisations et relations
+      \texttt{include}/\texttt{extend}.}
+    \end{tcolorbox}
+
+    \vspace{5mm}
+
+    \begin{tcolorbox}[
+      width=0.94\textwidth,
+      height=6.2cm,
+      colback=ctpaper,
+      colframe=ctline,
+      boxrule=0.8pt,
+      arc=2mm,
+      valign=center,
+      halign=center
+    ]
+      {\large\bfseries\color{ctdark}Diagramme de séquence système}\\[2mm]
+      {\color{ctgray}Emplacement réservé pour #1}\\[1mm]
+      {\small Acteur principal, plateforme, systèmes externes, alternatives et
+      réponses observables.}
+    \end{tcolorbox}
+  \end{figure}
+  \clearpage
+}
 
 \subsection{Diagramme global}
 
@@ -19,6 +66,7 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   \caption{Diagramme global des cas d'utilisation de \ProjectName{}}
   \label{fig:global-use-cases}
 \end{figure}
+\clearpage
 
 \subsection{Catalogue des cas majeurs}
 
@@ -119,6 +167,8 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   des statuts sélectionnables manuellement.
 \end{itemize}
 
+\UseCaseUmlPlate{UC-01 -- Demande de démonstration et provisionnement}
+
 \subsection{UC-02 -- Inviter et activer un employé}
 
 \begin{table}[H]
@@ -162,6 +212,8 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   \item aucun administrateur ne peut afficher, choisir ou réinitialiser le mot de
   passe de l'employé.
 \end{itemize}
+
+\UseCaseUmlPlate{UC-02 -- Invitation et activation d'un employé}
 
 \subsection{UC-03 -- Mettre en service une station OCPP}
 
@@ -211,6 +263,8 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   publique de la station.
 \end{itemize}
 
+\UseCaseUmlPlate{UC-03 -- Mise en service d'une station OCPP}
+
 \subsection{UC-04 -- Calculer la disponibilité}
 
 \begin{table}[H]
@@ -255,6 +309,8 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   \item une station non provisionnée pour OCPP conserve son statut administratif et
   n'est pas artificiellement projetée.
 \end{itemize}
+
+\UseCaseUmlPlate{UC-04 -- Calcul de la disponibilité}
 
 \subsection{UC-05 -- Effectuer une recharge et payer}
 
@@ -310,6 +366,8 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   \item un webhook dupliqué ne provoque ni double capture ni double revenu.
 \end{itemize}
 
+\UseCaseUmlPlate{UC-05 -- Recharge et paiement}
+
 \subsection{UC-06 -- Traiter une alerte et une intervention}
 
 \begin{table}[H]
@@ -353,6 +411,8 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   \item une intervention peut être annulée avec motif, mais son historique n'est pas
   supprimé.
 \end{itemize}
+
+\UseCaseUmlPlate{UC-06 -- Traitement d'une alerte et d'une intervention}
 
 \subsection{UC-07 -- Gérer le cycle commercial d'une organisation}
 
@@ -400,6 +460,8 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   SaaS de l'organisation.
 \end{itemize}
 
+\UseCaseUmlPlate{UC-07 -- Cycle commercial d'une organisation}
+
 \subsection{UC-08 -- Générer et échanger un rapport}
 
 \begin{table}[H]
@@ -442,3 +504,5 @@ les préconditions, les contrôles d'autorisation et les cas d'erreur.
   \item le document PDF reprend la période, les filtres, l'émetteur et les indicateurs
   sans présenter de données étrangères au rôle.
 \end{itemize}
+
+\UseCaseUmlPlate{UC-08 -- Génération et échange d'un rapport}
