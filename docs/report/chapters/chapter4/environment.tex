@@ -1,54 +1,287 @@
 \section{Environnement de développement}
 
-\subsection{Outils et choix technologiques}
+\subsection{Description des outils et choix technologiques}
 
-Le développement est effectué sur un poste Windows avec PHP installé localement
-et Docker Desktop appuyé sur WSL2 pour les composants conteneurisés. Cette
-organisation conserve un cycle rapide pour l'interface et l'API tout en isolant
-la passerelle OCPP, le simulateur de bornes et le simulateur de paiement. Git
-assure la traçabilité du code et GitHub centralise le dépôt distant.
+Les choix technologiques de \mbox{\ProjectName{}} répondent à cinq critères :
+la maintenabilité, la sécurité, la testabilité, l'interopérabilité avec les
+bornes et la possibilité de faire évoluer progressivement la plateforme. La
+solution associe ainsi un socle Web éprouvé à des composants spécialisés pour
+la cartographie, le temps réel, la communication OCPP et la simulation des
+services externes. Les langages sont présentés séparément dans la
+section~\ref{sec:implementation-languages} afin de ne pas confondre langage,
+framework, bibliothèque et outil.
+
+\subsubsection*{Technologies structurantes}
+
+Les technologies ci-dessous portent les principales responsabilités de
+l'application. Pour chacune, la présentation distingue sa définition générale,
+son emploi concret dans \mbox{\ProjectName{}} et la raison de son adoption.
+
+\newcommand{\TechnologyProfile}[5]{%
+  \begin{samepage}
+    \noindent
+    \begin{minipage}[t]{0.13\textwidth}
+      \vspace{1mm}
+      \centering
+      \includegraphics[width=1.55cm,height=1.55cm,keepaspectratio]{#2}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.83\textwidth}
+      {\large\bfseries\color{ctdark}#1}\par
+      \textbf{Définition.} #3\par
+      \textbf{Utilisation dans \mbox{\ProjectName}.} #4\par
+      \textbf{Justification.} #5
+    \end{minipage}
+    \par\vspace{2mm}
+    {\color{ctline}\hrule}
+    \vspace{3mm}
+  \end{samepage}
+}
+
+\TechnologyProfile
+  {Laravel}
+  {assets/brand/technologies/laravel.png}
+  {Laravel est un framework Web libre fondé sur PHP. Il fournit notamment le
+  routage, la validation, l'accès aux données, les files de tâches, la
+  planification et les mécanismes d'autorisation nécessaires à une application
+  serveur structurée \cite{laravel}.}
+  {Il constitue le backend de la plateforme : exposition de l'API REST,
+  orchestration des règles métier, gestion des organisations, des bornes, des
+  sessions, des paiements, des alertes et des rapports.}
+  {Son écosystème limite le code d'infrastructure à développer, facilite les
+  migrations de données et fournit des mécanismes de sécurité cohérents avec
+  une application métier multi-rôle.}
+
+\TechnologyProfile
+  {React}
+  {assets/brand/technologies/react.png}
+  {React est une bibliothèque de construction d'interfaces utilisateur
+  déclaratives à partir de composants réutilisables. Une interface est
+  recalculée lorsque son état évolue, sans recharger entièrement la page
+  \cite{react}.}
+  {React structure l'application monopage et les espaces adaptés au Super
+  Administrateur, à l'administrateur d'organisation, à l'opérateur, au
+  technicien et au client.}
+  {L'approche par composants favorise la réutilisation des tableaux, formulaires,
+  cartes, indicateurs et workflows, tout en permettant de préserver les
+  différences fonctionnelles entre les rôles.}
+
+\TechnologyProfile
+  {PostgreSQL}
+  {assets/brand/technologies/postgresql.png}
+  {PostgreSQL est un système de gestion de base de données relationnelle libre.
+  Il prend en charge les transactions, les contraintes d'intégrité, les index
+  et les requêtes d'agrégation \cite{postgresql}.}
+  {Il conserve les comptes, les organisations, les équipements, les
+  projections OCPP, les sessions, les paiements, les interventions et les
+  traces d'audit. Les migrations Laravel versionnent la structure du schéma.}
+  {La cohérence transactionnelle et les contraintes relationnelles sont
+  essentielles pour isoler les organisations et maintenir l'intégrité des
+  workflows opérationnels et financiers.}
+
+\TechnologyProfile
+  {Ant Design}
+  {assets/brand/technologies/antdesign.png}
+  {Ant Design est un système de conception accompagné d'une bibliothèque de
+  composants React pour les interfaces professionnelles : formulaires,
+  tableaux, menus, fenêtres modales, étapes et retours d'état
+  \cite{antDesign}.}
+  {Il fournit le socle visuel des tableaux de bord et des espaces de gestion.
+  Les composants sont complétés par des styles propres à \ProjectName{} lorsque
+  le prototype exige une présentation plus spécifique.}
+  {Ce choix améliore la cohérence, l'accessibilité et la maintenabilité des
+  écrans, tout en évitant de réimplémenter des contrôles complexes.}
+
+\TechnologyProfile
+  {OCPP 1.6 JSON et simulateur SAP}
+  {assets/brand/technologies/sap.png}
+  {OCPP est un protocole ouvert d'échange entre une borne de recharge et un
+  système central. Sa déclinaison 1.6 JSON utilise WebSocket et normalise les
+  messages de démarrage, de statut, de transaction, de mesure et de commande
+  \cite{ocaOcpp16}.}
+  {Une passerelle dédiée reçoit les messages OCPP et les transmet au backend.
+  Le simulateur SAP reproduit les connexions, les changements d'état, les
+  mesures et les transactions sans nécessiter de borne physique
+  \cite{sapSimulator}.}
+  {Le protocole garantit une intégration réaliste et extensible, tandis que le
+  simulateur rend reproductibles les scénarios de disponibilité et de recharge
+  pendant le développement.}
+
+\subsubsection*{Composants du frontend}
+
+Autour de React et d'Ant Design, plusieurs bibliothèques remplissent des
+responsabilités délimitées. Cette séparation évite qu'un composant d'interface
+prenne simultanément en charge les appels réseau, le cache, la cartographie et
+les animations \cite{vite,tanstackQuery,axios,zustand,leaflet,recharts,gsap}.
+
+\begin{longtable}{|p{3.0cm}|p{4.5cm}|p{6.5cm}|}
+  \caption{Bibliothèques et outils du frontend}
+  \label{tab:frontend-tools}\\
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Technologie} & \textbf{Définition} & \textbf{Rôle dans le projet}\\\hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Technologie} & \textbf{Définition} & \textbf{Rôle dans le projet}\\\hline
+  \endhead
+  Vite &
+  Outil de développement et de compilation pour applications Web modernes. &
+  Démarrage rapide du serveur local, transformation TypeScript et production
+  des ressources optimisées.\\\hline
+  TanStack Query &
+  Bibliothèque de gestion de l'état provenant d'un serveur. &
+  Cache des réponses REST, revalidation, invalidation après mutation et
+  représentation des états de chargement ou d'erreur.\\\hline
+  Axios &
+  Client HTTP fondé sur les promesses. &
+  Centralisation des appels à l'API, des en-têtes, de la protection CSRF et de
+  la normalisation des erreurs.\\\hline
+  Zustand &
+  Gestionnaire léger d'état local partagé. &
+  Conservation des états transverses d'interface et de certains workflows sans
+  confondre ces données avec le cache serveur.\\\hline
+  Leaflet et React-Leaflet &
+  Moteur cartographique interactif et adaptation pour React. &
+  Affichage des stations, sélection graphique des coordonnées et recherche
+  autour de la position du client.\\\hline
+  Recharts &
+  Bibliothèque de graphiques composables pour React. &
+  Construction des courbes, histogrammes et répartitions propres aux tableaux
+  de bord et aux analyses de chaque rôle.\\\hline
+  GSAP et Framer Motion &
+  Bibliothèques d'animation pour le Web et React. &
+  Transitions ciblées, onboarding, retours visuels et animation d'une session
+  de recharge active, sans modifier la logique métier.\\\hline
+\end{longtable}
+
+\subsubsection*{Services du backend et intégrations}
+
+Laravel reste responsable de l'orchestration, mais s'appuie sur des composants
+spécialisés pour l'identité, les permissions, le temps réel et les services
+externes \cite{laravelSanctum,laravelSocialite,spatiePermission,laravelReverb,
+resend,scramble,wiremock}.
+
+\begin{longtable}{|p{3.0cm}|p{4.5cm}|p{6.5cm}|}
+  \caption{Composants backend et services d'intégration}
+  \label{tab:backend-services}\\
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Composant} & \textbf{Définition} & \textbf{Rôle dans le projet}\\\hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Composant} & \textbf{Définition} & \textbf{Rôle dans le projet}\\\hline
+  \endhead
+  Eloquent &
+  Couche de correspondance objet-relationnel intégrée à Laravel. &
+  Modèles de domaine, relations, requêtes filtrées et migrations de la base
+  PostgreSQL.\\\hline
+  Laravel Sanctum &
+  Mécanisme d'authentification pour applications monopages et API. &
+  Session sécurisée par cookie, protection CSRF et authentification des
+  requêtes du frontend.\\\hline
+  Laravel Socialite &
+  Client d'authentification auprès de fournisseurs OAuth. &
+  Connexion des clients avec Google sans stocker leur mot de passe Google.\\\hline
+  Spatie Permission &
+  Extension Laravel de gestion des rôles et permissions. &
+  Attribution des capacités par rôle, complétée par des policies qui vérifient
+  l'organisation et la propriété de la ressource.\\\hline
+  Laravel Reverb et Echo &
+  Serveur WebSocket Laravel et client de souscription aux événements. &
+  Notifications et actualisations en temps réel des états OCPP, des sessions
+  et des événements opérationnels.\\\hline
+  Queue et ordonnanceur Laravel &
+  Mécanismes d'exécution différée et planifiée. &
+  Envoi asynchrone des emails et exécution périodique des contrôles de
+  connectivité et des traitements métier. La file utilise la base de données.\\\hline
+  Resend &
+  Service d'envoi transactionnel d'emails par API. &
+  Vérification d'adresse, récupération de mot de passe, invitations et
+  notifications de workflows.\\\hline
+  WireMock &
+  Simulateur HTTP programmable destiné aux tests d'intégration. &
+  Reproduction des autorisations, captures, remboursements, webhooks, délais et
+  erreurs d'un futur prestataire de paiement.\\\hline
+  Scramble et OpenAPI &
+  Générateur de spécification REST et standard de description d'API. &
+  Documentation interactive, contrats de requêtes et réponses, et référence
+  versionnée des endpoints.\\\hline
+\end{longtable}
+
+\subsubsection*{Environnement et outils de travail}
+
+Le développement est réalisé sous Windows. PHP et les outils du frontend
+s'exécutent localement pour conserver une boucle de développement rapide.
+Docker Desktop, appuyé sur WSL2, isole la passerelle OCPP, le simulateur SAP et
+WireMock \cite{dockerWsl}. Le tableau~\ref{tab:development-tools} précise la
+fonction de chaque outil effectivement retenu.
+
+\begin{longtable}{|p{3.0cm}|p{4.5cm}|p{6.5cm}|}
+  \caption{Environnement et outils de développement}
+  \label{tab:development-tools}\\
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Outil} & \textbf{Définition} & \textbf{Utilisation}\\\hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Outil} & \textbf{Définition} & \textbf{Utilisation}\\\hline
+  \endhead
+  Docker Desktop et WSL2 &
+  Environnement de conteneurisation Linux intégré à Windows. &
+  Isolation et démarrage reproductible de la pile OCPP et du simulateur de
+  paiement.\\\hline
+  Composer et pnpm &
+  Gestionnaires de dépendances pour PHP et l'écosystème Node.js. &
+  Installation reproductible des paquets backend et frontend, ainsi que
+  exécution des scripts du projet.\\\hline
+  Git et GitHub &
+  Système distribué de gestion de versions et plateforme d'hébergement de
+  dépôts \cite{git,github}. &
+  Historique des modifications, sauvegarde distante, branches, revue et
+  partage du code source.\\\hline
+  PHPUnit, Oxlint et compilateur TypeScript &
+  Outils de test, d'analyse statique et de vérification du typage. &
+  Détection des régressions backend, des erreurs frontend et des incohérences
+  de contrats avant intégration.\\\hline
+  \LaTeX, TikZ et Scramble &
+  Outils de composition documentaire, de schématisation et de génération de
+  spécification. &
+  Production du rapport, des diagrammes, des manuels et de la documentation
+  OpenAPI.\\\hline
+\end{longtable}
+
+\subsubsection*{Versions et gestion de la configuration}
 
 \begin{table}[H]
   \centering
-  \caption{Environnement technique effectivement utilisé}
+  \caption{Versions de référence de l'environnement}
   \label{tab:implementation-toolchain}
-  \begin{tabularx}{\textwidth}{|p{3.2cm}|p{4.0cm}|Y|}
+  \begin{tabularx}{\textwidth}{|p{3.4cm}|Y|}
     \hline
     \rowcolor{ctmint}
-    \textbf{Domaine} & \textbf{Technologies} & \textbf{Usage dans le projet}\\\hline
-    Frontend & React 19, TypeScript 6, Vite 8 &
-    Application monopage, typage statique et compilation.\\\hline
-    Interface & Ant Design 6, Recharts, Leaflet, GSAP &
-    Composants, graphiques, cartes et animations ciblées.\\\hline
-    État et échanges & TanStack Query, Axios, Zustand &
-    Cache serveur, appels HTTP et états locaux transverses.\\\hline
-    Backend & PHP 8.5, Laravel 13 &
-    API REST, logique métier, validation, autorisation et tâches planifiées.\\\hline
-    Identité & Sanctum, Socialite, Spatie Permission &
-    Session SPA, Google OAuth 2.0, rôles et permissions.\\\hline
-    Données & PostgreSQL 16, Eloquent &
-    Persistance transactionnelle, relations et migrations.\\\hline
-    Temps réel & Reverb, Laravel Echo &
-    Notifications et mises à jour poussées par WebSocket.\\\hline
-    OCPP & Python 3.11, OCPP 1.6J, simulateur SAP &
-    Passerelle WebSocket, messages de borne et scénarios de test.\\\hline
-    Paiement & Contrat \texttt{PaymentGateway}, WireMock 3 &
-    Fournisseur externe simulé, webhooks et scénarios d'erreur.\\\hline
-    Email & Resend, queue Laravel &
-    Vérification d'email, invitations et notifications asynchrones.\\\hline
-    Qualité & PHPUnit 12, Oxlint, TypeScript &
-    Tests backend, analyse frontend et validation de compilation.\\\hline
-    Documentation & \LaTeX, TikZ, OpenAPI 3.1 avec Scramble &
-    Rapport, schémas et spécification versionnée de l'API.\\\hline
+    \textbf{Ensemble} & \textbf{Versions de référence}\\\hline
+    Backend et données &
+    PHP 8.5.8, Laravel 13, PostgreSQL 16 et PHPUnit 12.\\\hline
+    Frontend &
+    React 19, TypeScript 6, Vite 8 et Ant Design 6.\\\hline
+    Intégrations &
+    Python 3.11, OCPP 1.6 JSON et WireMock 3.13.1.\\\hline
+    Gestion des paquets &
+    Composer 2 et pnpm 11.\\\hline
   \end{tabularx}
 \end{table}
 
-Les dépendances sont verrouillées par \texttt{composer.lock} et
-\texttt{pnpm-lock.yaml}. Les valeurs sensibles sont placées dans les fichiers
-\texttt{.env}, exclus de Git. Les fichiers \texttt{.env.example} documentent
-uniquement les variables attendues, sans contenir de secret.
+Les dépendances sont figées dans \texttt{composer.lock} et
+\texttt{pnpm-lock.yaml}. Les valeurs sensibles sont placées dans des fichiers
+\texttt{.env} exclus de Git. Les fichiers \texttt{.env.example} indiquent
+uniquement les variables attendues et les valeurs locales non sensibles. Cette
+séparation empêche la publication de clés OAuth, de secrets OCPP ou
+d'identifiants de services externes dans le dépôt.
 
 \subsection{Langages de programmation utilisés}
+\label{sec:implementation-languages}
 
 \begin{table}[H]
   \centering
