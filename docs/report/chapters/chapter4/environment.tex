@@ -1,11 +1,11 @@
-\section{Environnement et organisation de la réalisation}
+\section{Environnement de développement}
 
-\subsection{Poste, outils et versions}
+\subsection{Outils et choix technologiques}
 
 Le développement est effectué sur un poste Windows avec PHP installé localement
 et Docker Desktop appuyé sur WSL2 pour les composants conteneurisés. Cette
-organisation permet de conserver un cycle rapide pour React et Laravel tout en
-isolant la passerelle OCPP, le simulateur SAP et le simulateur de paiement. Git
+organisation conserve un cycle rapide pour l'interface et l'API tout en isolant
+la passerelle OCPP, le simulateur de bornes et le simulateur de paiement. Git
 assure la traçabilité du code et GitHub centralise le dépôt distant.
 
 \begin{table}[H]
@@ -16,9 +16,8 @@ assure la traçabilité du code et GitHub centralise le dépôt distant.
     \hline
     \rowcolor{ctmint}
     \textbf{Domaine} & \textbf{Technologies} & \textbf{Usage dans le projet}\\\hline
-
     Frontend & React 19, TypeScript 6, Vite 8 &
-    Application monopage, typage statique et compilation de production.\\\hline
+    Application monopage, typage statique et compilation.\\\hline
     Interface & Ant Design 6, Recharts, Leaflet, GSAP &
     Composants, graphiques, cartes et animations ciblées.\\\hline
     État et échanges & TanStack Query, Axios, Zustand &
@@ -41,48 +40,66 @@ assure la traçabilité du code et GitHub centralise le dépôt distant.
     Tests backend, analyse frontend et validation de compilation.\\\hline
     Documentation & \LaTeX, TikZ, OpenAPI 3.1 avec Scramble &
     Rapport, schémas et spécification versionnée de l'API.\\\hline
-
   \end{tabularx}
 \end{table}
 
-Le fichier \texttt{composer.json} exige PHP~8.3 ou supérieur, ce qui laisse la
-possibilité d'utiliser une version stable en déploiement même si le poste local
-exécute PHP~8.5. Les dépendances sont verrouillées par
-\texttt{composer.lock} et \texttt{pnpm-lock.yaml}. Les valeurs sensibles sont
-placées dans les fichiers \texttt{.env}, exclus de Git, tandis que les fichiers
-\texttt{.env.example} documentent uniquement les clés attendues.
+Les dépendances sont verrouillées par \texttt{composer.lock} et
+\texttt{pnpm-lock.yaml}. Les valeurs sensibles sont placées dans les fichiers
+\texttt{.env}, exclus de Git. Les fichiers \texttt{.env.example} documentent
+uniquement les variables attendues, sans contenir de secret.
 
-\subsection{Structure du dépôt}
+\subsection{Langages de programmation utilisés}
 
-Le dépôt conserve une séparation physique entre les composants tout en proposant
-des commandes communes à sa racine :
+\begin{table}[H]
+  \centering
+  \caption{Langages utilisés dans la réalisation}
+  \label{tab:implementation-languages}
+  \begin{tabularx}{\textwidth}{|p{3.2cm}|p{3.8cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Langage} & \textbf{Composant} & \textbf{Responsabilité}\\\hline
+    PHP & Backend Laravel &
+    API REST, services métier, jobs, policies et tests.\\\hline
+    TypeScript / TSX & Frontend React &
+    Pages, composants, contrats API et interactions utilisateur.\\\hline
+    Python & Passerelle OCPP &
+    WebSocket OCPP, adaptation des messages et tests du protocole.\\\hline
+    SQL & PostgreSQL &
+    Migrations, contraintes, index et requêtes d'agrégation.\\\hline
+  \end{tabularx}
+\end{table}
+
+\subsection{Organisation du dépôt et environnement d'exécution}
+
+Le dépôt sépare physiquement les composants tout en proposant des commandes
+communes à sa racine :
 
 \begin{description}[leftmargin=37mm,style=nextline]
-  \item[\texttt{frontend/}] application React, pages, fonctionnalités, composants,
-  styles et ressources visuelles ;
-  \item[\texttt{backend/}] API Laravel, services métier, migrations, policies,
-  jobs et tests ;
-  \item[\texttt{ocpp-gateway/}] passerelle Python entre les bornes et l'API
-  interne Laravel ;
+  \item[\texttt{frontend/}] application React et ressources visuelles ;
+  \item[\texttt{backend/}] API Laravel, services, migrations, policies et tests ;
+  \item[\texttt{ocpp-gateway/}] passerelle Python entre les bornes et Laravel ;
   \item[\texttt{infra/ocpp/}] composition Docker et profils du simulateur SAP ;
-  \item[\texttt{infra/payment-simulator/}] serveur WireMock et contrats du faux
-  fournisseur de paiement ;
-  \item[\texttt{scripts/}] commandes d'orchestration, de provisioning et de
-  pilotage des scénarios ;
-  \item[\texttt{docs/}] rapport, diagrammes et futurs livrables d'exploitation.
+  \item[\texttt{infra/payment-simulator/}] serveur WireMock et contrats simulés ;
+  \item[\texttt{scripts/}] commandes d'orchestration et de pilotage ;
+  \item[\texttt{docs/}] rapport, API, manuels et cahier de tests.
 \end{description}
 
-L'audit statique du dépôt met en évidence 49 contrôleurs, 45 classes de validation
-HTTP, 24 ressources API, 39 modèles, 11 policies et 47 migrations. Le frontend
-contient 39 pages React. Ces chiffres ne constituent pas une métrique de qualité
-en eux-mêmes ; ils montrent cependant que la logique a été répartie selon les
-responsabilités Laravel plutôt que concentrée dans quelques contrôleurs.
+\begin{figure}[H]
+  \centering
+  \resizebox{0.94\textwidth}{!}{\input{assets/diagrams/deployment-architecture}}
+  \caption{Architecture de déploiement de l'environnement local}
+  \label{fig:deployment-architecture}
+\end{figure}
+
+En production, les fichiers frontend doivent être servis derrière HTTPS,
+l'application PHP doit être supervisée et les connexions OCPP doivent utiliser
+\texttt{wss://}. Les workers, le scheduler, Reverb et la passerelle OCPP
+constituent des processus distincts à superviser.
 
 \subsection{Processus de développement}
 
-Le fichier \texttt{package.json} racine sert de façade aux commandes des trois
-environnements. Une session de développement complète utilise les processus
-suivants :
+Le fichier \texttt{package.json} racine sert de façade aux commandes des
+différents environnements :
 
 \begin{table}[H]
   \centering
@@ -92,79 +109,25 @@ suivants :
     \hline
     \rowcolor{ctmint}
     \textbf{Commande} & \textbf{Responsabilité}\\\hline
-
     \texttt{pnpm dev:frontend} & Lance Vite sur le port 5173.\\\hline
     \texttt{pnpm dev:backend} & Lance l'API Laravel sur le port 8000.\\\hline
     \texttt{pnpm dev:queue} & Traite les emails et travaux asynchrones.\\\hline
     \texttt{pnpm dev:scheduler} & Exécute les règles périodiques.\\\hline
     \texttt{pnpm dev:reverb} & Lance le serveur WebSocket applicatif.\\\hline
     \texttt{pnpm ocpp:up} & Démarre la passerelle et le simulateur OCPP.\\\hline
-    \texttt{pnpm ocpp:status} & Affiche l'état d'une borne simulée.\\\hline
     \texttt{pnpm ocpp:plug} / \texttt{ocpp:unplug} &
     Simule la connexion ou le retrait physique d'un câble.\\\hline
     \texttt{pnpm payment:up} & Démarre le fournisseur WireMock.\\\hline
-    \texttt{pnpm build:frontend} & Type-check et compile le frontend.\\\hline
+    \texttt{pnpm build:frontend} & Vérifie les types et compile le frontend.\\\hline
     \texttt{pnpm test:backend} & Exécute la campagne PHPUnit.\\\hline
-
   \end{tabularx}
 \end{table}
 
-Le scheduler recalcule la disponibilité toutes les 30 secondes, expire les
-commandes OCPP toutes les 10 secondes, contrôle les SLA chaque minute et génère
-les maintenances récurrentes toutes les heures. Les abonnements clients et
-organisationnels sont également synchronisés toutes les heures. L'option
-\texttt{withoutOverlapping} empêche qu'une nouvelle occurrence commence alors
-que la précédente n'est pas terminée.
-
-\subsection{Suivi des Sprints avec Git}
-
-La chronologie des commits reflète les risques du produit. Les premières
-modifications ont initialisé l'authentification, PostgreSQL et l'isolation
-multi-tenant. Les stations, tarifs et sessions ont ensuite fourni les premiers
-objets métier. L'intégration OAuth, les invitations et les demandes de
-démonstration ont stabilisé l'entrée dans la plateforme. Les blocs OCPP,
-disponibilité et opérations ont été intégrés avant le paiement et les tableaux de
-bord. Enfin, le commissioning, la télémétrie vérifiée et les documents ont
-complété le parcours d'exploitation.
+Le scheduler recalcule périodiquement la disponibilité, expire les commandes
+OCPP, contrôle les SLA et génère les maintenances récurrentes. L'option
+\texttt{withoutOverlapping} empêche le chevauchement d'une même tâche.
 
 Chaque bloc fonctionnel est suivi d'un commit cohérent puis poussé sur la branche
-\texttt{main}. Cette discipline facilite l'identification d'une régression et
-conserve un historique exploitable pour le rapport. Les fichiers d'environnement,
-les dépendances installées et les sorties de compilation ne sont pas versionnés.
-
-\subsection{État synthétique des objectifs de Sprint}
-
-\begin{longtable}{|C{1.5cm}|p{3.7cm}|p{4.7cm}|p{3.7cm}|}
-  \caption{État de réalisation au 29 juillet 2026}
-  \label{tab:sprint-implementation-status}\\
-  \hline
-  \textbf{Sprint} & \textbf{Capacité démontrable} & \textbf{Validation actuelle} &
-  \textbf{Limite principale}\\
-  \hline
-  \endfirsthead
-  \hline
-  \textbf{Sprint} & \textbf{Capacité démontrable} & \textbf{Validation actuelle} &
-  \textbf{Limite principale}\\
-  \hline
-  \endhead
-  S01 & Cadrage, backlog, architecture et prototype navigable &
-  Documents de conception et parcours de référence validés & Ajustements continus
-  selon les retours.\\\hline
-  S02 & Comptes, Google OAuth, invitations, démo, onboarding et rôles &
-  API et parcours web testés & Microsoft OAuth reporté.\\\hline
-  S03 & Stations, connecteurs, cartes, documents et commissioning &
-  CRUD, policies et création atomique testés & Pas de borne physique.\\\hline
-  S04 & OCPP, heartbeats, disponibilité, commandes et télémétrie &
-  Simulateur SAP et projections testés & OCPP 2.0.1 hors périmètre.\\\hline
-  S05 & Recharge, mesures, arrêt, paiement et reçu &
-  Parcours vertical avec paiement simulé & Aucun débit bancaire réel.\\\hline
-  S06 & Alertes, interventions, maintenance, SLA et notifications &
-  Cycles de vie et documents testés & Recette terrain à réaliser.\\\hline
-  S07 & Tarifs, plans clients et contrat SaaS organisationnel &
-  Règles, limites et factures testées & Souscription SaaS non encaissée.\\\hline
-  S08 & Dashboards, rapports, audit, paramètres et intégrations &
-  APIs par rôle et exports testés & Finitions UX encore itératives.\\\hline
-  S09 & Exports généralisés et préparation documentaire &
-  CSV, JSON et PDF disponibles par périmètre & Firmware et CI/CD reportés.\\
-  \hline
-\end{longtable}
+\texttt{main}. Cette discipline facilite l'identification d'une régression. Les
+fichiers d'environnement, les dépendances installées et les sorties temporaires
+ne sont pas versionnés.

@@ -1,106 +1,71 @@
 \section{Conception générale}
 
-La conception générale décrit l'organisation physique du système, ses couches
-logiques et les responsabilités de ses principaux composants. Elle privilégie une
-séparation nette des responsabilités sans introduire la complexité d'une
-architecture distribuée complète, peu adaptée à la durée du stage et à une
-réalisation individuelle.
+La conception générale présente l'organisation physique et logique de la
+plateforme. Elle fixe les responsabilités des grandes parties du système avant
+d'aborder les scénarios détaillés. Le choix retenu privilégie une séparation
+claire des responsabilités tout en restant compatible avec la durée du stage et
+une réalisation individuelle.
 
 \subsection{Architecture physique}
 
 \subsubsection{Architecture client--serveur}
 
-\ProjectName{} adopte une architecture client--serveur. Le navigateur constitue le
-client et exécute l'application React. Il communique avec l'API Laravel au moyen de
-requêtes HTTPS et de réponses JSON. Les mises à jour temps réel sont diffusées par
-WebSocket au moyen de Laravel Reverb. Le serveur applicatif applique les règles
-métier, contrôle les autorisations et reste l'unique composant autorisé à modifier
-les données persistantes.
+\ProjectName{} adopte une architecture client--serveur. Le navigateur constitue
+le client de l'application web et communique avec le serveur applicatif au moyen
+de requêtes HTTPS et de réponses JSON. Le serveur applique les règles métier,
+contrôle les autorisations et reste le seul composant autorisé à modifier les
+données persistantes.
 
-La communication avec les bornes constitue un second échange client--serveur. Les
-bornes ou leur simulateur se connectent à une passerelle WebSocket au moyen du
-protocole OCPP 1.6 JSON. La passerelle traduit les messages du protocole en
-événements normalisés, puis les transmet à Laravel par une API interne signée. Elle
-n'accède jamais directement à la base de données.
+La communication avec les équipements forme un second échange client--serveur.
+Les bornes, physiques ou simulées, ouvrent une connexion WebSocket avec une
+passerelle OCPP. Celle-ci adapte les messages du protocole au système
+d'information sans accéder directement à la base de données. Cette séparation
+évite de mélanger les connexions longues des équipements avec les requêtes web de
+l'application.
 
-\subsubsection{Modèle trois tiers}
+\subsubsection{Architecture trois tiers}
 
-L'application est organisée selon un modèle trois tiers :
+L'application est organisée selon une architecture trois tiers :
 
 \begin{description}[leftmargin=35mm,style=nextline]
-  \item[Présentation] pages, composants, formulaires et visualisations exécutés dans
-  le navigateur ;
+  \item[Présentation] interfaces, formulaires et visualisations exécutés dans le
+  navigateur ;
   \item[Application et métier] cas d'utilisation, validation, autorisation,
-  tarification, disponibilité, recharge, maintenance et facturation ;
-  \item[Persistance] modèles relationnels et transactions assurant la conservation
-  cohérente des informations dans PostgreSQL.
+  disponibilité, recharge, maintenance, tarification et facturation ;
+  \item[Persistance] données relationnelles et transactions garantissant la
+  cohérence durable des informations.
 \end{description}
 
-Cette séparation limite les dépendances entre l'interface et les règles métier. Une
-modification visuelle n'affecte pas la persistance, tandis qu'une nouvelle règle de
-disponibilité ou de tarification peut être testée indépendamment de l'affichage.
-
-\begin{figure}[H]
-  \centering
-  \resizebox{0.94\textwidth}{!}{\input{assets/diagrams/architectural-styles}}
-  \caption{Synthèse des styles architecturaux et patrons retenus}
-  \label{fig:architectural-styles}
-\end{figure}
+Cette séparation limite les dépendances entre l'interface et les règles métier.
+Une modification visuelle n'affecte pas la persistance, tandis qu'une évolution
+d'une règle de disponibilité ou de tarification peut être validée sans dépendre
+de l'affichage.
 
 \subsection{Architecture logique}
 
-\subsubsection{Styles et patrons de conception}
-
-Le coeur applicatif est réalisé sous la forme d'un \textbf{monolithe modulaire}.
-Les fonctionnalités sont déployées dans une même application Laravel et partagent
-une base PostgreSQL, mais elles sont séparées par domaines : identité,
-organisations, stations, OCPP, recharge, exploitation, commerce et rapports. Ce
-choix conserve la simplicité des transactions locales tout en évitant de concentrer
-les règles dans les contrôleurs.
-
-Le backend applique une \textbf{architecture en couches}. Les contrôleurs adaptent
-HTTP, les requêtes dédiées valident les entrées, les policies autorisent l'action,
-les services exécutent le cas d'utilisation, puis les modèles Eloquent assurent la
-persistance. Laravel repose bien sur le patron \textbf{MVC}, mais, dans ce projet,
-la vue HTML n'est pas rendue par Laravel : React prend en charge la présentation et
-les contrôleurs Laravel renvoient des ressources JSON. Le terme MVC décrit donc
-principalement l'organisation du backend.
-
-Le frontend utilise une architecture \textbf{orientée composants}. Les pages
-composent des composants réutilisables, tandis que les accès API, les types et les
-requêtes sont regroupés par fonctionnalité. Enfin, deux patrons complètent cette
-organisation :
-
-\begin{itemize}[leftmargin=7mm]
-  \item le patron \textbf{Adapter} isole Google OAuth, Resend, la cartographie et le
-  paiement derrière des contrats remplaçables ;
-  \item une approche \textbf{orientée événements} traite les messages OCPP, les
-  changements de disponibilité, les alertes et les notifications sans confondre
-  l'événement reçu avec l'état métier calculé.
-\end{itemize}
-
 \subsubsection{Architecture technique}
 
-La figure~\ref{fig:technical-architecture} regroupe les technologies dans leurs
-environnements d'exécution. Les cadres en pointillés représentent des systèmes
-externes ou simulés. PostgreSQL est la source de vérité ; ni le frontend, ni la
-passerelle OCPP, ni les simulateurs ne modifient directement les données métier.
+La figure~\ref{fig:technical-architecture} situe les environnements techniques et
+leurs échanges. Les cadres extérieurs représentent les équipements et services
+indépendants. La base PostgreSQL constitue la source de vérité ; ni l'interface,
+ni la passerelle OCPP, ni les simulateurs ne modifient directement les données
+métier.
 
 \clearpage
 \begin{scopebox}[Principes structurants]
 \small
 \begin{minipage}[t]{0.48\linewidth}
 \begin{itemize}[leftmargin=5mm,nosep]
-  \item PostgreSQL est la source de vérité ;
-  \item Laravel centralise les décisions métier et l'autorisation ;
-  \item la passerelle OCPP transporte et normalise le protocole.
+  \item le backend centralise les décisions métier et l'autorisation ;
+  \item la base relationnelle porte l'état persistant ;
+  \item la passerelle transporte et normalise le protocole OCPP.
 \end{itemize}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{itemize}[leftmargin=5mm,nosep]
   \item le frontend adapte l'expérience au rôle ;
-  \item les services externes sont isolés par des adaptateurs ;
-  \item le worker et le scheduler exécutent les tâches différées.
+  \item les services externes restent derrière des contrats ;
+  \item les traitements différés sont séparés des requêtes interactives.
 \end{itemize}
 \end{minipage}
 \end{scopebox}
@@ -112,185 +77,30 @@ passerelle OCPP, ni les simulateurs ne modifient directement les données métie
   \label{fig:technical-architecture}
 \end{figure}
 
-\subsection{Description des composants}
+\subsubsection{Architecture logicielle}
 
-\subsubsection{Application web React}
+Le coeur applicatif suit le style d'un \textbf{monolithe modulaire}. Les fonctions
+sont déployées dans une même application et partagent une base relationnelle,
+mais elles sont regroupées par domaines : identité, organisations, stations,
+OCPP, recharge, exploitation, commerce et rapports. Ce choix simplifie les
+transactions tout en évitant de concentrer les règles dans les contrôleurs.
 
-L'interface est une application monopage développée avec React et TypeScript
-\cite{react}. Vite assure le développement et la compilation. Ant Design fournit
-les contrôles d'interface ; TanStack Query gère l'état provenant du serveur ; Axios
-centralise les appels HTTP. React Router sépare les routes publiques et protégées.
-Leaflet et OpenStreetMap affichent les stations et permettent de sélectionner une
-position \cite{leaflet,openStreetMap}. Recharts produit les graphiques et Laravel
-Echo consomme les événements diffusés par Reverb.
+Le backend applique une \textbf{architecture en couches}. Les contrôleurs adaptent
+les échanges HTTP, les objets de validation contrôlent les entrées, les policies
+autorisent les actions, les services exécutent les cas d'utilisation et les
+modèles assurent la persistance. Il s'appuie sur le patron \textbf{MVC}, adapté au
+contexte d'une API : la présentation est confiée au frontend, tandis que le
+backend expose des ressources JSON.
 
-Les appels API sont regroupés par fonctionnalité hors des composants visuels.
-L'état serveur reste géré par TanStack Query, tandis que les états temporaires
-d'interface, comme l'étape d'un assistant, restent locaux au frontend.
+Le frontend adopte une architecture \textbf{orientée composants}. Les pages
+composent des éléments réutilisables et regroupent les accès aux données par
+fonctionnalité. Le patron \textbf{Adapter} isole les services externes derrière
+des contrats remplaçables. Enfin, une approche \textbf{orientée événements}
+sépare les messages OCPP reçus des états métier calculés.
 
-\subsubsection{API et coeur métier Laravel}
-
-Laravel 13 expose l'API REST, valide les entrées, applique les autorisations et
-orchestre les cas d'utilisation \cite{laravel}. Une requête protégée traverse les
-responsabilités suivantes :
-
-\begin{enumerate}[leftmargin=8mm]
-  \item Sanctum identifie la session et contrôle le jeton CSRF ;
-  \item le middleware organisationnel vérifie le statut et le périmètre du compte ;
-  \item une \emph{Form Request} valide et normalise les données ;
-  \item une policy vérifie l'action sur la ressource concernée ;
-  \item le contrôleur délègue l'opération à un service métier ;
-  \item le service applique les invariants, transactions et événements ;
-  \item une API Resource structure la réponse exposée.
-\end{enumerate}
-
-Les services couvrent notamment le commissioning, la disponibilité, les
-transactions OCPP, les sessions, le paiement, la maintenance, les notifications,
-les abonnements et les exports. Les contrôleurs demeurent ainsi des adaptateurs
-HTTP et non des conteneurs de logique métier.
-
-\subsubsection{Persistance, asynchronisme et temps réel}
-
-PostgreSQL 16 stocke les comptes, actifs, événements techniques, projections,
-transactions et journaux \cite{postgresql}. Les opérations atomiques, telles que la
-création d'une station avec ses connecteurs ou l'enregistrement d'une transaction
-OCPP, sont protégées par des transactions de base de données. La file d'attente et
-le cache de l'environnement de référence utilisent également PostgreSQL.
-
-Le worker exécute les emails, notifications et opérations différées. Le scheduler
-recalcule la disponibilité, expire les commandes OCPP, génère les maintenances
-récurrentes, vérifie les SLA et synchronise les abonnements. Reverb diffuse ensuite
-les changements sur des canaux privés associés à un utilisateur, une organisation
-ou une session.
-
-\subsubsection{Passerelle OCPP}
-
-La passerelle est développée en Python avec les bibliothèques \texttt{ocpp},
-\texttt{websockets} et \texttt{httpx}. Elle accepte les connexions
-\texttt{ocpp1.6}, authentifie l'identité de la station auprès de Laravel, publie
-chaque message normalisé et récupère les commandes distantes. Elle supporte
-notamment \texttt{BootNotification}, \texttt{Heartbeat},
-\texttt{StatusNotification}, \texttt{Authorize}, \texttt{StartTransaction},
-\texttt{MeterValues} et \texttt{StopTransaction}.
-
-La passerelle prend également en charge les commandes distantes suivantes :
-\begin{itemize}[leftmargin=7mm]
-  \item \texttt{RemoteStartTransaction} et
-  \texttt{RemoteStopTransaction} pour piloter une recharge ;
-  \item \texttt{Reset}, \texttt{UnlockConnector} et
-  \texttt{ChangeAvailability} pour l'exploitation de la station.
-\end{itemize}
-OCPP 1.6 JSON correspond au simulateur et au périmètre du stage
-\cite{ocaOcpp16,sapSimulator}. OCPP 2.0.1 demeure une perspective.
-
-\subsubsection{Services externes et adaptateurs}
-
-\begin{table}[H]
+\begin{figure}[H]
   \centering
-  \caption{Intégrations techniques et responsabilités}
-  \label{tab:external-integrations}
-  \begin{tabularx}{\textwidth}{|p{3.0cm}|p{3.1cm}|Y|Y|}
-    \hline
-    \rowcolor{ctmint}
-    \textbf{Intégration} & \textbf{Technologie} & \textbf{Responsabilité} &
-    \textbf{Frontière}\\\hline
-
-    Identité sociale & Google OAuth 2.0 & Vérifier l'identité Google et l'email &
-    Les rôles et organisations restent locaux.\\\hline
-    Email transactionnel & Resend & Envoyer vérifications, invitations et alertes &
-    Les secrets et l'envoi restent côté serveur.\\\hline
-    Cartographie & Leaflet / OpenStreetMap & Tuiles, marqueurs, position et
-    itinéraire & La position courante du client n'est pas persistée.\\\hline
-    Paiement & Adaptateur de paiement & Autoriser, capturer, libérer ou débiter &
-    Le fournisseur ne modifie jamais directement une session.\\\hline
-    Simulation du paiement & WireMock 3 & Reproduire succès, refus, délai, erreur et
-    webhook & Aucun moyen de paiement réel n'est utilisé.\\\hline
-    Simulation des bornes & Simulateur SAP & Produire des connexions et messages
-    OCPP & Le simulateur ne lit ni l'API métier ni la base.\\\hline
-
-  \end{tabularx}
-\end{table}
-
-\subsection{Architecture de déploiement}
-
-Le développement local associe des processus exécutés sur l'hôte et des conteneurs
-Docker. Les ports ci-dessous rendent les interactions reproductibles sur la machine
-de développement ; ils ne constituent pas une contrainte de production.
-
-\begin{figure}[p]
-  \centering
-  \resizebox{0.94\textwidth}{!}{\input{assets/diagrams/deployment-architecture}}
-  \caption{Architecture de déploiement de l'environnement local}
-  \label{fig:deployment-architecture}
+  \resizebox{0.94\textwidth}{!}{\input{assets/diagrams/architectural-styles}}
+  \caption{Styles architecturaux et patrons retenus}
+  \label{fig:architectural-styles}
 \end{figure}
-
-\begin{longtable}{|p{3.0cm}|p{2.3cm}|p{2.3cm}|p{6.7cm}|}
-  \caption{Processus nécessaires dans l'environnement de développement}
-  \label{tab:development-processes}\\
-  \hline
-  \textbf{Processus} & \textbf{Port} & \textbf{Exécution} & \textbf{Rôle}\\
-  \hline
-  \endfirsthead
-  \hline
-  \textbf{Processus} & \textbf{Port} & \textbf{Exécution} & \textbf{Rôle}\\
-  \hline
-  \endhead
-  Frontend Vite & 5173 & Hôte & Interface React et rechargement à chaud.\\\hline
-  API Laravel & 8000 & Hôte & API REST, OAuth, webhooks et API interne OCPP.\\\hline
-  Queue worker & --- & Hôte & Emails, notifications et traitements différés.\\\hline
-  Scheduler & --- & Hôte & Disponibilité, SLA, maintenance et synchronisations.\\\hline
-  Reverb & 8080 & Hôte & WebSocket temps réel de l'application.\\\hline
-  PostgreSQL & 5432 & Local ou Docker & Source de vérité, file et cache.\\\hline
-  Passerelle OCPP & 9000 & Docker & WebSocket OCPP et adaptateur vers Laravel.\\\hline
-  Simulateur SAP & 8082 & Docker & Flotte de bornes et interface de simulation.\\\hline
-  WireMock & 9090 & Docker & API de paiement externe simulée.\\\hline
-  Mailpit & 8025/1025 & Docker, optionnel & Boîte de réception locale pour les tests
-  SMTP.\\
-  \hline
-\end{longtable}
-
-En production, Vite est remplacé par des fichiers statiques servis derrière HTTPS.
-Laravel est exécuté par un serveur PHP supervisé et les connexions OCPP utilisent
-\texttt{wss://}. Les workers, le scheduler, Reverb et la passerelle OCPP doivent
-être supervisés. Les secrets restent injectés par l'environnement et ne sont jamais
-incorporés aux images ni au dépôt.
-
-\subsection{Architecture logicielle}
-
-\subsubsection{Organisation du frontend}
-
-Le frontend suit une organisation par fonctionnalités :
-
-\begin{itemize}[leftmargin=7mm]
-  \item \texttt{features/auth} regroupe la session et les gardes de routes ;
-  \item \texttt{features/stations}, \texttt{maps} et \texttt{charging} portent les
-  parcours de station et de recharge ;
-  \item \texttt{features/operations} couvre alertes, interventions et maintenance ;
-  \item \texttt{features/commercial}, \texttt{subscriptions} et \texttt{tariffs}
-  séparent les deux niveaux de commerce ;
-  \item \texttt{features/realtime} encapsule Echo et Reverb ;
-  \item \texttt{pages} compose ces modules sans réimplémenter leurs contrats API.
-\end{itemize}
-
-L'interface construit ses menus et tableaux de bord à partir du rôle retourné par le
-backend. Cette adaptation améliore l'expérience, mais ne constitue pas une barrière
-de sécurité : toute route masquée reste protégée par Laravel.
-
-\subsubsection{Organisation du backend}
-
-Le backend respecte les responsabilités natives de Laravel :
-
-\begin{description}[leftmargin=35mm,style=nextline]
-  \item[\texttt{Http/Controllers}] adaptation des requêtes et réponses ;
-  \item[\texttt{Http/Requests}] validation, normalisation et préconditions ;
-  \item[\texttt{Policies}] autorisation par action, rôle et organisation ;
-  \item[\texttt{Services}] orchestration transactionnelle et règles métier ;
-  \item[\texttt{Models}] relations, attributs et invariants locaux ;
-  \item[\texttt{Jobs/Events}] traitements asynchrones et diffusion temps réel ;
-  \item[\texttt{Contracts}] interfaces des intégrations remplaçables.
-\end{description}
-
-L'interface \texttt{PaymentGateway} illustre cette séparation. Les services de
-recharge appellent les opérations d'autorisation, de capture, de libération et de
-débit sans dépendre de WireMock. Un futur adaptateur ClicToPay, e-DINAR/D17,
-GPGCheckout, Konnect ou Flouci pourra respecter le même contrat.

@@ -1,54 +1,48 @@
 \chapter{Réalisation et validation}
 \label{chap:implementation}
 
-\section*{Introduction}
+\section{Introduction à la réalisation}
 
-Ce chapitre présente la traduction effective de la conception en une application
-exécutable. Il ne décrit pas seulement les écrans obtenus : il relie les objectifs
-des Sprints aux composants frontend, aux services métier, aux données
-persistées, aux processus d'infrastructure et aux contrôles qui permettent de
-vérifier leur comportement.
+\subsection{Objectifs}
 
-La réalisation a été menée au fil de Sprints dépendants. Chaque Sprint poursuit
-un objectif démontrable et s'appuie, lorsque nécessaire, sur les résultats du
-précédent. Cette progression a d'abord
-sécurisé l'identité et l'isolation des organisations, puis le référentiel des
-stations, la communication OCPP, les opérations terrain, la recharge, le paiement
-et enfin le pilotage commercial. Elle aboutit à un premier parcours vertical :
+La réalisation traduit les choix de conception en une application exécutable.
+Elle ne se limite pas aux interfaces : chaque parcours associe un contrat API,
+des règles métier, une persistance, des autorisations et des contrôles adaptés.
+L'objectif principal consiste à obtenir un parcours vertical démontrable :
 
 \begin{center}
 \textbf{borne simulée $\rightarrow$ OCPP $\rightarrow$ disponibilité
-$\rightarrow$ alerte ou carte $\rightarrow$ session $\rightarrow$ tarif
+$\rightarrow$ carte ou alerte $\rightarrow$ session $\rightarrow$ tarif
 $\rightarrow$ paiement simulé $\rightarrow$ reçu.}
 \end{center}
 
-Les résultats présentés correspondent à l'état du dépôt au 29 juillet 2026. Une
-fonctionnalité est qualifiée de \emph{réalisée} lorsqu'elle possède un contrat
-backend, une interface exploitable et des tests automatisés adaptés. Le terme
-\emph{validée localement} ne signifie pas qu'elle est déjà certifiée pour la
-production : les limites relatives à une borne physique, à un prestataire de
-paiement réel, au déploiement et à la charge sont indiquées explicitement.
+\subsection{Enjeux liés à la mise en oeuvre}
+
+La mise en oeuvre doit préserver l'isolation entre organisations, distinguer les
+preuves OCPP des états métier calculés et maintenir une expérience adaptée à
+chaque rôle. Elle doit également intégrer des services asynchrones et externes
+sans leur permettre de contourner les règles du backend.
+
+Les développements sont organisés en Sprints dépendants. Une fonctionnalité est
+considérée comme réalisée lorsqu'elle possède un contrat backend, une interface
+exploitable et des tests adaptés. Les simulateurs valident les échanges
+techniques du MVP, mais ne sont pas présentés comme des preuves d'exploitation
+d'une borne physique ou d'un paiement bancaire réel.
 
 \input{chapters/chapter4/environment}
 \input{chapters/chapter4/foundations}
 \input{chapters/chapter4/business}
+\input{chapters/chapter4/security}
 \input{chapters/chapter4/validation}
 
-\section*{Conclusion}
+\clearpage
+\section{Conclusion du chapitre}
 
-La réalisation confirme la faisabilité de l'architecture proposée. Le dépôt
-contient une application React par rôle, une API Laravel protégée, un modèle
-PostgreSQL couvrant les domaines principaux, une passerelle OCPP indépendante et
-des adaptateurs pour les services externes. Le simulateur SAP produit des
-messages OCPP effectivement ingérés ; les services Laravel calculent ensuite les
-projections de disponibilité, les sessions, les alertes et les données de
-pilotage. Le paiement externe reste simulé, mais son contrat permet de remplacer
-WireMock sans réécrire le parcours de recharge.
-
-La campagne locale atteint 203 tests backend et 1\,980 assertions, complétés par
-douze tests de la passerelle OCPP, deux tests des outils du simulateur, le lint
-frontend et une compilation de production.
-Ces résultats valident le MVP vertical dans l'environnement du stage. Les
-travaux encore ouverts concernent principalement l'industrialisation, la recette
-formelle, la connexion à un prestataire financier réel, l'essai sur une borne
-physique et la gestion sécurisée du firmware.
+La réalisation confirme la faisabilité de l'architecture proposée. Le produit
+associe une application adaptée aux rôles, une API protégée, une persistance
+relationnelle, une passerelle OCPP et des adaptateurs externes. Les messages du
+simulateur sont effectivement ingérés, puis transformés en projections, sessions,
+alertes et indicateurs. Les 203 tests backend, les tests OCPP et la compilation du
+frontend valident le MVP dans l'environnement du stage. La recette formelle,
+l'industrialisation, une borne physique et un prestataire financier réel restent
+des étapes distinctes.

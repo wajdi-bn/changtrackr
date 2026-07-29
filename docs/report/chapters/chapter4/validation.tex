@@ -1,46 +1,4 @@
-\section{Intégration et validation}
-
-\subsection{Intégration bout en bout}
-
-L'intégration verticale est vérifiable sans accès direct du frontend à la borne
-ou au fournisseur de paiement. React appelle uniquement l'API publique Laravel.
-Laravel crée les intentions métier et les commandes. La passerelle OCPP échange
-avec le simulateur puis renvoie des événements signés. PostgreSQL conserve les
-preuves et projections. Reverb diffuse les changements utiles à l'interface.
-WireMock représente un système financier externe indépendant.
-
-\begin{figure}[H]
-  \centering
-  \begin{tikzpicture}[
-    node distance=7mm and 8mm,
-    box/.style={draw=ctline,fill=ctpaper,rounded corners=2mm,
-      minimum width=2.7cm,minimum height=1.0cm,align=center,
-      font=\small\bfseries,text=ctdark},
-    arrow/.style={-{Latex[length=2mm]},thick,draw=ctgreen}
-  ]
-    \node[box] (react) {React};
-    \node[box,right=of react] (laravel) {Laravel};
-    \node[box,right=of laravel] (db) {PostgreSQL};
-    \node[box,below=of laravel] (gateway) {Passerelle OCPP};
-    \node[box,left=of gateway] (simulator) {Simulateur SAP};
-    \node[box,right=of gateway] (payment) {WireMock};
-    \draw[arrow] (react) -- node[above,font=\scriptsize]{HTTP} (laravel);
-    \draw[arrow] (laravel) -- node[above,font=\scriptsize]{transactions} (db);
-    \draw[arrow] (laravel) -- node[right,font=\scriptsize]{commandes} (gateway);
-    \draw[arrow] (gateway) -- node[below,font=\scriptsize]{WebSocket OCPP} (simulator);
-    \draw[arrow] (laravel) -- node[above right,font=\scriptsize]{paiement} (payment);
-    \draw[arrow,dashed] (laravel) to[bend left=20]
-      node[above,font=\scriptsize]{Reverb} (react);
-  \end{tikzpicture}
-  \caption{Composants traversés par le MVP vertical}
-  \label{fig:implementation-vertical-integration}
-\end{figure}
-
-Cette structure a facilité le diagnostic. Un écran n'actualisant pas une donnée
-peut être analysé successivement au niveau de la requête React, de la réponse API,
-de la projection PostgreSQL, de l'événement reçu par la passerelle et du message
-émis par le simulateur. Le fournisseur de paiement peut de la même manière être
-observé sans modifier les tables depuis WireMock.
+\section{Tests et débogage}
 
 \subsection{Stratégie de tests}
 
@@ -150,46 +108,76 @@ Les réponses d'erreur de l'API sont normalisées pour ne pas exposer une trace 
 un chemin local ou un secret. En environnement de production,
 \texttt{APP\_DEBUG=false} reste obligatoire.
 
-\subsection{Performance et robustesse}
+\section{Intégration des composants}
 
-Les listes volumineuses utilisent pagination et filtres côté serveur. Les
-relations nécessaires aux ressources API sont chargées explicitement afin de
-limiter les requêtes répétitives. Les agrégats de tableaux de bord sont calculés
-par période et périmètre plutôt que reconstruits dans le navigateur. Les travaux
-lents, notamment emails et certaines notifications, passent par la queue.
+\subsection{Intégration bout en bout}
 
-Pour OCPP, la passerelle conserve la connexion WebSocket mais délègue rapidement
-l'événement à Laravel. Le recalcul de disponibilité est idempotent et protégé
-contre le chevauchement. Les événements et mesures restent horodatés, ce qui
-permet d'appliquer un délai de non-réponse sans dépendre de l'heure du navigateur.
+L'intégration verticale est vérifiable sans accès direct du frontend à la borne
+ou au fournisseur de paiement. React appelle uniquement l'API publique Laravel.
+Laravel crée les intentions métier et les commandes. La passerelle OCPP échange
+avec le simulateur puis renvoie des événements signés. PostgreSQL conserve les
+preuves et projections. Reverb diffuse les changements utiles à l'interface.
+WireMock représente un système financier externe indépendant.
 
-La compilation frontend signale toutefois plusieurs bundles supérieurs à
-500~kio ; le principal fichier JavaScript atteint environ 767~kio. Ce résultat
-n'empêche pas le MVP local, mais justifie une optimisation avant production :
-découpage par route, chargement différé de PDF.js et du scanner QR, séparation des
-icônes et graphiques, puis mesure Lighthouse sur réseau mobile.
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=7mm and 8mm,
+    box/.style={draw=ctline,fill=ctpaper,rounded corners=2mm,
+      minimum width=2.7cm,minimum height=1.0cm,align=center,
+      font=\small\bfseries,text=ctdark},
+    arrow/.style={-{Latex[length=2mm]},thick,draw=ctgreen}
+  ]
+    \node[box] (react) {React};
+    \node[box,right=of react] (laravel) {Laravel};
+    \node[box,right=of laravel] (db) {PostgreSQL};
+    \node[box,below=of laravel] (gateway) {Passerelle OCPP};
+    \node[box,left=of gateway] (simulator) {Simulateur SAP};
+    \node[box,right=of gateway] (payment) {WireMock};
+    \draw[arrow] (react) -- node[above,font=\scriptsize]{HTTP} (laravel);
+    \draw[arrow] (laravel) -- node[above,font=\scriptsize]{transactions} (db);
+    \draw[arrow] (laravel) -- node[right,font=\scriptsize]{commandes} (gateway);
+    \draw[arrow] (gateway) -- node[below,font=\scriptsize]{WebSocket OCPP} (simulator);
+    \draw[arrow] (laravel) -- node[above right,font=\scriptsize]{paiement} (payment);
+    \draw[arrow,dashed] (laravel) to[bend left=20]
+      node[above,font=\scriptsize]{Reverb} (react);
+  \end{tikzpicture}
+  \caption{Composants traversés par le MVP vertical}
+  \label{fig:implementation-vertical-integration}
+\end{figure}
 
-\subsection{Sécurité appliquée}
+Cette structure facilite le diagnostic. Un écran n'actualisant pas une donnée
+peut être analysé successivement au niveau de la requête React, de la réponse API,
+de la projection PostgreSQL, de l'événement reçu par la passerelle et du message
+émis par le simulateur.
 
-Les mesures suivantes sont effectivement présentes dans le code :
+\subsection{Services externes intégrés}
 
-\begin{itemize}[leftmargin=7mm]
-  \item session SPA protégée par Sanctum et cookie CSRF ;
-  \item validation systématique des écritures par \emph{Form Requests} ;
-  \item policies et scoping organisationnel côté serveur ;
-  \item hachage des mots de passe et des secrets de station ;
-  \item vérification des signatures de webhooks et déduplication des événements ;
-  \item limitation des tentatives de connexion, d'activation et d'invitation ;
-  \item routes internes OCPP séparées des routes publiques ;
-  \item journal d'audit pour les actions sensibles ;
-  \item fichiers et documents servis par contrôleurs autorisés ;
-  \item secrets exclus du dépôt et masqués dans les réponses d'intégration.
-\end{itemize}
+\begin{table}[H]
+  \centering
+  \caption{Intégrations techniques et responsabilités}
+  \label{tab:external-integrations}
+  \begin{tabularx}{\textwidth}{|p{3.0cm}|p{3.1cm}|Y|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Intégration} & \textbf{Technologie} & \textbf{Responsabilité} &
+    \textbf{Frontière}\\\hline
+    Identité sociale & Google OAuth 2.0 & Vérifier l'identité et l'email &
+    Les rôles et organisations restent locaux.\\\hline
+    Email transactionnel & Resend & Envoyer vérifications, invitations et alertes &
+    Les secrets et l'envoi restent côté serveur.\\\hline
+    Cartographie & Leaflet / OpenStreetMap & Afficher tuiles, marqueurs et itinéraires &
+    La position courante du client n'est pas persistée.\\\hline
+    Paiement & Adaptateur de paiement & Autoriser, capturer, libérer ou débiter &
+    Le fournisseur ne modifie jamais directement une session.\\\hline
+    Simulation du paiement & WireMock 3 & Reproduire succès, refus, délai et webhook &
+    Aucun moyen de paiement réel n'est utilisé.\\\hline
+    Simulation des bornes & Simulateur SAP & Produire des connexions et messages OCPP &
+    Le simulateur ne lit ni l'API métier ni la base.\\\hline
+  \end{tabularx}
+\end{table}
 
-Un audit de sécurité complet reste nécessaire avant exposition publique :
-rotation des clés, TLS/WSS, durcissement des cookies, en-têtes de sécurité,
-analyse des dépendances, tests IDOR systématiques, sauvegardes chiffrées et
-supervision des événements anormaux.
+\section{Validation et vérification}
 
 \subsection{Limites de la validation}
 
@@ -314,7 +302,26 @@ sept sont partiels et deux sont reportés. Cette lecture distingue ainsi un
   \hline
 \end{longtable}
 
-\section{Documentation technique produite et restante}
+\section{Optimisation des performances}
+
+Les listes volumineuses utilisent pagination et filtres côté serveur. Les
+relations nécessaires aux ressources API sont chargées explicitement afin de
+limiter les requêtes répétitives. Les agrégats de tableaux de bord sont calculés
+par période et périmètre plutôt que reconstruits dans le navigateur. Les travaux
+lents, notamment les emails et certaines notifications, passent par la queue.
+
+Pour OCPP, la passerelle conserve la connexion WebSocket mais délègue rapidement
+l'événement à Laravel. Le recalcul de disponibilité est idempotent et protégé
+contre le chevauchement. Les événements et mesures restent horodatés, ce qui
+permet d'appliquer un délai de non-réponse sans dépendre de l'heure du navigateur.
+
+La compilation frontend signale plusieurs bundles supérieurs à 500~kio ; le
+principal fichier JavaScript atteint environ 767~kio. Ce constat conduit à
+planifier le découpage par route, le chargement différé de PDF.js et du scanner
+QR, la séparation des bibliothèques d'icônes et de graphiques, puis une mesure
+Lighthouse sur réseau mobile.
+
+\section{Documentation technique}
 
 Le dépôt contient les scripts d'installation, les configurations d'exemple, les
 commandes d'exploitation des simulateurs et le présent rapport. Scramble génère

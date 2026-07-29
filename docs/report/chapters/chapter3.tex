@@ -1,32 +1,28 @@
 \chapter{Conception}
 
 \section*{Introduction}
-Le chapitre précédent a défini ce que la plateforme doit accomplir. Le présent
-chapitre décrit comment ces besoins sont traduits en architecture, interactions,
-composants, contrats, processus et données. Les choix présentés ne constituent pas
-une architecture théorique : ils sont alignés sur les dépendances, les services,
-les routes et les modèles présents dans le dépôt au moment de la rédaction.
 
-La conception poursuit cinq objectifs : rendre les scénarios métier explicites,
-séparer les responsabilités métier des adaptateurs techniques, conserver une source
-de vérité unique, isoler strictement les organisations et rendre les intégrations
-remplaçables. Cette démarche conduit à des cas d'utilisation vérifiables et à un
-monolithe Laravel modulaire complété par une application React, une passerelle OCPP
-spécialisée et des services d'infrastructure indépendants.
+Le chapitre précédent a défini les besoins fonctionnels et non fonctionnels de la
+plateforme. Le présent chapitre expose leur traduction en une conception
+cohérente. Il présente d'abord l'architecture physique et logique, puis détaille
+les principaux cas d'utilisation avant de proposer le diagramme de classes
+conceptuel.
+
+La conception recherche un équilibre entre séparation des responsabilités,
+lisibilité et maîtrise de la complexité. Elle doit permettre de raisonner sur les
+interactions entre acteurs, les frontières du système et les invariants métier
+sans anticiper les détails propres à l'implémentation.
 
 \input{chapters/chapter3/architecture}
 \input{chapters/chapter3/use-case-design}
-\input{chapters/chapter3/detailed-design}
-\input{chapters/chapter3/security}
 \input{chapters/chapter3/domain-model}
 
 \section*{Conclusion}
-La conception retenue combine la simplicité transactionnelle d'un monolithe
-modulaire et l'isolation d'une passerelle dédiée aux connexions OCPP longues. Les
-scénarios fonctionnels relient chaque acteur à un résultat vérifiable. Les états
-métier ne sont jamais assimilés aux messages bruts des bornes : des services de
-projection reconstruisent la disponibilité, les sessions et les alertes à partir de
-preuves horodatées. La séparation par contrats rend le paiement, la messagerie et
-les équipements remplaçables, tandis que les policies et le \emph{scoping}
-organisationnel protègent les données. Le chapitre suivant montrera comment cette
-conception a été réalisée au fil des Sprints et validée par des tests.
+
+Ce chapitre a établi la conception générale de \ProjectName{}, détaillé les
+scénarios majeurs et défini le modèle conceptuel qui structure les données métier.
+La séparation entre présentation, logique applicative, persistance et
+communication OCPP clarifie les responsabilités. Les cas d'utilisation et les
+invariants du diagramme de classes constituent désormais une base vérifiable pour
+la réalisation. Le chapitre suivant présente l'environnement, les modules
+développés, leur intégration et leur validation.

@@ -1,76 +1,26 @@
-\section{Modèle de données et diagramme de classes}
+\section{Diagramme de classes}
 
 \subsection{Principes de modélisation}
 
 Le modèle conceptuel est organisé autour de quatre notions centrales :
 l'organisation qui exploite le réseau, la station qui fournit le service, le
-client qui utilise ce service et la session qui matérialise la recharge. Les autres
-classes complètent ce noyau pour couvrir l'exploitation et les deux relations
-commerciales de la plateforme.
+client qui utilise ce service et la session qui matérialise la recharge. Les
+autres classes complètent ce noyau pour représenter l'exploitation et les deux
+relations commerciales de la plateforme.
 
 La notation suit les conventions UML usuelles : une classe est séparée en
 compartiments, les attributs portent un nom et un type, et chaque extrémité
 d'association indique sa multiplicité \cite{audibertUmlClasses}. Une composition
-n'est employée que lorsque la partie dépend du cycle de vie du tout. Les attributs
-précédés de \texttt{/} sont dérivés de preuves techniques plutôt que saisis
-directement.
+n'est employée que lorsque la partie dépend du cycle de vie du tout. Les
+attributs précédés de \texttt{/} sont dérivés de preuves techniques plutôt que
+saisis directement.
 
-La conception respecte les principes de normalisation relationnelle. Une
-information métier n'est portée que par l'entité qui en est responsable : les
-connecteurs sont séparés des stations, les paiements des sessions et les offres des
-adhésions. Les relations plusieurs-à-plusieurs sont résolues par des entités
-d'association, notamment l'adhésion d'un client à un plan et l'abonnement d'une
-organisation à une offre SaaS. Cette organisation évite les groupes répétitifs et
-les dépendances partielles.
-
-Le diagramme reste volontairement conceptuel et ne contient pas les opérations de
-framework. Les tables de journalisation, les
-événements OCPP, les échantillons de mesure, les fichiers et les notifications ne
-sont pas représentés afin de préserver sa lisibilité. Ces éléments techniques
-conservent l'historique, mais ne modifient pas la structure des concepts métier
-principaux.
-
-\subsection{Domaines fonctionnels}
-
-\subsubsection{Identité et séparation organisationnelle}
-
-Une organisation possède ses employés et son patrimoine de recharge. Les
-administrateurs, opérateurs et techniciens sont rattachés à une seule organisation.
-Le super administrateur et le client sont des acteurs globaux. Un même client peut
-utiliser les stations de plusieurs organisations ; son compte n'est donc pas
-rattaché à l'une d'elles. La relation avec une organisation apparaît au travers des
-adhésions et des sessions.
-
-\subsubsection{Réseau et recharge}
-
-Une organisation exploite plusieurs stations. Chaque station possède au moins un
-connecteur identifié dans le protocole OCPP. Une session associe un client à un
-connecteur pendant une période déterminée et conserve l'énergie délivrée, le coût
-calculé et son état. Elle référence le tarif appliqué et, lorsqu'il existe,
-l'avantage provenant d'une adhésion. Une session finalisée possède au plus un
-paiement principal.
-
-L'état de disponibilité n'est pas une simple saisie. Il est projeté à partir des
-messages OCPP récents, des connecteurs, des opérations de maintenance et des
-éventuelles dérogations. Les traces techniques sont conservées séparément pour
-expliquer chaque transition.
-
-\subsubsection{Exploitation}
-
-Une station peut produire plusieurs alertes et être couverte par des plans de
-maintenance. Une alerte ou une échéance de maintenance peut conduire à une
-intervention. Celle-ci porte l'affectation du technicien, la priorité, le délai SLA
-et l'état de traitement. Les événements, photos, documents et rapports
-d'intervention constituent des preuves associées sans alourdir le diagramme global.
-
-\subsubsection{Commerce client et commerce SaaS}
-
-Deux cycles commerciaux sont séparés. Le premier relie le client à une organisation
-au moyen d'un plan de recharge et d'une adhésion ; il peut accorder une remise sur
-les sessions. Le second relie l'organisation à la plateforme au moyen d'une offre
-SaaS et d'un abonnement commercial ; il détermine la période d'essai, les capacités
-et le droit d'utiliser les fonctions de gestion. Cette distinction empêche de
-confondre le paiement d'une recharge et la facturation du logiciel.
+Le modèle respecte les principes de normalisation relationnelle. Chaque
+information est portée par l'entité qui en est responsable : les connecteurs sont
+séparés des stations, les paiements des sessions et les offres des adhésions. Les
+relations plusieurs-à-plusieurs sont résolues par des entités d'association. Le
+diagramme reste volontairement conceptuel : il exclut les classes propres au
+framework et les journaux techniques afin de conserver une granularité lisible.
 
 \subsection{Contraintes et invariants principaux}
 
@@ -123,10 +73,10 @@ confondre le paiement d'une recharge et la facturation du logiciel.
 
 La figure~\ref{fig:conceptual-domain-model} présente une vue unique des classes
 métier principales. Les attributs sont limités aux informations nécessaires pour
-comprendre la responsabilité de chaque classe. Les relations utilisent des tracés
-orthogonaux ou directs, sans boucle réflexive ni circuit décoratif. Les cardinalités
-décrivent les relations fonctionnelles et non les détails propres à Eloquent ou aux
-migrations.
+comprendre la responsabilité de chaque classe. Les relations utilisent des
+tracés directs ou orthogonaux, sans boucle réflexive ni circuit décoratif. Les
+cardinalités décrivent les relations fonctionnelles et non les détails propres
+aux migrations ou au framework.
 
 \begin{figure}[H]
   \centering

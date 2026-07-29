@@ -1,50 +1,3 @@
-\section{Réalisation des parcours métier}
-
-\subsection{Sprint 6 : exploitation terrain}
-
-\subsubsection{Alertes et qualification}
-
-Une alerte représente un symptôme opérationnel à traiter, et non une intervention.
-Elle possède une sévérité, un statut, une station, un contexte technique et une
-chronologie. Elle peut provenir automatiquement d'une perte de communication,
-d'un défaut OCPP ou d'une règle de maintenance, mais un utilisateur autorisé peut
-également créer une alerte manuelle.
-
-L'interface utilise une disposition en deux panneaux : la liste filtrable reste
-visible pendant que le détail, les actions et l'historique de l'alerte sélectionnée
-sont consultés. Les filtres de sévérité et d'état ne modifient pas la donnée ; ils
-sont convertis en paramètres API. Les compteurs de la barre latérale sont dérivés
-des notifications non lues liées à ce contexte.
-
-La figure~\ref{fig:interfaces-alerts} présente l'organisation visuelle de ce
-centre opérationnel dans le chapitre suivant.
-
-\subsubsection{Interventions, maintenance et SLA}
-
-Une intervention matérialise le travail humain déclenché par une alerte ou une
-décision d'exploitation. L'opérateur la crée, choisit une priorité et l'assigne à
-un technicien de la même organisation. Le technicien accepte le travail, ajoute
-ses notes, documente le diagnostic, les actions et les pièces, joint des photos
-\emph{avant/après}, puis soumet son rapport. L'opérateur contrôle ensuite le
-résultat et clôt l'intervention.
-
-La maintenance répond à un besoin différent. Elle planifie une action préventive
-ou corrective sur une période, indépendamment de l'existence immédiate d'une
-alerte. \texttt{MaintenancePlanService} gère le plan, tandis que
-\texttt{MaintenanceLifecycleService} contrôle les transitions. Le job
-\texttt{GenerateMaintenanceOccurrences} matérialise les occurrences récurrentes.
-
-\texttt{NotificationSlaService} analyse chaque minute les échéances approchantes
-ou dépassées. Les notifications sont enregistrées en base, diffusées par Reverb
-et éventuellement envoyées par email via la queue. L'utilisateur peut marquer
-une notification lue globalement ou dans le contexte de la page consultée.
-
-Les documents d'alerte, d'intervention et de maintenance sont générés par le
-backend. Le rapport PDF reprend la référence, les acteurs, les dates, les preuves
-et l'historique sans dépendre d'une capture de l'écran. Les pièces jointes passent
-par des routes autorisées et sont supprimables selon le cycle de vie de la
-ressource.
-
 \subsection{Sprint 5 : recharge, transaction et paiement}
 
 \subsubsection{Assistant de recharge client}
@@ -127,6 +80,51 @@ Ce choix ne simule pas une banque au niveau réglementaire. Il valide la fronti�
 technique qui permettra d'ajouter ultérieurement ClicToPay, e-DINAR/D17,
 GPGCheckout, Konnect ou Flouci. L'adaptateur réel devra ajouter la conformité du
 prestataire, le rapprochement, la gestion des litiges et des remboursements.
+
+\subsection{Sprint 6 : exploitation terrain}
+
+\subsubsection{Alertes et qualification}
+
+Une alerte représente un symptôme opérationnel à traiter, et non une intervention.
+Elle possède une sévérité, un statut, une station, un contexte technique et une
+chronologie. Elle peut provenir automatiquement d'une perte de communication,
+d'un défaut OCPP ou d'une règle de maintenance, mais un utilisateur autorisé peut
+également créer une alerte manuelle.
+
+L'interface utilise une disposition en deux panneaux : la liste filtrable reste
+visible pendant que le détail, les actions et l'historique de l'alerte sélectionnée
+sont consultés. Les filtres de sévérité et d'état ne modifient pas la donnée ; ils
+sont convertis en paramètres API. Les compteurs de la barre latérale sont dérivés
+des notifications non lues liées à ce contexte.
+
+La figure~\ref{fig:interfaces-alerts} présente l'organisation visuelle de ce
+centre opérationnel dans le chapitre suivant.
+
+\subsubsection{Interventions, maintenance et SLA}
+
+Une intervention matérialise le travail humain déclenché par une alerte ou une
+décision d'exploitation. L'opérateur la crée, choisit une priorité et l'assigne à
+un technicien de la même organisation. Le technicien accepte le travail, ajoute
+ses notes, documente le diagnostic, les actions et les pièces, joint des photos
+\emph{avant/après}, puis soumet son rapport. L'opérateur contrôle ensuite le
+résultat et clôt l'intervention.
+
+La maintenance répond à un besoin différent. Elle planifie une action préventive
+ou corrective sur une période, indépendamment de l'existence immédiate d'une
+alerte. \texttt{MaintenancePlanService} gère le plan, tandis que
+\texttt{MaintenanceLifecycleService} contrôle les transitions. Le job
+\texttt{GenerateMaintenanceOccurrences} matérialise les occurrences récurrentes.
+
+\texttt{NotificationSlaService} analyse chaque minute les échéances approchantes
+ou dépassées. Les notifications sont enregistrées en base, diffusées par Reverb
+et éventuellement envoyées par email via la queue. L'utilisateur peut marquer
+une notification lue globalement ou dans le contexte de la page consultée.
+
+Les documents d'alerte, d'intervention et de maintenance sont générés par le
+backend. Le rapport PDF reprend la référence, les acteurs, les dates, les preuves
+et l'historique sans dépendre d'une capture de l'écran. Les pièces jointes passent
+par des routes autorisées et sont supprimables selon le cycle de vie de la
+ressource.
 
 \subsection{Sprint 7 : tarification et commerce}
 
