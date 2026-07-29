@@ -1,0 +1,103 @@
+\chapter{Cadre d'administration}
+
+\section{Objet du manuel}
+
+Ce manuel décrit les opérations réservées aux deux niveaux d'administration de
+ChargeTrackr :
+
+\begin{itemize}[leftmargin=*]
+  \item l'\rolebadge{Administrateur d'organisation}, responsable des employés,
+  des stations, de la tarification et du suivi commercial de son organisation ;
+  \item le \rolebadge{Super Admin}, responsable de l'ensemble de la plateforme,
+  des organisations, des demandes de démonstration et des paramètres globaux.
+\end{itemize}
+
+Les fonctions destinées aux opérateurs, techniciens et clients sont détaillées
+dans le \emph{Manuel utilisateur}. Les écrans et valeurs présentés dans ce
+document correspondent à la version de référence indiquée sur la page de garde.
+
+\section{Principes de gouvernance}
+
+\subsection{Isolation des organisations}
+
+Chaque station, connecteur, tarif, employé, alerte, intervention et opération
+commerciale appartient à une organisation déterminée. Un administrateur ne
+peut gérer que les ressources de sa propre organisation. Il ne peut ni
+rechercher ni modifier les employés ou les actifs d'une autre organisation.
+
+Le Super Admin dispose d'une vue transversale nécessaire à l'exploitation de la
+plateforme. Cette capacité doit être utilisée uniquement pour les opérations
+globales prévues et reste soumise au journal d'audit.
+
+\securitynote{Ne jamais contourner une restriction d'organisation en utilisant
+directement un identifiant aperçu dans une URL. Le serveur vérifie
+l'autorisation et l'appartenance de la ressource pour chaque requête.}
+
+\subsection{Séparation des responsabilités}
+
+\begin{longtable}{|L{3.3cm}|L{5.4cm}|L{6.2cm}|}
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Rôle} & \textbf{Périmètre principal} & \textbf{Limites essentielles} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Rôle} & \textbf{Périmètre principal} & \textbf{Limites essentielles} \\ \hline
+  \endhead
+  Super Admin &
+  Organisations, offres commerciales, demandes de démonstration, paramètres
+  globaux, intégrations et audit &
+  N'exécute pas les tâches quotidiennes propres à une organisation sauf besoin
+  d'assistance contrôlé. \\ \hline
+  Administrateur &
+  Employés, clients liés, réseau de recharge, tarifs, rapports et abonnement de
+  son organisation &
+  Ne voit pas les ressources des autres organisations et ne modifie pas les
+  paramètres globaux. \\ \hline
+  Opérateur &
+  Supervision opérationnelle, stations, OCPP, alertes, interventions et
+  maintenance &
+  Ne gère ni les comptes administrateurs ni les paramètres commerciaux
+  globaux. \\ \hline
+  Technicien &
+  Consultation des stations, interventions assignées et comptes rendus &
+  Ne crée pas de station et ne modifie pas les règles de gestion. \\ \hline
+  Client &
+  Recherche, recharge, paiement, reçus et adhésions &
+  N'accède pas aux données internes d'exploitation. \\ \hline
+\end{longtable}
+
+\section{Accès et navigation}
+
+L'authentification locale, l'activation par invitation, la connexion Google,
+les notifications, la recherche globale, le profil et les paramètres
+personnels suivent les mêmes principes que ceux décrits dans le
+\emph{Manuel utilisateur}.
+
+\begin{procedurebox}{Vérifier son périmètre avant une opération}
+  \begin{enumerate}[leftmargin=*]
+    \item Ouvrir le menu du profil et vérifier le rôle affiché.
+    \item Pour un administrateur, vérifier également le nom de l'organisation.
+    \item Contrôler le contexte de la page et les droits proposés par les
+    boutons d'action.
+    \item En cas d'incohérence, interrompre l'opération et contacter le support
+    de la plateforme.
+  \end{enumerate}
+\end{procedurebox}
+
+\section{Actions sensibles}
+
+Les actions suivantes demandent une vérification particulière :
+
+\begin{itemize}[leftmargin=*]
+  \item invitation, désactivation ou suppression d'un compte ;
+  \item création ou suppression d'une station ou d'un connecteur ;
+  \item commande distante OCPP ;
+  \item modification d'un tarif ou d'un plan ;
+  \item suspension ou restauration d'une organisation ;
+  \item modification d'un paramètre global.
+\end{itemize}
+
+\attention{Une donnée de démonstration ou un simulateur ne doit jamais être
+présenté comme un équipement physique ou un paiement bancaire réel. Le statut
+de l'intégration est visible dans l'espace Super Admin.}

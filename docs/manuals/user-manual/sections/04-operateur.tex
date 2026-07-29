@@ -1,0 +1,103 @@
+\chapter{Parcours opérateur}
+
+\section{Responsabilité}
+
+L'opérateur supervise les ressources de son organisation. Il peut gérer les
+stations et connecteurs, exécuter des commandes OCPP autorisées, traiter les
+alertes, planifier la maintenance et échanger des rapports. Il n'administre pas
+les organisations ni les comptes globaux de la plateforme.
+
+\manualscreenshot{operator-overview.png}{Tableau de bord opérationnel}{fig:user-operator-overview}
+
+\section{Superviser les stations}
+
+La page \textbf{Stations} regroupe l'état calculé, la connectivité, la capacité
+des connecteurs, les erreurs et la télémétrie. L'opérateur peut utiliser une vue
+carte pour la localisation et une vue tableau pour comparer les états.
+
+La fiche station sépare :
+
+\begin{itemize}[leftmargin=1.6em]
+  \item le résumé opérationnel ;
+  \item la télémétrie récente ;
+  \item les connecteurs et leur état OCPP ;
+  \item l'historique des commandes ;
+  \item les maintenances, sessions, alertes et documents.
+\end{itemize}
+
+\section{Commandes distantes}
+
+\begin{longtable}{|L{3.4cm}|L{5.1cm}|L{7cm}|}
+  \hline
+  \rowcolor{ctmint}\textbf{Commande} & \textbf{But} & \textbf{Précaution} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}\textbf{Commande} & \textbf{But} & \textbf{Précaution} \\ \hline
+  \endhead
+  Restart station & Redémarrer le logiciel de la borne lorsqu'elle répond encore
+  au canal OCPP. & Vérifier les sessions actives et privilégier un redémarrage
+  doux avant un redémarrage forcé. \\ \hline
+  Unlock connector & Demander le déverrouillage d'un câble. & Confirmer l'absence
+  de charge active et la sécurité de l'utilisateur sur place. \\ \hline
+  Set maintenance mode & Retirer temporairement la station du service normal. &
+  Créer ou relier une maintenance et informer les acteurs concernés. \\ \hline
+  Remote start / stop & Démarrer ou arrêter une transaction autorisée. & Vérifier
+  l'identité du client, le connecteur et la raison opérationnelle. \\ \hline
+\end{longtable}
+
+\expected{Chaque demande génère une trace avec son état : en attente, envoyée,
+acceptée, rejetée, expirée ou échouée. Une commande acceptée ne garantit pas à
+elle seule le résultat physique ; les événements suivants doivent le confirmer.}
+
+\section{Traiter une alerte}
+
+\manualscreenshot{operator-alerts.png}{Espace de traitement des alertes}{fig:user-operator-alerts}
+
+\begin{procedurebox}{Prise en charge d'une alerte}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item filtrer les alertes nouvelles ou critiques ;
+    \item ouvrir l'alerte et vérifier station, connecteur, origine et horodatage ;
+    \item reconnaître la prise en charge ;
+    \item effectuer une action distante lorsque le diagnostic le permet ;
+    \item créer une intervention si un déplacement est nécessaire ;
+    \item assigner le technicien, la priorité et l'échéance ;
+    \item suivre les preuves et résoudre l'alerte lorsque la cause est levée.
+  \end{enumerate}
+\end{procedurebox}
+
+Une alerte décrit un événement à analyser. Une intervention est le travail
+assigné pour le traiter. Une maintenance représente une période planifiée ou
+coordonnée pendant laquelle un équipement peut être indisponible.
+
+\section{Planifier la maintenance}
+
+\manualscreenshot{operator-maintenance.png}{Planification des maintenances}{fig:user-operator-maintenance}
+
+L'opérateur peut consulter le tableau ou le calendrier. Une maintenance précise
+la station, le type, la période, le responsable et le statut. Les changements de
+date doivent tenir compte des sessions prévues et des interventions déjà
+assignées.
+
+\begin{procedurebox}{Créer une maintenance}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item sélectionner \textbf{Plan maintenance} ;
+    \item choisir la station et, si nécessaire, le connecteur ;
+    \item définir le type, la date de début et la durée ;
+    \item assigner un responsable ;
+    \item enregistrer puis vérifier le calendrier ;
+    \item suivre le passage de planifiée à en cours puis terminée.
+  \end{enumerate}
+\end{procedurebox}
+
+\section{Sessions, paiements et rapports}
+
+L'opérateur consulte les sessions de son organisation et les paiements associés,
+sans accéder aux données d'une autre organisation. L'espace \textbf{Reports}
+sert à préparer une relève, documenter les incidents et transmettre un rapport
+à un collègue ou à l'administrateur.
+
+\manualscreenshot{operator-reports.png}{Rapports et relève de l'opérateur}{fig:user-operator-reports}
+
+Un rapport peut être conservé en brouillon, envoyé, reçu ou archivé. Les pièces
+jointes doivent apporter une preuve utile et ne jamais contenir de secrets,
+identifiants de paiement ou mots de passe OCPP.

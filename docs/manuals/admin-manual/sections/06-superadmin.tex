@@ -1,0 +1,149 @@
+\chapter{Administrer la plateforme}
+
+\section{Accueil Super Admin}
+
+L'accueil Super Admin présente l'état global de la plateforme : organisations,
+utilisateurs, demandes en attente, activité commerciale et événements
+nécessitant une action.
+
+\manualscreenshot{superadmin-home.png}
+  {Vue d'ensemble de la plateforme}
+  {fig:superadmin-home}
+
+\section{Organisations}
+
+La page \emph{Organizations} regroupe les organisations, leur statut, leur
+capacité, leur abonnement et leurs administrateurs.
+
+\manualscreenshot{superadmin-organizations.png}
+  {Gestion globale des organisations}
+  {fig:superadmin-organizations}
+
+\begin{procedurebox}{Contrôler une organisation}
+  \begin{enumerate}[leftmargin=*]
+    \item Rechercher l'organisation par son nom ou sa référence.
+    \item Vérifier son statut commercial, son plan et ses quotas.
+    \item Consulter l'administrateur principal et l'historique récent.
+    \item Effectuer uniquement l'action nécessaire : mise à jour commerciale,
+    suspension, restauration ou assistance.
+    \item Vérifier la présence de la trace correspondante dans l'audit.
+  \end{enumerate}
+\end{procedurebox}
+
+\section{Demandes de démonstration}
+
+Une demande de démonstration est destinée à une future organisation. Le
+demandeur n'obtient pas immédiatement un espace administrateur.
+
+\manualscreenshot{superadmin-demo-requests.png}
+  {Traitement des demandes de démonstration}
+  {fig:superadmin-demo}
+
+\subsection{Workflow}
+
+\begin{enumerate}[leftmargin=*]
+  \item Le visiteur transmet ses coordonnées, son organisation et plusieurs
+  objectifs éventuels.
+  \item La plateforme accuse réception sans exposer de lien interne de revue.
+  \item Le Super Admin examine la demande et choisit de la rejeter ou de
+  poursuivre.
+  \item Lors de l'approbation, il configure l'organisation, la durée d'essai et
+  le compte administrateur initial.
+  \item La plateforme crée l'organisation isolée, sa souscription d'essai et
+  l'invitation de l'administrateur.
+  \item Le demandeur active son compte, définit son mot de passe et complète
+  éventuellement le logo de son organisation.
+\end{enumerate}
+
+Le lien d'activation de l'administrateur est valable 48 heures par défaut et
+peut être réglé globalement entre 12 et 168 heures.
+
+\attention{Renvoyer une invitation n'est pertinent que pour une invitation
+encore attendue ou arrivée à expiration. Une invitation révoquée doit être
+explicitement recréée selon le workflow prévu.}
+
+\section{Plans et décisions commerciales}
+
+Le Super Admin définit les offres, capacités, cycles de facturation et règles de
+renouvellement. Une demande de changement formulée par un administrateur doit
+être examinée avant de modifier la souscription.
+
+\begin{procedurebox}{Restaurer une organisation suspendue}
+  \begin{enumerate}[leftmargin=*]
+    \item Vérifier le motif de suspension et les factures ouvertes.
+    \item Enregistrer la décision commerciale ou le règlement simulé/confirmé.
+    \item Affecter un plan valide et ses dates d'effet.
+    \item Restaurer l'organisation.
+    \item Vérifier que les administrateurs sont notifiés et que les quotas sont
+    cohérents.
+  \end{enumerate}
+\end{procedurebox}
+
+\section{Paramètres globaux}
+
+Les paramètres globaux contrôlent notamment l'inscription publique, les
+demandes de démonstration, la durée des invitations, l'essai, la période de
+grâce, les quotas, la rétention de l'audit et l'adresse de support.
+
+\manualscreenshotcompact{superadmin-settings.png}
+  {Paramètres globaux et garde-fous d'environnement}
+  {fig:superadmin-settings}
+
+\begin{table}[H]
+  \centering
+  \caption{Exemples de paramètres globaux}
+  \label{tab:platform-settings}
+  \begin{tabularx}{\textwidth}{|L{4.8cm}|L{3.2cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Paramètre} & \textbf{Plage} & \textbf{Impact} \\ \hline
+    Inscription client publique & Activé / désactivé & Contrôle l'accès à la
+    page d'inscription locale. \\ \hline
+    Demandes de démonstration & Activé / désactivé & Contrôle le formulaire
+    public de demande. \\ \hline
+    Invitation employé & 12 à 336 heures & Durée de validité du lien
+    d'activation. \\ \hline
+    Essai organisation & 7 à 90 jours & Durée proposée lors du provisionnement.
+    \\ \hline
+    Grâce commerciale & 1 à 30 jours & Délai avant suspension opérationnelle.
+    \\ \hline
+    Rétention de l'audit & 30 à 730 jours & Conservation de l'historique global.
+    \\ \hline
+  \end{tabularx}
+\end{table}
+
+\section{Intégrations}
+
+La page \emph{Integrations} indique l'état de Google OAuth, du service d'envoi
+transactionnel, de la passerelle OCPP et de l'adaptateur de paiement. Les
+secrets restent dans l'environnement de déploiement et ne sont jamais renvoyés
+au navigateur.
+
+\begin{table}[H]
+  \centering
+  \caption{Intégrations de la version de référence}
+  \label{tab:integrations}
+  \begin{tabularx}{\textwidth}{|L{3.5cm}|L{4.2cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Domaine} & \textbf{Technologie} & \textbf{Usage} \\ \hline
+    Authentification & Google OAuth 2.0 & Connexion sociale des comptes clients.
+    \\ \hline
+    Courriel & Resend & Vérification, invitation, récupération et notifications.
+    \\ \hline
+    Recharge & OCPP 1.6 JSON & Connexion des bornes et du simulateur SAP. \\ \hline
+    Paiement & Adaptateur WireMock & Simulation des réponses et webhooks du
+    prestataire. \\ \hline
+  \end{tabularx}
+\end{table}
+
+\section{Audit}
+
+Le journal d'audit permet de rechercher l'auteur, l'action, l'entité, la date et
+le contexte d'une opération sensible. Il sert au diagnostic et à la
+responsabilisation, mais ne remplace ni une sauvegarde ni les journaux
+techniques du serveur.
+
+\securitynote{Un Super Admin ne doit jamais saisir un secret dans une note, un
+rapport ou un champ audité. Les secrets Google, Resend, OCPP et paiement restent
+dans les variables d'environnement protégées.}

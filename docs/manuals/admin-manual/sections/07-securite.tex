@@ -1,0 +1,132 @@
+\chapter{Sécurité, contrôle et assistance}
+
+\section{Contrôles avant mise en exploitation}
+
+\begin{longtable}{|L{4.2cm}|L{7.1cm}|L{3.2cm}|}
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Contrôle} & \textbf{Vérification} & \textbf{Fréquence} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Contrôle} & \textbf{Vérification} & \textbf{Fréquence} \\ \hline
+  \endhead
+  Comptes privilégiés &
+  Comptes nominatifs, actifs, rôle minimal et organisation correcte. &
+  Mensuelle. \\ \hline
+  Invitations &
+  Liens en attente justifiés, expirations et révocations cohérentes. &
+  Hebdomadaire. \\ \hline
+  Stations &
+  Identités OCPP uniques, secrets protégés, dernier battement de cœur et
+  connecteurs cohérents. &
+  Hebdomadaire. \\ \hline
+  Tarifs &
+  Unités, dates d'effet, stations ciblées et exemple de calcul vérifiés. &
+  Avant publication. \\ \hline
+  Facturation &
+  Statuts, échéances, factures ouvertes et décisions commerciales concordants. &
+  Hebdomadaire. \\ \hline
+  Audit &
+  Opérations sensibles expliquées et absence de secret dans les métadonnées. &
+  Hebdomadaire. \\ \hline
+  Sauvegardes &
+  Existence, chiffrement, rétention et test de restauration. &
+  Selon le plan d'exploitation. \\ \hline
+\end{longtable}
+
+\section{Règles essentielles}
+
+\begin{itemize}[leftmargin=*]
+  \item appliquer le principe du moindre privilège ;
+  \item utiliser un compte nominatif, jamais partagé ;
+  \item désactiver rapidement un compte qui n'est plus légitime ;
+  \item ne jamais versionner les fichiers \texttt{.env} ;
+  \item renouveler un secret compromis et vérifier les journaux ;
+  \item protéger les exports et pièces jointes ;
+  \item tester les commandes OCPP sur un simulateur avant un équipement
+  physique ;
+  \item distinguer explicitement les environnements local, test et production.
+\end{itemize}
+
+\section{Diagnostic rapide}
+
+\begin{longtable}{|L{4cm}|L{5.2cm}|L{5.3cm}|}
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Symptôme} & \textbf{Vérifications} & \textbf{Action} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Symptôme} & \textbf{Vérifications} & \textbf{Action} \\ \hline
+  \endhead
+  Invitation non reçue &
+  Adresse, statut, expiration, délai de renvoi, worker et service de courriel. &
+  Corriger la cause puis renvoyer une seule fois. \\ \hline
+  Station hors ligne &
+  Passerelle OCPP, simulateur, identité, secret, dernier battement de cœur. &
+  Rétablir la connexion ; ne pas forcer manuellement un faux état disponible.
+  \\ \hline
+  Commande distante sans effet &
+  Statut de la commande, réponse OCPP, compatibilité de la borne et session
+  active. &
+  Consulter l'historique et intervenir uniquement si nécessaire. \\ \hline
+  Quota dépassé &
+  Plan, période, comptes actifs et invitations en attente. &
+  Révoquer une invitation injustifiée ou demander un changement de plan. \\ \hline
+  Paiement incohérent &
+  Session, tarif, autorisation, webhook et statut de l'adaptateur. &
+  Ne pas dupliquer le paiement ; utiliser les références de corrélation. \\ \hline
+  Accès refusé &
+  Rôle, organisation, statut du compte et statut commercial. &
+  Corriger le rattachement ou le plan plutôt que contourner l'autorisation.
+  \\ \hline
+\end{longtable}
+
+\section{Informations à transmettre au support}
+
+Une demande d'assistance exploitable contient :
+
+\begin{itemize}[leftmargin=*]
+  \item la date et l'heure avec le fuseau horaire ;
+  \item la page et l'action exécutée ;
+  \item la référence de l'organisation, de la station, de la session ou du
+  rapport ;
+  \item le résultat attendu et le résultat observé ;
+  \item une capture lisible sans secret ni donnée inutile ;
+  \item l'identifiant de corrélation lorsqu'il est affiché.
+\end{itemize}
+
+\section{Limites de la version de référence}
+
+\begin{itemize}[leftmargin=*]
+  \item les bornes utilisées pour la démonstration sont simulées avec OCPP 1.6
+  JSON ;
+  \item le paiement externe repose sur un simulateur WireMock ;
+  \item le service de courriel en mode de test peut limiter les destinataires
+  tant qu'aucun domaine d'envoi n'est vérifié ;
+  \item la mise en production exige TLS, supervision, sauvegardes testées,
+  gestion des secrets, politiques de rétention et tests de charge ;
+  \item une borne physique ou un prestataire bancaire réel nécessite une
+  recette d'intégration spécifique.
+\end{itemize}
+
+\section{Fin de session administrateur}
+
+Après une opération sensible, vérifier son résultat, fermer les fenêtres de
+détail, puis se déconnecter si le poste n'est pas personnel et verrouillé. Ne
+jamais laisser une session Super Admin ouverte sans surveillance.
+
+\expected{Les opérations sont attribuables, limitées au bon périmètre et
+reproductibles à partir des journaux et références métier.}
+
+\vfill
+\begin{center}
+  \includegraphics[height=2.4cm,keepaspectratio]{chargetrackr-logo.png}
+
+  \vspace{0.4cm}
+  {\Large\bfseries\color{ctdark}Administration terminée en sécurité\par}
+  \vspace{0.15cm}
+  {\color{ctgray}Vérifier, tracer, puis se déconnecter.}
+\end{center}
+\vfill

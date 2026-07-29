@@ -1,0 +1,86 @@
+\chapter{Assistance et bonnes pratiques}
+
+\section{Diagnostic rapide}
+
+\begin{longtable}{|L{4cm}|L{5.2cm}|L{6.3cm}|}
+  \hline
+  \rowcolor{ctmint}\textbf{Symptôme} & \textbf{Vérification} & \textbf{Action} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}\textbf{Symptôme} & \textbf{Vérification} & \textbf{Action} \\ \hline
+  \endhead
+  Connexion refusée & Adresse, mot de passe, compte vérifié et actif &
+  Réessayer sans saisie automatique, puis utiliser la réinitialisation ou
+  contacter l'administrateur. \\ \hline
+  Lien d'invitation invalide & Date d'expiration ou révocation & Demander un
+  nouvel envoi ; ne pas réutiliser un ancien lien. \\ \hline
+  Aucune station à proximité & Géolocalisation, rayon et filtres & Autoriser la
+  position, élargir le rayon dans \textbf{Settings}, réinitialiser les filtres. \\ \hline
+  Le câble n'est pas détecté & Libellé, verrouillage et état OCPP & Rebrancher
+  complètement, vérifier le bon connecteur et attendre le changement automatique. \\ \hline
+  Mesures de charge absentes & Dernier signal et connectivité & Ne pas conclure à
+  zéro énergie ; signaler l'absence de télémétrie à l'exploitation. \\ \hline
+  Commande distante sans effet & État de la commande et événements suivants &
+  Attendre la confirmation OCPP ; ne pas répéter immédiatement une commande
+  risquée. \\ \hline
+  Export introuvable & Téléchargements du navigateur et format & Autoriser les
+  téléchargements et relancer avec CSV, JSON ou PDF. \\ \hline
+\end{longtable}
+
+\section{Contacter le support}
+
+Depuis \textbf{Help}, choisir \textbf{Contact support} et fournir :
+
+\begin{itemize}[leftmargin=1.6em]
+  \item la page et l'action concernées ;
+  \item la référence de station, alerte, intervention, session ou paiement ;
+  \item l'heure et le fuseau horaire ;
+  \item le résultat attendu et le message visible ;
+  \item une capture d'écran ne contenant aucun secret.
+\end{itemize}
+
+\securitynote{Le support ne demande jamais le mot de passe, un secret OAuth, les
+identifiants complets d'une carte, une clé d'API ou le mot de passe OCPP d'une
+station.}
+
+\section{Règles de sécurité}
+
+\begin{enumerate}[leftmargin=1.6em]
+  \item utiliser un mot de passe unique et protéger l'adresse électronique ;
+  \item se déconnecter sur un poste partagé ;
+  \item vérifier le nom et la référence avant toute action distante ;
+  \item limiter les pièces jointes aux informations nécessaires ;
+  \item ne jamais contourner un verrouillage physique ;
+  \item signaler immédiatement toute action inattendue dans l'historique.
+\end{enumerate}
+
+\section{Glossaire}
+
+\begin{longtable}{|L{3.3cm}|L{12.2cm}|}
+  \hline
+  \rowcolor{ctmint}\textbf{Terme} & \textbf{Définition} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}\textbf{Terme} & \textbf{Définition} \\ \hline
+  \endhead
+  Borne / station & Équipement de recharge enregistré dans ChargeTrackr. \\ \hline
+  Connecteur & Point physique numéroté d'une station, associé à un type de prise
+  et à une puissance maximale. \\ \hline
+  OCPP & Protocole de communication entre la borne et la plateforme centrale. \\ \hline
+  Heartbeat & Signal périodique confirmant que la borne communique encore. \\ \hline
+  Télémétrie & Mesures remontées pendant le fonctionnement : énergie, puissance,
+  compteur et horodatage. \\ \hline
+  Alerte & Événement opérationnel nécessitant une analyse ou une action. \\ \hline
+  Intervention & Travail assigné à un technicien pour diagnostiquer ou corriger
+  un incident. \\ \hline
+  Maintenance & Fenêtre de travail planifiée ou coordonnée sur un équipement. \\ \hline
+  SLA & Délai ou niveau de service attendu pour la prise en charge. \\ \hline
+  Reçu & Preuve lisible du règlement d'une session de recharge. \\ \hline
+\end{longtable}
+
+\section{Limites de la version}
+
+La version documentée est le MVP du stage. Elle utilise un simulateur de bornes
+OCPP et un adaptateur de paiement externe simulé pour les essais. Une borne
+physique, un prestataire bancaire réel, OCPP 2.0.1, la gestion distante du
+firmware et les fonctions prédictives restent des évolutions distinctes.

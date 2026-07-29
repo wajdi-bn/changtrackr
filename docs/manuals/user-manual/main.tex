@@ -1,0 +1,43 @@
+\documentclass[a4paper,11pt,oneside]{report}
+
+\newcommand{\manualtitle}{Manuel utilisateur}
+\newcommand{\manualsubtitle}{Utiliser la plateforme de visualisation et de suivi des bornes de recharge électrique}
+\newcommand{\manualaudience}{Clients, opérateurs et techniciens}
+
+\input{../common}
+
+\hypersetup{
+  pdftitle={ChargeTrackr - Manuel utilisateur},
+  pdfauthor={Wajdi Ben Abdeljelil},
+  pdfsubject={Guide des parcours client, opérateur et technicien},
+  pdfkeywords={ChargeTrackr, utilisateur, client, opérateur, technicien, OCPP}
+}
+
+\begin{document}
+
+\hypersetup{pageanchor=false}
+\manualcover
+\hypersetup{pageanchor=true}
+
+\pagenumbering{roman}
+\begingroup
+\small
+\setstretch{1}
+\setlength{\parskip}{0pt}
+\tableofcontents
+\endgroup
+\clearpage
+\listoffigures
+\clearpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\input{sections/01-demarrage}
+\input{sections/02-interface}
+\input{sections/03-client}
+\input{sections/04-operateur}
+\input{sections/05-technicien}
+\input{sections/06-assistance}
+
+\end{document}

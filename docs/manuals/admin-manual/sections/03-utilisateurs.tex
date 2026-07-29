@@ -1,0 +1,109 @@
+\chapter{Gérer les utilisateurs}
+
+\section{Employés de l'organisation}
+
+La page \emph{Users / Employees} permet de rechercher, filtrer, exporter et
+administrer uniquement les employés rattachés à l'organisation courante.
+
+\manualscreenshotcompact{admin-employees.png}
+  {Gestion des employés d'une organisation}
+  {fig:admin-employees}
+
+\subsection{Créer un opérateur ou un technicien}
+
+L'administrateur ne choisit pas le mot de passe de l'employé. Il crée une
+invitation ; le destinataire active ensuite son propre compte.
+
+\begin{procedurebox}{Inviter un employé}
+  \begin{enumerate}[leftmargin=*]
+    \item Ouvrir \emph{Users}, puis l'onglet \emph{Employees}.
+    \item Choisir \emph{Add employee}.
+    \item Saisir le nom, l'adresse électronique et sélectionner le rôle
+    \emph{Operator} ou \emph{Technician}.
+    \item Vérifier le quota du plan puis confirmer l'invitation.
+    \item Contrôler que le compte apparaît avec un statut d'invitation en
+    attente.
+  \end{enumerate}
+\end{procedurebox}
+
+Le lien d'activation d'un employé est valide 72 heures par défaut. Cette durée
+est configurable par le Super Admin entre 12 et 336 heures.
+
+\subsection{Activation par l'employé}
+
+Le destinataire ouvre le lien reçu, vérifie son identité, définit son mot de
+passe puis complète les informations facultatives proposées. Une fois
+l'activation terminée, le compte devient actif dans l'organisation et le rôle
+choisi détermine immédiatement son espace de travail.
+
+\expected{Le mot de passe n'est jamais communiqué à l'administrateur. Le
+serveur stocke uniquement sa représentation sécurisée.}
+
+\subsection{Renvoyer, révoquer ou désactiver}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Renvoyer} renouvelle le message d'une invitation encore valide
+  ou expirée, sous réserve du délai minimal entre deux envois.
+  \item \textbf{Révoquer} invalide définitivement le lien d'activation en
+  attente.
+  \item \textbf{Désactiver} bloque un compte déjà activé sans effacer son
+  historique métier.
+  \item \textbf{Réactiver} restaure l'accès d'un compte si le plan et
+  l'organisation le permettent.
+\end{itemize}
+
+\attention{Ne pas supprimer un employé uniquement pour libérer un quota sans
+avoir vérifié ses interventions, rapports et traces d'audit. La désactivation
+préserve mieux l'historique.}
+
+\section{Clients liés à l'organisation}
+
+Un client possède un compte personnel global et peut utiliser les stations de
+plusieurs organisations. Il devient visible pour une organisation lorsqu'une
+relation métier existe, par exemple une adhésion, une session ou un paiement.
+Le simple paiement d'une recharge ne crée pas automatiquement une adhésion à
+un plan.
+
+\begin{table}[H]
+  \centering
+  \caption{Différence entre employé et client}
+  \label{tab:employee-customer}
+  \small
+  \renewcommand{\arraystretch}{1.08}
+  \begin{tabularx}{\textwidth}{|L{3.2cm}|Y|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Aspect} & \textbf{Employé} & \textbf{Client} \\ \hline
+    Appartenance & Une seule organisation. & Compte global, relations possibles
+    avec plusieurs organisations. \\ \hline
+    Création & Invitation par l'administrateur. & Inscription locale publique ou
+    connexion Google, selon les paramètres. \\ \hline
+    Rôle & Opérateur ou technicien. & Conducteur utilisant le service. \\ \hline
+    Quota commercial & Compte dans la capacité employés. & Ne compte pas comme
+    employé. \\ \hline
+    Administration & Gestion complète dans le périmètre de l'organisation. &
+    Consultation des relations et activités autorisées, sans prise de contrôle
+    du compte global. \\ \hline
+  \end{tabularx}
+\end{table}
+
+\section{Export et confidentialité}
+
+L'export d'une liste ne doit contenir que les données nécessaires à l'objectif
+annoncé. Il faut protéger le fichier généré, limiter sa diffusion et le
+supprimer lorsqu'il n'est plus utile.
+
+\securitynote{Les mots de passe, secrets OAuth, jetons d'activation, clés API et
+secrets OCPP ne doivent jamais apparaître dans un export, un rapport ou une
+capture d'écran transmise au support.}
+
+\begin{procedurebox}{Contrôler un export avant diffusion}
+  \begin{enumerate}[leftmargin=*]
+    \item vérifier que les filtres limitent l'export à l'organisation courante ;
+    \item choisir le format adapté : PDF pour la lecture, CSV ou JSON pour le
+    traitement ;
+    \item ouvrir le fichier et contrôler les colonnes réellement présentes ;
+    \item transmettre le document uniquement aux destinataires autorisés ;
+    \item supprimer les copies temporaires après utilisation.
+  \end{enumerate}
+\end{procedurebox}

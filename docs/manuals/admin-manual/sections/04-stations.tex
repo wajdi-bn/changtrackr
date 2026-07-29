@@ -1,0 +1,143 @@
+\chapter{Administrer le réseau de recharge}
+
+\section{Inventaire des stations}
+
+La page \emph{Stations} propose des vues en cartes, liste, tableau et carte
+géographique. Elle permet de filtrer les actifs, d'ouvrir leur détail et de
+lancer le commissionnement d'une station.
+
+\manualscreenshotcompact{admin-stations.png}
+  {Inventaire des stations de l'organisation}
+  {fig:admin-stations}
+
+Une station possède une référence métier, une position, des caractéristiques
+matérielles, une identité OCPP et un ou plusieurs connecteurs physiques.
+
+\section{Commissionner une station simulée}
+
+Le parcours de commissionnement crée de façon atomique la station, ses
+connecteurs et les informations nécessaires à sa connexion OCPP. Dans le cadre
+du MVP, le parcours privilégié utilise le simulateur SAP local.
+
+\begin{procedurebox}{Créer une station reliée au simulateur local}
+  \begin{enumerate}[leftmargin=*]
+    \item Ouvrir \emph{Stations} puis choisir \emph{Add station}.
+    \item Renseigner le nom, une référence unique, l'adresse et la position sur
+    la carte.
+    \item Décrire le matériel et ajouter chaque connecteur physique avec son
+    libellé, son identifiant OCPP, son type de prise, son courant et sa
+    puissance.
+    \item Sélectionner la cible \emph{Local SAP simulator}. L'identité OCPP doit
+    être unique et correspondre exactement à celle envoyée dans l'URL
+    WebSocket.
+    \item Vérifier le récapitulatif puis créer la station.
+    \item Exécuter, depuis la racine du dépôt, la commande d'enregistrement
+    affichée par l'interface.
+    \item Redémarrer la pile OCPP et ouvrir le détail de la station.
+  \end{enumerate}
+\end{procedurebox}
+
+\begin{verbatim}
+npm run ocpp:add-simulator-station -- CT-TUN-010
+npm run ocpp:down
+npm run ocpp:up
+\end{verbatim}
+
+\expected{Après le \emph{BootNotification} et les premiers battements de cœur,
+la connexion devient active et l'état des connecteurs est projeté à partir des
+événements OCPP.}
+
+\attention{La référence \texttt{CT-TUN-001} existe déjà dans le jeu de données
+de démonstration. Choisir une nouvelle référence, par exemple
+\texttt{CT-TUN-010}. La référence et l'identité OCPP doivent rester uniques.}
+
+\section{Connecteurs}
+
+Le connecteur présenté dans l'interface correspond à un connecteur physique de
+la station. Son identifiant OCPP doit correspondre au \texttt{connectorId}
+envoyé par la borne ou le simulateur.
+
+\begin{table}[H]
+  \centering
+  \caption{Informations principales d'un connecteur}
+  \label{tab:connector-fields}
+  \begin{tabularx}{\textwidth}{|L{3.5cm}|Y|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Champ} & \textbf{Exemple} & \textbf{Règle} \\ \hline
+    Libellé & A1 & Nom lisible par l'utilisateur. \\ \hline
+    Identifiant OCPP & 1 & Valeur numérique envoyée par la station. \\ \hline
+    Type de prise & CCS2 & Compatibilité physique du véhicule. \\ \hline
+    Type de courant & DC & AC ou DC selon l'équipement. \\ \hline
+    Puissance maximale & 120 kW & Capacité nominale, non garantie pendant une
+    session. \\ \hline
+    État & Available & Valeur projetée depuis les événements OCPP. \\ \hline
+  \end{tabularx}
+\end{table}
+
+Le QR code d'un connecteur représente un lien de démarrage vers la station et
+le connecteur concernés. Dans un déploiement physique, l'étiquette est imprimée
+et apposée sur l'équipement ; le client la scanne depuis son téléphone.
+
+\section{Disponibilité calculée}
+
+L'état visible n'est pas un simple champ modifié manuellement. Il résulte des
+événements reçus et de règles métier, notamment :
+
+\begin{itemize}[leftmargin=*]
+  \item \texttt{StatusNotification} détermine l'état d'un connecteur ;
+  \item une transaction active rend le connecteur occupé ;
+  \item un défaut déclaré peut rendre le connecteur ou la station indisponible ;
+  \item l'absence prolongée de battement de cœur rend la station hors ligne ;
+  \item un mode maintenance exclut volontairement l'équipement du service.
+\end{itemize}
+
+\section{Documents et suppression}
+
+L'onglet \emph{Documents} contient uniquement les fichiers réellement importés
+pour la station : fiche technique, certificat, procédure ou preuve
+d'intervention. Une liste vide signifie qu'aucun document n'a encore été
+joint.
+
+\attention{Avant de supprimer une station ou un connecteur, vérifier les
+sessions, alertes, interventions, documents et traces OCPP associés. Préférer
+le mode maintenance ou l'archivage lorsqu'un historique doit être conservé.}
+
+\section{Commandes distantes}
+
+Chaque commande possède un historique distinct de son accusé de réception. Une
+commande \emph{Accepted} signifie que la borne a accepté la demande, pas
+nécessairement que l'effet physique final est déjà terminé.
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.05}
+\begin{longtable}{|L{3.7cm}|L{5.2cm}|L{6.2cm}|}
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Commande} & \textbf{Effet recherché} & \textbf{Précaution} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Commande} & \textbf{Effet recherché} & \textbf{Précaution} \\ \hline
+  \endhead
+  Restart station &
+  Demander un redémarrage logiciel ou matériel selon la capacité de la borne. &
+  Vérifier l'absence de session critique et suivre le retour OCPP. \\ \hline
+  Unlock connector &
+  Demander le déverrouillage du câble d'un connecteur. &
+  Utiliser uniquement si le véhicule et la zone sont sécurisés. \\ \hline
+  Set maintenance mode &
+  Retirer temporairement la station ou le connecteur du service. &
+  Documenter le motif et prévoir la remise en service. \\ \hline
+  Remote start &
+  Demander le démarrage d'une transaction autorisée. &
+  Vérifier le client, le connecteur, le tarif et l'autorisation. \\ \hline
+  Remote stop &
+  Demander l'arrêt d'une transaction active. &
+  Confirmer la session ciblée et le motif de l'arrêt. \\ \hline
+  Change availability &
+  Demander une disponibilité opérationnelle ou une indisponibilité. &
+  Le résultat final dépend de l'acceptation par la borne. \\ \hline
+\end{longtable}
+\endgroup

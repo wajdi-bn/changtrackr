@@ -1,0 +1,46 @@
+\documentclass[a4paper,11pt,oneside]{report}
+
+\newcommand{\manualtitle}{Manuel administrateur}
+\newcommand{\manualsubtitle}{Administrer les organisations, les accès, le réseau de recharge et la plateforme}
+\newcommand{\manualaudience}{Administrateurs d'organisation et Super Admin}
+
+\input{../common}
+
+\hypersetup{
+  pdftitle={ChargeTrackr - Manuel administrateur},
+  pdfauthor={Wajdi Ben Abdeljelil},
+  pdfsubject={Guide d'administration des organisations et de la plateforme},
+  pdfkeywords={ChargeTrackr, administration, organisation, Super Admin, OCPP, audit}
+}
+
+\begin{document}
+
+\hypersetup{pageanchor=false}
+\manualcover
+\hypersetup{pageanchor=true}
+
+\pagenumbering{roman}
+\begingroup
+\footnotesize
+\setstretch{1}
+\setlength{\parskip}{0pt}
+\tableofcontents
+\endgroup
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\input{sections/01-cadre}
+\input{sections/02-organisation}
+\input{sections/03-utilisateurs}
+\input{sections/04-stations}
+\input{sections/05-exploitation}
+\input{sections/06-superadmin}
+\input{sections/07-securite}
+
+\end{document}

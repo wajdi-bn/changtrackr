@@ -1,0 +1,106 @@
+\chapter{Prise en main}
+
+\section{Objet du manuel}
+
+Ce manuel décrit l'utilisation quotidienne de ChargeTrackr pour les trois profils
+qui travaillent directement avec le réseau de recharge :
+
+\begin{longtable}{|L{3.2cm}|L{5.1cm}|L{7.1cm}|}
+  \hline
+  \rowcolor{ctmint}\textbf{Profil} & \textbf{Mission principale} & \textbf{Périmètre dans ChargeTrackr} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}\textbf{Profil} & \textbf{Mission principale} & \textbf{Périmètre dans ChargeTrackr} \\ \hline
+  \endhead
+  Client & Recharger un véhicule et suivre ses dépenses &
+  Rechercher une station, choisir un connecteur, démarrer ou arrêter une session,
+  consulter ses paiements, reçus et abonnements. \\ \hline
+  Opérateur & Superviser l'activité du réseau &
+  Contrôler les stations et connecteurs de son organisation, traiter les alertes,
+  coordonner la maintenance, suivre les sessions et produire des rapports. \\ \hline
+  Technicien & Exécuter les travaux de terrain &
+  Consulter les stations, traiter les alertes et interventions assignées, joindre
+  des preuves et remettre un rapport de maintenance. \\ \hline
+\end{longtable}
+
+Les écrans et données visibles dépendent du rôle et de l'organisation de
+l'utilisateur. Un technicien ne dispose donc pas des mêmes actions qu'un
+opérateur, même lorsqu'ils consultent la même station.
+
+\section{Prérequis}
+
+Pour utiliser l'application, il faut :
+
+\begin{itemize}[leftmargin=1.6em]
+  \item un navigateur récent avec JavaScript et les cookies activés ;
+  \item une connexion au serveur ChargeTrackr ;
+  \item un compte actif et une adresse électronique vérifiée ;
+  \item l'autorisation de géolocalisation uniquement pour la recherche
+  \emph{Near me} ;
+  \item un accès à l'adresse électronique associée au compte pour l'activation
+  ou la réinitialisation du mot de passe.
+\end{itemize}
+
+\attention{La position du client n'est demandée qu'au moment d'une recherche de
+proximité. Le rayon utilisé est réglable dans la page \textbf{Settings}.}
+
+\section{Se connecter}
+
+\begin{procedurebox}{Connexion avec une adresse électronique}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item ouvrir la page \textbf{Sign in} ;
+    \item saisir l'adresse électronique du compte ;
+    \item saisir le mot de passe ;
+    \item sélectionner \textbf{Sign in to dashboard} ;
+    \item vérifier que l'espace correspondant au rôle est affiché.
+  \end{enumerate}
+\end{procedurebox}
+
+\manualscreenshot{login.png}{Page de connexion à ChargeTrackr}{fig:user-login}
+
+Un client peut également choisir \textbf{Continue with Google}. Dans ce cas,
+ChargeTrackr utilise l'identité Google et ne stocke pas le mot de passe Google.
+Un compte créé uniquement par Google n'affiche pas l'action de changement de mot
+de passe local.
+
+\expected{L'utilisateur arrive sur son tableau de bord. Le libellé situé près de
+son avatar confirme le rôle actif.}
+
+\section{Activer un compte invité}
+
+Les comptes opérateur et technicien sont créés sous forme d'invitation par
+l'administrateur de leur organisation. L'administrateur ne choisit jamais le mot
+de passe à la place de l'employé.
+
+\begin{procedurebox}{Activation depuis le courriel d'invitation}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item ouvrir le courriel d'invitation ChargeTrackr ;
+    \item suivre le lien d'activation avant son expiration ;
+    \item vérifier l'identité, le rôle et l'organisation proposés ;
+    \item définir puis confirmer un mot de passe robuste ;
+    \item compléter les informations facultatives proposées ;
+    \item valider et se connecter.
+  \end{enumerate}
+\end{procedurebox}
+
+\securitynote{Ne jamais transférer le lien d'activation. S'il est expiré ou
+révoqué, demander un nouvel envoi à l'administrateur de l'organisation.}
+
+\section{Première connexion}
+
+La page d'accueil personnalisée présente un parcours court orienté vers un
+premier résultat utile. Elle ne remplace pas l'application : elle prépare le
+contexte du compte, puis renvoie vers le véritable espace de travail.
+
+\begin{itemize}[leftmargin=1.6em]
+  \item le client découvre comment trouver une station et démarrer une recharge ;
+  \item l'opérateur identifie les vues de supervision et les alertes ;
+  \item le technicien repère ses tâches assignées et la remise de rapport.
+\end{itemize}
+
+Le parcours peut être quitté et repris ultérieurement depuis le menu du compte.
+
+\section{Se déconnecter}
+
+Ouvrir le menu de l'avatar, puis choisir \textbf{Logout}. Fermer une fenêtre sans
+se déconnecter n'est pas recommandé sur un poste partagé.

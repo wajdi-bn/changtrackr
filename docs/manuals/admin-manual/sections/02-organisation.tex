@@ -1,0 +1,111 @@
+\chapter{Administrer une organisation}
+
+\section{Tableau de bord}
+
+Le tableau de bord de l'administrateur synthétise l'effectif, les clients liés,
+la disponibilité suivie, les revenus réglés, les stations gérées et les
+sessions de recharge. Les données sont limitées à l'organisation connectée et
+à la période sélectionnée.
+
+\manualscreenshot{admin-overview.png}
+  {Vue d'ensemble d'une organisation}
+  {fig:admin-overview}
+
+Les actions rapides permettent d'ouvrir directement la création d'un employé,
+la tarification, les stations ou les rapports. Avant de comparer deux valeurs,
+vérifier la période affichée dans la bannière.
+
+\section{Identité de l'organisation}
+
+Les informations d'organisation comprennent notamment le nom, l'adresse de
+contact, le téléphone et le logo. Le logo est réutilisé dans les vues destinées
+aux employés et aux clients.
+
+\begin{procedurebox}{Mettre à jour l'identité de l'organisation}
+  \begin{enumerate}[leftmargin=*]
+    \item Ouvrir les paramètres depuis le menu du profil.
+    \item Accéder à la section consacrée à l'organisation.
+    \item Modifier uniquement les champs autorisés.
+    \item Importer, si nécessaire, un logo au format PNG, JPG ou WebP respectant
+    la limite indiquée.
+    \item Enregistrer puis vérifier l'aperçu dans le tableau de bord.
+  \end{enumerate}
+\end{procedurebox}
+
+\section{Abonnement et facturation}
+
+La page \emph{Subscription \& billing} sépare la facturation de l'organisation
+des paiements effectués par les clients pendant une recharge. Elle présente le
+statut commercial, la prochaine échéance, l'utilisation des quotas, le plan
+actuel, les factures et les demandes de changement.
+
+\manualscreenshotcompact{admin-billing.png}
+  {Suivi commercial et capacité du plan de l'organisation}
+  {fig:admin-billing}
+
+\subsection{Cycle commercial}
+
+\begin{longtable}{|L{3.1cm}|L{7.2cm}|L{4.8cm}|}
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Statut} & \textbf{Signification} & \textbf{Action attendue} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}
+  \textbf{Statut} & \textbf{Signification} & \textbf{Action attendue} \\ \hline
+  \endhead
+  \texttt{trialing} &
+  Organisation en période d'évaluation avec des quotas spécifiques. &
+  Tester le service et choisir une offre avant l'échéance. \\ \hline
+  \texttt{active} &
+  Plan commercial en cours de validité. &
+  Surveiller l'utilisation et la date de renouvellement. \\ \hline
+  \texttt{past\_due} &
+  Une échéance ou une facture nécessite une régularisation. &
+  Vérifier les factures et contacter le gestionnaire commercial. \\ \hline
+  \texttt{grace\_period} &
+  Période transitoire après expiration de l'essai ou du plan. &
+  Renouveler avant la date de suspension. \\ \hline
+  \texttt{suspended} &
+  Les fonctions opérationnelles sont suspendues ; l'accès commercial et au
+  profil reste disponible. &
+  Régulariser puis demander la restauration. \\ \hline
+  \texttt{cancelled} &
+  Souscription terminée. &
+  Contacter la plateforme pour une nouvelle activation. \\ \hline
+\end{longtable}
+
+\subsection{Expiration et notifications}
+
+La plateforme envoie des rappels aux administrateurs à 7, 3 et 1 jour avant
+l'échéance. À l'expiration, l'organisation passe en période de grâce. Si aucune
+régularisation n'est enregistrée avant la fin de ce délai, l'accès opérationnel
+est suspendu automatiquement.
+
+\expected{L'administrateur conserve l'accès nécessaire pour consulter la
+situation commerciale et demander le renouvellement, sans pouvoir poursuivre
+les opérations qui nécessitent un abonnement actif.}
+
+\subsection{Valeurs par défaut de l'essai}
+
+\begin{table}[H]
+  \centering
+  \caption{Quotas commerciaux par défaut de la période d'essai}
+  \label{tab:trial-defaults}
+  \begin{tabularx}{\textwidth}{|Y|C{3.2cm}|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Paramètre} & \textbf{Valeur par défaut} & \textbf{Règle} \\ \hline
+    Durée de l'essai & 14 jours & Configurable globalement de 7 à 90 jours. \\ \hline
+    Bornes & 5 & Nombre maximal de stations intégrées pendant l'essai. \\ \hline
+    Employés & 4 & Opérateurs et techniciens actifs ou invités ; administrateur
+    exclu. \\ \hline
+    Opérateurs & 2 & Sous-limite comprise dans le total des employés. \\ \hline
+    Techniciens & 2 & Sous-limite comprise dans le total des employés. \\ \hline
+    Délai de grâce & 7 jours & Configurable globalement de 1 à 30 jours. \\ \hline
+  \end{tabularx}
+\end{table}
+
+\attention{Les valeurs réellement applicables sont celles affichées dans
+l'interface. Le Super Admin peut modifier les valeurs par défaut pour les
+nouvelles organisations. Les invitations en attente comptent dans les quotas.}

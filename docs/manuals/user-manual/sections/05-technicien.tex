@@ -1,0 +1,72 @@
+\chapter{Parcours technicien}
+
+\section{Responsabilité}
+
+Le technicien exécute les tâches de terrain qui lui sont assignées. Son accès aux
+stations est volontairement en lecture seule pour les données de référence. Il
+peut consulter le contexte OCPP et les alertes utiles, mais ne crée ni station,
+ni connecteur, ni compte utilisateur.
+
+\manualscreenshot{technician-overview.png}{Tableau de bord du technicien}{fig:user-technician-overview}
+
+\section{Consulter les travaux assignés}
+
+Le tableau de bord met en avant les alertes assignées, travaux actifs, échéances
+et éléments en retard. La page \textbf{My interventions} permet de filtrer par
+statut et d'ouvrir la fiche de travail.
+
+\manualscreenshot{technician-interventions.png}{Liste des interventions assignées}{fig:user-technician-interventions}
+
+\begin{procedurebox}{Exécuter une intervention}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item ouvrir l'intervention assignée ;
+    \item vérifier la station, le connecteur, la priorité, le SLA et le
+    diagnostic initial ;
+    \item passer l'intervention en cours au début du travail ;
+    \item consigner les contrôles, pièces et actions effectuées ;
+    \item joindre les photos \textbf{avant} et \textbf{après} si elles sont
+    requises ;
+    \item rédiger le résultat et les recommandations ;
+    \item soumettre le rapport puis terminer l'intervention.
+  \end{enumerate}
+\end{procedurebox}
+
+\expected{L'opérateur et l'administrateur retrouvent l'historique, les preuves et
+le rapport. L'alerte liée peut ensuite être résolue selon son état réel.}
+
+\section{Consulter le contexte d'une station}
+
+\manualscreenshot{technician-stations.png}{Inventaire des stations visible par le technicien}{fig:user-technician-stations}
+
+La fiche station permet de vérifier :
+
+\begin{itemize}[leftmargin=1.6em]
+  \item la dernière communication et le dernier \emph{heartbeat} ;
+  \item l'état calculé de la station et des connecteurs ;
+  \item les erreurs actives et événements récents ;
+  \item la maintenance en cours ;
+  \item les documents techniques disponibles.
+\end{itemize}
+
+\attention{Les graphiques de télémétrie représentent les événements réellement
+collectés. Une absence de mesure n'est pas une valeur nulle : elle doit être
+interprétée avec la connectivité et les événements OCPP.}
+
+\section{Rapport de terrain}
+
+\manualscreenshotcompact{technician-reports.png}{Bureau de rapports de maintenance}{fig:user-technician-reports}
+
+Le rapport doit rester factuel et vérifiable :
+
+\begin{itemize}[leftmargin=1.6em]
+  \item symptôme observé et heure ;
+  \item diagnostic et contrôles réalisés ;
+  \item action corrective et pièces utilisées ;
+  \item état final de la station et du connecteur ;
+  \item photos ou documents joints ;
+  \item risque résiduel et recommandation.
+\end{itemize}
+
+\securitynote{Masquer les visages, plaques d'immatriculation et informations de
+paiement non nécessaires. Ne jamais photographier un secret OCPP ou une clé
+d'accès lisible.}

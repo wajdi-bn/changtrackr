@@ -1,0 +1,154 @@
+\chapter{Parcours client}
+
+\section{Tableau de bord}
+
+Le tableau de bord client synthétise les sessions actives et terminées, l'énergie
+reçue, les montants réglés, les abonnements et les identifiants de recharge. Il
+permet d'accéder rapidement à la recherche d'une station ou à une session active.
+
+\section{Trouver une station}
+
+La page \textbf{Find a station} propose une recherche par nom, ville ou adresse,
+ainsi que plusieurs représentations. Les vues carte, cartes et liste servent des
+besoins différents :
+
+\begin{itemize}[leftmargin=1.6em]
+  \item la carte localise les stations et leur état ;
+  \item les cartes facilitent le choix sur mobile ;
+  \item la liste compare rapidement disponibilité, puissance et connecteurs.
+\end{itemize}
+
+\begin{procedurebox}{Rechercher à proximité}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item ouvrir \textbf{Find a station} ;
+    \item sélectionner \textbf{Near me} ;
+    \item autoriser la géolocalisation du navigateur ;
+    \item appliquer le rayon défini dans \textbf{Settings} ;
+    \item filtrer si nécessaire par disponibilité ou type de connecteur ;
+    \item ouvrir la station retenue.
+  \end{enumerate}
+\end{procedurebox}
+
+Depuis une station, le client peut copier les coordonnées, ouvrir l'emplacement
+dans Google Maps et demander un itinéraire. Le bouton \textbf{Charge} ouvre
+directement l'étape de sélection du connecteur lorsque la station est déjà
+connue.
+
+\section{Scanner un QR code}
+
+Le QR code physique placé sur un connecteur contient une référence reconnue par
+ChargeTrackr. L'action \textbf{Scan QR} du client sert à éviter une saisie
+manuelle sur le terrain.
+
+\begin{procedurebox}{Démarrer depuis le QR code physique}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item ouvrir \textbf{Scan QR} depuis la recherche ;
+    \item autoriser l'accès à la caméra ;
+    \item cadrer le QR code du connecteur physique ;
+    \item vérifier la station, le libellé et le type de prise proposés ;
+    \item poursuivre le parcours de recharge.
+  \end{enumerate}
+\end{procedurebox}
+
+\attention{Un QR code affiché dans les vues de gestion sert à imprimer ou
+remplacer l'étiquette physique. Le client doit scanner l'étiquette présente sur
+la borne et non une capture non vérifiée.}
+
+\section{Abonnements et réseaux}
+
+Un client peut utiliser plusieurs organisations. Un paiement ponctuel de recharge
+ne l'inscrit pas automatiquement à l'organisation propriétaire de la borne.
+L'adhésion à un plan est un acte distinct, volontaire et révocable.
+
+\manualscreenshot{client-subscriptions.png}{Plans, réseaux et abonnements du client}{fig:user-client-subscriptions}
+
+\begin{procedurebox}{Souscrire à un plan}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item ouvrir \textbf{Plans \& subscriptions} ;
+    \item comparer les réseaux, tarifs, réductions et conditions ;
+    \item ouvrir le plan souhaité ;
+    \item vérifier l'organisation et son logo ;
+    \item confirmer le paiement simulé de l'abonnement ;
+    \item contrôler l'apparition du plan dans \textbf{My memberships}.
+  \end{enumerate}
+\end{procedurebox}
+
+\expected{Le plan devient actif pour l'organisation choisie. Ses avantages sont
+appliqués aux futures recharges éligibles, sans modifier les autres adhésions.}
+
+\section{Démarrer une recharge}
+
+Le parcours est guidé en cinq étapes. Lorsqu'une station a déjà été choisie,
+l'application passe directement à l'étape \textbf{Connector}.
+
+\begin{longtable}{|C{1cm}|L{3.1cm}|L{5.2cm}|L{5.8cm}|}
+  \hline
+  \rowcolor{ctmint}\textbf{\#} & \textbf{Étape} & \textbf{Dans l'application} &
+  \textbf{Dans le monde physique} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}\textbf{\#} & \textbf{Étape} & \textbf{Dans l'application} &
+  \textbf{Dans le monde physique} \\ \hline
+  \endhead
+  1 & Station & Rechercher ou confirmer la station. & Se placer devant la borne
+  identifiée et vérifier sa référence. \\ \hline
+  2 & Connector & Choisir un connecteur disponible et compatible. & Repérer le
+  libellé physique, par exemple A1, et le type de prise. \\ \hline
+  3 & Connect & Attendre la détection OCPP automatique. & Stationner, couper le
+  véhicule et brancher complètement le câble. \\ \hline
+  4 & Payment & Autoriser le moyen de paiement et consulter le tarif. & Aucune
+  action sur la borne ; l'autorisation est traitée dans l'application. \\ \hline
+  5 & Start & Confirmer le démarrage distant. & Attendre le verrouillage du câble
+  et l'indication de charge sur le véhicule ou la borne. \\ \hline
+\end{longtable}
+
+\expected{Le connecteur passe à l'état occupé, une session active est créée et les
+mesures reçues par OCPP actualisent durée, énergie, puissance et estimation.}
+
+\section{Paiement de la recharge}
+
+Dans le MVP du stage, le paiement utilise un adaptateur externe simulé. Le
+parcours reproduit les étapes attendues d'un prestataire réel :
+
+\begin{enumerate}[leftmargin=1.6em]
+  \item autorisation avant le démarrage ;
+  \item référence fournisseur et réponse de webhook ;
+  \item calcul du montant avec le tarif et l'abonnement ;
+  \item règlement final à l'arrêt ;
+  \item génération d'un reçu consultable et téléchargeable.
+\end{enumerate}
+
+Le simulateur n'effectue aucun débit bancaire réel. L'architecture permet de
+remplacer ultérieurement l'adaptateur par un fournisseur tel que ClicToPay,
+e-DINAR/D17, GPGCheckout, Konnect ou Flouci.
+
+\section{Suivre et arrêter la session}
+
+Une vue en direct présente les mesures et propose :
+
+\begin{itemize}[leftmargin=1.6em]
+  \item \textbf{Continue in background} pour fermer la fenêtre tout en gardant la
+  session active ;
+  \item \textbf{Open live view} pour rouvrir la vue ;
+  \item \textbf{Stop charging} pour demander l'arrêt.
+\end{itemize}
+
+Une session peut également s'arrêter lorsque le véhicule ou la borne atteint sa
+condition de fin, en cas d'erreur de sécurité, de perte de communication
+confirmée ou d'arrêt distant autorisé par l'exploitation.
+
+\begin{procedurebox}{Arrêter volontairement une recharge}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item ouvrir \textbf{My sessions} ;
+    \item ouvrir la vue de la session active ;
+    \item sélectionner \textbf{Stop charging} ;
+    \item confirmer la demande ;
+    \item attendre l'état terminé avant de débrancher ;
+    \item consulter le montant final et le reçu.
+  \end{enumerate}
+\end{procedurebox}
+
+\attention{Ne jamais forcer le retrait d'un câble verrouillé. Attendre la
+confirmation d'arrêt de la borne et du véhicule.}
+
+\manualscreenshot{client-sessions.png}{Suivi des sessions de recharge du client}{fig:user-client-sessions}

@@ -1,0 +1,105 @@
+\chapter{Interface commune}
+
+\section{Organisation de l'écran}
+
+L'espace authentifié est construit autour de quatre zones :
+
+\begin{enumerate}[leftmargin=1.6em]
+  \item la barre latérale, dont les entrées sont propres au rôle ;
+  \item la barre supérieure avec recherche, notifications et compte ;
+  \item le bandeau de page qui rappelle le contexte et la période ;
+  \item l'espace de contenu avec vues, filtres, actions et détails.
+\end{enumerate}
+
+La barre latérale peut être réduite. Un badge rouge sur une entrée signale le
+nombre d'éléments non lus ou nécessitant une attention dans ce module.
+
+\section{Recherche globale}
+
+La recherche supérieure permet de retrouver les objets autorisés pour le rôle :
+stations et sessions pour un client, auxquels s'ajoutent notamment alertes et
+travaux assignés pour les employés. Un résultat n'accorde jamais un droit
+supplémentaire : l'ouverture reste soumise aux permissions et à l'organisation.
+
+\section{Notifications}
+
+La cloche regroupe les notifications récentes. Lorsqu'une notification concerne
+une page précise, son entrée reste mise en évidence jusqu'à l'ouverture de
+l'élément associé. Les badges des modules aident à distinguer la charge globale
+des éléments propres à une page.
+
+\begin{procedurebox}{Traiter une notification}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item ouvrir la cloche ;
+    \item lire le type, le niveau et la date ;
+    \item ouvrir l'objet lié ;
+    \item effectuer l'action métier requise ;
+    \item vérifier que l'élément n'est plus marqué comme non lu.
+  \end{enumerate}
+\end{procedurebox}
+
+\section{Vues, filtres et sélection}
+
+Selon la page, un même ensemble de données peut être présenté en cartes, liste,
+tableau, calendrier ou carte géographique. Les filtres limitent les résultats
+sans modifier les données. Une sélection multiple n'est proposée que lorsqu'une
+action globale existe réellement.
+
+\begin{longtable}{|L{3.1cm}|L{5.1cm}|L{7.2cm}|}
+  \hline
+  \rowcolor{ctmint}\textbf{Contrôle} & \textbf{Usage} & \textbf{Bon réflexe} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}\textbf{Contrôle} & \textbf{Usage} & \textbf{Bon réflexe} \\ \hline
+  \endhead
+  Recherche locale & Filtrer la page courante & Utiliser une référence, un nom
+  de station ou un terme significatif. \\ \hline
+  Filtres & Restreindre par statut, date, rôle ou priorité & Réinitialiser les
+  filtres avant de conclure qu'un élément est absent. \\ \hline
+  Sélecteur de vue & Changer la représentation & Utiliser la carte pour la
+  localisation, le tableau pour comparer et le calendrier pour planifier. \\ \hline
+  Export & Produire un fichier CSV, JSON ou PDF & Choisir PDF pour un document
+  lisible et CSV/JSON pour un traitement de données. \\ \hline
+\end{longtable}
+
+\section{Profil, paramètres et aide}
+
+Le menu de l'avatar donne accès à :
+
+\begin{itemize}[leftmargin=1.6em]
+  \item \textbf{Profile} : informations personnelles, professionnelles et
+  coordonnées ;
+  \item \textbf{Settings} : préférences d'affichage, fuseau horaire, rayon de
+  recherche et protection de l'accès ;
+  \item \textbf{Help} : procédures adaptées au rôle et contact du support ;
+  \item \textbf{Logout} : fermeture de la session.
+\end{itemize}
+
+Le fuseau horaire est une préférence du compte. Les dates affichées privilégient
+ce fuseau local, alors que les événements techniques restent conservés de façon
+cohérente côté serveur.
+
+\section{Comprendre les principaux états}
+
+\attention{L'état affiché d'une station n'est pas un simple champ saisi
+manuellement. Il est recalculé à partir des connexions, \emph{heartbeats},
+statuts des connecteurs, sessions, erreurs et maintenances.}
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.08}
+\begin{tabularx}{\textwidth}{|L{3.2cm}|L{4.2cm}|Y|}
+  \hline
+  \rowcolor{ctmint}\textbf{Objet} & \textbf{État} & \textbf{Interprétation} \\ \hline
+  Station & Disponible & Connecteur exploitable et communication valide. \\ \hline
+  Station & En charge & Session active projetée depuis OCPP. \\ \hline
+  Station & Non disponible & Réponse trop ancienne, défaut ou aucun connecteur
+  exploitable. \\ \hline
+  Station & Maintenance & Indisponibilité planifiée ou intervention en cours.
+  \\ \hline
+  Alerte & Nouvelle / En cours / Résolue & L'incident vient d'être détecté, est
+  pris en charge ou a reçu une résolution. \\ \hline
+  Intervention & Assignée / En cours / Terminée & Le technicien a reçu la tâche,
+  l'exécute ou a remis son résultat. \\ \hline
+\end{tabularx}
+\endgroup

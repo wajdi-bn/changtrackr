@@ -1,0 +1,237 @@
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\frenchsetup{SmallCapsFigTabCaptions=false}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,top=2.1cm,bottom=2.1cm,left=2.15cm,right=2.15cm,headheight=24pt]{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage[table]{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{xurl}
+\usepackage[hidelinks,bookmarksopen=true,bookmarksnumbered=true]{hyperref}
+\usepackage{bookmark}
+\usepackage{lastpage}
+
+\definecolor{ctgreen}{HTML}{159C69}
+\definecolor{ctdark}{HTML}{173127}
+\definecolor{ctmint}{HTML}{E7F7F0}
+\definecolor{ctblue}{HTML}{168BC4}
+\definecolor{ctamber}{HTML}{D2871C}
+\definecolor{ctred}{HTML}{C84949}
+\definecolor{ctgray}{HTML}{6F7F77}
+\definecolor{ctline}{HTML}{B8C9C0}
+\definecolor{ctpaper}{HTML}{F8FBF9}
+\definecolor{ctpurple}{HTML}{7547D8}
+
+\setstretch{1.16}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\hbadness=10000
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{2}
+\renewcommand{\arraystretch}{1.22}
+\setlength{\tabcolsep}{4pt}
+\setlength{\LTpre}{4pt}
+\setlength{\LTpost}{8pt}
+\arrayrulecolor{ctline}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\graphicspath{
+  {../assets/screenshots/}
+  {../../report/assets/brand/}
+  {../../report/assets/screenshots/}
+}
+
+\newtcolorbox{procedurebox}[1]{
+  enhanced,
+  breakable,
+  colback=white,
+  colframe=ctline,
+  colbacktitle=ctmint,
+  coltitle=ctdark,
+  fonttitle=\bfseries,
+  title={#1},
+  boxrule=0.7pt,
+  arc=1mm,
+  left=3mm,
+  right=3mm,
+  top=2mm,
+  bottom=2mm
+}
+
+\newtcolorbox{resultbox}{
+  enhanced,
+  breakable,
+  colback=ctmint,
+  colframe=ctgreen,
+  boxrule=0.6pt,
+  arc=1mm,
+  left=3mm,
+  right=3mm,
+  top=2mm,
+  bottom=2mm
+}
+
+\newtcolorbox{warningbox}{
+  enhanced,
+  breakable,
+  colback=orange!7,
+  colframe=ctamber,
+  boxrule=0.6pt,
+  arc=1mm,
+  left=3mm,
+  right=3mm,
+  top=2mm,
+  bottom=2mm
+}
+
+\newtcolorbox{securitybox}{
+  enhanced,
+  breakable,
+  colback=blue!4,
+  colframe=ctblue,
+  boxrule=0.6pt,
+  arc=1mm,
+  left=3mm,
+  right=3mm,
+  top=2mm,
+  bottom=2mm
+}
+
+\newcommand{\expected}[1]{%
+  \begin{resultbox}\textbf{Résultat attendu.} #1\end{resultbox}%
+}
+
+\newcommand{\attention}[1]{%
+  \begin{warningbox}\textbf{Attention.} #1\end{warningbox}%
+}
+
+\newcommand{\securitynote}[1]{%
+  \begin{securitybox}\textbf{Sécurité.} #1\end{securitybox}%
+}
+
+\newcommand{\manualscreenshot}[3]{%
+  \begin{figure}[H]
+    \centering
+    \fcolorbox{ctline}{white}{%
+      \includegraphics[width=0.92\textwidth,height=0.58\textheight,keepaspectratio]{#1}%
+    }
+    \caption{#2}
+    \label{#3}
+  \end{figure}
+}
+
+\newcommand{\manualscreenshotcompact}[3]{%
+  \begin{figure}[H]
+    \centering
+    \fcolorbox{ctline}{white}{%
+      \includegraphics[width=0.92\textwidth,height=0.43\textheight,keepaspectratio]{#1}%
+    }
+    \caption{#2}
+    \label{#3}
+  \end{figure}
+}
+
+\newcommand{\rolebadge}[1]{%
+  \tcbox[
+    on line,
+    colback=ctmint,
+    colframe=ctgreen,
+    boxrule=0.5pt,
+    arc=1mm,
+    left=1.5mm,
+    right=1.5mm,
+    top=0.5mm,
+    bottom=0.5mm
+  ]{\small\textbf{#1}}%
+}
+
+\newcommand{\manualcover}{
+  \begin{titlepage}
+    \centering
+    \begin{tabularx}{\textwidth}{C{0.25\textwidth} Y C{0.25\textwidth}}
+      \includegraphics[height=2.5cm,keepaspectratio]{fst-logo.png}
+      &
+      \centering
+      \textbf{Université de Tunis El Manar}\\
+      Faculté des Sciences de Tunis\\
+      Département des Sciences de l'Informatique
+      &
+      \includegraphics[height=2.5cm,keepaspectratio]{utm-logo.png}
+    \end{tabularx}
+
+    \vspace{1.05cm}
+    \includegraphics[height=2.35cm,keepaspectratio]{chargetrackr-logo.png}
+
+    \vspace{0.65cm}
+    {\Huge\bfseries\color{ctdark} \manualtitle\par}
+    \vspace{0.2cm}
+    {\Large\color{ctgreen} ChargeTrackr\par}
+
+    \vspace{0.7cm}
+    \begin{tcolorbox}[colback=ctpaper,colframe=ctgreen,boxrule=0.9pt,arc=1mm]
+      \centering\large
+      \manualsubtitle
+    \end{tcolorbox}
+
+    \vfill
+    \begin{tabular}{|L{5.2cm}|L{8.2cm}|}
+      \hline
+      \rowcolor{ctmint}\textbf{Élément} & \textbf{Valeur} \\ \hline
+      Public concerné & \manualaudience \\ \hline
+      Réalisé par & Wajdi Ben Abdeljelil \\ \hline
+      Formation & Cycle ingénieur en génie logiciel (IGL3) \\ \hline
+      Organisme d'accueil & TAC-TIC Tunisie \\ \hline
+      Encadrant professionnel & Bassem Soua \\ \hline
+      Période du stage & 01/07/2026 -- 31/08/2026 \\ \hline
+      Version du document & 1.0 \\ \hline
+      Révision applicative & \texttt{00011a1} \\ \hline
+      Date de référence & 29/07/2026 \\ \hline
+    \end{tabular}
+
+    \vfill
+    \includegraphics[height=2.15cm,keepaspectratio]{tactic-logo.png}
+
+    \vspace{0.35cm}
+    {\small Année universitaire 2025--2026}
+  \end{titlepage}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{ctgreen}{ChargeTrackr}}
+\fancyhead[R]{\small \manualtitle}
+\fancyfoot[L]{Version 1.0}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\fancyfoot[R]{29/07/2026}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{ctline}\leaders\hrule height \headrulewidth\hfill}}
+
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[C]{\thepage/\pageref{LastPage}}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\color{ctdark}}
+  {\filleft\color{ctgreen}\Large Partie \thechapter}
+  {0.4ex}
+  {\titlerule\vspace{1ex}\Huge}
+  [\vspace{0.6ex}\titlerule]
+\titlespacing*{\chapter}{0pt}{-12pt}{20pt}
+\titleformat{\section}{\Large\bfseries\color{ctdark}}{\textcolor{ctgreen}{\thesection}}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries\color{ctdark}}{\textcolor{ctgreen}{\thesubsection}}{0.7em}{}
