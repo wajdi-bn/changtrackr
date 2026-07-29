@@ -89,7 +89,7 @@ WebSocket pendant la campagne.
 
 \subsection{Résultats mesurés}
 
-La campagne exécutée le 28 juillet 2026 produit les résultats suivants :
+La campagne exécutée le 29 juillet 2026 produit les résultats suivants :
 
 \begin{table}[H]
   \centering
@@ -101,8 +101,11 @@ La campagne exécutée le 28 juillet 2026 produit les résultats suivants :
     \textbf{Contrôle} & \textbf{Résultat} & \textbf{Portée}\\\hline
 
     \texttt{php artisan test --compact} &
-    201 tests, 1\,489 assertions & 37 classes de tests Feature et tests unitaires
-    chargés par PHPUnit.\\\hline
+    203 tests, 1\,980 assertions & Tests Feature et unitaires chargés par
+    PHPUnit.\\\hline
+    \texttt{python -m pytest} dans \texttt{ocpp-gateway} &
+    12 tests, 0 échec & Messages entrants, commandes distantes, signatures et
+    identifiants d'événements.\\\hline
     \texttt{pnpm test:ocpp-tools} &
     2 tests, 0 échec & Lecture et contrôle des états du simulateur.\\\hline
     \texttt{pnpm lint:frontend} &
@@ -200,12 +203,71 @@ supervision des événements anormaux.
   charge OCPP multi-borne ni par des tests de performance formels.
   \item Le déploiement de production, TLS, sauvegardes, supervision et CI/CD ne
   sont pas encore qualifiés.
-  \item La spécification OpenAPI/Swagger, les manuels et le procès-verbal de recette
-  constituent des livrables distincts encore à finaliser.
+  \item La recette fonctionnelle formelle et son procès-verbal restent à réaliser
+  avec le représentant habilité de l'entreprise.
   \item OCPP 2.0.1, Microsoft OAuth, le paiement réel et le firmware restent hors
   du MVP validé.
 \end{itemize}
 \end{scopebox}
+
+\subsection{Évolution par rapport au cahier des charges initial}
+\label{subsec:scope-evolution}
+
+Le \emph{Cahier des Charges Fonctionnel -- Développement d'une plateforme Web
+de Gestion des Bornes de Recharge Électrique Connectées}, version 1.0, constitue
+la référence initiale transmise par l'entreprise \cite{tacticCahierCharges2026}.
+Il décrit un produit cible large et conserve volontairement plusieurs
+alternatives technologiques. Le Product Backlog et les revues de Sprint ont
+transformé cette intention en un MVP vérifiable sans modifier rétroactivement
+le document d'origine.
+
+\begin{longtable}{|p{3.0cm}|p{4.5cm}|p{6.8cm}|}
+  \caption{Principales adaptations du périmètre initial}
+  \label{tab:scope-main-adaptations}\\
+  \hline
+  \textbf{Décision} & \textbf{Prévision initiale} & \textbf{Choix retenu et justification}\\
+  \hline
+  \endfirsthead
+  \hline
+  \textbf{Décision} & \textbf{Prévision initiale} & \textbf{Choix retenu et justification}\\
+  \hline
+  \endhead
+  Socle backend & Laravel 12, PHP 8.3 et JWT &
+  Laravel 13 sur PHP 8.5 local, avec compatibilité Composer à partir de PHP 8.3.
+  Sanctum protège la SPA par session et CSRF, sans jeton JWT stocké dans le
+  navigateur.\\\hline
+  Traitements internes & Redis pour cache et files &
+  Cache, sessions et queue sur PostgreSQL pour limiter les services du MVP.
+  Redis reste une option de montée en charge, mais n'est pas requis par
+  l'environnement livré.\\\hline
+  Interface analytique & React, Ant Design, TypeScript et ECharts &
+  React, Ant Design et TypeScript sont conservés ; Recharts remplace ECharts
+  dans les tableaux de bord, sans changer les besoins métier.\\\hline
+  Protocole de borne & OCPP 1.6 et OCPP 2.0.1 &
+  OCPP 1.6J est implémenté et testé avec la passerelle et le simulateur SAP.
+  OCPP 2.0.1 est reporté afin de stabiliser d'abord le parcours vertical.\\\hline
+  Paiement & Carte, portefeuille, paiement différé et remboursement &
+  Un contrat de paiement remplaçable est validé avec WireMock et des méthodes
+  carte, e-DINAR et D17 simulées. Aucun débit bancaire ni remboursement réel
+  n'est revendiqué.\\\hline
+  Équipement physique & Réseau de bornes connectées &
+  Le commissioning, l'authentification et les échanges sont démontrés avec un
+  simulateur OCPP. La validation électrique, modem et firmware exige une borne
+  physique distincte.\\\hline
+  Modules différés & Véhicules, RFID complet et firmware &
+  L'identifiant OCPP virtuel et le QR d'entrée couvrent le démarrage du MVP.
+  Les profils véhicule, les badges RFID physiques et la gestion distante du
+  firmware sont exclus de la version validée.\\
+  \hline
+\end{longtable}
+
+La matrice détaillée de l'annexe~\ref{app:specification-coverage} reprend les
+18 modules, les messages OCPP, les choix d'architecture, les exigences non
+fonctionnelles, les interfaces et les livrables. Elle emploie cinq statuts :
+\emph{réalisée}, \emph{adaptée}, \emph{partielle}, \emph{reportée} et
+\emph{à valider en production}. Neuf modules sont réalisés ou adaptés au MVP,
+sept sont partiels et deux sont reportés. Cette lecture distingue ainsi un
+écart assumé d'une fonctionnalité simplement oubliée.
 
 \subsection{Traçabilité avec le backlog et les Sprints}
 
@@ -254,14 +316,15 @@ supervision des événements anormaux.
 
 \section{Documentation technique produite et restante}
 
-Le dépôt contient déjà les scripts d'installation, les configurations d'exemple,
-les commandes d'exploitation des simulateurs et le présent rapport. Les noms des
-routes et les ressources Laravel forment une base vérifiable pour produire une
-spécification OpenAPI 3.1. Celle-ci sera exposée avec Swagger UI pour l'exploration,
-mais le fichier OpenAPI versionné restera la source du livrable API.
+Le dépôt contient les scripts d'installation, les configurations d'exemple, les
+commandes d'exploitation des simulateurs et le présent rapport. Scramble génère
+une spécification OpenAPI 3.1 versionnée dans
+\path{docs/api/openapi.json} et une interface d'exploration protégée sous
+\path{/docs/api}. Les routes internes OCPP et paiement restent volontairement
+exclues de cette documentation publique.
 
-Les livrables à finaliser sont le manuel utilisateur par rôle, le manuel
-administrateur, le cahier de tests, la procédure d'installation, la documentation
-des processus OCPP et le procès-verbal de recette. Ils devront reprendre les mêmes
-identifiants de user stories et critères d'acceptation afin d'éviter une
-documentation déconnectée du produit.
+Le manuel utilisateur, le manuel administrateur et le cahier de tests sont
+également compilés et versionnés. Le procès-verbal de recette ne sera préparé
+qu'au moment de la campagne fonctionnelle avec l'entreprise, puisqu'il devra
+reprendre les résultats réellement observés, les réserves et la décision du
+responsable habilité.

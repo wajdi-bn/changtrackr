@@ -19,6 +19,7 @@ Le PDF compilé se trouve dans `build/main.pdf`. La dernière version contrôlé
 
 ```text
 assets/          Ressources graphiques
+appendices/      Annexes et matrices de traçabilité
 backmatter/      Conclusion
 chapters/        Cinq chapitres du rapport
 frontmatter/     Couverture, remerciements, acronymes et introduction
@@ -28,7 +29,9 @@ preamble.tex     Mise en page et commandes communes
 main.tex         Point d'entrée
 ```
 
-Les chapitres 1 à 3 sont entièrement rédigés. Le troisième chapitre documente
-l'architecture globale et locale, les séquences métier, les modèles de domaine,
-la sécurité et l'isolation multi-tenant. Les blocs "Périmètre prévu" des chapitres
-suivants seront remplacés progressivement par le contenu validé.
+Les cinq chapitres, la conclusion générale et l'annexe de couverture du cahier
+des charges sont rédigés. Le troisième chapitre documente l'architecture globale
+et locale, les séquences métier, les modèles de domaine, la sécurité et
+l'isolation multi-tenant. L'annexe A relie les 18 modules initiaux, les choix
+techniques, les messages OCPP, les exigences non fonctionnelles, les interfaces
+et les livrables à leur état réel dans le MVP.

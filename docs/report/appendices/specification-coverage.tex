@@ -1,0 +1,352 @@
+\chapter{Matrice de couverture du cahier des charges initial}
+\label{app:specification-coverage}
+
+\newcommand{\covreal}{\textbf{\textcolor{ctgreen}{Réalisée}}}
+\newcommand{\covadapt}{\textbf{\textcolor{ctblue}{Adaptée}}}
+\newcommand{\covpartial}{\textbf{\textcolor{ctamber}{Partielle}}}
+\newcommand{\covdeferred}{\textbf{\textcolor{ctgray}{Reportée}}}
+\newcommand{\covvalidate}{\textbf{\textcolor{ctamber}{À valider}}}
+
+\section{Objet et méthode}
+
+Cette annexe confronte le cahier des charges fonctionnel version 1.0 transmis par
+\CompanyName{} au produit disponible le 29 juillet 2026. Elle ne remplace pas ce
+document initial et ne transforme pas une simulation en validation de
+production. Les constats s'appuient sur le code source, le Product Backlog, la
+spécification OpenAPI, le cahier de tests et les résultats automatisés.
+
+\begin{longtable}{|C{2.4cm}|p{11.7cm}|}
+  \caption{Légende de la matrice de couverture}
+  \label{tab:coverage-legend}\\
+  \hline
+  \textbf{Statut} & \textbf{Interprétation}\\
+  \hline
+  \endfirsthead
+  \hline
+  \textbf{Statut} & \textbf{Interprétation}\\
+  \hline
+  \endhead
+  \covreal & Le besoin principal est disponible de bout en bout dans le MVP et
+  possède des preuves techniques adaptées.\\\hline
+  \covadapt & L'objectif métier est couvert avec une solution ou une règle
+  différente de l'option proposée initialement.\\\hline
+  \covpartial & Une partie exploitable existe, mais au moins une capacité
+  explicitement demandée n'est pas livrée.\\\hline
+  \covdeferred & La fonctionnalité est volontairement sortie du MVP et conservée
+  comme évolution.\\\hline
+  \covvalidate & L'implémentation locale ne permet pas de prouver une cible de
+  production ou un comportement matériel réel.\\
+  \hline
+\end{longtable}
+
+\section{Modules fonctionnels}
+
+\begingroup
+\small
+\begin{longtable}{|C{0.9cm}|p{2.7cm}|C{2.0cm}|p{8.5cm}|}
+  \caption{Couverture des 18 modules fonctionnels initiaux}
+  \label{tab:coverage-functional-modules}\\
+  \hline
+  \textbf{Réf.} & \textbf{Module} & \textbf{Statut} &
+  \textbf{Couverture et écart constaté}\\
+  \hline
+  \endfirsthead
+  \hline
+  \textbf{Réf.} & \textbf{Module} & \textbf{Statut} &
+  \textbf{Couverture et écart constaté}\\
+  \hline
+  \endhead
+  M01 & Authentification & \covpartial &
+  Connexion, déconnexion, inscription client, vérification email,
+  réinitialisation, Google OAuth, invitations, RBAC et isolation sont réalisés.
+  La double authentification n'est pas implémentée.\\\hline
+  M02 & Gestion des bornes & \covpartial &
+  Création, modification, suppression contrôlée, désactivation, géolocalisation,
+  organisation, modèle, fabricant, puissance, identité OCPP, historique et états
+  calculés sont disponibles. Le numéro de série et la version firmware ne sont
+  pas encore conservés ; le pilotage du firmware relève de M13.\\\hline
+  M03 & Connecteurs & \covreal &
+  Une station possède plusieurs connecteurs numérotés avec prise, courant,
+  puissance, état OCPP, erreur, source de disponibilité et QR d'entrée. Les
+  changements de statut proviennent des événements de la borne.\\\hline
+  M04 & Supervision temps réel & \covreal &
+  Carte, listes, état calculé, occupation, connexion, dernier heartbeat, alertes,
+  télémétrie disponible et actualisation Reverb sont intégrés. Une mesure absente
+  n'est jamais remplacée par une valeur synthétique.\\\hline
+  M05 & Sessions de recharge & \covadapt &
+  Le parcours couvre préparation, préautorisation, démarrage OCPP, mesures,
+  arrêt distant ou automatique, interruption, clôture et coût. La notion de
+  pause n'est pas retenue pour une transaction OCPP 1.6J.\\\hline
+  M06 & Utilisateurs & \covadapt &
+  Super Admin, Administrateur, Opérateur, Technicien et Client remplacent les
+  rôles ambigus Finance et Service Client. Les employés appartiennent à une
+  organisation ; le client reste global et peut utiliser plusieurs réseaux.\\\hline
+  M07 & RFID & \covpartial &
+  Un identifiant OCPP virtuel condensé est associé au client et utilisé par
+  \texttt{Authorize}. La gestion de badges physiques, leur lecture matérielle,
+  rotation, blocage et expiration depuis l'interface restent à réaliser.\\\hline
+  M08 & Véhicules & \covdeferred &
+  Le profil véhicule a été retiré du MVP pour simplifier le parcours. La
+  compatibilité est vérifiée par le type de connecteur choisi, sans conserver
+  marque, modèle, immatriculation ou capacité de batterie.\\\hline
+  M09 & Paiement & \covadapt &
+  Le contrat \texttt{PaymentGateway} couvre autorisation, capture, libération,
+  erreurs, webhooks, historique, reçus et factures. Carte, e-DINAR et D17 sont
+  simulés avec WireMock ; paiement réel, remboursement et conformité bancaire
+  sont reportés.\\\hline
+  M10 & Tarification & \covpartial &
+  Prix par kWh, frais de session, frais d'inactivité par minute, minimum,
+  périodes de validité, affectations et remises d'abonnement sont disponibles.
+  Les plages heures pleines/creuses et la tarification par puissance ou heure
+  ne sont pas encore calculées.\\\hline
+  M11 & Maintenance & \covreal &
+  Plans préventifs ou correctifs, calendrier, récurrence, ordres de travail,
+  affectation, SLA, états, pièces, commentaires, photos avant/après, historique
+  et rapport final sont intégrés.\\\hline
+  M12 & Alertes & \covpartial &
+  Les défauts OCPP, pertes de communication, échéances et maintenances produisent
+  alertes, notifications in-app et emails. Les signaux porte ouverte ou coupure
+  dépendent d'une donnée de borne non encore testée ; SMS et push mobile ne sont
+  pas livrés.\\\hline
+  M13 & Firmware & \covdeferred &
+  La plateforme conserve le modèle matériel et la version OCPP, mais pas de
+  registre de versions firmware. Téléversement, signature, déploiement,
+  progression, retour arrière et validation matérielle sont reportés
+  conformément à US-38.\\\hline
+  M14 & Rapports & \covpartial &
+  Analyses par rôle, consommation, revenus, utilisation, disponibilité,
+  maintenance, échanges internes et exports PDF, CSV et JSON sont réalisés.
+  L'export Excel natif et les exports volumineux asynchrones restent à compléter.\\\hline
+  M15 & Tableaux de bord & \covreal &
+  Chaque rôle possède ses propres indicateurs, classements, tendances, alertes
+  et cartes selon son périmètre. Les valeurs proviennent des services backend et
+  exposent leur période de calcul.\\\hline
+  M16 & Gestion documentaire & \covreal &
+  Notices, certificats, contrats, garanties, photos et pièces de rapports peuvent
+  être stockés de manière privée, prévisualisés, téléchargés et supprimés selon
+  les permissions.\\\hline
+  M17 & Paramétrage & \covpartial &
+  Logo d'organisation, préférences email, fuseau personnel, rayon de recherche
+  et contrôles globaux autorisés sont disponibles. TVA, SMS, internationalisation
+  complète et paramètres de facturation de production restent incomplets.\\\hline
+  M18 & Journal d'audit & \covreal &
+  Les connexions et actions sensibles conservent acteur, événement, ressource,
+  contexte et date. La consultation filtrée et les exports sont réservés au
+  Super Admin.\\
+  \hline
+\end{longtable}
+\endgroup
+
+\section{Architecture et technologies}
+
+\begin{longtable}{|C{1.0cm}|p{3.2cm}|C{2.0cm}|p{7.9cm}|}
+  \caption{Couverture des orientations techniques}
+  \label{tab:coverage-technical-choices}\\
+  \hline
+  \textbf{Réf.} & \textbf{Prévision} & \textbf{Statut} &
+  \textbf{Décision réalisée}\\
+  \hline
+  \endfirsthead
+  \hline
+  \textbf{Réf.} & \textbf{Prévision} & \textbf{Statut} &
+  \textbf{Décision réalisée}\\
+  \hline
+  \endhead
+  T01 & Laravel 12 et PHP 8.3 & \covadapt &
+  Laravel 13 est utilisé ; Composer accepte PHP à partir de 8.3 et
+  l'environnement local fonctionne sous PHP 8.5.\\\hline
+  T02 & API REST et JWT & \covadapt &
+  L'API REST est réalisée et documentée en OpenAPI 3.1. La SPA utilise Sanctum,
+  les cookies de session et CSRF plutôt qu'un JWT persistant.\\\hline
+  T03 & Redis, queue et scheduler & \covadapt &
+  Queue, cache et sessions utilisent PostgreSQL dans le MVP. Le scheduler et le
+  worker sont configurés et exécutables ; Redis reste une option de déploiement,
+  non une dépendance.\\\hline
+  T04 & React, Ant Design, TypeScript, Axios et React Query & \covreal &
+  Ces technologies structurent l'interface. React Hook Form, Zod et Zustand
+  complètent les formulaires et états locaux.\\\hline
+  T05 & ECharts & \covadapt &
+  Recharts fournit les visualisations. Le changement de bibliothèque ne modifie
+  pas les indicateurs attendus.\\\hline
+  T06 & PostgreSQL ou MySQL & \covreal &
+  PostgreSQL est le moteur retenu pour le développement et les requêtes métier.\\\hline
+  T07 & WebSocket et Reverb ou Pusher & \covreal &
+  Laravel Reverb et Echo diffusent les événements ; le protocole Pusher sert de
+  transport compatible sans dépendre du service SaaS Pusher.\\\hline
+  T08 & Google Maps ou OpenStreetMap & \covreal &
+  Leaflet et OpenStreetMap affichent les cartes. Google Maps est uniquement
+  utilisé comme destination externe optionnelle pour l'itinéraire.\\\hline
+  T09 & OCPP 1.6 et 2.0.1 & \covpartial &
+  OCPP 1.6 JSON est implémenté dans une passerelle Python séparée. OCPP 2.0.1
+  reste une évolution.\\\hline
+  T10 & Serveur OCPP dédié & \covreal &
+  La passerelle WebSocket est indépendante de Laravel ; les événements sont
+  transmis par API interne signée et les commandes sont réclamées par le gateway.\\
+  \hline
+\end{longtable}
+
+\section{Messages OCPP}
+
+\begin{longtable}{|p{4.2cm}|C{2.0cm}|p{8.0cm}|}
+  \caption{Couverture du catalogue OCPP demandé}
+  \label{tab:coverage-ocpp-messages}\\
+  \hline
+  \textbf{Message ou commande} & \textbf{Statut} & \textbf{Preuve fonctionnelle}\\
+  \hline
+  \endfirsthead
+  \hline
+  \textbf{Message ou commande} & \textbf{Statut} & \textbf{Preuve fonctionnelle}\\
+  \hline
+  \endhead
+  \texttt{BootNotification} & \covreal &
+  Enregistrement de la connexion et des informations de la borne.\\\hline
+  \texttt{Heartbeat} & \covreal &
+  Mise à jour de la dernière preuve de vie et détection planifiée des délais.\\\hline
+  \texttt{StatusNotification} & \covreal &
+  Projection des états et erreurs de chaque connecteur.\\\hline
+  \texttt{Authorize} & \covreal &
+  Validation d'un identifiant OCPP actif associé au client.\\\hline
+  \texttt{StartTransaction} & \covreal &
+  Création ou réconciliation de la session après confirmation de la borne.\\\hline
+  \texttt{MeterValues} & \covreal &
+  Énergie, puissance et coût provisoire issus des mesures reçues.\\\hline
+  \texttt{StopTransaction} & \covreal &
+  Clôture, compteur final et déclenchement de la capture du paiement.\\\hline
+  \path{RemoteStartTransaction} & \covreal &
+  Démarrage client guidé après détection du câble et préautorisation.\\\hline
+  \path{RemoteStopTransaction} & \covreal &
+  Arrêt manuel ou automatique demandé par la plateforme.\\\hline
+  \texttt{Reset} & \covpartial &
+  Le \emph{Soft Reset} est autorisé ; le \emph{Hard Reset} est refusé par mesure
+  de sécurité dans le MVP.\\\hline
+  \texttt{UnlockConnector} & \covreal &
+  Commande distante tracée avec résultat retourné par la borne.\\\hline
+  \texttt{ChangeAvailability} & \covreal &
+  Extension utile ajoutée pour synchroniser le mode maintenance.\\\hline
+  \texttt{ChangeConfiguration} & \covdeferred &
+  Aucune modification distante arbitraire de la configuration n'est exposée.\\\hline
+  \path{UpdateFirmware} et \path{FirmwareStatusNotification} & \covdeferred &
+  Reportés avec le module firmware et la validation matérielle.\\\hline
+  \path{GetDiagnostics} et \path{DiagnosticsStatusNotification} & \covdeferred &
+  Les événements et journaux applicatifs existent, mais le transfert de
+  diagnostics depuis une borne n'est pas implémenté.\\
+  \hline
+\end{longtable}
+
+\section{Exigences non fonctionnelles}
+
+\begin{longtable}{|C{1.0cm}|p{3.0cm}|C{2.0cm}|p{8.1cm}|}
+  \caption{Couverture des exigences non fonctionnelles initiales}
+  \label{tab:coverage-non-functional}\\
+  \hline
+  \textbf{Réf.} & \textbf{Exigence} & \textbf{Statut} &
+  \textbf{Constat et limite}\\
+  \hline
+  \endfirsthead
+  \hline
+  \textbf{Réf.} & \textbf{Exigence} & \textbf{Statut} &
+  \textbf{Constat et limite}\\
+  \hline
+  \endhead
+  N01 & Page utilisable en moins de deux secondes & \covvalidate &
+  Pagination, agrégats backend et tâches asynchrones sont en place, mais aucune
+  campagne de performance représentative n'a encore validé ce seuil.\\\hline
+  N02 & Disponibilité de 99,9\,\% & \covvalidate &
+  La plateforme calcule la disponibilité des bornes ; la disponibilité du
+  service lui-même devra être mesurée après déploiement et supervision.\\\hline
+  N03 & HTTPS et chiffrement & \covvalidate &
+  Les secrets sont exclus du dépôt, condensés ou chiffrés selon leur usage.
+  TLS/WSS et la rotation de clés relèvent de l'environnement de production.\\\hline
+  N04 & OAuth2, RBAC et audit & \covreal &
+  Google OAuth, rôles, permissions, policies, isolation multi-tenant et journal
+  d'audit sont appliqués côté serveur.\\\hline
+  N05 & Interface responsive & \covpartial &
+  Les parcours principaux sont adaptés aux ordinateurs et tablettes ; les
+  parcours client essentiels fonctionnent sur mobile. Une recette responsive
+  exhaustive reste à exécuter.\\\hline
+  N06 & Chrome, Firefox et Edge & \covvalidate &
+  Le socle utilise des API web standards, mais la matrice multi-navigateurs du
+  cahier de tests doit être exécutée avant acceptation formelle.\\
+  \hline
+\end{longtable}
+
+\section{Interfaces et livrables}
+
+\begin{longtable}{|p{3.4cm}|C{2.0cm}|p{8.7cm}|}
+  \caption{Couverture des interfaces attendues}
+  \label{tab:coverage-interfaces}\\
+  \hline
+  \textbf{Interface} & \textbf{Statut} & \textbf{Implémentation}\\
+  \hline
+  \endfirsthead
+  \hline
+  \textbf{Interface} & \textbf{Statut} & \textbf{Implémentation}\\
+  \hline
+  \endhead
+  Dashboard & \covreal & Tableaux de bord distincts pour les cinq rôles.\\\hline
+  Carte GIS & \covreal & Carte Leaflet, filtres, géolocalisation et itinéraire.\\\hline
+  Liste et détail des bornes & \covreal &
+  Vues carte, cartes et tableau ; fiche avec connecteurs, supervision,
+  télémétrie et sous-domaines.\\\hline
+  Planning de maintenance & \covreal &
+  Liste, calendrier, récurrence, affectation et cycle de vie.\\\hline
+  Sessions et facturation & \covadapt &
+  Sessions OCPP, paiements et documents fonctionnent avec un fournisseur simulé.\\\hline
+  Rapports & \covreal &
+  Analyses par rôle, rapports métier, échange interne et pièces jointes.\\\hline
+  Paramètres & \covpartial &
+  Préférences personnelles et contrôles globaux principaux disponibles ; certains
+  paramètres de production restent à définir.\\
+  \hline
+\end{longtable}
+
+\begin{longtable}{|p{4.2cm}|C{2.0cm}|p{7.9cm}|}
+  \caption{État des livrables demandés}
+  \label{tab:coverage-deliverables}\\
+  \hline
+  \textbf{Livrable} & \textbf{Statut} & \textbf{Emplacement ou observation}\\
+  \hline
+  \endfirsthead
+  \hline
+  \textbf{Livrable} & \textbf{Statut} & \textbf{Emplacement ou observation}\\
+  \hline
+  \endhead
+  Cahier des charges & \covreal &
+  Document fonctionnel version 1.0 transmis par l'entreprise et conservé comme
+  référence initiale.\\\hline
+  Maquettes UI & \covreal &
+  Prototype navigable validé puis transposé dans l'application.\\\hline
+  Architecture technique & \covreal &
+  Chapitre 3, diagrammes et documentation du dépôt.\\\hline
+  API REST & \covreal &
+  \path{docs/api/openapi.json} et interface protégée \path{/docs/api}.\\\hline
+  Code source & \covreal &
+  Dépôt Git versionné avec frontend, backend, gateway et infrastructure locale.\\\hline
+  Documentation & \covreal &
+  Rapport, backlog, procédures OCPP, paiement et installation dans
+  \path{docs/}.\\\hline
+  Manuel utilisateur & \covreal &
+  Source \LaTeX{} et PDF contrôlé dans \path{docs/manuals/user-manual}.\\\hline
+  Manuel administrateur & \covreal &
+  Source \LaTeX{} et PDF contrôlé dans \path{docs/manuals/admin-manual}.\\\hline
+  Cahier de tests & \covreal &
+  Source \LaTeX{}, résultats automatiques et fiches manuelles dans
+  \path{docs/test-book}.\\\hline
+  Procès-verbal de recette & \covdeferred &
+  À préparer après exécution de la recette avec l'entreprise ; la décision et
+  les réserves ne peuvent pas être anticipées par le stagiaire.\\
+  \hline
+\end{longtable}
+
+\section{Lecture du résultat}
+
+La couverture montre que le MVP respecte le coeur du besoin : administration
+multi-organisation, supervision OCPP, disponibilité calculée, cartographie,
+recharge, paiement simulé, exploitation et reporting. Les écarts majeurs ne sont
+pas masqués : ils concernent les fonctions nécessitant du matériel, un contrat
+externe, une infrastructure de production ou une extension fonctionnelle
+distincte.
+
+Cette matrice doit être mise à jour si une borne physique, un prestataire
+financier, OCPP 2.0.1, les badges RFID ou le firmware entrent ultérieurement dans
+le périmètre accepté.

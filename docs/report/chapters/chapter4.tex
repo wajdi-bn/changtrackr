@@ -22,7 +22,7 @@ $\rightarrow$ alerte ou carte $\rightarrow$ session $\rightarrow$ tarif
 $\rightarrow$ paiement simulé $\rightarrow$ reçu.}
 \end{center}
 
-Les résultats présentés correspondent à l'état du dépôt au 28 juillet 2026. Une
+Les résultats présentés correspondent à l'état du dépôt au 29 juillet 2026. Une
 fonctionnalité est qualifiée de \emph{réalisée} lorsqu'elle possède un contrat
 backend, une interface exploitable et des tests automatisés adaptés. Le terme
 \emph{validée localement} ne signifie pas qu'elle est déjà certifiée pour la
@@ -45,10 +45,10 @@ projections de disponibilité, les sessions, les alertes et les données de
 pilotage. Le paiement externe reste simulé, mais son contrat permet de remplacer
 WireMock sans réécrire le parcours de recharge.
 
-La campagne locale atteint 201 tests backend et 1\,489 assertions, complétés par
-deux tests des outils OCPP, le lint frontend et une compilation de production.
+La campagne locale atteint 203 tests backend et 1\,980 assertions, complétés par
+douze tests de la passerelle OCPP, deux tests des outils du simulateur, le lint
+frontend et une compilation de production.
 Ces résultats valident le MVP vertical dans l'environnement du stage. Les
-travaux encore ouverts concernent principalement l'industrialisation, la mesure
-de charge, la documentation OpenAPI, la recette formelle, la connexion à un
-prestataire financier réel, l'essai sur une borne physique et la gestion
-sécurisée du firmware.
+travaux encore ouverts concernent principalement l'industrialisation, la recette
+formelle, la connexion à un prestataire financier réel, l'essai sur une borne
+physique et la gestion sécurisée du firmware.
