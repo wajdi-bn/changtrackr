@@ -1,0 +1,75 @@
+\begin{tikzpicture}[
+  font=\sffamily\tiny,
+  class/.style={
+    draw=ctline, rounded corners=1.5mm, thick, fill=white,
+    text width=29mm, minimum height=16mm, align=left, inner sep=2mm
+  },
+  identity/.style={class, draw=ctblue, fill=blue!5},
+  network/.style={class, draw=ctgreen, fill=ctmint},
+  operations/.style={class, draw=ctblue, fill=cyan!4},
+  commerce/.style={class, draw=ctamber, fill=yellow!7},
+  rel/.style={thick, draw=ctgray},
+  card/.style={fill=white, inner sep=1pt, font=\sffamily\tiny, text=ctgray}
+]
+  \node[identity] (user) at (-4.8,10.0)
+    {\textbf{Utilisateur}\\\rule{28mm}{0.2pt}\\identité, rôle\\statut};
+  \node[identity] (org) at (0,10.0)
+    {\textbf{Organisation}\\\rule{28mm}{0.2pt}\\nom, statut\\coordonnées};
+  \node[commerce] (saas) at (4.8,10.0)
+    {\textbf{Offre SaaS}\\\rule{28mm}{0.2pt}\\capacités, prix\\statut};
+
+  \node[commerce] (plan) at (-4.8,7.0)
+    {\textbf{Plan de recharge}\\\rule{28mm}{0.2pt}\\abonnement, remise\\validité};
+  \node[network] (station) at (0,7.0)
+    {\textbf{Station}\\\rule{28mm}{0.2pt}\\référence, position\\disponibilité};
+  \node[commerce] (orgsub) at (4.8,7.0)
+    {\textbf{Abonnement organisation}\\\rule{28mm}{0.2pt}\\essai, période\\état};
+
+  \node[commerce] (plansub) at (-4.8,4.0)
+    {\textbf{Adhésion client}\\\rule{28mm}{0.2pt}\\période, renouvellement\\état};
+  \node[network] (connector) at (0,4.0)
+    {\textbf{Connecteur}\\\rule{28mm}{0.2pt}\\identifiant OCPP\\type, puissance, état};
+  \node[operations] (maintenance) at (4.8,4.0)
+    {\textbf{Plan de maintenance}\\\rule{28mm}{0.2pt}\\fréquence, échéance\\état};
+
+  \node[commerce] (tariff) at (-4.8,1.0)
+    {\textbf{Tarif}\\\rule{28mm}{0.2pt}\\prix énergie, frais\\période de validité};
+  \node[network] (session) at (-0.4,1.0)
+    {\textbf{Session de recharge}\\\rule{28mm}{0.2pt}\\début, fin, énergie\\coût, état};
+  \node[operations] (alert) at (3.5,1.0)
+    {\textbf{Alerte}\\\rule{28mm}{0.2pt}\\type, sévérité\\état};
+
+  \node[commerce] (payment) at (-0.4,-2.0)
+    {\textbf{Paiement}\\\rule{28mm}{0.2pt}\\référence, montant\\état};
+  \node[operations] (intervention) at (4.8,-2.0)
+    {\textbf{Intervention}\\\rule{28mm}{0.2pt}\\priorité, SLA\\affectation, état};
+
+  \draw[rel] (user) -- node[card, above]{0..* employés \quad 0..1} (org);
+  \draw[rel] (org) -- node[card, right]{1 \quad 0..*} (station);
+  \draw[rel] (org.south west) -- node[card, above left]{1 \quad 0..*} (plan.north east);
+  \draw[rel] (org.south east) -- node[card, above right]{1 \quad 0..1} (orgsub.north west);
+  \draw[rel] (saas) -- node[card, right]{1 \quad 0..*} (orgsub);
+
+  \draw[rel] (plan) -- node[card, right]{1 \quad 0..*} (plansub);
+  \draw[rel] (user.west) -- ++(-0.55,0) |- node[card, near end, left]
+    {1 \quad 0..*} (plansub.west);
+
+  \draw[rel] (station) -- node[card, right]{1 \quad 1..*} (connector);
+  \draw[rel] (station.south east) -- node[card, above right]{1 \quad 0..*}
+    (maintenance.north west);
+  \draw[rel] (station.south east) to[out=-35,in=105]
+    node[card, above]{1 \quad 0..*} (alert.north);
+
+  \draw[rel] (connector) -- node[card, right]{1 \quad 0..*} (session);
+  \draw[rel] (user.south west) -- ++(-0.9,0) |- (-6.2,-0.15) --
+    node[card, below]{client 1 \quad 0..*} (session.south west);
+  \draw[rel] (plansub.south east) to[out=-25,in=155]
+    node[card, above]{0..1 \quad 0..*} (session.north west);
+  \draw[rel] (tariff) -- node[card, above]{0..1 \quad 0..*} (session);
+  \draw[rel] (session) -- node[card, right]{1 \quad 0..1} (payment);
+
+  \draw[rel] (alert) -- node[card, above right]{0..1 \quad 0..*}
+    (intervention.north west);
+  \draw[rel] (maintenance.east) -- ++(0.45,0) |-
+    node[card, near end, right]{0..1 \quad 0..*} (intervention.east);
+\end{tikzpicture}

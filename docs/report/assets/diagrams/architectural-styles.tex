@@ -1,0 +1,47 @@
+\begin{tikzpicture}[
+  font=\sffamily\scriptsize,
+  block/.style={
+    draw=ctline, rounded corners=2mm, thick, fill=white,
+    minimum height=13mm, align=center
+  },
+  physical/.style={block, draw=ctblue, fill=blue!5},
+  logical/.style={block, draw=ctgreen, fill=ctmint},
+  pattern/.style={block, draw=ctamber, fill=yellow!7},
+  flow/.style={-{Latex[length=2mm]}, thick, draw=ctgray},
+  note/.style={font=\sffamily\tiny, text=ctgray, align=center}
+]
+  \node[physical, text width=38mm] (client) at (-4.6,3.1)
+    {\textbf{Client web}\\application React};
+  \node[physical, text width=38mm] (server) at (0,3.1)
+    {\textbf{Serveur applicatif}\\API Laravel};
+  \node[physical, text width=38mm] (data) at (4.6,3.1)
+    {\textbf{Serveur de données}\\PostgreSQL};
+
+  \draw[flow] (client) -- node[note, above]{HTTPS / JSON} (server);
+  \draw[flow] (server) -- node[note, above]{SQL transactionnel} (data);
+
+  \node[logical, text width=35mm] (presentation) at (-4.6,0.6)
+    {\textbf{Présentation}\\pages, composants, état UI};
+  \node[logical, text width=35mm] (application) at (0,0.6)
+    {\textbf{Application et métier}\\cas d'utilisation, règles};
+  \node[logical, text width=35mm] (persistence) at (4.6,0.6)
+    {\textbf{Persistance}\\modèles et accès aux données};
+
+  \draw[flow] (presentation) -- (application);
+  \draw[flow] (application) -- (persistence);
+
+  \node[pattern, text width=35mm] (components) at (-4.6,-2.0)
+    {\textbf{Composants React}\\composition fonctionnelle};
+  \node[pattern, text width=35mm] (mvc) at (0,-2.0)
+    {\textbf{MVC côté Laravel}\\contrôleur, modèle, réponse API};
+  \node[pattern, text width=35mm] (boundaries) at (4.6,-2.0)
+    {\textbf{Adaptateurs et événements}\\intégrations remplaçables};
+
+  \draw[flow] (presentation) -- (components);
+  \draw[flow] (application) -- (mvc);
+  \draw[flow] (persistence) -- (boundaries);
+
+  \node[note, text width=125mm] at (0,-3.35)
+    {Architecture client--serveur et trois tiers, réalisée sous la forme d'un
+    monolithe modulaire complété par une passerelle OCPP spécialisée.};
+\end{tikzpicture}

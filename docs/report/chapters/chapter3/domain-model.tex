@@ -1,102 +1,68 @@
-\section{Modèle de données et diagrammes de classes}
+\section{Modèle de données et diagramme de classes}
 
 \subsection{Principes de modélisation}
 
-Le schéma relationnel est organisé autour de l'organisation, de la station et de la
-session. La majorité des enregistrements opérationnels possèdent un
-\texttt{organization\_id}. Cette redondance contrôlée permet de filtrer rapidement
-les requêtes, d'appliquer les policies et de conserver le périmètre d'une preuve
-même lorsque l'association technique est chargée séparément.
+Le modèle conceptuel est organisé autour de quatre notions centrales :
+l'organisation qui exploite le réseau, la station qui fournit le service, le
+client qui utilise ce service et la session qui matérialise la recharge. Les autres
+classes complètent ce noyau pour couvrir l'exploitation et les deux relations
+commerciales de la plateforme.
 
-Le modèle distingue les événements immuables des projections modifiables. Les
-journaux OCPP, d'alertes, d'interventions, d'abonnements et d'audit expliquent
-l'historique ; \texttt{Station}, \texttt{Connector}, \texttt{Alert} ou
-\texttt{ChargingSession} portent l'état courant nécessaire à l'interface. Ce choix
-ne constitue pas un \emph{event sourcing} complet : les événements les plus
-critiques sont conservés, mais les agrégats restent persistés directement.
+La conception respecte les principes de normalisation relationnelle. Une
+information métier n'est portée que par l'entité qui en est responsable : les
+connecteurs sont séparés des stations, les paiements des sessions et les offres des
+adhésions. Les relations plusieurs-à-plusieurs sont résolues par des entités
+d'association, notamment l'adhésion d'un client à un plan et l'abonnement d'une
+organisation à une offre SaaS. Cette organisation évite les groupes répétitifs et
+les dépendances partielles.
 
-Les montants sont stockés en \textbf{millimes entiers} afin d'éviter les erreurs
-d'arrondi des nombres flottants. Les dates techniques sont normalisées en UTC ;
-le fuseau du compte sert uniquement à l'affichage. Les suppressions logiques sont
-utilisées pour les actifs et tarifs qui doivent rester référencés par l'historique.
+Le diagramme reste volontairement conceptuel. Les tables de journalisation, les
+événements OCPP, les échantillons de mesure, les fichiers et les notifications ne
+sont pas représentés afin de préserver sa lisibilité. Ces éléments techniques
+conservent l'historique, mais ne modifient pas la structure des concepts métier
+principaux.
 
-\subsection{Identité, actifs et recharge}
+\subsection{Domaines fonctionnels}
 
-La figure~\ref{fig:core-domain-model} présente le noyau qui relie l'organisation,
-les utilisateurs, les bornes, OCPP, la session et le paiement. Pour alléger la
-figure, toutes les associations organisationnelles secondaires ne sont pas
-dessinées ; leur présence est signalée par l'attribut \texttt{organization\_id}.
+\subsubsection{Identité et séparation organisationnelle}
 
-\begin{figure}[p]
-  \centering
-  \resizebox{0.96\textwidth}{!}{\input{assets/diagrams/core-domain-model}}
-  \caption{Diagramme de classes conceptuel du noyau station--recharge}
-  \label{fig:core-domain-model}
-\end{figure}
+Une organisation possède ses employés et son patrimoine de recharge. Les
+administrateurs, opérateurs et techniciens sont rattachés à une seule organisation.
+Le super administrateur et le client sont des acteurs globaux. Un même client peut
+utiliser les stations de plusieurs organisations ; son compte n'est donc pas
+rattaché à l'une d'elles. La relation avec une organisation apparaît au travers des
+adhésions et des sessions.
 
-\subsubsection{Organisation et utilisateur}
+\subsubsection{Réseau et recharge}
 
-Une organisation possède ses employés, stations, tarifs, plans, sessions,
-paiements et opérations. Un utilisateur porte exactement un rôle principal.
-\texttt{admin}, \texttt{operator} et \texttt{technician} appartiennent à une seule
-organisation active. \texttt{super\_admin} et \texttt{client} sont globaux et
-conservent \texttt{organization\_id} à \texttt{null}. Le client peut néanmoins
-utiliser les bornes de plusieurs organisations : la relation est portée par ses
-sessions et abonnements, pas par son compte.
+Une organisation exploite plusieurs stations. Chaque station possède au moins un
+connecteur identifié dans le protocole OCPP. Une session associe un client à un
+connecteur pendant une période déterminée et conserve l'énergie délivrée, le coût
+calculé et son état. Elle référence le tarif appliqué et, lorsqu'il existe,
+l'avantage provenant d'une adhésion. Une session finalisée possède au plus un
+paiement principal.
 
-\subsubsection{Station et connecteur}
+L'état de disponibilité n'est pas une simple saisie. Il est projeté à partir des
+messages OCPP récents, des connecteurs, des opérations de maintenance et des
+éventuelles dérogations. Les traces techniques sont conservées séparément pour
+expliquer chaque transition.
 
-Une station appartient à une organisation et possède un ou plusieurs connecteurs.
-Elle contient à la fois les données d'inventaire, la dernière preuve OCPP et la
-projection de disponibilité. Le connecteur associe un libellé lisible, un identifiant
-OCPP, un type physique, un courant, une puissance et deux statuts : brut et métier.
-L'unicité de l'identifiant OCPP est imposée dans le périmètre de la station.
+\subsubsection{Exploitation}
 
-\subsubsection{Transaction et session}
+Une station peut produire plusieurs alertes et être couverte par des plans de
+maintenance. Une alerte ou une échéance de maintenance peut conduire à une
+intervention. Celle-ci porte l'affectation du technicien, la priorité, le délai SLA
+et l'état de traitement. Les événements, photos, documents et rapports
+d'intervention constituent des preuves associées sans alourdir le diagramme global.
 
-\texttt{OcppTransaction} représente la transaction du protocole, même si elle est
-refusée. Elle référence ses événements de début et de fin et contient plusieurs
-\texttt{OcppMeterSample}. \texttt{ChargingSession} n'existe que pour une transaction
-acceptée et conserve le client, l'énergie, le coût, les limites et les instantanés
-de tarification. Une session possède au plus un paiement final.
+\subsubsection{Commerce client et commerce SaaS}
 
-\subsection{Exploitation et commerce}
-
-La figure~\ref{fig:supporting-domain-model} regroupe les agrégats qui complètent le
-noyau : traitement des incidents, documents, tarification, abonnements clients et
-contrat commercial de l'organisation.
-
-\begin{figure}[p]
-  \centering
-  \resizebox{0.96\textwidth}{!}{\input{assets/diagrams/supporting-domain-model}}
-  \caption{Diagramme de classes conceptuel des domaines d'exploitation et commerciaux}
-  \label{fig:supporting-domain-model}
-\end{figure}
-
-\subsubsection{Agrégat d'exploitation}
-
-Une alerte appartient à une station et, éventuellement, à un connecteur. Elle
-possède un historique et peut produire plusieurs interventions dans le temps. Une
-intervention peut également provenir d'un plan de maintenance. L'assignation pointe
-vers un technicien de la même organisation. Les photos, le rapport structuré et les
-documents polymorphes constituent les preuves terrain.
-
-\subsubsection{Agrégat de tarification client}
-
-Un tarif appartient à une organisation et possède plusieurs affectations. Une
-affectation cible soit une station, soit un connecteur. Un plan de recharge décrit
-une offre client ; \texttt{PlanSubscription} relie un client global à ce plan et à
-l'organisation. Les factures d'abonnement client sont distinctes des paiements
-d'une session de recharge.
-
-\subsubsection{Agrégat commercial SaaS}
-
-\texttt{SaasPlan} définit les droits vendus aux organisations.
-\texttt{OrganizationSubscription} matérialise l'essai, l'offre active, la période de
-grâce ou la suspension. Ses événements assurent la traçabilité du cycle de vie, et
-\texttt{OrganizationInvoice} représente la facturation entre la plateforme et
-l'organisation. Cette modélisation évite de mélanger le conducteur qui paye une
-recharge et l'organisation qui paye l'accès au logiciel.
+Deux cycles commerciaux sont séparés. Le premier relie le client à une organisation
+au moyen d'un plan de recharge et d'une adhésion ; il peut accorder une remise sur
+les sessions. Le second relie l'organisation à la plateforme au moyen d'une offre
+SaaS et d'un abonnement commercial ; il détermine la période d'essai, les capacités
+et le droit d'utiliser les fonctions de gestion. Cette distinction empêche de
+confondre le paiement d'une recharge et la facturation du logiciel.
 
 \subsection{Contraintes et invariants principaux}
 
@@ -118,29 +84,43 @@ recharge et l'organisation qui paye l'accès au logiciel.
   Toute lecture ou écriture opérationnelle est limitée à l'organisation de
   l'utilisateur, sauf permission explicite du super administrateur.\\\hline
   Commissioning &
-  La station et ses connecteurs sont créés dans une même transaction ; la référence
+  Une station et ses connecteurs sont créés dans une même opération ; la référence
   et l'identité OCPP sont uniques.\\\hline
   Disponibilité &
-  Le statut métier est dérivé des overrides et preuves OCPP récentes ; il n'est pas
-  saisi directement pour une station provisionnée.\\\hline
+  Le statut métier est dérivé des preuves OCPP récentes et des décisions
+  opérationnelles ; il n'est pas saisi directement pour une station connectée.\\\hline
   Recharge &
-  Un client et un connecteur ne peuvent participer qu'à une tentative ou session
-  active à la fois.\\\hline
-  OCPP &
-  Un \texttt{StartTransaction} refusé reste auditable mais ne crée pas de session
-  facturable.\\\hline
+  Un client et un connecteur ne peuvent participer qu'à une tentative ou une
+  session active à la fois.\\\hline
   Mesure &
-  L'énergie ne diminue jamais ; le compteur effectif est le maximum entre le départ,
-  la dernière mesure et le compteur reçu.\\\hline
+  L'énergie cumulée d'une session ne diminue jamais et chaque valeur reste
+  rattachée à la transaction OCPP correspondante.\\\hline
   Paiement &
-  Chaque opération possède une clé d'idempotence ; un événement fournisseur est
-  traité une seule fois.\\\hline
+  Une même demande de paiement ne peut être traitée qu'une fois et un événement du
+  fournisseur ne modifie qu'une transaction connue.\\\hline
   Tarification &
-  Le tarif et la remise sont figés au début de la session.\\\hline
+  Le tarif et la remise sont figés au début de la session afin que son coût reste
+  explicable.\\\hline
   Intervention &
-  Le technicien assigné, la station et l'intervention appartiennent à la même
+  Le technicien affecté, la station et l'intervention appartiennent à la même
   organisation.\\\hline
-  Documents &
-  Le contenu privé n'est jamais exposé par une URL publique permanente.\\
+  Abonnement &
+  L'abonnement client et l'abonnement SaaS suivent des cycles indépendants et ne
+  partagent aucune facture.\\
   \hline
 \end{longtable}
+
+\clearpage
+\subsection{Diagramme de classes global}
+
+La figure~\ref{fig:conceptual-domain-model} présente une vue unique des classes
+métier principales. Les attributs sont limités aux informations nécessaires pour
+comprendre la responsabilité de chaque classe. Les cardinalités décrivent les
+relations fonctionnelles et non les détails propres à Eloquent ou aux migrations.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{0.96\textwidth}{!}{\input{assets/diagrams/conceptual-domain-model}}
+  \caption{Diagramme de classes conceptuel global de \ProjectName{}}
+  \label{fig:conceptual-domain-model}
+\end{figure}
