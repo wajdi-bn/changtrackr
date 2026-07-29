@@ -1,0 +1,55 @@
+\chapter{Bilan et décision}
+
+\section{Bilan de la campagne technique}
+
+\begin{table}[H]
+\centering
+\caption{État de validation au 29/07/2026}
+\begin{tabularx}{\textwidth}{|L{4.4cm}|C{3cm}|Y|}
+\hline
+\rowcolor{ctmint}\textbf{Axe} & \textbf{État} & \textbf{Commentaire} \\ \hline
+Backend et règles métier & \statuspass & 203 tests et 1\,980 assertions. \\ \hline
+Gateway OCPP & \statuspass & 12 tests exécutés dans un environnement Python isolé. \\ \hline
+Outils simulateur & \statuspass & 2 tests Node réussis. \\ \hline
+Frontend statique & \statuspass & Lint et build TypeScript/Vite réussis. \\ \hline
+Sécurité des dépendances PHP & \statuspass & Aucun avis Composer connu après mise à jour ciblée. \\ \hline
+Recette fonctionnelle & \statusmanual & Les fiches du présent document doivent être renseignées. \\ \hline
+Performance et charge & \statusmanual & Seuils et volumes à valider avec l'encadrant. \\ \hline
+Borne physique et paiement réel & \statusdeferred & Hors MVP simulé actuel. \\ \hline
+Firmware & \statusdeferred & US-38 reportée. \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Risques résiduels}
+
+\begin{enumerate}[leftmargin=7mm]
+  \item l'absence actuelle de tests frontend unitaires et E2E automatisés laisse
+        les régressions purement visuelles à la recette manuelle ;
+  \item certains bundles frontend dépassent 500~kB après minification ;
+  \item les seuils Heartbeat, SLA et disponibilité doivent être recalibrés avec
+        l'usage réel ;
+  \item les comportements d'un prestataire de paiement et d'une borne physique
+        ne sont pas couverts par les simulateurs ;
+  \item les tests de charge, sauvegarde/restauration, TLS et supervision restent
+        nécessaires avant production.
+\end{enumerate}
+
+\section{Décision proposée}
+
+\begin{testbox}{Décision technique}
+La base technique du MVP est \textbf{apte à entrer en recette fonctionnelle}.
+Cette décision ne constitue pas encore une acceptation finale : le
+procès-verbal de recette devra reprendre les cas manuels critiques, les
+anomalies éventuelles, les réserves et les signatures des parties.
+\end{testbox}
+
+\section{Étapes suivantes}
+
+\begin{enumerate}[leftmargin=7mm]
+  \item exécuter d'abord les cas CT-AUTH-03, CT-STN-01, CT-OCPP-01,
+        CT-CHG-01, CT-PAY-01, CT-OPS-01, CT-COM-01 et CT-SEC-01 ;
+  \item corriger toute anomalie S1/S2 puis relancer les suites associées ;
+  \item compléter la campagne responsive, multi-navigateurs et performance ;
+  \item produire le procès-verbal de recette à partir des résultats signés ;
+  \item mettre à jour ce cahier à chaque changement du backlog ou du contrat API.
+\end{enumerate}

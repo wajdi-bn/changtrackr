@@ -1,0 +1,74 @@
+\chapter{Environnement et données}
+
+\section{Configuration de référence}
+
+\begin{table}[H]
+\centering
+\caption{Composants de l'environnement de test}
+\begin{tabularx}{\textwidth}{|L{3.4cm}|L{4.1cm}|Y|}
+\hline
+\rowcolor{ctmint}\textbf{Composant} & \textbf{Version de référence} & \textbf{Rôle} \\ \hline
+Système & Windows, fuseau Africa/Tunis & Poste de développement \\ \hline
+PHP & 8.5.8 & Exécution Laravel et PHPUnit \\ \hline
+Laravel & 13.19.0 & API REST et logique métier \\ \hline
+PostgreSQL & 18.0, 64 bits & Base locale de développement \\ \hline
+Node.js & 22.19.0 & Frontend et outils simulateur \\ \hline
+pnpm & 11.9.0 & Gestion des dépendances frontend \\ \hline
+React / Vite & React 19, Vite 8.1.3 & Interface web et build \\ \hline
+Python & 3.12 dans l'environnement de contrôle & Gateway OCPP et pytest \\ \hline
+Docker & 29.6.1 & Simulateurs OCPP et paiement \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Services}
+
+\begin{table}[H]
+\centering
+\caption{Services attendus pour une recette verticale}
+\begin{tabularx}{\textwidth}{|L{3.2cm}|L{4.3cm}|Y|}
+\hline
+\rowcolor{ctmint}\textbf{Service} & \textbf{Adresse locale} & \textbf{Commande} \\ \hline
+Frontend & \texttt{http://localhost:5173} & \texttt{npm run dev:frontend} \\ \hline
+Backend REST & \texttt{http://localhost:8000} & \texttt{npm run dev:backend} \\ \hline
+Worker & Processus sans port & \texttt{npm run dev:queue} \\ \hline
+Scheduler & Processus sans port & \texttt{npm run dev:scheduler} \\ \hline
+Reverb & \texttt{ws://localhost:8080} & \texttt{npm run dev:reverb} \\ \hline
+Gateway OCPP & \texttt{ws://localhost:9000} & \texttt{npm run ocpp:up} \\ \hline
+Paiement simulé & \texttt{http://localhost:9090} & \texttt{npm run payment:up} \\ \hline
+Documentation API & \url{http://localhost:8000/docs/api} & Incluse dans le backend \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Profils de test}
+
+Les comptes doivent être créés par seed ou par les workflows d'invitation. Les
+adresses suivantes sont des exemples ; leurs mots de passe ne doivent jamais
+figurer dans le dépôt ou dans une preuve.
+
+\begin{table}[H]
+\centering
+\caption{Jeux d'acteurs synthétiques}
+\begin{tabularx}{\textwidth}{|L{3.2cm}|L{4.2cm}|Y|}
+\hline
+\rowcolor{ctmint}\textbf{Rôle} & \textbf{Périmètre} & \textbf{Utilisation} \\ \hline
+Super Administrateur & Plateforme entière & Demandes de démo, organisations, offres SaaS, intégrations et audit. \\ \hline
+Administrateur A & Organisation Tunis Network Ops & Employés, clients, tarifs, facturation et rapports de l'organisation A. \\ \hline
+Opérateur A & Organisation A & Bornes, connecteurs, alertes, affectations et maintenance. \\ \hline
+Technicien A & Organisation A & Interventions et maintenances assignées. \\ \hline
+Administrateur B & Organisation Sahel Charge Network & Vérification d'isolation par rapport à l'organisation A. \\ \hline
+Client 1 & Compte global & Sessions et abonnements auprès de plusieurs organisations. \\ \hline
+Visiteur & Non authentifié & Inscription, connexion et demande de démonstration. \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Précautions}
+
+\begin{itemize}[leftmargin=6mm]
+  \item Réinitialiser les simulateurs avant une campagne reproductible.
+  \item Utiliser des références de borne uniques.
+  \item Ne jamais tester Resend avec une liste réelle de destinataires.
+  \item Conserver les captures, réponses HTTP et journaux sans cookies, clés,
+        secrets OAuth, mots de passe ou identifiants de paiement.
+  \item Noter le commit, la date, le navigateur et les services actifs pour
+        chaque campagne manuelle.
+\end{itemize}

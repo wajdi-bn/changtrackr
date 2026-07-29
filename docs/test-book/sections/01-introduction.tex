@@ -1,0 +1,53 @@
+\chapter{Objet et périmètre}
+
+\section{Objet du document}
+
+Le présent cahier décrit la stratégie de vérification de ChargeTrackr, les
+environnements nécessaires, les résultats des contrôles automatisés et les
+scénarios de recette manuelle. Il constitue le lien vérifiable entre le backlog,
+les critères d'acceptation, le code source et le futur procès-verbal de recette.
+
+Le document distingue volontairement :
+
+\begin{itemize}[leftmargin=6mm]
+  \item les contrôles déjà exécutés automatiquement et reproductibles ;
+  \item les scénarios fonctionnels à exécuter devant l'encadrant ou le client ;
+  \item les validations qui nécessitent une infrastructure de production, un
+        prestataire financier ou une borne physique ;
+  \item les fonctionnalités partielles ou reportées du backlog.
+\end{itemize}
+
+\section{Périmètre testé}
+
+Le périmètre couvre les applications React et Laravel, la base PostgreSQL, le
+gateway OCPP 1.6 JSON, le simulateur de bornes, l'adaptateur de paiement simulé,
+les files de tâches, le temps réel et les exports documentaires. Les rôles
+Visiteur, Client, Technicien, Opérateur, Administrateur et Super Administrateur
+sont inclus.
+
+\begin{table}[H]
+\centering
+\caption{Références du cahier de tests}
+\begin{tabularx}{\textwidth}{|L{3.5cm}|Y|L{3.2cm}|}
+\hline
+\rowcolor{ctmint}\textbf{Référence} & \textbf{Utilisation} & \textbf{Emplacement} \\ \hline
+Backlog produit & 42 User Stories et priorités & \path{docs/product-backlog.md} \\ \hline
+Critères d'acceptation & Conditions vérifiables CA-xx.y & \path{docs/product-backlog-acceptance-criteria.md} \\ \hline
+Suivi du backlog & État réalisé, partiel ou reporté & \path{docs/product-backlog-progress.md} \\ \hline
+Contrat REST & Routes, schémas et sécurité Sanctum & \path{docs/api/openapi.json} \\ \hline
+Documentation OCPP & Architecture, commandes et scénarios & \path{docs/ocpp.md} \\ \hline
+Documentation paiement & Adaptateur et simulateur externe & \path{docs/payment-simulator.md} \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Gestion du document}
+
+\begin{table}[H]
+\centering
+\caption{Historique des versions}
+\begin{tabularx}{\textwidth}{|C{1.5cm}|C{2.5cm}|L{3.4cm}|Y|}
+\hline
+\rowcolor{ctmint}\textbf{Version} & \textbf{Date} & \textbf{Auteur} & \textbf{Modification} \\ \hline
+1.0 & 29/07/2026 & Wajdi Ben Abdeljelil & Création du cahier, inventaire des suites, résultats automatiques, recette manuelle et traçabilité complète. \\ \hline
+\end{tabularx}
+\end{table}

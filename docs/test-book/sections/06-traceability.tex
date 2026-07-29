@@ -1,0 +1,77 @@
+\chapter{Traçabilité du backlog}
+
+\section{Légende}
+
+\begin{table}[H]
+\centering
+\caption{Statuts de traçabilité}
+\begin{tabularx}{\textwidth}{|C{2cm}|Y|}
+\hline
+\rowcolor{ctmint}\textbf{Code} & \textbf{Signification} \\ \hline
+R & User Story réalisée dans le suivi du backlog. \\ \hline
+P & User Story partielle ; l'écart reste explicitement suivi. \\ \hline
+REP & User Story reportée hors du MVP. \\ \hline
+AUTO & Preuve automatisée exécutée et réussie. \\ \hline
+MAN & Cas de recette manuelle à exécuter. \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Matrice}
+
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.10}
+\begin{longtable}{|C{1.15cm}|C{1.05cm}|L{5.6cm}|L{3.9cm}|L{3.1cm}|}
+\caption{Matrice User Story -- tests}\label{tab:traceability}\\
+\hline
+\rowcolor{ctmint}\textbf{US} & \textbf{État} & \textbf{Preuve automatisée principale} & \textbf{Recette manuelle} & \textbf{Verdict actuel} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{ctmint}\textbf{US} & \textbf{État} & \textbf{Preuve automatisée principale} & \textbf{Recette manuelle} & \textbf{Verdict actuel} \\ \hline
+\endhead
+US-01 & R & AuthApi, ClientAuthentication, GoogleOAuth & CT-AUTH-01, 02 & AUTO réussi / MAN à exécuter \\ \hline
+US-02 & R & ProfileApi, AuthApi & CT-AUTH-02 & AUTO réussi / MAN à exécuter \\ \hline
+US-03 & R & OrganizationManagement, DemoRequest, UserManagement & CT-AUTH-03, CT-ADM-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-04 & R & UserManagementApi & CT-AUTH-04 & AUTO réussi / MAN à exécuter \\ \hline
+US-05 & R & PlatformGovernance, Dashboard & CT-ADM-01, CT-UX-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-06 & R & CustomerManagementApi & CT-SEC-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-07 & R & StationApi, StationCommissioning & CT-STN-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-08 & R & StationApi, StationCommissioning & CT-STN-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-09 & R & StationApi, AvailabilityProjection & CT-OCPP-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-10 & R & StationApi & CT-MAP-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-11 & R & StationApi & CT-MAP-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-12 & R & StationApi, ChargingSessionPayment & CT-MAP-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-13 & R & StationApi, Telemetry, AssetDocument & CT-MAP-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-14 & R & OcppGateway, Supervision, Transaction, gateway pytest & CT-STN-01, CT-OCPP-01, 02 & AUTO réussi / MAN à exécuter \\ \hline
+US-15 & R & AvailabilityProjection, OcppTransactionProjection & CT-OCPP-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-16 & R & AvailabilityProjection, RealtimeAuthorization & CT-OCPP-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-17 & R & DashboardApi & CT-UX-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-18 & R & DashboardApi & CT-UX-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-19 & R & AvailabilityProjection, AlertIntervention, Notification & CT-OCPP-01, CT-OPS-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-20 & R & AlertInterventionApi & CT-OPS-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-21 & R & AlertInterventionApi & CT-OPS-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-22 & R & InterventionReport, AssetDocument & CT-OPS-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-23 & R & MaintenancePlanning, OcppSupervision & CT-OPS-02 & AUTO réussi / MAN à exécuter \\ \hline
+US-24 & R & RemoteChargingWorkflow, OcppTransaction & CT-CHG-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-25 & R & ChargingSessionPayment, RemoteCharging & CT-CHG-01, 02 & AUTO réussi / MAN à exécuter \\ \hline
+US-26 & R & ChargingSessionPayment & CT-CHG-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-27 & R & OnboardingApi & CT-UX-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-28 & P & StationApi (QR), OcppTransaction (idTag) & CT-CHG-01 & RFID physique absent \\ \hline
+US-29 & R & ChargingSessionPayment, PaymentWebhook & CT-PAY-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-30 & R & WireMockPaymentAdapter, PaymentWebhook & CT-PAY-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-31 & P & TariffApi, ChargingPlanApi & CT-SUB-01 & Plages horaires manquantes \\ \hline
+US-32 & R & PlanSubscriptionApi & CT-SUB-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-33 & R & ReportAnalytics, InternalReport & CT-REP-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-34 & P & ReportAnalytics, exports de domaine & CT-REP-01 & Export asynchrone volumineux absent \\ \hline
+US-35 & P & ProfileApi, OnboardingApi, NotificationPreferences & CT-AUTH-02, CT-NOT-01 & Paramètres organisationnels incomplets \\ \hline
+US-36 & R & PlatformGovernance, ApiDocumentation & CT-ADM-01, CT-SEC-02 & AUTO réussi / MAN à exécuter \\ \hline
+US-37 & R & AssetDocumentApi & CT-MAP-01, CT-SEC-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-38 & REP & Aucune : version déclarative uniquement & Hors recette MVP & Firmware reporté \\ \hline
+US-39 & R & DemoRequestWorkflow & CT-AUTH-03 & AUTO réussi / MAN à exécuter \\ \hline
+US-40 & R & OperationalNotification, RealtimeAuthorization & CT-NOT-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-41 & R & OrganizationCommercial, PaymentWebhook & CT-AUTH-03, CT-COM-01 & AUTO réussi / MAN à exécuter \\ \hline
+US-42 & R & OrganizationCommercial & CT-COM-01 & AUTO réussi / MAN à exécuter \\ \hline
+\end{longtable}
+\endgroup
+\normalsize

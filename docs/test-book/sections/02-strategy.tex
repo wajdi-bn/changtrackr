@@ -1,0 +1,65 @@
+\chapter{Stratégie de test}
+
+\section{Niveaux de vérification}
+
+\begin{table}[H]
+\centering
+\caption{Niveaux de test retenus}
+\begin{tabularx}{\textwidth}{|L{3.2cm}|Y|L{3.4cm}|}
+\hline
+\rowcolor{ctmint}\textbf{Niveau} & \textbf{Objectif} & \textbf{Outils principaux} \\ \hline
+Unitaire & Vérifier une règle isolée sans infrastructure réelle. & PHPUnit, pytest, Node Test Runner \\ \hline
+Intégration API & Vérifier validation, persistance, autorisation, événements et isolation multi-tenant. & Laravel Test, SQLite en mémoire \\ \hline
+Contrat externe & Vérifier les échanges OCPP, HMAC, paiement HTTP, webhooks et erreurs fournisseur. & pytest, WireMock, tests Laravel \\ \hline
+Qualité frontend & Détecter les erreurs TypeScript, imports invalides et défauts statiques. & Oxlint, TypeScript, Vite \\ \hline
+Système simulé & Vérifier un parcours vertical borne--OCPP--session--paiement. & Simulateur SAP, gateway Python, Laravel, WireMock \\ \hline
+Recette manuelle & Valider l'ergonomie, les transitions visibles et les workflows par rôle. & Navigateur desktop/mobile \\ \hline
+Non fonctionnel & Mesurer performance, sécurité, résilience et compatibilité. & À compléter avant production \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Principes}
+
+\begin{itemize}[leftmargin=6mm]
+  \item Les autorisations sont vérifiées côté API, même si l'action est masquée
+        dans l'interface.
+  \item Chaque scénario multi-organisation contient au moins une tentative
+        d'accès transversal.
+  \item Les événements OCPP et webhooks sont rejoués pour vérifier
+        l'idempotence.
+  \item Les paiements restent simulés ; aucune carte ni donnée financière réelle
+        n'est utilisée.
+  \item Les jeux de données sont synthétiques et aucun secret n'est intégré au
+        document.
+  \item Un scénario manuel n'est jamais déclaré réussi sans preuve d'exécution.
+\end{itemize}
+
+\section{Priorité et sévérité}
+
+\begin{table}[H]
+\centering
+\caption{Classification des anomalies}
+\begin{tabularx}{\textwidth}{|C{1.7cm}|L{3.1cm}|Y|L{3cm}|}
+\hline
+\rowcolor{ctmint}\textbf{Niveau} & \textbf{Qualification} & \textbf{Exemple ChargeTrackr} & \textbf{Décision} \\ \hline
+S1 & Bloquante & Fuite inter-organisation, paiement capturé sans session, commande envoyée à la mauvaise borne. & Recette refusée \\ \hline
+S2 & Majeure & Impossible de démarrer une recharge ou de traiter une alerte critique. & Correction obligatoire \\ \hline
+S3 & Mineure & Filtre incorrect, export partiel, défaut visuel gênant sans perte de données. & Correction planifiée \\ \hline
+S4 & Cosmétique & Alignement, libellé ou espacement sans impact métier. & Peut être différée \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Critères d'entrée et de sortie}
+
+\begin{table}[H]
+\centering
+\caption{Critères de décision}
+\begin{tabularx}{\textwidth}{|L{3cm}|Y|}
+\hline
+\rowcolor{ctmint}\textbf{Étape} & \textbf{Critères} \\ \hline
+Entrée en test & Migrations applicables, variables locales définies, données synthétiques disponibles, services requis identifiés et build frontend valide. \\ \hline
+Acceptation technique & Toutes les suites automatiques réussissent, aucune vulnérabilité Composer connue, aucune anomalie S1 ou S2 ouverte. \\ \hline
+Acceptation fonctionnelle & Tous les cas de recette critiques et majeurs sont exécutés et réussis ou font l'objet d'une dérogation écrite. \\ \hline
+Acceptation de production & Tests de charge, TLS, sauvegarde/restauration, supervision, prestataire de paiement réel et borne physique validés selon le périmètre retenu. \\ \hline
+\end{tabularx}
+\end{table}

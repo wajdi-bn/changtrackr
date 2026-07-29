@@ -1,0 +1,322 @@
+\chapter{Recette fonctionnelle manuelle}
+
+\section{Mode d'exécution}
+
+Pour chaque cas, renseigner la date, l'exécutant, le navigateur, le commit, le
+résultat obtenu et la référence de la preuve. Les cas sont initialement
+\statusmanual{} ; ils alimenteront ensuite le procès-verbal de recette.
+
+\begin{table}[H]
+\centering
+\caption{Fiche de résultat à reproduire pour chaque cas}
+\begin{tabularx}{\textwidth}{|L{3.2cm}|Y|L{3.2cm}|Y|}
+\hline
+\rowcolor{ctmint}\textbf{Champ} & \textbf{Valeur} & \textbf{Champ} & \textbf{Valeur} \\ \hline
+Exécutant &  & Date / heure &  \\ \hline
+Commit &  & Navigateur &  \\ \hline
+Résultat & À exécuter / Réussi / Échec / Bloqué & Preuve & Capture, log ou identifiant \\ \hline
+Anomalie & \multicolumn{3}{l|}{Référence et sévérité si le résultat diffère de l'attendu} \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Accès et organisation}
+
+\begin{testbox}{CT-AUTH-01 -- Inscription locale et vérification email}
+\textbf{US :} US-01 \quad \textbf{Priorité :} Haute \quad \textbf{Statut :} \statusmanual
+
+\textbf{Préconditions :} adresse de test non utilisée, worker actif, mailer de
+test configuré.
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Créer un compte client depuis la page d'inscription. & Compte client non vérifié créé ; aucun rôle privilégié. \\ \hline
+2 & Tenter de se connecter avant vérification. & Accès refusé avec message explicite. \\ \hline
+3 & Ouvrir le lien signé reçu par email. & Email vérifié et lien consommé. \\ \hline
+4 & Se connecter puis se déconnecter. & Dashboard client accessible puis session invalidée. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-AUTH-02 -- Connexion Google et compte Google-only}
+\textbf{US :} US-01, US-02 \quad \textbf{Priorité :} Haute \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Lancer « Continue with Google » avec une identité vérifiée. & Le compte client est créé ou lié sans doublon. \\ \hline
+2 & Ouvrir Profil et Paramètres. & L'identité Google est visible sans exposer de secret. \\ \hline
+3 & Vérifier la sécurité du compte. & Le bouton de changement de mot de passe local est absent. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-AUTH-03 -- Demande de démonstration et provisionnement}
+\textbf{US :} US-03, US-39, US-41 \quad \textbf{Priorité :} Critique \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Envoyer une demande publique complète. & Accusé de réception sans lien d'administration. \\ \hline
+2 & Ouvrir la demande comme Super Administrateur. & Données, objectifs multiples et chronologie visibles. \\ \hline
+3 & Démarrer la revue puis approuver/provisionner. & Organisation, essai et invitation administrateur créés une fois. \\ \hline
+4 & Activer le compte depuis le lien reçu. & Mot de passe défini, compte actif, invitation consommée. \\ \hline
+5 & Se connecter comme nouvel administrateur. & Onboarding organisation proposé et périmètre limité. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-AUTH-04 -- Invitation d'un opérateur et d'un technicien}
+\textbf{US :} US-04 \quad \textbf{Priorité :} Critique \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & L'administrateur invite un opérateur de son organisation. & Compte en attente, sans mot de passe initial. \\ \hline
+2 & Utiliser rappel, annulation et renouvellement selon l'état. & Seules les actions compatibles sont proposées. \\ \hline
+3 & Activer une invitation valide. & Rôle et organisation imposés ; utilisateur actif. \\ \hline
+4 & Répéter pour un technicien puis tenter une autre organisation. & Activation nominale ; injection de tenant refusée. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\section{Bornes, OCPP et cartographie}
+
+\begin{testbox}{CT-STN-01 -- Commissionner une borne simulée}
+\textbf{US :} US-07, US-08, US-14 \quad \textbf{Priorité :} Critique \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Choisir un emplacement sur la carte et saisir une référence unique. & Coordonnées remplies et modifiables. \\ \hline
+2 & Ajouter les connecteurs physiques et leurs puissances. & Identifiants OCPP uniques et récapitulatif lisible. \\ \hline
+3 & Choisir « Local SAP simulator » puis confirmer. & Borne et connecteurs créés atomiquement. \\ \hline
+4 & Exécuter la commande d'enregistrement affichée. & Profil ajouté au manifeste du simulateur. \\ \hline
+5 & Relancer la pile OCPP et ouvrir la fiche. & Boot, connexion et Heartbeat visibles. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-OCPP-01 -- Projection des états de disponibilité}
+\textbf{US :} US-09, US-14 à US-16, US-19 \quad \textbf{Priorité :} Critique \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Connecter la borne et envoyer Available. & Borne disponible si un connecteur est libre. \\ \hline
+2 & Brancher puis démarrer une transaction. & Connecteur occupé et session active. \\ \hline
+3 & Envoyer Faulted. & État en défaut et alerte dédupliquée. \\ \hline
+4 & Couper la connexion au-delà du seuil. & Borne non disponible et alerte de connectivité. \\ \hline
+5 & Reconnecter et envoyer Heartbeat/Available. & Projection rétablie, historique conservé, alerte résolue. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-OCPP-02 -- Commandes distantes}
+\textbf{US :} US-14, US-23 \quad \textbf{Priorité :} Haute \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Envoyer un Soft Reset depuis la fiche. & Commande mise en file, transmise et auditée. \\ \hline
+2 & Déverrouiller un connecteur compatible. & UnlockConnector reçu et résultat affiché. \\ \hline
+3 & Activer puis désactiver le mode maintenance. & ChangeAvailability synchronisé et projection cohérente. \\ \hline
+4 & Tenter une commande sur une borne hors ligne. & Refus métier explicite, sans commande fantôme. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-MAP-01 -- Recherche, filtres et itinéraire}
+\textbf{US :} US-10 à US-13 \quad \textbf{Priorité :} Haute \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Comparer les cartes Opérateur, Technicien et Client. & Périmètres et actions conformes au rôle. \\ \hline
+2 & Activer Near me avec le rayon des paramètres. & Tri et distance appliqués après consentement. \\ \hline
+3 & Filtrer connecteur, puissance, disponibilité et zone. & Carte, liste et tableau restent cohérents. \\ \hline
+4 & Copier les coordonnées et ouvrir l'itinéraire. & Coordonnées exactes et lien cartographique valide. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\section{Recharge et paiement}
+
+\begin{testbox}{CT-CHG-01 -- Recharge distante complète}
+\textbf{US :} US-24 à US-26, US-29 \quad \textbf{Priorité :} Critique \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Depuis une borne, cliquer Charge. & L'assistant s'ouvre à l'étape Connecteur avec la borne conservée. \\ \hline
+2 & Choisir un connecteur et brancher physiquement/simuler Plug. & L'étape Connect passe automatiquement après le signal OCPP. \\ \hline
+3 & Autoriser le paiement puis démarrer. & Session créée seulement après confirmation StartTransaction. \\ \hline
+4 & Observer la vue live et les MeterValues. & Temps, énergie, puissance et estimation progressent. \\ \hline
+5 & Arrêter la recharge. & RemoteStop, capture, résumé et reçu disponibles. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-CHG-02 -- Limite et arrêt automatique}
+\textbf{US :} US-24, US-25 \quad \textbf{Priorité :} Haute \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Démarrer avec une limite d'énergie faible. & Limite figée dans la tentative de recharge. \\ \hline
+2 & Envoyer des MeterValues dépassant la limite. & RemoteStopTransaction mis en file une seule fois. \\ \hline
+3 & Confirmer StopTransaction. & Session terminée et montant final calculé. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-PAY-01 -- Refus, relance et reçu}
+\textbf{US :} US-29, US-30 \quad \textbf{Priorité :} Critique \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Forcer un refus du simulateur. & Statut failed sans session payée ni capture incohérente. \\ \hline
+2 & Relancer avec un scénario accepté. & Nouvelle tentative idempotente et paiement settled. \\ \hline
+3 & Prévisualiser puis télécharger le reçu. & Même document lisible avec référence, énergie, tarif et total. \\ \hline
+4 & Rejouer le webhook de règlement. & Aucun double règlement. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-SUB-01 -- Plans client multi-organisations}
+\textbf{US :} US-31, US-32 \quad \textbf{Priorité :} Haute \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Explorer les réseaux et filtrer les plans. & Logos, organisations, prix et avantages sont identifiables. \\ \hline
+2 & Souscrire auprès de deux organisations. & Deux adhésions indépendantes, sans rattachement exclusif. \\ \hline
+3 & Recharger sur une borne couverte. & Remise du bon plan appliquée au snapshot tarifaire. \\ \hline
+4 & Désactiver le renouvellement puis annuler. & Avantage conservé jusqu'à la fin de période. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\section{Exploitation et maintenance}
+
+\begin{testbox}{CT-OPS-01 -- Alerte, intervention et rapport}
+\textbf{US :} US-19 à US-22, US-40 \quad \textbf{Priorité :} Critique \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Déclencher un défaut OCPP. & Alerte unique, badges et notifications autorisées. \\ \hline
+2 & L'opérateur acquitte et assigne à un technicien. & Intervention créée, SLA et chronologie enregistrés. \\ \hline
+3 & Le technicien démarre et documente. & Accès limité à son affectation. \\ \hline
+4 & Ajouter diagnostic, pièces et photos avant/après. & Preuves privées et validations appliquées. \\ \hline
+5 & Soumettre le rapport final. & Intervention terminée, rapport immuable et alerte résolue ou réouverte pour suivi. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-OPS-02 -- Maintenance planifiée et synchronisation OCPP}
+\textbf{US :} US-23 \quad \textbf{Priorité :} Haute \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Planifier une maintenance récurrente et l'affecter. & Événement visible dans le calendrier. \\ \hline
+2 & Déplacer/replanifier l'occurrence. & Date mise à jour et action auditée. \\ \hline
+3 & Le technicien démarre la maintenance. & Borne en maintenance et commande Inoperative en file. \\ \hline
+4 & Clôturer avec rapport. & Mode retiré, commande Operative et prochaine occurrence cohérente. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-NOT-01 -- Notifications et préférences}
+\textbf{US :} US-40 \quad \textbf{Priorité :} Moyenne \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Déclencher alerte, assignation et rapport. & Compteur global et badges de pages correspondants. \\ \hline
+2 & Ouvrir une notification puis sa ressource. & Élément lu et compteur recalculé. \\ \hline
+3 & Désactiver l'email d'alerte, garder l'in-app. & Notification in-app reçue, email non envoyé. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\section{Administration, rapports et sécurité}
+
+\begin{testbox}{CT-COM-01 -- Cycle commercial d'une organisation}
+\textbf{US :} US-41, US-42 \quad \textbf{Priorité :} Critique \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Vérifier un essai actif et créer quatre employés. & Quota respecté, administrateur exclu du quota. \\ \hline
+2 & Tenter un employé supplémentaire. & Blocage commercial explicite sans création partielle. \\ \hline
+3 & Demander un plan depuis l'espace administrateur. & Demande et facture visibles par le Super Administrateur. \\ \hline
+4 & Régler la facture simulée. & Plan actif et nouvelles limites appliquées. \\ \hline
+5 & Expirer l'essai. & Grâce puis blocage opérationnel ; page de facturation reste accessible. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-REP-01 -- Rapports propres aux rôles}
+\textbf{US :} US-33, US-34 \quad \textbf{Priorité :} Haute \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Ouvrir Rapports avec chaque rôle. & Statistiques et distributions réellement différentes selon la mission. \\ \hline
+2 & Composer un rapport, joindre un fichier et choisir des destinataires. & Uniquement les employés autorisés de la même organisation. \\ \hline
+3 & Envoyer, lire puis archiver. & États et historique cohérents pour émetteur et destinataire. \\ \hline
+4 & Exporter en CSV, JSON et PDF. & Périmètre et filtres identiques ; PDF lisible. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-ADM-01 -- Gouvernance Super Administrateur}
+\textbf{US :} US-03, US-05, US-36, US-41 \quad \textbf{Priorité :} Haute \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Gérer une organisation et son administrateur. & Actions globales disponibles uniquement au Super Administrateur. \\ \hline
+2 & Modifier une permission autorisée. & Matrice appliquée et auditée ; rôle Super Admin immuable. \\ \hline
+3 & Consulter intégrations et paramètres. & État visible sans retour de secrets. \\ \hline
+4 & Filtrer et exporter l'audit. & Événements, acteurs et organisations cohérents. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-SEC-01 -- Isolation multi-organisation et IDOR}
+\textbf{US :} Toutes les US multi-tenant \quad \textbf{Priorité :} Critique \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Copier l'identifiant d'une borne, alerte, utilisateur, document et rapport de l'organisation B. & Identifiants disponibles uniquement dans le jeu de test. \\ \hline
+2 & Appeler les URLs depuis un compte de l'organisation A. & 403 ou 404 sans donnée de B. \\ \hline
+3 & Injecter \texttt{organization\_id} dans les créations/modifications. & Valeur ignorée ou rejetée ; tenant dérivé du compte. \\ \hline
+4 & Répéter sur exports et téléchargements. & Aucun contenu transversal. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-SEC-02 -- Session, CSRF, limitation et routes internes}
+\textbf{US :} US-01, US-14, US-30, US-36 \quad \textbf{Priorité :} Critique \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Envoyer une requête mutative sans cookie CSRF/session. & 419 ou 401 sans effet métier. \\ \hline
+2 & Dépasser la limite d'une route publique sensible. & 429 avec message générique. \\ \hline
+3 & Rejouer un événement interne signé. & Premier accepté, replay rejeté/idempotent. \\ \hline
+4 & Ouvrir les docs API hors local avec un rôle non global. & Accès refusé ; Super Administrateur autorisé. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-UX-01 -- Onboarding, responsive et recherche globale}
+\textbf{US :} US-05, US-17, US-18, US-27 \quad \textbf{Priorité :} Moyenne \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Ouvrir un premier compte de chaque rôle. & Onboarding court, spécifique au rôle et reprenable. \\ \hline
+2 & Tester navigation et formulaires à 1440, 1024 et 390 px. & Aucun chevauchement, carte ou modal hors écran. \\ \hline
+3 & Utiliser la recherche de la topbar. & Résultats limités au rôle et navigation correcte. \\ \hline
+4 & Vérifier chargement, vide, erreur et succès. & États explicites sans données fictives. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-NF-01 -- Performance, reprise et compatibilité}
+\textbf{US :} Exigences non fonctionnelles \quad \textbf{Priorité :} Haute avant production \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Mesurer les endpoints principaux sous charge définie. & Temps et taux d'erreur sous les seuils à valider. \\ \hline
+2 & Couper puis relancer gateway, worker et Reverb. & Reprise sans double événement ni perte silencieuse. \\ \hline
+3 & Tester Chrome, Edge et Firefox récents. & Workflows critiques compatibles. \\ \hline
+4 & Restaurer une sauvegarde de test. & Données et relations cohérentes après restauration. \\ \hline
+\end{tabularx}
+\end{testbox}

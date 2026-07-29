@@ -1,0 +1,181 @@
+\documentclass[a4paper,11pt,oneside]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\frenchsetup{SmallCapsFigTabCaptions=false}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,top=2.2cm,bottom=2.2cm,left=2.2cm,right=2.2cm,headheight=24pt]{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage[table]{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{xurl}
+\usepackage[hidelinks,bookmarksopen=true,bookmarksnumbered=true]{hyperref}
+\usepackage{bookmark}
+\usepackage{lastpage}
+
+\definecolor{ctgreen}{HTML}{159C69}
+\definecolor{ctdark}{HTML}{173127}
+\definecolor{ctmint}{HTML}{E7F7F0}
+\definecolor{ctblue}{HTML}{168BC4}
+\definecolor{ctamber}{HTML}{D2871C}
+\definecolor{ctred}{HTML}{C84949}
+\definecolor{ctgray}{HTML}{6F7F77}
+\definecolor{ctline}{HTML}{B8C9C0}
+\definecolor{ctpaper}{HTML}{F8FBF9}
+
+\hypersetup{
+  pdftitle={ChargeTrackr - Cahier de tests},
+  pdfauthor={Wajdi Ben Abdeljelil},
+  pdfsubject={Stratégie, cas de test et traçabilité},
+  pdfkeywords={ChargeTrackr, tests, recette, OCPP, Laravel, React}
+}
+
+\setstretch{1.18}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{2}
+\renewcommand{\arraystretch}{1.22}
+\setlength{\LTpre}{4pt}
+\setlength{\LTpost}{8pt}
+\arrayrulecolor{ctline}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+\newcommand{\statuspass}{\textcolor{ctgreen}{\textbf{Réussi}}}
+\newcommand{\statusmanual}{\textcolor{ctamber}{\textbf{À exécuter}}}
+\newcommand{\statuspartial}{\textcolor{ctamber}{\textbf{Partiel}}}
+\newcommand{\statusdeferred}{\textcolor{ctgray}{\textbf{Reporté}}}
+\newcommand{\statusblocked}{\textcolor{ctred}{\textbf{Bloqué}}}
+
+\newtcolorbox{testbox}[1]{
+  enhanced,
+  colback=white,
+  colframe=ctline,
+  colbacktitle=ctmint,
+  coltitle=ctdark,
+  fonttitle=\bfseries,
+  title={#1},
+  boxrule=0.7pt,
+  arc=1mm,
+  left=3mm,
+  right=3mm,
+  top=2mm,
+  bottom=2mm
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{ctgreen}{ChargeTrackr}}
+\fancyhead[R]{\small Cahier de tests}
+\fancyfoot[L]{Version 1.0}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\fancyfoot[R]{29/07/2026}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{ctline}\leaders\hrule height \headrulewidth\hfill}}
+
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[C]{\thepage/\pageref{LastPage}}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\color{ctdark}}
+  {\filleft\color{ctgreen}\Large Partie \thechapter}
+  {0.4ex}
+  {\titlerule\vspace{1ex}\Huge}
+  [\vspace{0.6ex}\titlerule]
+\titlespacing*{\chapter}{0pt}{-12pt}{22pt}
+\titleformat{\section}{\Large\bfseries\color{ctdark}}{\textcolor{ctgreen}{\thesection}}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries\color{ctdark}}{\textcolor{ctgreen}{\thesubsection}}{0.7em}{}
+
+\begin{document}
+
+\hypersetup{pageanchor=false}
+\begin{titlepage}
+  \centering
+  \begin{tabularx}{\textwidth}{C{0.25\textwidth} Y C{0.25\textwidth}}
+    \includegraphics[height=2.5cm,keepaspectratio]{../report/assets/brand/fst-logo.png}
+    &
+    \centering
+    \textbf{Université de Tunis El Manar}\\
+    Faculté des Sciences de Tunis\\
+    Département des Sciences de l'Informatique
+    &
+    \includegraphics[height=2.5cm,keepaspectratio]{../report/assets/brand/utm-logo.png}
+  \end{tabularx}
+
+  \vspace{1.2cm}
+  \includegraphics[height=2.4cm,keepaspectratio]{../report/assets/brand/chargetrackr-logo.png}
+
+  \vspace{0.7cm}
+  {\Huge\bfseries\color{ctdark} Cahier de tests\par}
+  \vspace{0.25cm}
+  {\Large\color{ctgreen} ChargeTrackr\par}
+
+  \vspace{0.8cm}
+  \begin{tcolorbox}[colback=ctpaper,colframe=ctgreen,boxrule=0.9pt,arc=1mm]
+    \centering\large
+    Développement d'un outil de visualisation et de suivi de la disponibilité
+    des bornes de recharge électrique
+  \end{tcolorbox}
+
+  \vfill
+  \begin{tabular}{|L{5.2cm}|L{8.2cm}|}
+    \hline
+    \rowcolor{ctmint}\textbf{Élément} & \textbf{Valeur} \\ \hline
+    Réalisé par & Wajdi Ben Abdeljelil \\ \hline
+    Formation & Cycle ingénieur en génie logiciel (IGL3) \\ \hline
+    Organisme d'accueil & TAC-TIC Tunisie \\ \hline
+    Encadrant professionnel & Bassem Soua \\ \hline
+    Période du stage & 01/07/2026 -- 31/08/2026 \\ \hline
+    Version du document & 1.0 \\ \hline
+    Révision du code testée & \texttt{2963652} \\ \hline
+    Date de référence & 29/07/2026 \\ \hline
+  \end{tabular}
+
+  \vfill
+  \includegraphics[height=2.2cm,keepaspectratio]{../report/assets/brand/tactic-logo.png}
+
+  \vspace{0.5cm}
+  {\small Année universitaire 2025--2026}
+\end{titlepage}
+
+\hypersetup{pageanchor=true}
+\pagenumbering{roman}
+\begingroup
+\small
+\setstretch{1}
+\setlength{\parskip}{0pt}
+\tableofcontents
+\endgroup
+\clearpage
+\listoftables
+\clearpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\input{sections/01-introduction}
+\input{sections/02-strategy}
+\input{sections/03-environment}
+\input{sections/04-automated}
+\input{sections/05-manual}
+\input{sections/06-traceability}
+\input{sections/07-summary}
+
+\end{document}
