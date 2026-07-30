@@ -2,12 +2,18 @@
 
 ChargeTrackr is a web platform for visualizing, supervising, and monitoring the availability of electric vehicle charging stations.
 
+## Video Demo
+
+Watch the [ChargeTrackr platform demonstration](https://1drv.ms/v/c/a087f1f584265db1/IQCIAt1JRSaZSaV3VEdsPAjLASDhXXfYAO7R0siK5-lyxV4?e=phgMDb).
+
+The video presents the role-based workspaces, charging-station supervision, OCPP simulation, calculated availability, charging sessions, payments, maintenance, and reporting workflows.
+
 ## Planned Stack
 
 - Frontend: React, TypeScript, Ant Design, React Router, TanStack Query, Axios, Recharts, Leaflet, Framer Motion, GSAP
 - Backend: Laravel, REST API, Sanctum session cookies, OAuth2 Google, Laravel Reverb, Queue, Scheduler
 - Data: PostgreSQL
-- Infrastructure services: Redis, Mailpit for local email testing, Resend for transactional email
+- Infrastructure services: database-backed queues and cache, Mailpit for local email testing, Resend for transactional email
 - EV communication: OCPP 1.6 JSON gateway and SAP charging-station simulator
 - Payment: extensible gateway with in-memory tests and an external WireMock sandbox
 
