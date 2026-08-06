@@ -31,20 +31,35 @@ class ChargingSessionController extends Controller
         $scope = $this->scopedQuery($user)
             ->when($filters['station_id'] ?? null, fn (Builder $query, int $stationId) => $query->where('station_id', $stationId));
         $summary = clone $scope;
+        $activeSession = $user->hasRole('client')
+            ? (clone $scope)
+                ->whereIn('status', ['pending', 'charging', 'stopping'])
+                ->with(self::RELATIONS)
+                ->latest('started_at')
+                ->first()
+            : null;
 
         $sessions = $this->applyFilters($scope, $filters)
             ->with(self::RELATIONS)
             ->orderByDesc('started_at')
-            ->get();
+            ->paginate($filters['per_page'] ?? 25)
+            ->withQueryString();
 
         return response()->json([
-            'data' => ChargingSessionResource::collection($sessions),
+            'data' => ChargingSessionResource::collection($sessions->getCollection()),
+            'active_session' => $activeSession ? new ChargingSessionResource($activeSession) : null,
             'summary' => [
                 'total' => (clone $summary)->count(),
                 'active' => (clone $summary)->whereIn('status', ['pending', 'charging', 'stopping'])->count(),
                 'completed' => (clone $summary)->whereIn('status', ['completed', 'interrupted'])->count(),
                 'energy_kwh' => round((float) ((clone $summary)->sum('energy_kwh')), 3),
                 'revenue_millimes' => (int) (clone $summary)->where('payment_status', 'paid')->sum('total_millimes'),
+            ],
+            'meta' => [
+                'current_page' => $sessions->currentPage(),
+                'last_page' => $sessions->lastPage(),
+                'per_page' => $sessions->perPage(),
+                'total' => $sessions->total(),
             ],
         ]);
     }
@@ -134,6 +149,8 @@ class ChargingSessionController extends Controller
             'station_id' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', Rule::in(['pending', 'charging', 'stopping', 'completed', 'interrupted', 'failed', 'cancelled'])],
             'payment_status' => ['nullable', Rule::in(['unpaid', 'authorized', 'paid', 'failed'])],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
     }
 

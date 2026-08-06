@@ -64,10 +64,12 @@ export function StationDetailPage() {
   const [sessionSearch, setSessionSearch] = useState('')
   const deferredSessionSearch = useDeferredValue(sessionSearch)
   const [sessionStatus, setSessionStatus] = useState<'all' | ChargingSessionStatus>('all')
+  const [sessionPage, setSessionPage] = useState(1)
   const [alertSearch, setAlertSearch] = useState('')
   const deferredAlertSearch = useDeferredValue(alertSearch)
   const [alertSeverity, setAlertSeverity] = useState<'all' | AlertSeverity>('all')
   const [alertStatus, setAlertStatus] = useState<'all' | AlertStatus>('all')
+  const [alertPage, setAlertPage] = useState(1)
   const canUpdate = user?.permissions.includes('stations.update') ?? false
   const canManageConnectors = canUpdate && (user?.permissions.includes('connectors.manage') ?? false)
   const canViewCommands = user?.permissions.includes('ocpp_commands.view') ?? false
@@ -112,14 +114,18 @@ export function StationDetailPage() {
       station_id: numericStationId,
       search: deferredSessionSearch.trim() || undefined,
       status: sessionStatus === 'all' ? undefined : sessionStatus,
+      page: sessionPage,
+      per_page: 7,
     }],
     queryFn: () => getChargingSessions({
       station_id: numericStationId,
       search: deferredSessionSearch.trim() || undefined,
       status: sessionStatus === 'all' ? undefined : sessionStatus,
+      page: sessionPage,
+      per_page: 7,
     }),
     enabled: Number.isFinite(numericStationId) && canViewSessions && activeTab === 'sessions',
-    refetchInterval: (query) => query.state.data?.data.some((session) => ['pending', 'charging', 'stopping'].includes(session.status)) ? 2_500 : false,
+    refetchInterval: (query) => (query.state.data?.summary.active ?? 0) > 0 ? 2_500 : false,
   })
 
   const alertsQuery = useQuery({
@@ -128,12 +134,16 @@ export function StationDetailPage() {
       search: deferredAlertSearch.trim() || undefined,
       severity: alertSeverity === 'all' ? undefined : alertSeverity,
       status: alertStatus === 'all' ? undefined : alertStatus,
+      page: alertPage,
+      per_page: 7,
     }],
     queryFn: () => getAlerts({
       station_id: numericStationId,
       search: deferredAlertSearch.trim() || undefined,
       severity: alertSeverity === 'all' ? undefined : alertSeverity,
       status: alertStatus === 'all' ? undefined : alertStatus,
+      page: alertPage,
+      per_page: 7,
     }),
     enabled: Number.isFinite(numericStationId) && canViewAlerts && activeTab === 'alerts',
     refetchInterval: 15_000,
@@ -435,8 +445,10 @@ export function StationDetailPage() {
           clientMode={isClient}
           search={sessionSearch}
           status={sessionStatus}
-          onSearchChange={setSessionSearch}
-          onStatusChange={setSessionStatus}
+          page={sessionPage}
+          onSearchChange={(value) => { setSessionSearch(value); setSessionPage(1) }}
+          onStatusChange={(value) => { setSessionStatus(value); setSessionPage(1) }}
+          onPageChange={setSessionPage}
           onRetry={() => void sessionsQuery.refetch()}
           onOpenSession={(session) => navigate(`${isClient ? '/my-sessions' : '/sessions'}?search=${encodeURIComponent(session.reference)}`)}
           onOpenAll={() => navigate(`${isClient ? '/my-sessions' : '/sessions'}?search=${encodeURIComponent(station.name)}`)}
@@ -454,9 +466,11 @@ export function StationDetailPage() {
           search={alertSearch}
           severity={alertSeverity}
           status={alertStatus}
-          onSearchChange={setAlertSearch}
-          onSeverityChange={setAlertSeverity}
-          onStatusChange={setAlertStatus}
+          page={alertPage}
+          onSearchChange={(value) => { setAlertSearch(value); setAlertPage(1) }}
+          onSeverityChange={(value) => { setAlertSeverity(value); setAlertPage(1) }}
+          onStatusChange={(value) => { setAlertStatus(value); setAlertPage(1) }}
+          onPageChange={setAlertPage}
           onRetry={() => void alertsQuery.refetch()}
           onOpenAlert={(alert) => navigate(`${isTechnician ? '/assigned-alerts' : '/alerts'}?alert=${alert.id}`)}
           onOpenAll={() => navigate(isTechnician ? '/assigned-alerts' : '/alerts')}
@@ -546,8 +560,10 @@ function StationSessionsPanel({
   clientMode,
   search,
   status,
+  page,
   onSearchChange,
   onStatusChange,
+  onPageChange,
   onRetry,
   onOpenSession,
   onOpenAll,
@@ -558,8 +574,10 @@ function StationSessionsPanel({
   clientMode: boolean
   search: string
   status: 'all' | ChargingSessionStatus
+  page: number
   onSearchChange: (value: string) => void
   onStatusChange: (value: 'all' | ChargingSessionStatus) => void
+  onPageChange: (page: number) => void
   onRetry: () => void
   onOpenSession: (session: ChargingSession) => void
   onOpenAll: () => void
@@ -659,7 +677,14 @@ function StationSessionsPanel({
         loading={loading}
         columns={columns}
         dataSource={data?.data ?? []}
-        pagination={{ pageSize: 7, hideOnSinglePage: true, showSizeChanger: false }}
+        pagination={{
+          current: data?.meta.current_page ?? page,
+          pageSize: data?.meta.per_page ?? 7,
+          total: data?.meta.total ?? 0,
+          hideOnSinglePage: true,
+          showSizeChanger: false,
+          onChange: onPageChange,
+        }}
         scroll={{ x: 900 }}
         locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No session has been recorded for this station" /> }}
       />
@@ -674,9 +699,11 @@ function StationAlertsPanel({
   search,
   severity,
   status,
+  page,
   onSearchChange,
   onSeverityChange,
   onStatusChange,
+  onPageChange,
   onRetry,
   onOpenAlert,
   onOpenAll,
@@ -687,9 +714,11 @@ function StationAlertsPanel({
   search: string
   severity: 'all' | AlertSeverity
   status: 'all' | AlertStatus
+  page: number
   onSearchChange: (value: string) => void
   onSeverityChange: (value: 'all' | AlertSeverity) => void
   onStatusChange: (value: 'all' | AlertStatus) => void
+  onPageChange: (page: number) => void
   onRetry: () => void
   onOpenAlert: (alert: AlertItem) => void
   onOpenAll: () => void
@@ -773,7 +802,14 @@ function StationAlertsPanel({
         loading={loading}
         columns={columns}
         dataSource={data?.data ?? []}
-        pagination={{ pageSize: 7, hideOnSinglePage: true, showSizeChanger: false }}
+        pagination={{
+          current: data?.meta.current_page ?? page,
+          pageSize: data?.meta.per_page ?? 7,
+          total: data?.meta.total ?? 0,
+          hideOnSinglePage: true,
+          showSizeChanger: false,
+          onChange: onPageChange,
+        }}
         scroll={{ x: 980 }}
         locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No alert matches this station view" /> }}
       />

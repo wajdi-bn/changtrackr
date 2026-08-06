@@ -104,6 +104,44 @@ class ChargingSessionPaymentApiTest extends TestCase
             ->assertJsonPath('summary.energy_kwh', 10);
     }
 
+    public function test_session_index_is_paginated_and_keeps_the_clients_active_session_available(): void
+    {
+        [$client, $organization] = $this->userWithRole('client');
+        [$station, $connector] = $this->stationWithConnector($organization, 'CT-SESSION-PAGE');
+
+        foreach (range(1, 12) as $index) {
+            $this->completedSession($client, $station, $connector, sprintf('SES-PAGE-%03d', $index));
+        }
+
+        $activeSession = $this->completedSession($client, $station, $connector, 'SES-PAGE-ACTIVE');
+        $activeSession->update([
+            'status' => 'charging',
+            'payment_status' => 'authorized',
+            'started_at' => now(),
+            'ended_at' => null,
+            'duration_seconds' => 0,
+            'meter_stop_kwh' => null,
+            'energy_kwh' => 0,
+            'total_millimes' => 0,
+        ]);
+        Sanctum::actingAs($client);
+
+        $this->getJson('/api/charging-sessions?page=2&per_page=5')
+            ->assertOk()
+            ->assertJsonCount(5, 'data')
+            ->assertJsonPath('summary.total', 13)
+            ->assertJsonPath('summary.active', 1)
+            ->assertJsonPath('active_session.id', $activeSession->id)
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonPath('meta.last_page', 3)
+            ->assertJsonPath('meta.per_page', 5)
+            ->assertJsonPath('meta.total', 13);
+
+        $this->getJson('/api/charging-sessions?per_page=101')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('per_page');
+    }
+
     public function test_global_client_cannot_start_a_session_for_an_inactive_organization(): void
     {
         [$client] = $this->userWithRole('client');
@@ -143,6 +181,39 @@ class ChargingSessionPaymentApiTest extends TestCase
         $this->get("/api/payments/{$paymentId}/receipt")
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_payment_index_is_paginated_without_truncating_the_summary(): void
+    {
+        [$client, $organization] = $this->userWithRole('client');
+        [$station, $connector] = $this->stationWithConnector($organization, 'CT-PAYMENT-PAGE');
+
+        foreach (range(1, 12) as $index) {
+            $session = $this->completedSession($client, $station, $connector, sprintf('SES-PAY-PAGE-%03d', $index));
+            $this->payment(
+                $session,
+                $client,
+                sprintf('PAY-PAGE-%03d', $index),
+                sprintf('70000000-0000-4000-8000-%012d', $index),
+            );
+        }
+
+        Sanctum::actingAs($client);
+
+        $this->getJson('/api/payments?page=2&per_page=5')
+            ->assertOk()
+            ->assertJsonCount(5, 'data')
+            ->assertJsonPath('summary.total', 12)
+            ->assertJsonPath('summary.paid', 12)
+            ->assertJsonPath('summary.revenue_millimes', 108000)
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonPath('meta.last_page', 3)
+            ->assertJsonPath('meta.per_page', 5)
+            ->assertJsonPath('meta.total', 12);
+
+        $this->getJson('/api/payments?per_page=101')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('per_page');
     }
 
     public function test_failed_simulated_payment_can_be_retried_successfully(): void

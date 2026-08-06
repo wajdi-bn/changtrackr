@@ -26,19 +26,23 @@ export function PaymentsPage() {
   const [search, setSearch] = useState(() => searchParams.get('search') ?? '')
   const deferredSearch = useDeferredValue(search)
   const [status, setStatus] = useState<'all' | PaymentStatus>('all')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(8)
   const [paymentSession, setPaymentSession] = useState<ChargingSession | null>(null)
   const [receiptPreview, setReceiptPreview] = useState<OperationalPreviewTarget | null>(null)
   const queryClient = useQueryClient()
   const { message } = App.useApp()
-  const filters = useMemo(() => ({ search: deferredSearch.trim() || undefined, status: status === 'all' ? undefined : status }), [deferredSearch, status])
-  const paymentsQuery = useQuery({ queryKey: ['payments', filters], queryFn: () => getPayments(filters) })
-  const unpaidQuery = useQuery({ queryKey: ['charging-sessions', 'unpaid'], queryFn: () => getChargingSessions({ payment_status: 'unpaid' }), enabled: clientMode })
-  const failedQuery = useQuery({ queryKey: ['charging-sessions', 'failed-payment'], queryFn: () => getChargingSessions({ payment_status: 'failed' }), enabled: clientMode })
+  const listFilters = useMemo(() => ({ search: deferredSearch.trim() || undefined, status: status === 'all' ? undefined : status, page, per_page: pageSize }), [deferredSearch, page, pageSize, status])
+  const exportFilters = useMemo(() => ({ search: deferredSearch.trim() || undefined, status: status === 'all' ? undefined : status }), [deferredSearch, status])
+  const paymentsQuery = useQuery({ queryKey: ['payments', listFilters], queryFn: () => getPayments(listFilters) })
+  const unpaidQuery = useQuery({ queryKey: ['charging-sessions', 'unpaid'], queryFn: () => getChargingSessions({ payment_status: 'unpaid', per_page: 100 }), enabled: clientMode })
+  const failedQuery = useQuery({ queryKey: ['charging-sessions', 'failed-payment'], queryFn: () => getChargingSessions({ payment_status: 'failed', per_page: 100 }), enabled: clientMode })
   const payableSessions = useMemo(() => [...(unpaidQuery.data?.data ?? []), ...(failedQuery.data?.data ?? [])]
     .filter((session) => ['completed', 'interrupted'].includes(session.status)), [failedQuery.data?.data, unpaidQuery.data?.data])
 
   useEffect(() => {
     setSearch(searchParams.get('search') ?? '')
+    setPage(1)
   }, [searchParams])
 
   const paymentMutation = useMutation({
@@ -56,7 +60,7 @@ export function PaymentsPage() {
     onError: (error) => void message.error(paymentErrorMessage(error)),
   })
   const exportMutation = useMutation({
-    mutationFn: (format: ExportFormat) => exportPayments(filters, format),
+    mutationFn: (format: ExportFormat) => exportPayments(exportFilters, format),
     onSuccess: (blob, format) => {
       downloadBlob(blob, `organization-payments.${format}`)
       void message.success(`Payment export generated as ${format.toUpperCase()}.`)
@@ -104,8 +108,19 @@ export function PaymentsPage() {
     </section>}
 
     <Card className="payments-table-card" title={clientMode ? 'Payment history' : 'All transactions'} extra={!clientMode && canExport && <ExportDropdown loading={exportMutation.isPending} onExport={(format) => exportMutation.mutate(format)} />}>
-      <div className="sessions-toolbar"><Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={14} />} placeholder="Search payment or session" allowClear /><Select value={status} onChange={(value) => setStatus(value)} options={['all', 'paid', 'failed', 'pending'].map((value) => ({ value, label: value === 'all' ? 'All statuses' : value }))} /></div>
-      <Table rowKey="id" columns={columns} dataSource={paymentsQuery.data?.data ?? []} loading={paymentsQuery.isLoading} pagination={{ pageSize: 8, hideOnSinglePage: true }} scroll={{ x: 900 }} locale={{ emptyText: <Empty description="No payment transactions found" /> }} />
+      <div className="sessions-toolbar"><Input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} prefix={<Search size={14} />} placeholder="Search payment or session" allowClear /><Select value={status} onChange={(value) => { setStatus(value); setPage(1) }} options={['all', 'paid', 'failed', 'pending'].map((value) => ({ value, label: value === 'all' ? 'All statuses' : value }))} /></div>
+      <Table rowKey="id" columns={columns} dataSource={paymentsQuery.data?.data ?? []} loading={paymentsQuery.isLoading} pagination={{
+        current: paymentsQuery.data?.meta.current_page ?? page,
+        pageSize: paymentsQuery.data?.meta.per_page ?? pageSize,
+        total: paymentsQuery.data?.meta.total ?? 0,
+        hideOnSinglePage: true,
+        showSizeChanger: true,
+        pageSizeOptions: [8, 16, 32],
+        onChange: (nextPage, nextPageSize) => {
+          setPage(nextPageSize === pageSize ? nextPage : 1)
+          setPageSize(nextPageSize)
+        },
+      }} scroll={{ x: 900 }} locale={{ emptyText: <Empty description="No payment transactions found" /> }} />
     </Card>
     <PaymentDrawer open={Boolean(paymentSession)} session={paymentSession} submitting={paymentMutation.isPending} onClose={() => setPaymentSession(null)} onSubmit={(payload) => paymentSession && paymentMutation.mutate({ sessionId: paymentSession.id, payload })} />
     <OperationalDocumentPreviewModal target={receiptPreview} onClose={() => setReceiptPreview(null)} />

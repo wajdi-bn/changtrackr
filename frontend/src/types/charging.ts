@@ -1,4 +1,5 @@
 import type { OrganizationSummary } from './auth'
+import type { PaginationMeta } from './pagination'
 
 export type ChargingSessionStatus = 'pending' | 'charging' | 'stopping' | 'completed' | 'interrupted' | 'failed' | 'cancelled'
 export type SessionPaymentStatus = 'unpaid' | 'authorized' | 'paid' | 'failed'
@@ -128,6 +129,7 @@ export interface ChargingAttemptPayload {
 
 export interface ChargingSessionsResponse {
   data: ChargingSession[]
+  active_session: ChargingSession | null
   summary: {
     total: number
     active: number
@@ -135,6 +137,7 @@ export interface ChargingSessionsResponse {
     energy_kwh: number
     revenue_millimes: number
   }
+  meta: PaginationMeta
 }
 
 export interface PaymentsResponse {
@@ -145,6 +148,7 @@ export interface PaymentsResponse {
     failed: number
     revenue_millimes: number
   }
+  meta: PaginationMeta
 }
 
 export interface PaymentPayload {

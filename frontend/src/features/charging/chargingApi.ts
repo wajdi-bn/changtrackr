@@ -18,6 +18,15 @@ export interface SessionFilters {
   station_id?: number
   status?: ChargingSessionStatus
   payment_status?: SessionPaymentStatus
+  page?: number
+  per_page?: number
+}
+
+export interface PaymentFilters {
+  search?: string
+  status?: PaymentStatus
+  page?: number
+  per_page?: number
 }
 
 export async function getChargingSessions(filters: SessionFilters = {}): Promise<ChargingSessionsResponse> {
@@ -25,7 +34,7 @@ export async function getChargingSessions(filters: SessionFilters = {}): Promise
   return response.data
 }
 
-export async function exportChargingSessions(filters: SessionFilters, format: ExportFormat): Promise<Blob> {
+export async function exportChargingSessions(filters: Omit<SessionFilters, 'page' | 'per_page'>, format: ExportFormat): Promise<Blob> {
   const response = await httpClient.get<Blob>('/charging-sessions/export', {
     params: { ...filters, format },
     responseType: 'blob',
@@ -63,12 +72,12 @@ export async function remoteStopChargingSession(sessionId: number): Promise<Char
   return response.data.data
 }
 
-export async function getPayments(filters: { search?: string; status?: PaymentStatus } = {}): Promise<PaymentsResponse> {
+export async function getPayments(filters: PaymentFilters = {}): Promise<PaymentsResponse> {
   const response = await httpClient.get<PaymentsResponse>('/payments', { params: filters })
   return response.data
 }
 
-export async function exportPayments(filters: { search?: string; status?: PaymentStatus }, format: ExportFormat): Promise<Blob> {
+export async function exportPayments(filters: Omit<PaymentFilters, 'page' | 'per_page'>, format: ExportFormat): Promise<Blob> {
   const response = await httpClient.get<Blob>('/payments/export', {
     params: { ...filters, format },
     responseType: 'blob',

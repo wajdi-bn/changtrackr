@@ -35,6 +35,8 @@ export function SessionsPage() {
   const [search, setSearch] = useState(() => searchParams.get('search') ?? '')
   const deferredSearch = useDeferredValue(search)
   const [status, setStatus] = useState<'all' | ChargingSessionStatus>('all')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(8)
   const [startOpen, setStartOpen] = useState(false)
   const [resumeAttemptUuid, setResumeAttemptUuid] = useState<string | null>(null)
   const [paymentSession, setPaymentSession] = useState<ChargingSession | null>(null)
@@ -44,23 +46,30 @@ export function SessionsPage() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const filters = useMemo(() => ({
+  const listFilters = useMemo(() => ({
+    search: deferredSearch.trim() || undefined,
+    status: status === 'all' ? undefined : status,
+    page,
+    per_page: pageSize,
+  }), [deferredSearch, page, pageSize, status])
+  const exportFilters = useMemo(() => ({
     search: deferredSearch.trim() || undefined,
     status: status === 'all' ? undefined : status,
   }), [deferredSearch, status])
   const sessionsQuery = useQuery({
-    queryKey: ['charging-sessions', filters],
-    queryFn: () => getChargingSessions(filters),
-    refetchInterval: (query) => query.state.data?.data.some(isActiveSession) ? 2500 : false,
+    queryKey: ['charging-sessions', listFilters],
+    queryFn: () => getChargingSessions(listFilters),
+    refetchInterval: (query) => query.state.data?.active_session || query.state.data?.data.some(isActiveSession) ? 2500 : false,
   })
   const stationsQuery = useQuery({ queryKey: ['stations', 'session-start'], queryFn: () => getStations({}), enabled: clientMode })
   const attemptsQuery = useQuery({ queryKey: ['charging-attempts'], queryFn: getChargingAttempts, enabled: clientMode })
   const sessions = useMemo(() => sessionsQuery.data?.data ?? [], [sessionsQuery.data?.data])
-  const activeSession = sessions.find((session) => isActiveSession(session)) ?? null
+  const activeSession = sessionsQuery.data?.active_session ?? sessions.find((session) => isActiveSession(session)) ?? null
   const activeAttempt = attemptsQuery.data?.find((attempt) => isActiveAttempt(attempt)) ?? null
 
   useEffect(() => {
     setSearch(searchParams.get('search') ?? '')
+    setPage(1)
   }, [searchParams])
 
   useEffect(() => {
@@ -87,7 +96,7 @@ export function SessionsPage() {
     onError: () => void message.error('The session could not be stopped.'),
   })
   const exportMutation = useMutation({
-    mutationFn: (format: ExportFormat) => exportChargingSessions(filters, format),
+    mutationFn: (format: ExportFormat) => exportChargingSessions(exportFilters, format),
     onSuccess: (blob, format) => {
       downloadBlob(blob, `organization-charging-sessions.${format}`)
       void message.success(`Session export generated as ${format.toUpperCase()}.`)
@@ -179,10 +188,21 @@ export function SessionsPage() {
       ? <Button type="primary" icon={<Play size={14} />} disabled={Boolean(activeSession || activeAttempt)} onClick={() => { setResumeAttemptUuid(null); setStartOpen(true) }}>Start session</Button>
       : canExport && <ExportDropdown loading={exportMutation.isPending} onExport={(format) => exportMutation.mutate(format)} />}>
       <div className="sessions-toolbar">
-        <Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={14} />} placeholder="Search sessions" allowClear />
-        <Select value={status} onChange={(value) => setStatus(value)} options={['all', 'pending', 'charging', 'stopping', 'completed', 'interrupted', 'failed', 'cancelled'].map((value) => ({ value, label: value === 'all' ? 'All statuses' : value }))} />
+        <Input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} prefix={<Search size={14} />} placeholder="Search sessions" allowClear />
+        <Select value={status} onChange={(value) => { setStatus(value); setPage(1) }} options={['all', 'pending', 'charging', 'stopping', 'completed', 'interrupted', 'failed', 'cancelled'].map((value) => ({ value, label: value === 'all' ? 'All statuses' : value }))} />
       </div>
-      <Table rowKey="id" columns={columns} dataSource={sessions} loading={sessionsQuery.isLoading} pagination={{ pageSize: 8, hideOnSinglePage: true }} scroll={{ x: 1050 }} locale={{ emptyText: <Empty description="No charging sessions found" /> }} />
+      <Table rowKey="id" columns={columns} dataSource={sessions} loading={sessionsQuery.isLoading} pagination={{
+        current: sessionsQuery.data?.meta.current_page ?? page,
+        pageSize: sessionsQuery.data?.meta.per_page ?? pageSize,
+        total: sessionsQuery.data?.meta.total ?? 0,
+        hideOnSinglePage: true,
+        showSizeChanger: true,
+        pageSizeOptions: [8, 16, 32],
+        onChange: (nextPage, nextPageSize) => {
+          setPage(nextPageSize === pageSize ? nextPage : 1)
+          setPageSize(nextPageSize)
+        },
+      }} scroll={{ x: 1050 }} locale={{ emptyText: <Empty description="No charging sessions found" /> }} />
     </Card>
 
     <StartSessionDrawer open={startOpen} stations={stationsQuery.data?.data ?? []} initialAttemptUuid={resumeAttemptUuid} onClose={() => setStartOpen(false)} onSessionStarted={() => { setStartOpen(false); setActiveModalOpen(true); void refreshWorkflow(); void message.success('The station confirmed that charging has started.') }} />

@@ -14,9 +14,14 @@ import type {
   MaintenancesResponse,
 } from '../../types/operations'
 
-export async function getAlerts(filters: { search?: string; station_id?: number; severity?: AlertSeverity; status?: AlertStatus }): Promise<AlertsResponse> {
+export async function getAlerts(filters: { search?: string; station_id?: number; severity?: AlertSeverity; status?: AlertStatus; page?: number; per_page?: number }): Promise<AlertsResponse> {
   const response = await httpClient.get<AlertsResponse>('/alerts', { params: filters })
   return response.data
+}
+
+export async function getAlert(alertId: number): Promise<AlertItem> {
+  const response = await httpClient.get<{ data: AlertItem }>(`/alerts/${alertId}`)
+  return response.data.data
 }
 
 export async function createAlert(payload: {

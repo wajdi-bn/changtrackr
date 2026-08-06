@@ -1,3 +1,5 @@
+import type { PaginationMeta } from './pagination'
+
 export type AlertSeverity = 'critical' | 'warning' | 'info'
 export type AlertStatus = 'new' | 'in-progress' | 'resolved'
 export type InterventionStatus = 'assigned' | 'in-progress' | 'paused' | 'waiting-parts' | 'resolved' | 'cancelled'
@@ -45,6 +47,7 @@ export interface AlertsResponse {
   data: AlertItem[]
   summary: { total: number; critical: number; new: number; in_progress: number }
   technicians: TechnicianOption[]
+  meta: PaginationMeta
 }
 
 export interface InterventionItem {

@@ -36,6 +36,8 @@ class AlertController extends Controller
             'station_id' => ['nullable', 'integer', 'min:1'],
             'severity' => ['nullable', Rule::in(['critical', 'warning', 'info'])],
             'status' => ['nullable', Rule::in(['new', 'in-progress', 'resolved'])],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
         /** @var User $user */
@@ -60,7 +62,8 @@ class AlertController extends Controller
             })
             ->orderByRaw("CASE severity WHEN 'critical' THEN 1 WHEN 'warning' THEN 2 ELSE 3 END")
             ->orderByDesc('detected_at')
-            ->get();
+            ->paginate($filters['per_page'] ?? 25)
+            ->withQueryString();
 
         $technicians = $user->can('alerts.assign')
             ? User::query()
@@ -72,7 +75,7 @@ class AlertController extends Controller
             : collect();
 
         return response()->json([
-            'data' => AlertResource::collection($alerts),
+            'data' => AlertResource::collection($alerts->getCollection()),
             'summary' => [
                 'total' => (clone $summaryQuery)->count(),
                 'critical' => (clone $summaryQuery)->where('severity', 'critical')->where('status', '!=', 'resolved')->count(),
@@ -80,6 +83,12 @@ class AlertController extends Controller
                 'in_progress' => (clone $summaryQuery)->where('status', 'in-progress')->count(),
             ],
             'technicians' => $technicians,
+            'meta' => [
+                'current_page' => $alerts->currentPage(),
+                'last_page' => $alerts->lastPage(),
+                'per_page' => $alerts->perPage(),
+                'total' => $alerts->total(),
+            ],
         ]);
     }
 

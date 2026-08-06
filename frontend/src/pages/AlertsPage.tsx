@@ -1,6 +1,6 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { App, Button, DatePicker, Drawer, Empty, Form, Input, InputNumber, Select, Skeleton, Tooltip } from 'antd'
+import { App, Button, DatePicker, Drawer, Empty, Form, Input, InputNumber, Pagination, Select, Skeleton, Tooltip } from 'antd'
 import dayjs from 'dayjs'
 import {
   CalendarDays,
@@ -21,6 +21,7 @@ import { getStations } from '../features/stations/stationApi'
 import {
   createAlert,
   createIntervention,
+  getAlert,
   getAlerts,
   updateAlert,
 } from '../features/operations/operationsApi'
@@ -41,8 +42,10 @@ export function AlertsPage() {
   const deferredSearch = useDeferredValue(search)
   const [severity, setSeverity] = useState<'all' | AlertSeverity>('all')
   const [status, setStatus] = useState<'all' | AlertStatus>('all')
+  const [page, setPage] = useState(1)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [searchParams] = useSearchParams()
+  const handledRequestedAlert = useRef<string | null>(null)
   const [drawer, setDrawer] = useState<'create' | 'assign' | 'intervention' | null>(null)
   const [reportPreview, setReportPreview] = useState<OperationalPreviewTarget | null>(null)
   const queryClient = useQueryClient()
@@ -53,22 +56,38 @@ export function AlertsPage() {
     search: deferredSearch.trim() || undefined,
     severity: severity === 'all' ? undefined : severity,
     status: status === 'all' ? undefined : status,
-  }), [deferredSearch, severity, status])
+    page,
+    per_page: 10,
+  }), [deferredSearch, page, severity, status])
 
   const alertsQuery = useQuery({ queryKey: ['alerts', filters, technicianMode], queryFn: () => getAlerts(filters) })
   const stationsQuery = useQuery({ queryKey: ['stations', 'alert-options'], queryFn: () => getStations({}), enabled: canManageAlerts })
   const alerts = useMemo(() => alertsQuery.data?.data ?? [], [alertsQuery.data?.data])
-  const selectedAlert = alerts.find((alert) => alert.id === selectedId) ?? alerts[0] ?? null
+  const selectedAlertOnPage = alerts.find((alert) => alert.id === selectedId) ?? null
+  const selectedAlertQuery = useQuery({
+    queryKey: ['alerts', 'detail', selectedId],
+    queryFn: () => getAlert(selectedId!),
+    enabled: selectedId !== null && selectedAlertOnPage === null,
+  })
+  const selectedAlert = selectedId === null
+    ? alerts[0] ?? null
+    : selectedAlertOnPage ?? selectedAlertQuery.data ?? null
 
   useEffect(() => {
-    const requestedId = Number(searchParams.get('alert'))
-    if (Number.isInteger(requestedId) && alerts.some((alert) => alert.id === requestedId)) {
-      if (selectedId !== requestedId) setSelectedId(requestedId)
+    const requestedAlert = searchParams.get('alert')
+    const requestedId = Number(requestedAlert)
+    if (requestedAlert && handledRequestedAlert.current !== requestedAlert && Number.isInteger(requestedId) && requestedId > 0) {
+      handledRequestedAlert.current = requestedAlert
+      setSelectedId(requestedId)
       return
     }
     if (selectedId === null && alerts[0]) setSelectedId(alerts[0].id)
-    if (selectedId !== null && alerts.length > 0 && !alerts.some((alert) => alert.id === selectedId)) setSelectedId(alerts[0].id)
   }, [alerts, searchParams, selectedId])
+
+  const resetListing = () => {
+    setPage(1)
+    setSelectedId(null)
+  }
 
   const updateMutation = useMutation({
     mutationFn: ({ alertId, payload }: { alertId: number; payload: Parameters<typeof updateAlert>[1] }) => updateAlert(alertId, payload),
@@ -123,17 +142,17 @@ export function AlertsPage() {
       <div className="alerts-split">
         <section className="alerts-list-panel">
           <div className="alerts-search-row">
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={14} />} placeholder="Search alerts" allowClear />
+            <Input value={search} onChange={(event) => { setSearch(event.target.value); resetListing() }} prefix={<Search size={14} />} placeholder="Search alerts" allowClear />
             {canManageAlerts && <Button type="primary" onClick={() => setDrawer('create')}>Create <ChevronDown size={14} /></Button>}
           </div>
           <div className="alerts-filter-pills">
             {(['all', 'critical', 'warning', 'info'] as const).map((item) => (
-              <button key={item} type="button" className={severity === item ? 'active' : ''} onClick={() => setSeverity(item)}>{item === 'all' ? 'All severity' : item}</button>
+              <button key={item} type="button" className={severity === item ? 'active' : ''} onClick={() => { setSeverity(item); resetListing() }}>{item === 'all' ? 'All severity' : item}</button>
             ))}
           </div>
           <div className="alerts-status-row">
             {(['all', 'new', 'in-progress', 'resolved'] as const).map((item) => (
-              <button key={item} type="button" className={status === item ? 'active' : ''} onClick={() => setStatus(item)}>{item === 'all' ? 'All status' : item.replace('-', ' ')}</button>
+              <button key={item} type="button" className={status === item ? 'active' : ''} onClick={() => { setStatus(item); resetListing() }}>{item === 'all' ? 'All status' : item.replace('-', ' ')}</button>
             ))}
             <Tooltip title="Severity and status filters"><Filter size={14} /></Tooltip>
           </div>
@@ -147,10 +166,19 @@ export function AlertsPage() {
               </button>
             ))}
           </div>
+          {(alertsQuery.data?.meta.total ?? 0) > 0 && <Pagination
+            className="alerts-pagination"
+            current={alertsQuery.data?.meta.current_page ?? page}
+            pageSize={alertsQuery.data?.meta.per_page ?? 10}
+            total={alertsQuery.data?.meta.total ?? 0}
+            showSizeChanger={false}
+            hideOnSinglePage
+            onChange={(nextPage) => { setPage(nextPage); setSelectedId(null) }}
+          />}
         </section>
 
         <section className="alert-detail-panel">
-          {!selectedAlert ? <Empty description="Select an alert" /> : (
+          {selectedAlertQuery.isLoading ? <Skeleton active paragraph={{ rows: 10 }} /> : !selectedAlert ? <Empty description="Select an alert" /> : (
             <AlertDetails
               alert={selectedAlert}
               technicianMode={technicianMode}

@@ -6501,6 +6501,12 @@ html {
   padding-right: 2px;
 }
 
+.alerts-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
 .alert-list-item {
   display: block;
   width: 100%;

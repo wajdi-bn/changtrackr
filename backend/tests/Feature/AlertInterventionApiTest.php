@@ -75,6 +75,32 @@ class AlertInterventionApiTest extends TestCase
             ->assertJsonPath('summary.critical', 1);
     }
 
+    public function test_alert_index_is_paginated_without_truncating_the_summary(): void
+    {
+        $organization = $this->organization('paginated-alert-network');
+        $operator = $this->user($organization, 'operator');
+        $station = $this->station($organization, 'CT-ALERT-PAGE-001');
+
+        foreach (range(1, 12) as $index) {
+            $this->alert($station, sprintf('ALT-PAGE-%03d', $index));
+        }
+
+        Sanctum::actingAs($operator);
+
+        $this->getJson('/api/alerts?page=2&per_page=5')
+            ->assertOk()
+            ->assertJsonCount(5, 'data')
+            ->assertJsonPath('summary.total', 12)
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonPath('meta.last_page', 3)
+            ->assertJsonPath('meta.per_page', 5)
+            ->assertJsonPath('meta.total', 12);
+
+        $this->getJson('/api/alerts?per_page=101')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('per_page');
+    }
+
     public function test_operator_can_assign_an_alert_and_create_an_intervention(): void
     {
         $organization = $this->organization('workflow-network');

@@ -31,15 +31,22 @@ class PaymentController extends Controller
         $payments = $this->applyFilters($scope, $filters)
             ->with(['organization', 'chargingSession', 'user', 'latestProviderEvent'])
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate($filters['per_page'] ?? 25)
+            ->withQueryString();
 
         return response()->json([
-            'data' => PaymentResource::collection($payments),
+            'data' => PaymentResource::collection($payments->getCollection()),
             'summary' => [
                 'total' => (clone $summary)->count(),
                 'paid' => (clone $summary)->where('status', 'paid')->count(),
                 'failed' => (clone $summary)->where('status', 'failed')->count(),
                 'revenue_millimes' => (int) (clone $summary)->where('status', 'paid')->sum('amount_millimes'),
+            ],
+            'meta' => [
+                'current_page' => $payments->currentPage(),
+                'last_page' => $payments->lastPage(),
+                'per_page' => $payments->perPage(),
+                'total' => $payments->total(),
             ],
         ]);
     }
@@ -108,6 +115,8 @@ class PaymentController extends Controller
         return $request->validate([
             'status' => ['nullable', Rule::in(['pending', 'paid', 'failed'])],
             'search' => ['nullable', 'string', 'max:120'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
     }
 
