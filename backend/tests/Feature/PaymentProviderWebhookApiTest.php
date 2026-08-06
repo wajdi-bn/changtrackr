@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\ChargingSession;
 use App\Models\ChargingPlan;
+use App\Models\ChargingSession;
 use App\Models\Connector;
 use App\Models\Organization;
 use App\Models\Payment;
@@ -51,7 +51,8 @@ class PaymentProviderWebhookApiTest extends TestCase
             'id' => $payment->charging_session_id,
             'payment_status' => 'paid',
         ]);
-        $this->assertSame(12.5, (float) $station->fresh()->revenue_today);
+        $station = Station::query()->withTodayMetrics()->findOrFail($station->id);
+        $this->assertSame(12500, (int) $station->daily_revenue_millimes);
     }
 
     public function test_an_invalid_signature_is_rejected_without_persisting_the_event(): void
@@ -151,7 +152,6 @@ class PaymentProviderWebhookApiTest extends TestCase
             'max_power_kw' => 120,
             'model' => 'Test Model',
             'manufacturer' => 'Test Manufacturer',
-            'revenue_today' => 0,
         ]);
         $connector = Connector::query()->create([
             'station_id' => $station->id,

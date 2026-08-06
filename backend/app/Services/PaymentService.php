@@ -9,7 +9,6 @@ use App\Events\ChargingSessionChanged;
 use App\Models\ChargingAttempt;
 use App\Models\ChargingSession;
 use App\Models\Payment;
-use App\Models\Station;
 use App\Models\User;
 use App\Services\Notifications\OperationalNotificationService;
 use App\Services\Payments\PaymentProviderEventService;
@@ -135,7 +134,6 @@ class PaymentService
 
                 if ($session->payment_status !== 'paid') {
                     $session->update(['payment_status' => 'paid']);
-                    Station::query()->whereKey($session->station_id)->increment('revenue_today', $payment->amount_millimes / 1000);
                 }
             } else {
                 $payment->update([
@@ -269,7 +267,6 @@ class PaymentService
                 ]);
                 if ($session->payment_status !== 'paid') {
                     $session->update(['payment_status' => 'paid']);
-                    Station::query()->whereKey($session->station_id)->increment('revenue_today', $payment->amount_millimes / 1000);
                 }
                 $attempt->update(['payment_status' => 'captured', 'status' => 'completed', 'completed_at' => now()]);
             } else {

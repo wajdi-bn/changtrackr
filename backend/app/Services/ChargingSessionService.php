@@ -143,19 +143,13 @@ class ChargingSessionService
                 $connector->update(['status' => 'available', 'last_status_at' => now()]);
             }
 
-            if ($station) {
+            if ($station && ! $station->isOcppManaged()) {
                 $hasOtherActiveSessions = ChargingSession::query()
                     ->where('station_id', $station->id)
                     ->where('status', 'charging')
                     ->whereKeyNot($session->id)
                     ->exists();
-                $station->update([
-                    ...($station->isOcppManaged() ? [] : [
-                        'status' => $hasOtherActiveSessions ? 'charging' : 'available',
-                    ]),
-                    'energy_today_kwh' => $station->energy_today_kwh + $energyKwh,
-                    'sessions_today' => $station->sessions_today + 1,
-                ]);
+                $station->update(['status' => $hasOtherActiveSessions ? 'charging' : 'available']);
             }
 
             return $session->fresh()->load(['organization', 'station', 'connector', 'client', 'payment']);
@@ -322,14 +316,6 @@ class ChargingSessionService
                 'total_millimes' => $pricing['total_millimes'],
                 'current_power_kw' => 0,
             ]);
-
-            $station = Station::query()->lockForUpdate()->find($session->station_id);
-            if ($station !== null) {
-                $station->update([
-                    'energy_today_kwh' => $station->energy_today_kwh + $energyKwh,
-                    'sessions_today' => $station->sessions_today + 1,
-                ]);
-            }
 
             $session = $session->fresh()->load(['organization', 'station', 'connector', 'client', 'payment']);
             event(ChargingSessionChanged::fromSession($session));

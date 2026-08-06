@@ -46,6 +46,7 @@ class StationController extends Controller
 
         $summaryQuery = clone $scope;
         $query = $scope
+            ->withTodayMetrics()
             ->with(['organization', 'connectors' => fn ($query) => $query->orderBy('external_id')])
             ->withCount('connectors')
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
@@ -148,7 +149,7 @@ class StationController extends Controller
 
         $station = Station::query()->create($attributes);
 
-        return (new StationResource($station->load(['organization', 'connectors'])->loadCount('connectors')))
+        return (new StationResource($station->load(['organization', 'connectors'])->loadCount('connectors')->loadTodayMetrics()))
             ->response()
             ->setStatusCode(201);
     }
@@ -157,7 +158,7 @@ class StationController extends Controller
     {
         Gate::authorize('view', $station);
 
-        return new StationResource($station->load(['organization', 'connectors'])->loadCount('connectors'));
+        return new StationResource($station->load(['organization', 'connectors'])->loadCount('connectors')->loadTodayMetrics());
     }
 
     public function update(UpdateStationRequest $request, Station $station): StationResource
@@ -169,7 +170,7 @@ class StationController extends Controller
             $station = $this->availabilityProjector->project($station->id)['station'];
         }
 
-        return new StationResource($station->fresh()->load(['organization', 'connectors'])->loadCount('connectors'));
+        return new StationResource($station->fresh()->load(['organization', 'connectors'])->loadCount('connectors')->loadTodayMetrics());
     }
 
     public function destroy(Station $station): JsonResponse

@@ -11,6 +11,9 @@ class StationResource extends JsonResource
     public function toArray(Request $request): array
     {
         $connectors = $this->whenLoaded('connectors');
+        $dailyEnergyKwh = (float) ($this->daily_energy_kwh ?? 0);
+        $dailySessionsCount = (int) ($this->daily_sessions_count ?? 0);
+        $dailyRevenueMillimes = (int) ($this->daily_revenue_millimes ?? 0);
 
         return [
             'id' => $this->id,
@@ -53,10 +56,10 @@ class StationResource extends JsonResource
             'last_heartbeat_at' => $this->last_heartbeat_at?->toISOString(),
             'last_heartbeat_relative' => $this->last_heartbeat_at?->diffForHumans() ?? 'Never',
             'uptime_percent' => $this->uptime_percent,
-            'energy_today_kwh' => $this->energy_today_kwh,
-            'sessions_today' => $this->sessions_today,
+            'energy_today_kwh' => round($dailyEnergyKwh, 3),
+            'sessions_today' => $dailySessionsCount,
             'utilization_percent' => $this->utilization_percent,
-            'revenue_today' => $this->revenue_today,
+            'revenue_today' => round($dailyRevenueMillimes / 1000, 3),
             'open_alerts_count' => $this->open_alerts_count,
             'connectors_count' => $this->whenCounted('connectors'),
             'available_connectors_count' => $this->relationLoaded('connectors')

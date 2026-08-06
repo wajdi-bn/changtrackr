@@ -2,10 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\ChargingSession;
 use App\Models\Connector;
 use App\Models\Organization;
+use App\Models\Payment;
 use App\Models\Station;
 use App\Models\User;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -36,6 +40,60 @@ class StationApiTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $visible->id)
             ->assertJsonPath('summary.stations', 1);
+    }
+
+    public function test_station_today_metrics_are_calculated_from_local_day_records(): void
+    {
+        config()->set('station_metrics.timezone', 'Africa/Tunis');
+        $this->travelTo(CarbonImmutable::parse('2026-08-06 12:00:00', 'Africa/Tunis'));
+        [$operator, $organization] = $this->userWithRole('operator');
+        $client = User::factory()->create(['organization_id' => null, 'status' => 'active']);
+        $station = $this->station($organization, 'CT-DAILY-METRICS');
+
+        $paidToday = $this->dailySession(
+            $station,
+            $client,
+            'SES-DAILY-PAID',
+            4.5,
+            CarbonImmutable::parse('2026-08-06 00:15:00', 'Africa/Tunis')->utc(),
+        );
+        $failedToday = $this->dailySession(
+            $station,
+            $client,
+            'SES-DAILY-FAILED',
+            1.5,
+            CarbonImmutable::parse('2026-08-06 09:00:00', 'Africa/Tunis')->utc(),
+        );
+        $paidYesterday = $this->dailySession(
+            $station,
+            $client,
+            'SES-DAILY-YESTERDAY',
+            99,
+            CarbonImmutable::parse('2026-08-05 23:59:00', 'Africa/Tunis')->utc(),
+        );
+        $this->dailyPayment($paidToday, $client, 'PAY-DAILY-PAID', 'paid', 2500, now());
+        $this->dailyPayment($failedToday, $client, 'PAY-DAILY-FAILED', 'failed', 7500, null);
+        $this->dailyPayment(
+            $paidYesterday,
+            $client,
+            'PAY-DAILY-YESTERDAY',
+            'paid',
+            9000,
+            CarbonImmutable::parse('2026-08-05 23:59:00', 'Africa/Tunis')->utc(),
+        );
+        Sanctum::actingAs($operator);
+
+        $this->getJson("/api/stations/{$station->id}")
+            ->assertOk()
+            ->assertJsonPath('data.energy_today_kwh', fn ($value) => (float) $value === 6.0)
+            ->assertJsonPath('data.sessions_today', 2)
+            ->assertJsonPath('data.revenue_today', fn ($value) => (float) $value === 2.5);
+        $this->getJson('/api/stations')
+            ->assertOk()
+            ->assertJsonPath('data.0.energy_today_kwh', fn ($value) => (float) $value === 6.0)
+            ->assertJsonPath('data.0.sessions_today', 2)
+            ->assertJsonPath('data.0.revenue_today', fn ($value) => (float) $value === 2.5);
+
     }
 
     public function test_operator_can_create_a_station_in_their_organization(): void
@@ -370,6 +428,67 @@ class StationApiTest extends TestCase
         return Station::query()->create([
             ...$this->stationPayload($reference),
             'organization_id' => $organization->id,
+        ]);
+    }
+
+    private function dailySession(
+        Station $station,
+        User $client,
+        string $reference,
+        float $energyKwh,
+        CarbonImmutable $endedAt,
+    ): ChargingSession {
+        return ChargingSession::query()->create([
+            'organization_id' => $station->organization_id,
+            'client_id' => $client->id,
+            'station_id' => $station->id,
+            'reference' => $reference,
+            'source' => 'simulated',
+            'client_name' => $client->name,
+            'station_name' => $station->name,
+            'connector_external_id' => 'A1',
+            'status' => 'completed',
+            'payment_status' => 'unpaid',
+            'started_at' => $endedAt->subMinutes(30),
+            'ended_at' => $endedAt,
+            'duration_seconds' => 1800,
+            'meter_start_kwh' => 100,
+            'meter_stop_kwh' => 100 + $energyKwh,
+            'energy_kwh' => $energyKwh,
+            'price_per_kwh_millimes' => 500,
+            'session_fee_millimes' => 250,
+            'total_millimes' => (int) round($energyKwh * 500 + 250),
+            'currency' => 'TND',
+        ]);
+    }
+
+    private function dailyPayment(
+        ChargingSession $session,
+        User $client,
+        string $reference,
+        string $status,
+        int $amountMillimes,
+        ?CarbonInterface $paidAt,
+    ): Payment {
+        return Payment::query()->create([
+            'organization_id' => $session->organization_id,
+            'user_id' => $client->id,
+            'charging_session_id' => $session->id,
+            'reference' => $reference,
+            'provider' => 'simulated',
+            'method' => 'simulated_card',
+            'status' => $status,
+            'amount_millimes' => $amountMillimes,
+            'currency' => 'TND',
+            'idempotency_key' => match ($reference) {
+                'PAY-DAILY-PAID' => '90000000-0000-4000-8000-000000000001',
+                'PAY-DAILY-FAILED' => '90000000-0000-4000-8000-000000000002',
+                default => '90000000-0000-4000-8000-000000000003',
+            },
+            'provider_transaction_id' => $status === 'paid' ? 'SIM-'.$reference : null,
+            'failure_reason' => $status === 'failed' ? 'Declined' : null,
+            'paid_at' => $paidAt,
+            'failed_at' => $status === 'failed' ? now() : null,
         ]);
     }
 

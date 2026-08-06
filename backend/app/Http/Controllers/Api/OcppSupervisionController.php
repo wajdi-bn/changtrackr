@@ -83,7 +83,7 @@ class OcppSupervisionController extends Controller
         $projected = $this->availabilityProjector->project($station->id)['station'];
 
         return response()->json([
-            'station' => new StationResource($projected->load(['organization', 'connectors'])->loadCount('connectors')),
+            'station' => new StationResource($projected->load(['organization', 'connectors'])->loadCount('connectors')->loadTodayMetrics()),
             'command' => $command === null
                 ? null
                 : new OcppCommandResource($command->load(['connector', 'user'])),

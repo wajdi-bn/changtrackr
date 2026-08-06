@@ -26,7 +26,7 @@ class StationCommissioningController extends Controller
         $result = $this->commissioning->create($actor, $request->validated());
 
         return response()->json([
-            'data' => new StationResource($result['station']),
+            'data' => new StationResource($result['station']->loadTodayMetrics()),
             'commissioning' => $result['commissioning'],
         ], 201);
     }
@@ -49,7 +49,7 @@ class StationCommissioningController extends Controller
         $result = $this->commissioning->rotateExternalCredentials($actor, $station);
 
         return response()->json([
-            'data' => new StationResource($result['station']),
+            'data' => new StationResource($result['station']->loadTodayMetrics()),
             'commissioning' => $result['commissioning'],
         ]);
     }

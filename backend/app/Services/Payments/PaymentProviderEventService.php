@@ -7,7 +7,6 @@ use App\Models\ChargingSession;
 use App\Models\Payment;
 use App\Models\PaymentProviderEvent;
 use App\Models\PlanSubscriptionInvoice;
-use App\Models\Station;
 use App\Services\Notifications\OperationalNotificationService;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
@@ -193,7 +192,6 @@ class PaymentProviderEventService
         }
         if ($session->payment_status !== 'paid') {
             $session->update(['payment_status' => 'paid']);
-            Station::query()->whereKey($session->station_id)->increment('revenue_today', $payment->amount_millimes / 1000);
         }
         if ($attempt !== null && $event->operation === 'capture') {
             $attempt->update(['payment_status' => 'captured', 'status' => 'completed', 'completed_at' => now()]);

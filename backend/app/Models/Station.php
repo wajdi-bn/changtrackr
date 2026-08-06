@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,8 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'ocpp_registration_status', 'ocpp_status',
     'ocpp_error_code', 'ocpp_connected_at', 'ocpp_disconnected_at', 'ocpp_last_message_at',
     'ocpp_last_status_at', 'model_image', 'last_heartbeat_at', 'uptime_percent',
-    'energy_today_kwh', 'sessions_today', 'utilization_percent', 'revenue_today',
-    'open_alerts_count',
+    'utilization_percent', 'open_alerts_count',
 ])]
 class Station extends Model
 {
@@ -74,6 +76,50 @@ class Station extends Model
     public function chargingSessions(): HasMany
     {
         return $this->hasMany(ChargingSession::class);
+    }
+
+    /** @param Builder<Station> $query */
+    public function scopeWithTodayMetrics(Builder $query, ?CarbonInterface $at = null): Builder
+    {
+        $timezone = (string) config('station_metrics.timezone', 'Africa/Tunis');
+        $localNow = $at === null
+            ? CarbonImmutable::now($timezone)
+            : CarbonImmutable::instance($at)->setTimezone($timezone);
+        $startsAt = $localNow->startOfDay()->utc();
+        $endsAt = $localNow->addDay()->startOfDay()->utc();
+
+        return $query->addSelect([
+            'daily_energy_kwh' => ChargingSession::query()
+                ->selectRaw('COALESCE(SUM(energy_kwh), 0)')
+                ->whereColumn('charging_sessions.station_id', 'stations.id')
+                ->whereIn('status', ['completed', 'interrupted'])
+                ->where('ended_at', '>=', $startsAt)
+                ->where('ended_at', '<', $endsAt),
+            'daily_sessions_count' => ChargingSession::query()
+                ->selectRaw('COUNT(*)')
+                ->whereColumn('charging_sessions.station_id', 'stations.id')
+                ->whereIn('status', ['completed', 'interrupted'])
+                ->where('ended_at', '>=', $startsAt)
+                ->where('ended_at', '<', $endsAt),
+            'daily_revenue_millimes' => Payment::query()
+                ->selectRaw('COALESCE(SUM(payments.amount_millimes), 0)')
+                ->join('charging_sessions', 'charging_sessions.id', '=', 'payments.charging_session_id')
+                ->whereColumn('charging_sessions.station_id', 'stations.id')
+                ->where('payments.status', 'paid')
+                ->where('payments.paid_at', '>=', $startsAt)
+                ->where('payments.paid_at', '<', $endsAt),
+        ]);
+    }
+
+    public function loadTodayMetrics(?CarbonInterface $at = null): static
+    {
+        $metrics = static::query()->withTodayMetrics($at)->findOrFail($this->getKey());
+
+        foreach (['daily_energy_kwh', 'daily_sessions_count', 'daily_revenue_millimes'] as $attribute) {
+            $this->setAttribute($attribute, $metrics->getAttribute($attribute));
+        }
+
+        return $this;
     }
 
     /** @return HasMany<OcppEvent, $this> */
@@ -212,10 +258,7 @@ class Station extends Model
             'availability_calculated_at' => 'datetime',
             'availability_monitoring_started_at' => 'datetime',
             'uptime_percent' => 'float',
-            'energy_today_kwh' => 'float',
-            'sessions_today' => 'integer',
             'utilization_percent' => 'float',
-            'revenue_today' => 'float',
             'open_alerts_count' => 'integer',
         ];
     }
