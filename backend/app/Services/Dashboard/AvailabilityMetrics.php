@@ -6,10 +6,39 @@ use App\Models\AvailabilityTransition;
 use App\Models\Station;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class AvailabilityMetrics
 {
     private const OPERATIONAL_STATUSES = ['available', 'charging'];
+
+    public function __construct(private readonly AvailabilityMetricsCache $cache) {}
+
+    /**
+     * @param  Collection<int, Station>  $stations
+     * @return array{
+     *     summary: array{availability_percent: float, monitored_hours: float, unavailable_hours: float},
+     *     daily: list<array{date:string, availability_percent:float}>
+     * }
+     */
+    public function report(Collection $stations, Carbon $periodStart, Carbon $periodEnd): array
+    {
+        if ($stations->isEmpty()) {
+            return [
+                'summary' => ['availability_percent' => 0.0, 'monitored_hours' => 0.0, 'unavailable_hours' => 0.0],
+                'daily' => [],
+            ];
+        }
+
+        return $this->cache->remember($stations, $periodStart, $periodEnd, function () use ($stations, $periodStart, $periodEnd): array {
+            $transitions = $this->transitions($stations, $periodStart, $periodEnd);
+
+            return [
+                'summary' => $this->calculateWithTransitions($stations, $periodStart, $periodEnd, $transitions),
+                'daily' => $this->dailyWithTransitions($stations, $periodStart, $periodEnd, $transitions),
+            ];
+        });
+    }
 
     /**
      * @param  Collection<int, Station>  $stations
@@ -17,16 +46,7 @@ class AvailabilityMetrics
      */
     public function calculate(Collection $stations, Carbon $periodStart, Carbon $periodEnd): array
     {
-        if ($stations->isEmpty()) {
-            return ['availability_percent' => 0.0, 'monitored_hours' => 0.0, 'unavailable_hours' => 0.0];
-        }
-
-        return $this->calculateWithTransitions(
-            $stations,
-            $periodStart,
-            $periodEnd,
-            $this->transitions($stations, $periodEnd),
-        );
+        return $this->report($stations, $periodStart, $periodEnd)['summary'];
     }
 
     /**
@@ -35,11 +55,16 @@ class AvailabilityMetrics
      */
     public function daily(Collection $stations, Carbon $periodStart, Carbon $periodEnd): array
     {
-        if ($stations->isEmpty()) {
-            return [];
-        }
+        return $this->report($stations, $periodStart, $periodEnd)['daily'];
+    }
 
-        $transitions = $this->transitions($stations, $periodEnd);
+    /**
+     * @param  Collection<int, Station>  $stations
+     * @param  Collection<int, Collection<int, AvailabilityTransition>>  $transitions
+     * @return list<array{date:string, availability_percent:float}>
+     */
+    private function dailyWithTransitions(Collection $stations, Carbon $periodStart, Carbon $periodEnd, Collection $transitions): array
+    {
         $points = [];
         $cursor = $periodStart->copy()->startOfDay();
 
@@ -65,13 +90,37 @@ class AvailabilityMetrics
      * @param  Collection<int, Station>  $stations
      * @return Collection<int, Collection<int, AvailabilityTransition>>
      */
-    private function transitions(Collection $stations, Carbon $periodEnd): Collection
+    private function transitions(Collection $stations, Carbon $periodStart, Carbon $periodEnd): Collection
     {
-        return AvailabilityTransition::query()
+        $stationIds = $stations->pluck('id');
+        $rankedBaselines = AvailabilityTransition::query()
+            ->select(['id', 'station_id'])
+            ->selectRaw('ROW_NUMBER() OVER (PARTITION BY station_id ORDER BY occurred_at DESC, id DESC) AS transition_rank')
             ->whereNull('connector_id')
-            ->whereIn('station_id', $stations->pluck('id'))
-            ->where('occurred_at', '<=', $periodEnd)
+            ->whereIn('station_id', $stationIds)
+            ->where('occurred_at', '<=', $periodStart);
+        $baselineIds = DB::query()
+            ->fromSub($rankedBaselines, 'ranked_availability_transitions')
+            ->where('transition_rank', 1)
+            ->pluck('id');
+
+        return AvailabilityTransition::query()
+            ->select(['id', 'station_id', 'from_status', 'to_status', 'occurred_at'])
+            ->whereNull('connector_id')
+            ->whereIn('station_id', $stationIds)
+            ->where(function ($query) use ($baselineIds, $periodStart, $periodEnd): void {
+                $query->where(function ($query) use ($periodStart, $periodEnd): void {
+                    $query->where('occurred_at', '>', $periodStart)
+                        ->where('occurred_at', '<=', $periodEnd);
+                });
+
+                if ($baselineIds->isNotEmpty()) {
+                    $query->orWhereIn('id', $baselineIds);
+                }
+            })
+            ->orderBy('station_id')
             ->orderBy('occurred_at')
+            ->orderBy('id')
             ->get()
             ->groupBy('station_id');
     }

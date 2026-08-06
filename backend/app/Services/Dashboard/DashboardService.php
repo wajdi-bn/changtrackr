@@ -50,7 +50,8 @@ class DashboardService
         $previousRevenue = $this->sumPayments(Payment::query()->where('status', 'paid'), $period, true);
         $previousSessions = $this->countSessions(ChargingSession::query(), $period, true);
         $stations = Station::query()->get();
-        $availability = $this->availabilityMetrics->calculate($stations, $period['start'], $period['end']);
+        $availabilityReport = $this->availabilityMetrics->report($stations, $period['start'], $period['end']);
+        $availability = $availabilityReport['summary'];
 
         return $this->payload(
             role: 'super_admin',
@@ -66,7 +67,7 @@ class DashboardService
             trend: $this->withAvailability($this->trend($period, $sessions, $payments, $alerts, collect(), [
                 ['key' => 'sessions', 'label' => 'Sessions'],
                 ['key' => 'availability_percent', 'label' => 'Availability (%)'],
-            ], 'Platform activity'), $stations, $period),
+            ], 'Platform activity'), $availabilityReport['daily']),
             breakdowns: [
                 $this->breakdown('organizations', 'Organizations by status', Organization::query()->select('status')->get()->countBy('status')),
                 $this->breakdown('stations', 'Stations by calculated status', $stations->countBy('status')),
@@ -108,7 +109,8 @@ class DashboardService
         $alerts = $this->alertsInPeriod(clone $alertsQuery, $period);
         $completed = $this->interventionsInPeriod((clone $interventionsQuery)->with(['station', 'assignedTechnician']), $period);
         $stations = Station::query()->where('organization_id', $organizationId)->get();
-        $availability = $this->availabilityMetrics->calculate($stations, $period['start'], $period['end']);
+        $availabilityReport = $this->availabilityMetrics->report($stations, $period['start'], $period['end']);
+        $availability = $availabilityReport['summary'];
 
         if ($administrator) {
             $customers = ChargingSession::query()->where('organization_id', $organizationId)->whereNotNull('client_id')->distinct('client_id')->count('client_id');
@@ -200,7 +202,7 @@ class DashboardService
             headline: $headline,
             description: $description,
             kpis: $kpis,
-            trend: $this->withAvailability($this->trend($period, $sessions, $payments, $alerts, $completed, $trendSeries, $administrator ? 'Revenue and energy trend' : 'Availability trend'), $stations, $period),
+            trend: $this->withAvailability($this->trend($period, $sessions, $payments, $alerts, $completed, $trendSeries, $administrator ? 'Revenue and energy trend' : 'Availability trend'), $availabilityReport['daily']),
             breakdowns: $breakdowns,
             rankings: $rankings,
             activities: $this->organizationActivities($organizationId, false),
@@ -432,13 +434,12 @@ class DashboardService
 
     /**
      * @param  array<string, mixed>  $trend
-     * @param  Collection<int, Station>  $stations
-     * @param  array<string, mixed>  $period
+     * @param  list<array{date:string, availability_percent:float}>  $dailyAvailability
      * @return array<string, mixed>
      */
-    private function withAvailability(array $trend, Collection $stations, array $period): array
+    private function withAvailability(array $trend, array $dailyAvailability): array
     {
-        $availability = collect($this->availabilityMetrics->daily($stations, $period['start'], $period['end']))->keyBy('date');
+        $availability = collect($dailyAvailability)->keyBy('date');
         $trend['points'] = collect($trend['points'])->map(function (array $point) use ($availability): array {
             $point['availability_percent'] = $availability->get($point['date'], ['availability_percent' => 0])['availability_percent'];
 

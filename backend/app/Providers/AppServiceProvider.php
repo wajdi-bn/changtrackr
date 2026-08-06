@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Contracts\PaymentGateway;
+use App\Models\AvailabilityTransition;
 use App\Models\OcppCommand;
 use App\Models\User;
+use App\Observers\AvailabilityTransitionObserver;
 use App\OpenApi\NormalizeOperationMetadata;
 use App\Services\PlatformSettingService;
 use Dedoc\Scramble\Scramble;
@@ -47,6 +49,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        AvailabilityTransition::observe(AvailabilityTransitionObserver::class);
+
         Scramble::configure()
             ->withOperationTransformers(NormalizeOperationMetadata::class);
 
