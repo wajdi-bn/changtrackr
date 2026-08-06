@@ -16,6 +16,7 @@ class PaymentProviderEventService
     public function __construct(
         private readonly PaymentWebhookSignature $signatures,
         private readonly OperationalNotificationService $notifications,
+        private readonly PaymentReconciliationAlertService $reconciliationAlerts,
     ) {}
 
     /** @param array<string, mixed> $payload
@@ -114,6 +115,14 @@ class PaymentProviderEventService
                 $this->notifications->notifyPaymentFailure($payment);
             }
         }
+        if ($event->operation === 'capture'
+            && in_array($event->status, ['captured', 'paid', 'success', 'succeeded'], true)
+            && $event->charging_attempt_id !== null) {
+            $attempt = ChargingAttempt::query()->find($event->charging_attempt_id);
+            if ($attempt?->payment_status === 'captured') {
+                $this->reconciliationAlerts->resolveCaptureExhausted($attempt);
+            }
+        }
 
         return $event;
     }
@@ -194,7 +203,17 @@ class PaymentProviderEventService
             $session->update(['payment_status' => 'paid']);
         }
         if ($attempt !== null && $event->operation === 'capture') {
-            $attempt->update(['payment_status' => 'captured', 'status' => 'completed', 'completed_at' => now()]);
+            $attempt->update([
+                'payment_status' => 'captured',
+                'status' => 'completed',
+                'completed_at' => now(),
+                ...($attempt->reconciliation_action === 'capture' ? [
+                    'reconciliation_status' => 'completed',
+                    'reconciled_at' => now(),
+                    'failure_code' => null,
+                    'failure_message' => null,
+                ] : []),
+            ]);
         }
 
         return 'processed';

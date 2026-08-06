@@ -3,24 +3,21 @@
 namespace App\Services\Payments;
 
 use App\Events\ChargingSessionChanged;
-use App\Models\Alert;
 use App\Models\ChargingAttempt;
 use App\Models\ChargingSession;
 use App\Models\OcppTransaction;
 use App\Services\ChargingSessionService;
-use App\Services\Notifications\OperationalNotificationService;
 use App\Services\PaymentService;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class OrphanedAuthorizationReconciliationService
 {
     public function __construct(
         private readonly ChargingSessionService $sessions,
         private readonly PaymentService $payments,
-        private readonly OperationalNotificationService $notifications,
+        private readonly PaymentReconciliationAlertService $alerts,
     ) {}
 
     /** @return array{captured:int,released:int,failed:int,skipped:int} */
@@ -116,7 +113,7 @@ class OrphanedAuthorizationReconciliationService
         }
 
         $this->finalizeReleaseWithoutMeter($session->id);
-        $this->openMissingMeterAlert($attempt->fresh(), $now);
+        $this->alerts->openMissingMeter($attempt->fresh(), $now);
 
         return 'released';
     }
@@ -241,52 +238,5 @@ class OrphanedAuthorizationReconciliationService
                 'failure_code' => $code,
                 'failure_message' => $message,
             ]);
-    }
-
-    private function openMissingMeterAlert(ChargingAttempt $attempt, CarbonImmutable $occurredAt): void
-    {
-        $key = "payment-reconciliation:attempt:{$attempt->id}:missing-meter";
-        $alert = DB::transaction(function () use ($attempt, $occurredAt, $key): ?Alert {
-            $existing = Alert::query()->where('deduplication_key', $key)->lockForUpdate()->first();
-            if ($existing !== null) {
-                return null;
-            }
-
-            $alert = Alert::query()->create([
-                'organization_id' => $attempt->organization_id,
-                'station_id' => $attempt->station_id,
-                'connector_id' => $attempt->connector_id,
-                'reference' => 'PAYREC-'.Str::upper(substr(hash('sha256', $key), 0, 10)),
-                'title' => 'Charging payment released after missing telemetry',
-                'problem_type' => 'OCPP payment reconciliation',
-                'severity' => 'warning',
-                'status' => 'new',
-                'source' => 'payment_reconciliation',
-                'deduplication_key' => $key,
-                'description' => 'The preauthorization was released because no trustworthy final meter value was available after the connectivity grace period.',
-                'suggested_cause' => 'The station stopped reporting before it could provide a final OCPP meter value.',
-                'recommended_action' => 'Review the station telemetry and session before attempting any manual settlement.',
-                'detected_at' => $occurredAt,
-                'due_at' => $occurredAt->addHour(),
-            ]);
-            $alert->events()->create([
-                'event_type' => 'auto_detected',
-                'description' => $alert->description,
-                'occurred_at' => $occurredAt,
-            ]);
-            $alert->station()->update([
-                'open_alerts_count' => Alert::query()
-                    ->where('station_id', $attempt->station_id)
-                    ->where('status', '!=', 'resolved')
-                    ->count(),
-            ]);
-
-            return $alert;
-        });
-
-        if ($alert !== null) {
-            $event = $alert->events()->latest('id')->first();
-            $this->notifications->notifyAlertOpened($alert->loadMissing('station'), $event?->id ?? $occurredAt->timestamp);
-        }
     }
 }

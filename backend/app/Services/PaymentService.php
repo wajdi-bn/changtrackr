@@ -6,12 +6,14 @@ use App\Contracts\PaymentGateway;
 use App\Data\PaymentCharge;
 use App\Events\ChargingAttemptChanged;
 use App\Events\ChargingSessionChanged;
+use App\Exceptions\RetryablePaymentCaptureException;
 use App\Models\ChargingAttempt;
 use App\Models\ChargingSession;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\Notifications\OperationalNotificationService;
 use App\Services\Payments\PaymentProviderEventService;
+use App\Services\Payments\PaymentReconciliationAlertService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +24,7 @@ class PaymentService
         private readonly PaymentGateway $gateway,
         private readonly PaymentProviderEventService $providerEvents,
         private readonly OperationalNotificationService $notifications,
+        private readonly PaymentReconciliationAlertService $reconciliationAlerts,
     ) {}
 
     /** @param array{method:string, idempotency_key:string, simulation_outcome?:string} $attributes */
@@ -311,8 +314,19 @@ class PaymentService
         $this->providerEvents->reconcileReference($processedPayment->reference);
 
         $processedPayment = $processedPayment->fresh()->load(['organization', 'chargingSession', 'user', 'latestProviderEvent']);
+        $attempt = $attempt->fresh();
+        if ($processedPayment->status === 'paid' || $attempt->payment_status === 'captured') {
+            $this->reconciliationAlerts->resolveCaptureExhausted($attempt);
+        }
         if ($processedPayment->status === 'failed') {
             $this->notifications->notifyPaymentFailure($processedPayment);
+            if ((bool) data_get($processedPayment->metadata, 'retryable', false)) {
+                throw new RetryablePaymentCaptureException(
+                    chargingSessionId: $processedPayment->charging_session_id,
+                    paymentId: $processedPayment->id,
+                    providerMessage: $processedPayment->failure_reason,
+                );
+            }
         }
 
         return $processedPayment;
