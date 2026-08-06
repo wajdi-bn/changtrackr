@@ -229,6 +229,21 @@ The current PostgreSQL database is local and managed outside this repository.
 - Redis
 - Mailpit
 
+Configure this optional stack before starting it:
+
+```bash
+npm run infra:configure
+npm run infra:up
+npm run infra:status
+```
+
+The configurator writes strong generated database secrets only to the ignored `infra/.env` file.
+PostgreSQL, authenticated Redis, Mailpit SMTP and the Mailpit UI are bound to `127.0.0.1`; they are
+therefore available to local processes but not published to the LAN. Existing `backend/.env`
+database settings are deliberately preserved. Use
+`powershell -ExecutionPolicy Bypass -File scripts/configure-infra-env.ps1 -SyncBackend` only when
+the backend must use this Dockerized PostgreSQL and Redis stack.
+
 The OCPP-specific services are defined separately in `infra/ocpp/compose.yaml`.
 
 ## 5. Environment Files
@@ -237,11 +252,13 @@ Real environment files must not be committed:
 
 - `backend/.env`
 - `frontend/.env`
+- `infra/.env`
 
 Only example files are committed:
 
 - `backend/.env.example`
 - `frontend/.env.example`
+- `infra/.env.example`
 
 ## 6. GitHub
 

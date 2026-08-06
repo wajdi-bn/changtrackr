@@ -1,28 +1,49 @@
+name: chargetrackr-local
+
 services:
   postgres:
     image: postgres:16
     container_name: chargetrackr-postgres
     environment:
-      POSTGRES_DB: changetrackr
-      POSTGRES_USER: changetrackr
-      POSTGRES_PASSWORD: changetrackr
+      POSTGRES_DB: ${POSTGRES_DB:-changetrackr}
+      POSTGRES_USER: ${POSTGRES_USER:-changetrackr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run npm run infra:configure first}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${POSTGRES_FORWARD_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     container_name: chargetrackr-redis
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Run npm run infra:configure first}
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${REDIS_FORWARD_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   mailpit:
     image: axllent/mailpit:latest
     container_name: chargetrackr-mailpit
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "127.0.0.1:${MAILPIT_SMTP_FORWARD_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_FORWARD_PORT:-8025}:8025"
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  redis_data:
