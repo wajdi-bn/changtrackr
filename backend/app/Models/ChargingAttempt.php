@@ -11,10 +11,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'uuid', 'organization_id', 'user_id', 'station_id', 'connector_id', 'ocpp_id_tag_id',
     'charging_session_id', 'status', 'payment_provider', 'payment_method', 'payment_status',
     'preauthorized_amount_millimes', 'currency', 'payment_idempotency_key',
-    'capture_idempotency_key', 'provider_authorization_id', 'simulation_outcome',
+    'capture_idempotency_key', 'release_idempotency_key', 'provider_authorization_id', 'simulation_outcome',
     'limit_energy_kwh', 'limit_amount_millimes', 'limit_duration_minutes',
     'failure_code', 'failure_message', 'authorized_at', 'command_queued_at',
-    'started_at', 'completed_at', 'expires_at',
+    'started_at', 'completed_at', 'expires_at', 'reconciliation_action',
+    'reconciliation_status', 'reconciliation_reason', 'reconciliation_started_at', 'reconciled_at',
 ])]
 class ChargingAttempt extends Model
 {
@@ -70,6 +71,8 @@ class ChargingAttempt extends Model
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
             'expires_at' => 'datetime',
+            'reconciliation_started_at' => 'datetime',
+            'reconciled_at' => 'datetime',
         ];
     }
 }

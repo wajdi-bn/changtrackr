@@ -7,6 +7,10 @@ return [
     'default' => env('PAYMENT_DRIVER', 'wiremock'),
     'preauthorization_amount_millimes' => (int) env('PAYMENT_PREAUTHORIZATION_AMOUNT_MILLIMES', 30000),
     'authorization_ttl_minutes' => (int) env('PAYMENT_AUTHORIZATION_TTL_MINUTES', 15),
+    'orphan_reconciliation_grace_hours' => (int) env('PAYMENT_ORPHAN_RECONCILIATION_GRACE_HOURS', 24),
+    'orphan_meter_max_age_minutes' => (int) env('PAYMENT_ORPHAN_METER_MAX_AGE_MINUTES', 15),
+    'orphan_reconciliation_retry_minutes' => (int) env('PAYMENT_ORPHAN_RECONCILIATION_RETRY_MINUTES', 15),
+    'orphan_reconciliation_batch_size' => (int) env('PAYMENT_ORPHAN_RECONCILIATION_BATCH_SIZE', 100),
     'subscription_grace_days' => (int) env('PAYMENT_SUBSCRIPTION_GRACE_DAYS', 3),
     'drivers' => [
         'simulated' => SimulatedPaymentAdapter::class,

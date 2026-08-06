@@ -42,3 +42,7 @@ Schedule::command('commercial:sync')
 Schedule::command('client-subscriptions:sync')
     ->hourly()
     ->withoutOverlapping(10);
+
+Schedule::command('payments:reconcile-orphan-authorizations')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping(10);

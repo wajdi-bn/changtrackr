@@ -205,11 +205,29 @@ class PaymentProviderEventService
         if ($attempt === null) {
             return 'pending_reconciliation';
         }
-        if (in_array($attempt->payment_status, ['captured', 'capture_failed'], true)) {
+        if (in_array($attempt->payment_status, ['capture_pending', 'captured', 'capture_failed'], true)) {
             return 'requires_review';
         }
 
-        $attempt->update(['payment_status' => $event->status === 'released' ? 'released' : 'release_failed']);
+        $released = $event->status === 'released';
+        $attempt->update([
+            'payment_status' => $released ? 'released' : 'release_failed',
+            ...($released && $attempt->charging_session_id !== null ? [
+                'status' => 'completed',
+                'completed_at' => now(),
+            ] : []),
+            ...($attempt->reconciliation_action === 'release' ? [
+                'reconciliation_status' => $released ? 'completed' : 'failed',
+                'reconciled_at' => $released ? now() : null,
+            ] : []),
+        ]);
+
+        if ($released && $attempt->charging_session_id !== null) {
+            ChargingSession::query()
+                ->whereKey($attempt->charging_session_id)
+                ->where('payment_status', '!=', 'paid')
+                ->update(['payment_status' => 'released']);
+        }
 
         return 'processed';
     }

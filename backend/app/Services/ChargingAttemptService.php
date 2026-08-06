@@ -41,6 +41,7 @@ class ChargingAttemptService
             $station = Station::query()->with('organization')->lockForUpdate()->findOrFail($attributes['station_id']);
             $connector = Connector::query()->lockForUpdate()->findOrFail($attributes['connector_id']);
             $this->assertCanStart($client, $station, $connector);
+
             return ChargingAttempt::query()->create([
                 'uuid' => (string) Str::uuid(),
                 'organization_id' => $station->organization_id,
@@ -55,6 +56,7 @@ class ChargingAttemptService
                 'currency' => 'TND',
                 'payment_idempotency_key' => $attributes['idempotency_key'],
                 'capture_idempotency_key' => (string) Str::uuid(),
+                'release_idempotency_key' => (string) Str::uuid(),
                 'simulation_outcome' => $attributes['simulation_outcome'] ?? 'success',
                 'limit_energy_kwh' => $attributes['limit_energy_kwh'] ?? null,
                 'limit_amount_millimes' => isset($attributes['limit_amount_tnd'])
@@ -138,5 +140,4 @@ class ChargingAttemptService
             throw ValidationException::withMessages(['session' => ['The client or connector already has an active charging workflow.']]);
         }
     }
-
 }

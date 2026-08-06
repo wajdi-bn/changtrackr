@@ -357,6 +357,56 @@ class ChargingSessionService
             });
     }
 
+    public function reconcileInterruptedFromLastMeter(ChargingSession $session): ?ChargingSession
+    {
+        return DB::transaction(function () use ($session): ?ChargingSession {
+            $session = ChargingSession::query()->lockForUpdate()->find($session->id);
+            if ($session === null || $session->source !== 'ocpp' || $session->ocpp_transaction_id === null) {
+                return null;
+            }
+            if ($session->status === 'completed' && $session->meter_stop_kwh !== null) {
+                return $session->load(['organization', 'station', 'connector', 'client', 'payment']);
+            }
+            if ($session->status !== 'interrupted') {
+                return null;
+            }
+
+            $transaction = OcppTransaction::query()->lockForUpdate()->find($session->ocpp_transaction_id);
+            if ($transaction === null
+                || $transaction->last_meter_wh === null
+                || $transaction->last_meter_value_at === null
+                || $transaction->last_meter_wh < $transaction->meter_start_wh) {
+                return null;
+            }
+
+            $endedAt = $session->ended_at ?? now()->utc();
+            $meterStopWh = $transaction->last_meter_wh;
+            $energyKwh = max(0, ($meterStopWh - $transaction->meter_start_wh) / 1000);
+            $pricing = $this->calculatePricing($session, $energyKwh);
+
+            $transaction->update([
+                'status' => 'reconciled',
+                'meter_stop_wh' => $meterStopWh,
+                'stopped_at' => $endedAt,
+                'stop_reason' => 'ConnectivityTimeout',
+            ]);
+            $session->update([
+                'lifecycle_reason' => 'ocpp_connection_lost_reconciled_from_last_meter',
+                'meter_stop_kwh' => $meterStopWh / 1000,
+                'last_meter_value_at' => $transaction->last_meter_value_at,
+                'energy_kwh' => round($energyKwh, 3),
+                'discount_millimes' => $pricing['discount_millimes'],
+                'total_millimes' => $pricing['total_millimes'],
+                'current_power_kw' => 0,
+            ]);
+
+            $session = $session->fresh()->load(['organization', 'station', 'connector', 'client', 'payment']);
+            event(ChargingSessionChanged::fromSession($session));
+
+            return $session;
+        });
+    }
+
     private function currentSubscription(User $client, Station $station): ?PlanSubscription
     {
         return PlanSubscription::query()

@@ -2,7 +2,6 @@
 
 namespace App\Services\Ocpp;
 
-use App\Contracts\PaymentGateway;
 use App\Events\ChargingAttemptChanged;
 use App\Events\ChargingSessionChanged;
 use App\Events\OcppCommandChanged;
@@ -14,7 +13,7 @@ use App\Models\OcppCommand;
 use App\Models\OcppTransaction;
 use App\Models\Station;
 use App\Models\User;
-use App\Services\Payments\PaymentProviderEventService;
+use App\Services\PaymentService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -24,8 +23,7 @@ class OcppCommandService
     private const TERMINAL_STATUSES = ['rejected', 'failed', 'timed_out'];
 
     public function __construct(
-        private readonly PaymentGateway $payments,
-        private readonly PaymentProviderEventService $providerEvents,
+        private readonly PaymentService $payments,
     ) {}
 
     public function queueReset(Station $station, User $requestedBy): OcppCommand
@@ -329,16 +327,7 @@ class OcppCommandService
 
     public function releaseAuthorization(ChargingAttempt $attempt): void
     {
-        if ($attempt->provider_authorization_id === null || $attempt->payment_status !== 'authorized') {
-            return;
-        }
-
-        $result = $this->payments->release($attempt->provider_authorization_id, $attempt->capture_idempotency_key);
-        $attempt->update([
-            'payment_status' => $result->successful ? 'released' : 'release_failed',
-        ]);
-        event(ChargingAttemptChanged::fromAttempt($attempt->fresh()));
-        $this->providerEvents->reconcileReference($attempt->provider_authorization_id);
+        $this->payments->releaseAuthorized($attempt);
     }
 
     public function expireDue(): int

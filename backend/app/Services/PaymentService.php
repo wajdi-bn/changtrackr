@@ -177,6 +177,9 @@ class PaymentService
             if ($session->payment_status === 'paid') {
                 return ['payment' => $payment, 'attempt' => $attempt, 'execute' => false];
             }
+            if (! in_array($attempt->payment_status, ['authorized', 'capture_pending', 'capture_failed'], true)) {
+                return null;
+            }
             if (! in_array($session->status, ['completed', 'interrupted'], true) || $session->meter_stop_kwh === null) {
                 return null;
             }
@@ -224,6 +227,8 @@ class PaymentService
                 ]);
             }
 
+            $attempt->update(['payment_status' => 'capture_pending']);
+
             return ['payment' => $payment, 'attempt' => $attempt, 'execute' => true];
         });
 
@@ -268,7 +273,15 @@ class PaymentService
                 if ($session->payment_status !== 'paid') {
                     $session->update(['payment_status' => 'paid']);
                 }
-                $attempt->update(['payment_status' => 'captured', 'status' => 'completed', 'completed_at' => now()]);
+                $attempt->update([
+                    'payment_status' => 'captured',
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                    ...($attempt->reconciliation_action === 'capture' ? [
+                        'reconciliation_status' => 'completed',
+                        'reconciled_at' => now(),
+                    ] : []),
+                ]);
             } else {
                 $payment->update([
                     'status' => 'failed',
@@ -283,6 +296,9 @@ class PaymentService
                     'failure_code' => 'payment_capture_failed',
                     'failure_message' => $result->failureReason,
                     'completed_at' => now(),
+                    ...($attempt->reconciliation_action === 'capture' ? [
+                        'reconciliation_status' => 'failed',
+                    ] : []),
                 ]);
             }
 
@@ -300,6 +316,111 @@ class PaymentService
         }
 
         return $processedPayment;
+    }
+
+    public function releaseAuthorized(ChargingAttempt $attempt): bool
+    {
+        $prepared = DB::transaction(function () use ($attempt): ?array {
+            $attemptLookup = ChargingAttempt::query()->find($attempt->id);
+            if ($attemptLookup === null) {
+                return null;
+            }
+
+            $session = $attemptLookup->charging_session_id === null
+                ? null
+                : ChargingSession::query()->lockForUpdate()->find($attemptLookup->charging_session_id);
+            $attempt = ChargingAttempt::query()->lockForUpdate()->findOrFail($attemptLookup->id);
+
+            if ($attempt->provider_authorization_id === null) {
+                return null;
+            }
+            if ($attempt->payment_status === 'released') {
+                if ($session !== null && $session->payment_status !== 'paid') {
+                    $session->update(['payment_status' => 'released']);
+                }
+
+                return ['attempt' => $attempt, 'execute' => false, 'released' => true];
+            }
+            if (! in_array($attempt->payment_status, ['authorized', 'release_pending', 'release_failed'], true)) {
+                return ['attempt' => $attempt, 'execute' => false, 'released' => false];
+            }
+            if ($session?->payment_status === 'paid') {
+                return ['attempt' => $attempt, 'execute' => false, 'released' => false];
+            }
+
+            $releaseKey = $attempt->release_idempotency_key ?? (string) Str::uuid();
+            $attempt->update([
+                'release_idempotency_key' => $releaseKey,
+                'payment_status' => 'release_pending',
+            ]);
+
+            return ['attempt' => $attempt->fresh(), 'execute' => true, 'released' => false];
+        });
+
+        if ($prepared === null || ! $prepared['execute']) {
+            return (bool) ($prepared['released'] ?? false);
+        }
+
+        /** @var ChargingAttempt $attempt */
+        $attempt = $prepared['attempt'];
+        $result = $this->gateway->release(
+            $attempt->provider_authorization_id,
+            $attempt->release_idempotency_key,
+        );
+
+        $released = DB::transaction(function () use ($attempt, $result): bool {
+            $attemptLookup = ChargingAttempt::query()->findOrFail($attempt->id);
+            $session = $attemptLookup->charging_session_id === null
+                ? null
+                : ChargingSession::query()->lockForUpdate()->find($attemptLookup->charging_session_id);
+            $attempt = ChargingAttempt::query()->lockForUpdate()->findOrFail($attemptLookup->id);
+
+            if ($attempt->payment_status === 'captured' || $session?->payment_status === 'paid') {
+                return false;
+            }
+            if ($attempt->payment_status === 'released') {
+                if ($session !== null && $session->payment_status !== 'paid') {
+                    $session->update(['payment_status' => 'released']);
+                    event(ChargingSessionChanged::fromSession($session->fresh()));
+                }
+
+                return true;
+            }
+            if ($attempt->payment_status !== 'release_pending') {
+                return false;
+            }
+
+            $attempt->update([
+                'payment_status' => $result->successful ? 'released' : 'release_failed',
+                ...($result->successful ? [
+                    'status' => $attempt->charging_session_id === null ? $attempt->status : 'completed',
+                    'completed_at' => $attempt->charging_session_id === null ? $attempt->completed_at : now(),
+                    ...($attempt->reconciliation_action === 'release' ? [
+                        'failure_code' => null,
+                        'failure_message' => null,
+                    ] : []),
+                ] : [
+                    'failure_code' => 'payment_release_failed',
+                    'failure_message' => $result->failureReason,
+                ]),
+                ...($attempt->reconciliation_action === 'release' ? [
+                    'reconciliation_status' => $result->successful ? 'completed' : 'failed',
+                    'reconciled_at' => $result->successful ? now() : null,
+                ] : []),
+            ]);
+
+            if ($result->successful && $session !== null && $session->payment_status !== 'paid') {
+                $session->update(['payment_status' => 'released']);
+                event(ChargingSessionChanged::fromSession($session->fresh()));
+            }
+            event(ChargingAttemptChanged::fromAttempt($attempt->fresh()));
+
+            return $result->successful;
+        });
+
+        $this->providerEvents->reconcileReference($attempt->provider_authorization_id);
+
+        return $released;
     }
 
     private function hasUnsettledAuthorization(?ChargingAttempt $attempt): bool
