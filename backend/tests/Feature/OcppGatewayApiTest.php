@@ -156,7 +156,76 @@ class OcppGatewayApiTest extends TestCase
         ]);
     }
 
-    private function station(): Station
+    public function test_event_rate_limit_is_isolated_by_station_identity(): void
+    {
+        config()->set('ocpp.gateway.rate_limits.events_per_minute', 2);
+        $firstStation = $this->station('CT-OCPP-RATE-001');
+        $secondStation = $this->station('CT-OCPP-RATE-002');
+
+        $this->signedPost(
+            '/api/internal/ocpp/events',
+            $this->eventPayload($firstStation, 'Heartbeat', 'rate-event-001', []),
+        )->assertCreated();
+        $this->signedPost(
+            '/api/internal/ocpp/events',
+            $this->eventPayload($firstStation, 'Heartbeat', 'rate-event-002', []),
+        )->assertCreated();
+        $this->signedPost(
+            '/api/internal/ocpp/events',
+            $this->eventPayload($firstStation, 'Heartbeat', 'rate-event-003', []),
+        )->assertTooManyRequests()->assertHeader('Retry-After');
+
+        $this->signedPost(
+            '/api/internal/ocpp/events',
+            $this->eventPayload($secondStation, 'Heartbeat', 'rate-event-004', []),
+        )->assertCreated();
+    }
+
+    public function test_authentication_and_event_limits_use_independent_buckets(): void
+    {
+        config()->set('ocpp.gateway.rate_limits.authenticate_per_minute', 1);
+        config()->set('ocpp.gateway.rate_limits.events_per_minute', 1);
+        $station = $this->station('CT-OCPP-RATE-AUTH');
+        $credentials = [
+            'station_identity' => $station->ocpp_identity,
+            'username' => $station->ocpp_identity,
+            'password' => self::STATION_SECRET,
+            'protocol_version' => '1.6',
+        ];
+
+        $this->signedPost('/api/internal/ocpp/authenticate', $credentials)->assertOk();
+        $this->signedPost('/api/internal/ocpp/authenticate', $credentials)
+            ->assertTooManyRequests()
+            ->assertHeader('Retry-After');
+
+        $this->signedPost(
+            '/api/internal/ocpp/events',
+            $this->eventPayload($station, 'Heartbeat', 'rate-auth-event', []),
+        )->assertCreated();
+    }
+
+    public function test_command_polling_limit_is_isolated_by_station_identity(): void
+    {
+        config()->set('ocpp.gateway.rate_limits.command_poll_per_minute', 1);
+        $firstStation = $this->station('CT-OCPP-POLL-001');
+        $secondStation = $this->station('CT-OCPP-POLL-002');
+
+        $this->signedPost('/api/internal/ocpp/commands/claim', [
+            'station_identity' => $firstStation->ocpp_identity,
+            'connection_id' => (string) Str::uuid(),
+        ])->assertOk();
+        $this->signedPost('/api/internal/ocpp/commands/claim', [
+            'station_identity' => $firstStation->ocpp_identity,
+            'connection_id' => (string) Str::uuid(),
+        ])->assertTooManyRequests()->assertHeader('Retry-After');
+
+        $this->signedPost('/api/internal/ocpp/commands/claim', [
+            'station_identity' => $secondStation->ocpp_identity,
+            'connection_id' => (string) Str::uuid(),
+        ])->assertOk();
+    }
+
+    private function station(string $identity = 'CT-OCPP-001'): Station
     {
         $organization = Organization::query()->create([
             'name' => 'OCPP Network',
@@ -166,9 +235,9 @@ class OcppGatewayApiTest extends TestCase
 
         return Station::query()->create([
             'organization_id' => $organization->id,
-            'name' => 'OCPP Test Station',
-            'reference' => 'CT-OCPP-001',
-            'ocpp_identity' => 'CT-OCPP-001',
+            'name' => "OCPP Test Station {$identity}",
+            'reference' => $identity,
+            'ocpp_identity' => $identity,
             'location_name' => 'Lac 1',
             'city' => 'Tunis',
             'address' => 'Test address',

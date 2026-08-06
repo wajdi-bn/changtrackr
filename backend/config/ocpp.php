@@ -8,6 +8,12 @@ return [
         'command_ttl_seconds' => (int) env('OCPP_COMMAND_TTL_SECONDS', 120),
         'supervision_command_ttl_seconds' => (int) env('OCPP_SUPERVISION_COMMAND_TTL_SECONDS', 60),
         'command_poll_interval_seconds' => (float) env('OCPP_COMMAND_POLL_INTERVAL_SECONDS', 1.5),
+        'rate_limits' => [
+            'authenticate_per_minute' => (int) env('OCPP_AUTHENTICATE_RATE_LIMIT_PER_MINUTE', 30),
+            'events_per_minute' => (int) env('OCPP_EVENTS_RATE_LIMIT_PER_MINUTE', 1200),
+            'command_poll_per_minute' => (int) env('OCPP_COMMAND_POLL_RATE_LIMIT_PER_MINUTE', 180),
+            'command_result_per_minute' => (int) env('OCPP_COMMAND_RESULT_RATE_LIMIT_PER_MINUTE', 120),
+        ],
     ],
 
     'simulator' => [

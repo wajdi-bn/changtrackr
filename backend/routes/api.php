@@ -59,12 +59,16 @@ Route::post('/internal/payments/webhooks', PaymentWebhookController::class)
     ->middleware('throttle:payment-webhook');
 
 Route::prefix('/internal/ocpp')
-    ->middleware([VerifyOcppGatewaySignature::class, 'throttle:ocpp-gateway'])
+    ->middleware(VerifyOcppGatewaySignature::class)
     ->group(function (): void {
-        Route::post('/authenticate', [OcppGatewayController::class, 'authenticate']);
-        Route::post('/events', [OcppGatewayController::class, 'ingest']);
-        Route::post('/commands/claim', [OcppGatewayController::class, 'claimCommand']);
-        Route::post('/commands/{ocppCommand}/result', [OcppGatewayController::class, 'completeCommand']);
+        Route::post('/authenticate', [OcppGatewayController::class, 'authenticate'])
+            ->middleware('throttle:ocpp-authenticate');
+        Route::post('/events', [OcppGatewayController::class, 'ingest'])
+            ->middleware('throttle:ocpp-events');
+        Route::post('/commands/claim', [OcppGatewayController::class, 'claimCommand'])
+            ->middleware('throttle:ocpp-command-poll');
+        Route::post('/commands/{ocppCommand}/result', [OcppGatewayController::class, 'completeCommand'])
+            ->middleware('throttle:ocpp-command-result');
     });
 
 Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrganizationCommercialAccess::class])->group(function (): void {
