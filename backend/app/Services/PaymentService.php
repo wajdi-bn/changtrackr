@@ -28,7 +28,7 @@ class PaymentService
     /** @param array{method:string, idempotency_key:string, simulation_outcome?:string} $attributes */
     public function process(User $user, ChargingSession $session, array $attributes): Payment
     {
-        $payment = DB::transaction(function () use ($user, $session, $attributes): Payment {
+        $prepared = DB::transaction(function () use ($user, $session, $attributes): array {
             $session = ChargingSession::query()->lockForUpdate()->findOrFail($session->id);
 
             if (! in_array($session->status, ['completed', 'interrupted'], true)) {
@@ -41,9 +41,35 @@ class PaymentService
                 ]);
             }
 
+            $attempt = ChargingAttempt::query()
+                ->where('charging_session_id', $session->id)
+                ->lockForUpdate()
+                ->first();
             $payment = Payment::query()->where('charging_session_id', $session->id)->lockForUpdate()->first();
             if ($session->payment_status === 'paid' && $payment) {
-                return $payment;
+                return ['payment' => $payment, 'execute' => false];
+            }
+
+            if ($this->hasUnsettledAuthorization($attempt)) {
+                throw ValidationException::withMessages([
+                    'session' => ['This session has a payment authorization that must be captured or released before another payment can start.'],
+                ]);
+            }
+
+            if ($payment?->status === 'pending') {
+                if ($payment->idempotency_key !== $attributes['idempotency_key']) {
+                    throw ValidationException::withMessages([
+                        'payment' => ['A payment for this session is already being processed.'],
+                    ]);
+                }
+
+                return ['payment' => $payment, 'execute' => false];
+            }
+
+            if ($payment !== null && $payment->status !== 'failed') {
+                throw ValidationException::withMessages([
+                    'payment' => ['The existing payment cannot be replaced in its current state.'],
+                ]);
             }
 
             $values = [
@@ -66,13 +92,18 @@ class PaymentService
             if ($payment) {
                 $payment->update($values);
 
-                return $payment->fresh();
+                return ['payment' => $payment->fresh(), 'execute' => true];
             }
 
-            return Payment::query()->create(['charging_session_id' => $session->id, ...$values]);
+            return [
+                'payment' => Payment::query()->create(['charging_session_id' => $session->id, ...$values]),
+                'execute' => true,
+            ];
         });
 
-        if ($payment->status === 'paid') {
+        /** @var Payment $payment */
+        $payment = $prepared['payment'];
+        if (! $prepared['execute']) {
             return $payment->load(['organization', 'chargingSession', 'user']);
         }
 
@@ -85,9 +116,14 @@ class PaymentService
             simulationOutcome: $attributes['simulation_outcome'] ?? 'success',
         ));
 
-        $processedPayment = DB::transaction(function () use ($payment, $result): Payment {
-            $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+        $settlementKey = $payment->idempotency_key;
+        $processedPayment = DB::transaction(function () use ($payment, $result, $settlementKey): Payment {
             $session = ChargingSession::query()->lockForUpdate()->findOrFail($payment->charging_session_id);
+            $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+
+            if ($payment->status !== 'pending' || $payment->idempotency_key !== $settlementKey) {
+                return $payment->load(['organization', 'chargingSession', 'user']);
+            }
 
             if ($result->successful) {
                 $payment->update([
@@ -136,16 +172,48 @@ class PaymentService
             if ($attempt === null || $attempt->provider_authorization_id === null) {
                 return null;
             }
+            $payment = Payment::query()
+                ->where('charging_session_id', $session->id)
+                ->lockForUpdate()
+                ->first();
             if ($session->payment_status === 'paid') {
-                return ['payment' => $session->payment, 'attempt' => $attempt];
+                return ['payment' => $payment, 'attempt' => $attempt, 'execute' => false];
             }
             if (! in_array($session->status, ['completed', 'interrupted'], true) || $session->meter_stop_kwh === null) {
                 return null;
             }
 
-            $payment = Payment::query()->firstOrCreate(
-                ['charging_session_id' => $session->id],
-                [
+            if ($payment !== null) {
+                if ($payment->idempotency_key !== $attempt->capture_idempotency_key) {
+                    throw ValidationException::withMessages([
+                        'payment' => ['This session already has a different settlement operation. Manual reconciliation is required.'],
+                    ]);
+                }
+                if ($payment->status === 'pending' || $payment->status === 'paid') {
+                    return ['payment' => $payment, 'attempt' => $attempt, 'execute' => false];
+                }
+                if ($payment->status !== 'failed') {
+                    throw ValidationException::withMessages([
+                        'payment' => ['The existing payment cannot be captured in its current state.'],
+                    ]);
+                }
+
+                $payment->update([
+                    'provider' => $this->gateway->name(),
+                    'method' => $attempt->payment_method,
+                    'status' => 'pending',
+                    'amount_millimes' => $session->total_millimes,
+                    'currency' => $session->currency,
+                    'provider_transaction_id' => null,
+                    'failure_reason' => null,
+                    'metadata' => null,
+                    'paid_at' => null,
+                    'failed_at' => null,
+                ]);
+                $payment = $payment->fresh();
+            } else {
+                $payment = Payment::query()->create([
+                    'charging_session_id' => $session->id,
                     'organization_id' => $session->organization_id,
                     'user_id' => $session->client_id,
                     'reference' => 'PAY-'.Str::upper(Str::random(10)),
@@ -155,10 +223,10 @@ class PaymentService
                     'amount_millimes' => $session->total_millimes,
                     'currency' => $session->currency,
                     'idempotency_key' => $attempt->capture_idempotency_key,
-                ],
-            );
+                ]);
+            }
 
-            return ['payment' => $payment, 'attempt' => $attempt];
+            return ['payment' => $payment, 'attempt' => $attempt, 'execute' => true];
         });
 
         if ($prepared === null || $prepared['payment'] === null) {
@@ -169,7 +237,7 @@ class PaymentService
         $payment = $prepared['payment'];
         /** @var ChargingAttempt $attempt */
         $attempt = $prepared['attempt'];
-        if ($payment->status === 'paid') {
+        if (! $prepared['execute']) {
             return $payment;
         }
 
@@ -183,9 +251,13 @@ class PaymentService
         ), $attempt->provider_authorization_id);
 
         $processedPayment = DB::transaction(function () use ($payment, $attempt, $result): Payment {
-            $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
             $session = ChargingSession::query()->lockForUpdate()->findOrFail($payment->charging_session_id);
             $attempt = ChargingAttempt::query()->lockForUpdate()->findOrFail($attempt->id);
+            $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+
+            if ($payment->status !== 'pending' || $payment->idempotency_key !== $attempt->capture_idempotency_key) {
+                return $payment->load(['organization', 'chargingSession', 'user']);
+            }
 
             if ($result->successful) {
                 $payment->update([
@@ -231,5 +303,11 @@ class PaymentService
         }
 
         return $processedPayment;
+    }
+
+    private function hasUnsettledAuthorization(?ChargingAttempt $attempt): bool
+    {
+        return $attempt?->provider_authorization_id !== null
+            && ! in_array($attempt->payment_status, ['failed', 'released'], true);
     }
 }

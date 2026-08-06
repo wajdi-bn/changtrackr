@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\ChargingAttempt;
 use App\Models\ChargingSession;
 use App\Models\Connector;
 use App\Models\Organization;
 use App\Models\Payment;
 use App\Models\Station;
 use App\Models\User;
+use App\Services\PaymentService;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -161,6 +163,90 @@ class ChargingSessionPaymentApiTest extends TestCase
             'simulation_outcome' => 'success',
             'idempotency_key' => '20000000-0000-4000-8000-000000000002',
         ])->assertSuccessful()->assertJsonPath('data.status', 'paid');
+    }
+
+    public function test_manual_payment_is_rejected_when_the_session_has_an_unsettled_authorization(): void
+    {
+        [$client, $organization] = $this->userWithRole('client');
+        [$station, $connector] = $this->stationWithConnector($organization, 'CT-PAYMENT-AUTHORIZED');
+        $session = $this->completedSession($client, $station, $connector, 'SES-PAYMENT-AUTHORIZED');
+        $this->authorizedAttempt($session, '50000000-0000-4000-8000-000000000001');
+        Sanctum::actingAs($client);
+
+        $this->postJson("/api/charging-sessions/{$session->id}/payments", [
+            'method' => 'simulated_card',
+            'simulation_outcome' => 'success',
+            'idempotency_key' => '50000000-0000-4000-8000-000000000002',
+        ])->assertUnprocessable()->assertJsonValidationErrors('session');
+
+        $this->assertDatabaseCount('payments', 0);
+        $this->assertSame('authorized', $session->fresh()->payment_status);
+    }
+
+    public function test_duplicate_request_reuses_the_pending_session_payment_without_charging_again(): void
+    {
+        [$client, $organization] = $this->userWithRole('client');
+        [$station, $connector] = $this->stationWithConnector($organization, 'CT-PAYMENT-PENDING');
+        $session = $this->completedSession($client, $station, $connector, 'SES-PAYMENT-PENDING');
+        $key = '60000000-0000-4000-8000-000000000001';
+        $this->pendingPayment($session, $client, $key);
+        Sanctum::actingAs($client);
+
+        $this->postJson("/api/charging-sessions/{$session->id}/payments", [
+            'method' => 'simulated_card',
+            'simulation_outcome' => 'success',
+            'idempotency_key' => $key,
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'pending');
+
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseHas('payments', [
+            'charging_session_id' => $session->id,
+            'status' => 'pending',
+            'provider_transaction_id' => null,
+            'idempotency_key' => $key,
+        ]);
+    }
+
+    public function test_parallel_payment_with_another_key_is_rejected_while_settlement_is_pending(): void
+    {
+        [$client, $organization] = $this->userWithRole('client');
+        [$station, $connector] = $this->stationWithConnector($organization, 'CT-PAYMENT-CONCURRENT');
+        $session = $this->completedSession($client, $station, $connector, 'SES-PAYMENT-CONCURRENT');
+        $originalKey = '70000000-0000-4000-8000-000000000001';
+        $this->pendingPayment($session, $client, $originalKey);
+        Sanctum::actingAs($client);
+
+        $this->postJson("/api/charging-sessions/{$session->id}/payments", [
+            'method' => 'simulated_edinar',
+            'simulation_outcome' => 'success',
+            'idempotency_key' => '70000000-0000-4000-8000-000000000002',
+        ])->assertUnprocessable()->assertJsonValidationErrors('payment');
+
+        $this->assertDatabaseHas('payments', [
+            'charging_session_id' => $session->id,
+            'method' => 'simulated_card',
+            'status' => 'pending',
+            'idempotency_key' => $originalKey,
+        ]);
+    }
+
+    public function test_duplicate_capture_reuses_the_pending_session_settlement(): void
+    {
+        [$client, $organization] = $this->userWithRole('client');
+        [$station, $connector] = $this->stationWithConnector($organization, 'CT-CAPTURE-PENDING');
+        $session = $this->completedSession($client, $station, $connector, 'SES-CAPTURE-PENDING');
+        $captureKey = '80000000-0000-4000-8000-000000000001';
+        $this->authorizedAttempt($session, $captureKey);
+        $pending = $this->pendingPayment($session, $client, $captureKey);
+
+        $payment = app(PaymentService::class)->captureAuthorized($session);
+
+        $this->assertNotNull($payment);
+        $this->assertSame($pending->id, $payment->id);
+        $this->assertSame('pending', $payment->status);
+        $this->assertNull($payment->provider_transaction_id);
+        $this->assertSame('authorized', $session->fresh()->payment_status);
     }
 
     public function test_client_only_sees_their_sessions_while_operator_sees_the_organization(): void
@@ -340,6 +426,49 @@ class ChargingSessionPaymentApiTest extends TestCase
             'idempotency_key' => $idempotencyKey,
             'provider_transaction_id' => 'SIM-'.$reference,
             'paid_at' => now(),
+        ]);
+    }
+
+    private function pendingPayment(ChargingSession $session, User $client, string $idempotencyKey): Payment
+    {
+        return Payment::query()->create([
+            'organization_id' => $session->organization_id,
+            'user_id' => $client->id,
+            'charging_session_id' => $session->id,
+            'reference' => 'PAY-PENDING-'.substr($idempotencyKey, 0, 8),
+            'provider' => 'simulated',
+            'method' => 'simulated_card',
+            'status' => 'pending',
+            'amount_millimes' => $session->total_millimes,
+            'currency' => $session->currency,
+            'idempotency_key' => $idempotencyKey,
+        ]);
+    }
+
+    private function authorizedAttempt(ChargingSession $session, string $captureIdempotencyKey): ChargingAttempt
+    {
+        $session->update(['payment_status' => 'authorized']);
+
+        return ChargingAttempt::query()->create([
+            'uuid' => $captureIdempotencyKey,
+            'organization_id' => $session->organization_id,
+            'user_id' => $session->client_id,
+            'station_id' => $session->station_id,
+            'connector_id' => $session->connector_id,
+            'charging_session_id' => $session->id,
+            'status' => 'charging',
+            'payment_provider' => 'simulated',
+            'payment_method' => 'simulated_card',
+            'payment_status' => 'authorized',
+            'preauthorized_amount_millimes' => 30000,
+            'currency' => $session->currency,
+            'payment_idempotency_key' => str_replace('80000000', '81000000', $captureIdempotencyKey),
+            'capture_idempotency_key' => $captureIdempotencyKey,
+            'provider_authorization_id' => 'SIM-AUTH-'.substr($captureIdempotencyKey, 0, 8),
+            'simulation_outcome' => 'success',
+            'authorized_at' => now()->subMinutes(30),
+            'started_at' => $session->started_at,
+            'expires_at' => now()->addHour(),
         ]);
     }
 }
