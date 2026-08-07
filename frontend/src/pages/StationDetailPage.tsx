@@ -2,7 +2,7 @@ import { useDeferredValue, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Avatar, Button, Card, Drawer, Empty, Form, Input, InputNumber, Modal, Popconfirm, Segmented, Select, Skeleton, Table, Tag, Tabs, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { isAxiosError } from 'axios'
+import { getApiErrorMessage } from '../api/apiErrors'
 import dayjs from 'dayjs'
 import { QRCodeSVG } from 'qrcode.react'
 import { Area, AreaChart, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts'
@@ -167,7 +167,7 @@ export function StationDetailPage() {
       await refreshStationData()
       void message.success('Soft restart command queued.')
     },
-    onError: (error) => void message.error(apiErrorMessage(error, 'The restart command could not be queued.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'The restart command could not be queued.')),
   })
 
   const unlockMutation = useMutation({
@@ -177,7 +177,7 @@ export function StationDetailPage() {
       const connector = stationQuery.data?.connectors.find((item) => item.id === connectorId)
       void message.success(`Unlock command queued for connector ${connector?.external_id ?? connectorId}.`)
     },
-    onError: (error) => void message.error(apiErrorMessage(error, 'The connector could not be unlocked.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'The connector could not be unlocked.')),
   })
 
   const maintenanceMutation = useMutation<Station | MaintenanceModeResponse, unknown, Station>({
@@ -192,7 +192,7 @@ export function StationDetailPage() {
       }
       void message.success(station.availability_override === 'maintenance' ? 'Maintenance mode cleared.' : 'Maintenance mode enabled.')
     },
-    onError: (error) => void message.error(apiErrorMessage(error, 'Station maintenance mode could not be updated.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'Station maintenance mode could not be updated.')),
   })
 
   const rotateCredentialsMutation = useMutation({
@@ -201,7 +201,7 @@ export function StationDetailPage() {
       await refreshStationData()
       setRotatedCredentials(result)
     },
-    onError: (error) => void message.error(apiErrorMessage(error, 'The OCPP credentials could not be rotated.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'The OCPP credentials could not be rotated.')),
   })
 
   const connectorMutation = useMutation({
@@ -1085,13 +1085,6 @@ const commandColumns: ColumnsType<OcppCommand> = [
       ?? (command.result?.ocppStatus ? String(command.result.ocppStatus) : ['queued', 'sent'].includes(command.status) ? 'Waiting for station' : 'No details'),
   },
 ]
-
-function apiErrorMessage(error: unknown, fallback: string): string {
-  if (!isAxiosError(error)) return fallback
-  const data = error.response?.data as { message?: string; errors?: Record<string, string[]> } | undefined
-  const validationMessage = data?.errors ? Object.values(data.errors).flat()[0] : undefined
-  return validationMessage ?? data?.message ?? fallback
-}
 
 function ConnectorDrawer({ open, connector, managed, submitting, onClose, onSubmit }: {
   open: boolean

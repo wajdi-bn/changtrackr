@@ -1,5 +1,5 @@
-import axios from 'axios'
 import { csrfCookieRequest, httpClient } from '../../api/httpClient'
+import { getApiErrorCode } from '../../api/apiErrors'
 import type { AuthUser, LoginResponse } from '../../types/auth'
 
 export interface LoginPayload {
@@ -29,12 +29,6 @@ interface MessageResponse {
 interface RegistrationResponse extends MessageResponse {
   code: 'verification_required'
   email: string
-}
-
-interface AuthErrorResponse {
-  message?: string
-  code?: string
-  errors?: Record<string, string[]>
 }
 
 interface SessionResponse {
@@ -80,27 +74,7 @@ export async function resetPasswordRequest(
   return data
 }
 
-export function getAuthErrorMessage(error: unknown, fallback: string): string {
-  if (!axios.isAxiosError<AuthErrorResponse>(error)) {
-    return fallback
-  }
-
-  if (error.response?.status === 429) {
-    const retryAfter = error.response.headers['retry-after']
-    return retryAfter
-      ? `Too many attempts. Try again in ${retryAfter} seconds.`
-      : 'Too many attempts. Wait one minute before trying again.'
-  }
-
-  const fieldError = Object.values(error.response?.data?.errors ?? {}).flat()[0]
-  return fieldError ?? error.response?.data?.message ?? fallback
-}
-
-export function getAuthErrorCode(error: unknown): string | null {
-  return axios.isAxiosError<AuthErrorResponse>(error)
-    ? (error.response?.data?.code ?? null)
-    : null
-}
+export { getApiErrorCode as getAuthErrorCode }
 
 export function sessionRequest(): Promise<SessionResponse> {
   const now = Date.now()

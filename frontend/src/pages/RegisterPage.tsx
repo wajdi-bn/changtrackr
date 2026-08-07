@@ -3,12 +3,9 @@ import { LockKeyhole, Mail, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { backendUrl } from '../api/httpClient'
+import { getApiErrorMessage } from '../api/apiErrors'
 import { AuthPageShell } from '../features/auth/AuthPageShell'
-import {
-  getAuthErrorMessage,
-  registerClientRequest,
-  type RegisterClientPayload,
-} from '../features/auth/authApi'
+import { registerClientRequest, type RegisterClientPayload } from '../features/auth/authApi'
 import { getRoleConfig } from '../features/auth/roleConfig'
 import { useAuth } from '../features/auth/useAuth'
 
@@ -43,7 +40,7 @@ export function RegisterPage() {
       if (redirect) params.set('redirect', redirect)
       navigate(`/verify-email?${params.toString()}`, { replace: true })
     } catch (error) {
-      setErrorMessage(getAuthErrorMessage(error, 'Your account could not be created.'))
+      setErrorMessage(getApiErrorMessage(error, 'Your account could not be created.'))
     } finally {
       setIsSubmitting(false)
     }

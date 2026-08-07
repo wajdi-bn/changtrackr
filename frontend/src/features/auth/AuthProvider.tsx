@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { AuthUser } from '../../types/auth'
 import { queryClient } from '../../app/queryClient'
-import { loginRequest, logoutRequest, sessionRequest } from './authApi'
+import { loginRequest, logoutRequest, resetSessionRequestCache, sessionRequest } from './authApi'
+import { markSessionActive, subscribeToSessionExpiration } from './authSession'
 import { AuthContext } from './authContext'
 import type { AuthContextValue } from './authContext'
 
@@ -11,12 +12,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   const clearSession = useCallback(() => {
+    resetSessionRequestCache()
     queryClient.clear()
     setUser(null)
   }, [])
 
   useEffect(() => {
     let mounted = true
+    const unsubscribe = subscribeToSessionExpiration(clearSession)
 
     localStorage.removeItem('chargetrackr_access_token')
     localStorage.removeItem('chargetrackr_user')
@@ -28,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
         setUser(session.authenticated ? session.user : null)
+        if (session.authenticated) markSessionActive()
       } catch {
         if (mounted) {
           clearSession()
@@ -43,12 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false
+      unsubscribe()
     }
   }, [clearSession])
 
   const login = useCallback(async (email: string, password: string) => {
     const response = await loginRequest({ email, password })
     queryClient.clear()
+    markSessionActive()
     setUser(response.user)
     return response.user
   }, [])

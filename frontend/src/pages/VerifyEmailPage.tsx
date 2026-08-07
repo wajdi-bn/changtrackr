@@ -2,8 +2,9 @@ import { Alert, Button, Form, Input } from 'antd'
 import { ArrowLeft, Mail } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { getApiErrorMessage } from '../api/apiErrors'
 import { AuthPageShell } from '../features/auth/AuthPageShell'
-import { getAuthErrorMessage, resendVerificationRequest } from '../features/auth/authApi'
+import { resendVerificationRequest } from '../features/auth/authApi'
 
 export function VerifyEmailPage() {
   const location = useLocation()
@@ -23,7 +24,7 @@ export function VerifyEmailPage() {
       await resendVerificationRequest(values.email)
       setSentEmail(values.email)
     } catch (error) {
-      setErrorMessage(getAuthErrorMessage(error, 'The verification email could not be sent.'))
+      setErrorMessage(getApiErrorMessage(error, 'The verification email could not be sent.'))
     } finally {
       setIsSubmitting(false)
     }

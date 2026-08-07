@@ -2,7 +2,7 @@ import { useDeferredValue, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Avatar, Button, Empty, Input, Modal, Popconfirm, Radio, Segmented, Select, Skeleton, Switch, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { isAxiosError } from 'axios'
+import { getApiErrorMessage } from '../api/apiErrors'
 import dayjs from 'dayjs'
 import {
   BadgePercent,
@@ -109,12 +109,12 @@ export function SubscriptionsPage() {
       setView('memberships')
       void message.success(`${subscription.plan.name} is active for ${subscription.organization.name}.`)
     },
-    onError: (error) => void message.error(apiError(error, 'The payment was not completed. No plan was activated.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'The payment was not completed. No plan was activated.')),
   })
   const renewalMutation = useMutation({
     mutationFn: ({ subscriptionId, renew }: { subscriptionId: number; renew: boolean }) => updateSubscription(subscriptionId, renew),
     onSuccess: async () => { await refreshSubscriptions(); void message.success('Renewal preference updated.') },
-    onError: (error) => void message.error(apiError(error, 'The renewal preference could not be updated.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'The renewal preference could not be updated.')),
   })
   const cancelMutation = useMutation({
     mutationFn: cancelSubscription,
@@ -122,12 +122,12 @@ export function SubscriptionsPage() {
       await refreshSubscriptions()
       void message.success(`Cancellation scheduled for ${dayjs(subscription.current_period_ends_at).format('DD MMM YYYY')}.`)
     },
-    onError: (error) => void message.error(apiError(error, 'The cancellation could not be scheduled.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'The cancellation could not be scheduled.')),
   })
   const resumeMutation = useMutation({
     mutationFn: resumeSubscription,
     onSuccess: async () => { await refreshSubscriptions(); void message.success('Automatic renewal restored.') },
-    onError: (error) => void message.error(apiError(error, 'The subscription could not be resumed.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'The subscription could not be resumed.')),
   })
   const retryMutation = useMutation({
     mutationFn: (subscription: PlanSubscription) => retrySubscriptionPayment(subscription.id, {
@@ -140,7 +140,7 @@ export function SubscriptionsPage() {
       setRetrySubscription(null)
       void message.success('Payment completed. The plan is active again.')
     },
-    onError: (error) => void message.error(apiError(error, 'The payment retry was declined.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'The payment retry was declined.')),
   })
 
   const monthlyTotal = currentSubscriptions.reduce((total, subscription) => total + subscription.monthly_fee_millimes, 0)
@@ -427,10 +427,4 @@ function paymentMethodLabel(method: SubscriptionPaymentMethod): string {
 
 function initials(name: string): string {
   return name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
-}
-
-function apiError(error: unknown, fallback: string): string {
-  if (!isAxiosError<{ message?: string; errors?: Record<string, string[]> }>(error)) return fallback
-  const first = Object.values(error.response?.data.errors ?? {})[0]?.[0]
-  return first ?? error.response?.data.message ?? fallback
 }

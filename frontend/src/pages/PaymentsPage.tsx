@@ -1,7 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Button, Card, Empty, Input, Select, Table } from 'antd'
-import axios from 'axios'
+import { getApiErrorMessage } from '../api/apiErrors'
 import dayjs from 'dayjs'
 import { CircleDollarSign, CreditCard, Eye, FileDown, ReceiptText, RefreshCw, Search } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
@@ -57,7 +57,7 @@ export function PaymentsPage() {
         void message.warning(payment.failure_reason ?? 'The simulated payment was declined.')
       }
     },
-    onError: (error) => void message.error(paymentErrorMessage(error)),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'Payment processing failed.')),
   })
   const exportMutation = useMutation({
     mutationFn: (format: ExportFormat) => exportPayments(exportFilters, format),
@@ -97,7 +97,7 @@ export function PaymentsPage() {
       <MetricItem icon={<CreditCard size={18} />} label={clientMode ? 'Total paid' : 'Revenue'} value={`${((paymentsQuery.data?.summary.revenue_millimes ?? 0) / 1000).toFixed(3)} TND`} tone="purple" />
     </MetricStrip>
 
-    {paymentsQuery.isError && <Alert className="payments-api-error" type="error" showIcon title="Unable to load payments" description={axios.isAxiosError(paymentsQuery.error) ? `The API returned status ${paymentsQuery.error.response?.status ?? 'unknown'}.` : 'Check the API connection and retry.'} action={<Button size="small" onClick={() => void paymentsQuery.refetch()}>Retry</Button>} />}
+    {paymentsQuery.isError && <Alert className="payments-api-error" type="error" showIcon title="Unable to load payments" description={getApiErrorMessage(paymentsQuery.error, 'Check the API connection and retry.')} action={<Button size="small" onClick={() => void paymentsQuery.refetch()}>Retry</Button>} />}
 
     {clientMode && payableSessions.length > 0 && <section className="outstanding-payments">
       <header><div><span>Action required</span><h2>Outstanding sessions</h2></div><strong>{payableSessions.length}</strong></header>
@@ -125,12 +125,4 @@ export function PaymentsPage() {
     <PaymentDrawer open={Boolean(paymentSession)} session={paymentSession} submitting={paymentMutation.isPending} onClose={() => setPaymentSession(null)} onSubmit={(payload) => paymentSession && paymentMutation.mutate({ sessionId: paymentSession.id, payload })} />
     <OperationalDocumentPreviewModal target={receiptPreview} onClose={() => setReceiptPreview(null)} />
   </div>
-}
-
-function paymentErrorMessage(error: unknown) {
-  if (!axios.isAxiosError(error)) return 'Payment processing failed.'
-  const data = error.response?.data as { message?: string; errors?: Record<string, string[]> } | undefined
-  const validationMessage = data?.errors ? Object.values(data.errors).flat()[0] : undefined
-
-  return validationMessage ?? data?.message ?? 'Payment processing failed.'
 }

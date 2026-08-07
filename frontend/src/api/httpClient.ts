@@ -1,6 +1,11 @@
 import axios from 'axios'
+import { notifySessionExpired } from '../features/auth/authSession'
+import { installResponseInterceptor } from './httpInterceptors'
 
-const localBackendUrl = `${window.location.protocol}//${window.location.hostname}:8000`
+const browserLocation = typeof window === 'undefined'
+  ? { protocol: 'http:', hostname: 'localhost' }
+  : window.location
+const localBackendUrl = `${browserLocation.protocol}//${browserLocation.hostname}:8000`
 const baseURL = import.meta.env.DEV
   ? `${localBackendUrl}/api`
   : (import.meta.env.VITE_API_URL ?? `${localBackendUrl}/api`)
@@ -31,6 +36,26 @@ export const backendClient = axios.create({
   },
 })
 
-export async function csrfCookieRequest(): Promise<void> {
-  await backendClient.get('/sanctum/csrf-cookie')
+const csrfCookiePath = '/sanctum/csrf-cookie'
+let csrfRequestPromise: Promise<void> | null = null
+
+export function csrfCookieRequest(): Promise<void> {
+  if (!csrfRequestPromise) {
+    csrfRequestPromise = backendClient.get(csrfCookiePath)
+      .then(() => undefined)
+      .finally(() => {
+        csrfRequestPromise = null
+      })
+  }
+
+  return csrfRequestPromise
 }
+
+const responseInterceptorOptions = {
+  csrfCookiePath,
+  refreshCsrf: csrfCookieRequest,
+  onUnauthorized: notifySessionExpired,
+}
+
+installResponseInterceptor(httpClient, responseInterceptorOptions)
+installResponseInterceptor(backendClient, responseInterceptorOptions)

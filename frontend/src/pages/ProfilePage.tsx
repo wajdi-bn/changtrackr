@@ -28,7 +28,7 @@ import {
   UserRound,
 } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
-import { getAuthErrorMessage } from '../features/auth/authApi'
+import { getApiErrorMessage } from '../api/apiErrors'
 import { useAuth } from '../features/auth/useAuth'
 import { getProfile, removeProfileAvatar, updateProfile, uploadProfileAvatar } from '../features/profile/profileApi'
 import type { UpdateProfilePayload } from '../types/profile'
@@ -80,7 +80,7 @@ export function ProfilePage() {
       await queryClient.invalidateQueries({ queryKey: ['profile'] })
       void message.success('Profile information saved.')
     },
-    onError: (error) => void message.error(getAuthErrorMessage(error, 'Profile information could not be saved.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'Profile information could not be saved.')),
   })
   const avatarMutation = useMutation({
     mutationFn: uploadProfileAvatar,
@@ -89,7 +89,7 @@ export function ProfilePage() {
       await queryClient.invalidateQueries({ queryKey: ['profile'] })
       void message.success('Profile photo updated.')
     },
-    onError: (error) => void message.error(getAuthErrorMessage(error, 'Profile photo could not be updated.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'Profile photo could not be updated.')),
   })
   const removeAvatarMutation = useMutation({
     mutationFn: removeProfileAvatar,
@@ -98,7 +98,7 @@ export function ProfilePage() {
       await queryClient.invalidateQueries({ queryKey: ['profile'] })
       void message.success('Profile photo removed.')
     },
-    onError: (error) => void message.error(getAuthErrorMessage(error, 'Profile photo could not be removed.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'Profile photo could not be removed.')),
   })
 
   const profile = profileQuery.data

@@ -4,7 +4,7 @@ import { Alert, App, Button, Drawer, Empty, Form, InputNumber, Radio, Result, Se
 import type { FormInstance } from 'antd'
 import { motion } from 'framer-motion'
 import { BadgePercent, BatteryCharging, CheckCircle2, CircleDollarSign, Clock3, CreditCard, Gauge, MapPin, PlugZap, ShieldCheck, Zap } from 'lucide-react'
-import { isAxiosError } from 'axios'
+import { getApiErrorMessage } from '../../api/apiErrors'
 import type { ChargingAttempt, ChargingAttemptPayload, ChargingSession, PaymentSimulationOutcome, SimulatedPaymentMethod } from '../../types/charging'
 import type { Connector, Station } from '../../types/station'
 import { getStation } from '../stations/stationApi'
@@ -94,7 +94,7 @@ export function StartSessionDrawer({
       queryClient.setQueryData(['charging-attempt', attempt.uuid], attempt)
       void queryClient.invalidateQueries({ queryKey: ['charging-attempts'] })
     },
-    onError: (error) => void message.error(apiErrorMessage(error)),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'Charging could not be started. Check the station and payment details.')),
   })
 
   useEffect(() => {
@@ -296,12 +296,4 @@ function AttemptStep({ attempt, loading }: { attempt?: ChargingAttempt; loading:
 
 function pricingSourceLabel(source: string) {
   return ({ connector: 'Connector-specific', station: 'Station-specific', organization_default: 'Organization default', configuration_fallback: 'Configuration fallback' } as Record<string, string>)[source] ?? source
-}
-
-function apiErrorMessage(error: unknown) {
-  if (!isAxiosError(error)) return 'Charging could not be started. Check the station and payment details.'
-  const data = error.response?.data as { message?: string; errors?: Record<string, string[]> } | undefined
-  const validationMessage = data?.errors ? Object.values(data.errors).flat()[0] : undefined
-
-  return validationMessage ?? data?.message ?? 'Charging could not be started. Check the station and payment details.'
 }

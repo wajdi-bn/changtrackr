@@ -2,8 +2,9 @@ import { Alert, Button, Form, Input } from 'antd'
 import { ArrowLeft, LockKeyhole } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { getApiErrorMessage } from '../api/apiErrors'
 import { AuthPageShell } from '../features/auth/AuthPageShell'
-import { getAuthErrorMessage, resetPasswordRequest } from '../features/auth/authApi'
+import { resetPasswordRequest } from '../features/auth/authApi'
 
 interface ResetFormValues {
   password: string
@@ -28,7 +29,7 @@ export function ResetPasswordPage() {
       await resetPasswordRequest({ token, email, ...values })
       setIsComplete(true)
     } catch (error) {
-      setErrorMessage(getAuthErrorMessage(error, 'The reset link is invalid or has expired.'))
+      setErrorMessage(getApiErrorMessage(error, 'The reset link is invalid or has expired.'))
     } finally {
       setIsSubmitting(false)
     }

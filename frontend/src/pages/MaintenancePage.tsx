@@ -31,7 +31,7 @@ import {
   Tag,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { isAxiosError } from 'axios'
+import { getApiErrorMessage } from '../api/apiErrors'
 import dayjs from 'dayjs'
 import {
   CalendarDays,
@@ -301,7 +301,7 @@ export function MaintenancePage() {
       {canManage && <Button className="maintenance-create-button" type="primary" icon={<Plus size={15} />} onClick={() => setCreateOpen(true)}>Plan maintenance</Button>}
     </div>
 
-    {maintenanceQuery.isLoading ? <Card><Skeleton active paragraph={{ rows: 9 }} /></Card> : maintenanceQuery.isError ? <Card><Empty description={maintenanceErrorMessage(maintenanceQuery.error)}><Button onClick={() => void maintenanceQuery.refetch()}>Retry</Button></Empty></Card> : view === 'table' ? (
+    {maintenanceQuery.isLoading ? <Card><Skeleton active paragraph={{ rows: 9 }} /></Card> : maintenanceQuery.isError ? <Card><Empty description={getApiErrorMessage(maintenanceQuery.error, 'Maintenance planning could not be loaded.')}><Button onClick={() => void maintenanceQuery.refetch()}>Retry</Button></Empty></Card> : view === 'table' ? (
       <Card className="maintenance-table-card" title="Scheduled work" extra={<small>{occurrences.length} matching occurrences</small>}>
         <Table<InterventionItem> rowKey="id" columns={columns} dataSource={occurrences} pagination={{ pageSize: 8, showSizeChanger: false }} scroll={{ x: 1070 }} locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No maintenance occurrence matches these filters" /> }} />
       </Card>
@@ -331,13 +331,6 @@ export function MaintenancePage() {
     />
     <OperationalDocumentPreviewModal target={reportPreview} onClose={() => setReportPreview(null)} />
   </div>
-}
-
-function maintenanceErrorMessage(error: unknown) {
-  if (isAxiosError<{ message?: string }>(error)) {
-    return error.response?.data?.message ?? 'Maintenance planning could not be loaded.'
-  }
-  return 'Maintenance planning could not be loaded.'
 }
 
 function SummaryMetric({ icon: Icon, label, value, tone }: { icon: typeof Wrench; label: string; value: number; tone: MetricTone }) {

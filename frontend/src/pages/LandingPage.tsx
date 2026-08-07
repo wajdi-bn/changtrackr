@@ -11,8 +11,8 @@ import {
 } from 'lucide-react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import axios from 'axios'
 import { Link, useNavigate } from 'react-router-dom'
+import { getApiErrorMessage, getApiErrorStatus, getApiValidationErrors } from '../api/apiErrors'
 import { submitDemoRequest } from '../features/demoRequests/demoRequestApi'
 import { demoObjectiveOptions } from '../features/demoRequests/demoRequestOptions'
 import type { PublicDemoRequestPayload } from '../types/demoRequest'
@@ -71,11 +71,6 @@ const updates = [
 ]
 
 const footerLinks = ['Overview', 'Stations', 'Map', 'Alerts', 'Sessions', 'Reports']
-
-interface DemoRequestErrorResponse {
-  message?: string
-  errors?: Record<string, string[]>
-}
 
 const demoRequestFieldNames = new Set<keyof PublicDemoRequestPayload>([
   'full_name',
@@ -174,22 +169,17 @@ export function LandingPage() {
       demoForm.resetFields()
       void message.success(`Request ${result.reference} was recorded. Our platform team will contact you shortly.`)
     } catch (error) {
-      if (axios.isAxiosError<DemoRequestErrorResponse>(error) && error.response?.status === 422) {
-        const errors = error.response.data.errors ?? {}
+      if (getApiErrorStatus(error) === 422) {
+        const errors = getApiValidationErrors(error)
         const fields = Object.entries(errors).flatMap(([path, messages]) => {
           const name = path.split('.')[0] as keyof PublicDemoRequestPayload
           return demoRequestFieldNames.has(name) ? [{ name, errors: messages }] : []
         })
 
         demoForm.setFields(fields)
-        void message.error(fields[0]?.errors[0] ?? error.response.data.message ?? 'Check the highlighted fields and try again.')
-      } else if (axios.isAxiosError(error) && error.response?.status === 429) {
-        const retryAfter = error.response.headers['retry-after']
-        void message.error(retryAfter
-          ? `Too many requests. Try again in ${retryAfter} seconds.`
-          : 'Too many requests. Please wait before trying again.')
+        void message.error(getApiErrorMessage(error, 'Check the highlighted fields and try again.'))
       } else {
-        void message.error('The demo request could not be submitted. Please try again later.')
+        void message.error(getApiErrorMessage(error, 'The demo request could not be submitted. Please try again later.'))
       }
     } finally {
       demoSubmittingRef.current = false

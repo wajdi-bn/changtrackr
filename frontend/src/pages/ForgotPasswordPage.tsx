@@ -2,8 +2,9 @@ import { Alert, Button, Form, Input } from 'antd'
 import { ArrowLeft, Mail } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getApiErrorMessage } from '../api/apiErrors'
 import { AuthPageShell } from '../features/auth/AuthPageShell'
-import { forgotPasswordRequest, getAuthErrorMessage } from '../features/auth/authApi'
+import { forgotPasswordRequest } from '../features/auth/authApi'
 
 export function ForgotPasswordPage() {
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
@@ -18,7 +19,7 @@ export function ForgotPasswordPage() {
       await forgotPasswordRequest(values.email)
       setSubmittedEmail(values.email)
     } catch (error) {
-      setErrorMessage(getAuthErrorMessage(error, 'The reset request could not be completed.'))
+      setErrorMessage(getApiErrorMessage(error, 'The reset request could not be completed.'))
     } finally {
       setIsSubmitting(false)
     }

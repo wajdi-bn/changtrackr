@@ -4,8 +4,8 @@ import type { UploadFile } from 'antd'
 import { ArrowLeft, BriefcaseBusiness, Building2, LockKeyhole, Phone, UploadCloud } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { getApiErrorMessage } from '../api/apiErrors'
 import { AuthPageShell } from '../features/auth/AuthPageShell'
-import { getAuthErrorMessage } from '../features/auth/authApi'
 import { acceptInvitation, inspectInvitation } from '../features/invitations/invitationApi'
 
 interface ActivationValues {
@@ -49,7 +49,7 @@ export function ActivateInvitationPage() {
       })
       setIsComplete(true)
     } catch (error) {
-      setErrorMessage(getAuthErrorMessage(error, 'This invitation is invalid, expired, or already used.'))
+      setErrorMessage(getApiErrorMessage(error, 'This invitation is invalid, expired, or already used.'))
     } finally {
       submittingRef.current = false
       setIsSubmitting(false)

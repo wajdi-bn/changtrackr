@@ -1,7 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Button, Card, Checkbox, DatePicker, Drawer, Empty, Form, Input, InputNumber, Popconfirm, Segmented, Select, Skeleton, Steps, Tag, Upload } from 'antd'
-import { isAxiosError } from 'axios'
+import { getApiErrorMessage } from '../api/apiErrors'
 import dayjs from 'dayjs'
 import {
   CheckCircle2,
@@ -89,7 +89,7 @@ export function InterventionsPage() {
       await queryClient.invalidateQueries({ queryKey: ['alerts'] })
       void message.success('Intervention updated.')
     },
-    onError: (error) => void message.error(apiErrorMessage(error, 'The intervention could not be updated.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'The intervention could not be updated.')),
   })
 
   const noteMutation = useMutation({
@@ -132,7 +132,7 @@ export function InterventionsPage() {
       setReportOpen(false)
       void message.success('Final report submitted. The intervention is now read-only.')
     },
-    onError: (error) => void message.error(apiErrorMessage(error, 'The report could not be submitted. Check every step and the required photos.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'The report could not be submitted. Check every step and the required photos.')),
   })
   const documentMutation = useMutation({
     mutationFn: (intervention: InterventionItem) => downloadOperationalDocument('intervention', intervention.id),
@@ -568,14 +568,6 @@ function normalizeReportPayload(payload: Partial<InterventionReportPayload>): In
       station_status_verified: Boolean(payload.safety_checks?.station_status_verified),
     },
   }
-}
-
-function apiErrorMessage(error: unknown, fallback: string): string {
-  if (!isAxiosError<{ message?: string; errors?: Record<string, string[]> }>(error)) return fallback
-  const errors = error.response?.data.errors
-  const validationMessage = errors ? Object.values(errors).flat()[0] : undefined
-
-  return validationMessage ?? error.response?.data.message ?? fallback
 }
 
 function ManagementDrawer({ open, intervention, technicians, submitting, onClose, onSubmit }: {

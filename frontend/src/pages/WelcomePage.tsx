@@ -17,7 +17,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getAuthErrorMessage } from '../features/auth/authApi'
+import { getApiErrorMessage } from '../api/apiErrors'
 import { getRoleConfig } from '../features/auth/roleConfig'
 import { useAuth } from '../features/auth/useAuth'
 import {
@@ -108,7 +108,7 @@ export function WelcomePage() {
   const progressMutation = useMutation({
     mutationFn: updateOnboarding,
     onSuccess: updateCurrentUser,
-    onError: (error) => void message.error(getAuthErrorMessage(error, 'Your setup progress could not be saved.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'Your setup progress could not be saved.')),
   })
   const organizationMutation = useMutation({
     mutationFn: updateOnboardingOrganization,
@@ -117,7 +117,7 @@ export function WelcomePage() {
       setOrganizationSaved(true)
       void message.success('Organization details saved.')
     },
-    onError: (error) => void message.error(getAuthErrorMessage(error, 'Organization details could not be saved.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'Organization details could not be saved.')),
   })
   const logoMutation = useMutation({
     mutationFn: uploadOnboardingOrganizationLogo,
@@ -125,7 +125,7 @@ export function WelcomePage() {
       updateCurrentUser(nextUser)
       void message.success('Organization logo updated.')
     },
-    onError: (error) => void message.error(getAuthErrorMessage(error, 'Organization logo could not be uploaded.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'Organization logo could not be uploaded.')),
   })
 
   const completedSteps = useMemo(

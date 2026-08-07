@@ -2,8 +2,8 @@ import { useMutation } from '@tanstack/react-query'
 import { App, Tour } from 'antd'
 import type { TourProps } from 'antd'
 import { useState } from 'react'
+import { getApiErrorMessage } from '../../api/apiErrors'
 import type { UserRole } from '../../types/auth'
-import { getAuthErrorMessage } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
 import { updateOnboarding } from './onboardingApi'
 
@@ -44,7 +44,7 @@ export function WorkspaceCoach() {
   const saveMutation = useMutation({
     mutationFn: updateOnboarding,
     onSuccess: updateCurrentUser,
-    onError: (error) => void message.error(getAuthErrorMessage(error, 'The workspace tour state could not be saved.')),
+    onError: (error) => void message.error(getApiErrorMessage(error, 'The workspace tour state could not be saved.')),
   })
 
   function finishTour() {
