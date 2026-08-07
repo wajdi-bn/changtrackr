@@ -135,6 +135,7 @@ export interface ChargingAttemptPayload {
 export interface ChargingSessionsResponse {
   data: ChargingSession[]
   active_session: ChargingSession | null
+  latest_session: ChargingSession | null
   summary: {
     total: number
     active: number

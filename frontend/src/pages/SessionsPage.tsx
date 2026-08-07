@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { App, Button, Card, Empty, Input, Popconfirm, Select, Skeleton, Table } from 'antd'
 import dayjs from 'dayjs'
@@ -19,7 +19,13 @@ import {
 import { ChargingStatusTag } from '../features/charging/ChargingStatusTag'
 import { ActiveSessionModal } from '../features/charging/ActiveSessionModal'
 import { PaymentDrawer } from '../features/charging/PaymentDrawer'
+import {
+  isChargingSessionActive,
+  resolveTrackedSession,
+  shouldPresentCompletion,
+} from '../features/charging/sessionLifecycle'
 import { StartSessionDrawer } from '../features/charging/StartSessionDrawer'
+import { OperationalDocumentPreviewModal, type OperationalPreviewTarget } from '../features/reports/OperationalDocumentPreviewModal'
 import { useAuth } from '../features/auth/useAuth'
 import { getStations } from '../features/stations/stationApi'
 import type { ChargingAttempt, ChargingSession, ChargingSessionStatus, PaymentPayload } from '../types/charging'
@@ -40,7 +46,10 @@ export function SessionsPage() {
   const [startOpen, setStartOpen] = useState(false)
   const [resumeAttemptUuid, setResumeAttemptUuid] = useState<string | null>(null)
   const [paymentSession, setPaymentSession] = useState<ChargingSession | null>(null)
+  const [receiptPreview, setReceiptPreview] = useState<OperationalPreviewTarget | null>(null)
   const [activeModalOpen, setActiveModalOpen] = useState(false)
+  const trackedSessionId = useRef<number | null>(null)
+  const presentedCompletionId = useRef<number | null>(null)
   const queryClient = useQueryClient()
   const { message } = App.useApp()
   const location = useLocation()
@@ -59,12 +68,14 @@ export function SessionsPage() {
   const sessionsQuery = useQuery({
     queryKey: ['charging-sessions', listFilters],
     queryFn: () => getChargingSessions(listFilters),
-    refetchInterval: (query) => query.state.data?.active_session || query.state.data?.data.some(isActiveSession) ? 2500 : false,
+    refetchInterval: (query) => query.state.data?.active_session || query.state.data?.data.some(isChargingSessionActive) ? 1500 : false,
   })
   const stationsQuery = useQuery({ queryKey: ['stations', 'session-start'], queryFn: () => getStations({}), enabled: clientMode })
   const attemptsQuery = useQuery({ queryKey: ['charging-attempts'], queryFn: getChargingAttempts, enabled: clientMode })
   const sessions = useMemo(() => sessionsQuery.data?.data ?? [], [sessionsQuery.data?.data])
-  const activeSession = sessionsQuery.data?.active_session ?? sessions.find((session) => isActiveSession(session)) ?? null
+  const activeSession = sessionsQuery.data?.active_session ?? sessions.find((session) => isChargingSessionActive(session)) ?? null
+  const latestSession = sessionsQuery.data?.latest_session ?? sessions[0] ?? null
+  const modalSession = resolveTrackedSession(activeSession, latestSession, trackedSessionId.current)
   const activeAttempt = attemptsQuery.data?.find((attempt) => isActiveAttempt(attempt)) ?? null
 
   useEffect(() => {
@@ -79,6 +90,19 @@ export function SessionsPage() {
     navigate(location.pathname, { replace: true, state: null })
   }, [activeSession, location.pathname, location.state, navigate])
 
+  useEffect(() => {
+    if (activeSession) {
+      if (trackedSessionId.current !== activeSession.id) presentedCompletionId.current = null
+      trackedSessionId.current = activeSession.id
+      return
+    }
+
+    if (shouldPresentCompletion(latestSession, trackedSessionId.current, presentedCompletionId.current)) {
+      presentedCompletionId.current = latestSession?.id ?? null
+      setActiveModalOpen(true)
+    }
+  }, [activeSession, latestSession])
+
   const refreshWorkflow = async () => {
     await queryClient.invalidateQueries({ queryKey: ['charging-sessions'] })
     await queryClient.invalidateQueries({ queryKey: ['payments'] })
@@ -88,10 +112,10 @@ export function SessionsPage() {
   const stopMutation = useMutation({
     mutationFn: (session: ChargingSession) => session.source === 'ocpp' ? remoteStopChargingSession(session.id) : stopChargingSession(session.id),
     onSuccess: async (session) => {
+      trackedSessionId.current = session.id
       await refreshWorkflow()
-      setActiveModalOpen(false)
-      if (session.source !== 'ocpp' && clientMode) setPaymentSession(session)
-      void message.success(session.source === 'ocpp' ? 'Stop command sent to the station.' : 'Charging session stopped. The amount is ready for payment.')
+      setActiveModalOpen(true)
+      void message.success(session.source === 'ocpp' ? 'Stop command sent. Waiting for the station confirmation.' : 'Charging session stopped. Review the final amount.')
     },
     onError: () => void message.error('The session could not be stopped.'),
   })
@@ -121,13 +145,13 @@ export function SessionsPage() {
     { title: 'Session', dataIndex: 'reference', key: 'reference', render: (value: string, item) => <span className="session-reference"><strong>{value}</strong><small>{item.source === 'ocpp' ? `OCPP #${item.ocpp?.transaction_id ?? '—'} - ` : ''}{dayjs(item.started_at).format('DD MMM YYYY, HH:mm')}</small></span> },
     ...(!clientMode ? [{ title: 'Client', key: 'client', render: (_: unknown, item: ChargingSession) => item.client.name }] : []),
     { title: 'Station', key: 'station', render: (_: unknown, item) => <span className="session-station"><strong>{item.station.name}</strong><small>{clientMode && item.organization ? `${item.organization.name} - ` : ''}Connector {item.connector.external_id}</small></span> },
-    { title: 'Duration', key: 'duration', render: (_: unknown, item) => isActiveSession(item) ? 'In progress' : `${item.duration_minutes} min` },
+    { title: 'Duration', key: 'duration', render: (_: unknown, item) => isChargingSessionActive(item) ? 'In progress' : `${item.duration_minutes} min` },
     { title: 'Energy', key: 'energy', render: (_: unknown, item) => `${item.energy_kwh.toFixed(3)} kWh` },
     { title: 'Session', dataIndex: 'status', key: 'status', render: (value: ChargingSessionStatus) => <ChargingStatusTag value={value} /> },
     { title: 'Payment', dataIndex: 'payment_status', key: 'payment_status', render: (value) => <ChargingStatusTag value={value} /> },
     { title: 'Total', key: 'total', align: 'right', render: (_: unknown, item) => <span className="session-total"><strong>{item.total_amount} {item.currency}</strong>{item.discount_millimes > 0 && <small>-{(item.discount_millimes / 1000).toFixed(3)} TND plan saving</small>}</span> },
     {
-      title: '', key: 'actions', align: 'right', render: (_: unknown, item) => isActiveSession(item) && canStopSessions ? (
+      title: '', key: 'actions', align: 'right', render: (_: unknown, item) => isChargingSessionActive(item) && canStopSessions ? (
         <Popconfirm title="Stop this charging session?" description={item.source === 'ocpp' ? 'A RemoteStopTransaction command will be sent to the station.' : undefined} onConfirm={() => stopMutation.mutate(item)} okText="Stop">
           <Button size="small" icon={<Square size={12} />} loading={stopMutation.isPending}>Stop</Button>
         </Popconfirm>
@@ -205,18 +229,23 @@ export function SessionsPage() {
       }} scroll={{ x: 1050 }} locale={{ emptyText: <Empty description="No charging sessions found" /> }} />
     </Card>
 
-    <StartSessionDrawer open={startOpen} stations={stationsQuery.data?.data ?? []} initialAttemptUuid={resumeAttemptUuid} onClose={() => setStartOpen(false)} onSessionStarted={() => { setStartOpen(false); setActiveModalOpen(true); void refreshWorkflow(); void message.success('The station confirmed that charging has started.') }} />
-    <ActiveSessionModal open={activeModalOpen} session={activeSession} stopping={stopMutation.isPending} onClose={() => setActiveModalOpen(false)} onStop={(session) => stopMutation.mutate(session)} />
+    <StartSessionDrawer open={startOpen} stations={stationsQuery.data?.data ?? []} initialAttemptUuid={resumeAttemptUuid} onClose={() => setStartOpen(false)} onSessionStarted={(session) => { trackedSessionId.current = session.id; presentedCompletionId.current = null; setStartOpen(false); setActiveModalOpen(true); void refreshWorkflow(); void message.success('The station confirmed that charging has started.') }} />
+    <ActiveSessionModal
+      open={activeModalOpen}
+      session={modalSession}
+      stopping={stopMutation.isPending}
+      onClose={() => setActiveModalOpen(false)}
+      onStop={(session) => stopMutation.mutate(session)}
+      onPay={(session) => setPaymentSession(session)}
+      onViewReceipt={(session) => session.payment && setReceiptPreview({ type: 'receipt', id: session.payment.id, title: `Receipt ${session.payment.reference}`, filename: `receipt-${session.payment.reference}.pdf` })}
+    />
     <PaymentDrawer open={Boolean(paymentSession)} session={paymentSession} submitting={paymentMutation.isPending} onClose={() => setPaymentSession(null)} onSubmit={(payload) => paymentSession && paymentMutation.mutate({ sessionId: paymentSession.id, payload })} />
+    <OperationalDocumentPreviewModal target={receiptPreview} onClose={() => setReceiptPreview(null)} />
   </div>
 }
 
 function SessionKpi({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string | number; tone: MetricTone }) {
   return <MetricItem icon={icon} label={label} value={value} tone={tone} />
-}
-
-function isActiveSession(session: ChargingSession) {
-  return ['pending', 'charging', 'stopping'].includes(session.status)
 }
 
 function isActiveAttempt(attempt: ChargingAttempt) {

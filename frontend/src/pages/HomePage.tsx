@@ -8,6 +8,7 @@ import {
   Building2,
   CalendarDays,
   ChevronRight,
+  CheckCircle2,
   CircleDollarSign,
   ClipboardList,
   CreditCard,
@@ -50,6 +51,7 @@ import { useAuth } from '../features/auth/useAuth'
 import { getDashboard } from '../features/dashboard/dashboardApi'
 import { copyCoordinates } from '../features/maps/mapUtils'
 import { StationMap, StationPopupDetailButton } from '../features/maps/StationMap'
+import { OperationalDocumentPreviewModal, type OperationalPreviewTarget } from '../features/reports/OperationalDocumentPreviewModal'
 import { getStationMap } from '../features/stations/stationApi'
 import type { StationMapMarker } from '../types/station'
 import type {
@@ -314,16 +316,20 @@ function TechnicianDashboard({ data, map, ...props }: RoleDashboardProps & { map
 
 function ClientDashboard({ data, map, ...props }: RoleDashboardProps & { map: DashboardMapState }) {
   const navigate = useNavigate()
+  const [receiptPreview, setReceiptPreview] = useState<OperationalPreviewTarget | null>(null)
   const session = data.widgets.active_session
+  const latestSession = data.widgets.latest_session
   const identifier = data.widgets.identifier
   const subscription = data.widgets.subscription
   const paymentStatus = breakdown(data, 'payments')
   const availableStations = map.stations.filter((station) => station.available_connectors_count > 0).slice(0, 4)
 
+  const sessionTitle = session ? 'Current charging session' : latestSession ? 'Latest charging session' : 'Current charging session'
+
   return <DashboardFrame data={data} {...props} color="green" breadcrumb="Client" title="Client Overview" className="client-dashboard">
     <KpiStrip kpis={data.kpis} />
     <div className="client-primary-grid">
-      <DashboardCard title="Current charging session" subtitle={session?.reference ?? 'No active session'}><CurrentSessionWidget session={session} onOpen={navigate} /></DashboardCard>
+      <DashboardCard title={sessionTitle} subtitle={session?.reference ?? latestSession?.reference ?? 'No active session'}><CurrentSessionWidget session={session} latestSession={latestSession} onOpen={navigate} onViewReceipt={(paymentId, reference) => setReceiptPreview({ type: 'receipt', id: paymentId, title: `Receipt ${reference}`, filename: `receipt-${reference}.pdf` })} /></DashboardCard>
       <DashboardCard title="Charging access" subtitle="Identifier and current charging plan">
         <div className="client-access-widget">
           <div className="client-identifier"><KeyRound size={18} /><span><small>OCPP / RFID IDENTIFIER</small><strong>{identifier?.masked_token ?? 'No active identifier'}</strong><b>{identifier?.label ?? identifier?.status ?? 'Not configured'}</b></span></div>
@@ -338,6 +344,7 @@ function ClientDashboard({ data, map, ...props }: RoleDashboardProps & { map: Da
       <DashboardCard title="Payment status" subtitle="Personal invoices only"><DonutWithLegend breakdown={paymentStatus} compact /></DashboardCard>
     </div>
     <DashboardCard title="Recent sessions" subtitle="Personal charging history"><RecentSessionsTable sessions={data.widgets.recent_sessions ?? []} onOpen={navigate} /></DashboardCard>
+    <OperationalDocumentPreviewModal target={receiptPreview} onClose={() => setReceiptPreview(null)} />
   </DashboardFrame>
 }
 
@@ -452,7 +459,15 @@ function PerformanceList({ items }: { items: NonNullable<DashboardData['widgets'
   return <div className="technician-performance-list">{items.map((item) => <div key={item.label}><small>{item.label}</small><strong>{item.value === null ? 'N/A' : `${formatNumber(item.value)}${item.unit ? ` ${item.unit}` : ''}`}</strong><span>{item.helper}</span></div>)}</div>
 }
 
-function CurrentSessionWidget({ session, onOpen }: { session: DashboardData['widgets']['active_session']; onOpen: (url: string) => void }) {
+function CurrentSessionWidget({ session, latestSession, onOpen, onViewReceipt }: {
+  session: DashboardData['widgets']['active_session']
+  latestSession: DashboardData['widgets']['latest_session']
+  onOpen: (url: string) => void
+  onViewReceipt: (paymentId: number, reference: string) => void
+}) {
+  if (!session && latestSession && ['completed', 'interrupted'].includes(latestSession.status)) {
+    return <div className="client-current-session client-current-session--complete"><div><span className="session-pulse"><CheckCircle2 size={20} /></span><span><StatusTag status={latestSession.status} /><h3>{latestSession.station}</h3><p>Connector {latestSession.connector} - {latestSession.reference}</p></span></div><div className="client-session-metrics"><span><small>Final energy</small><strong>{latestSession.energy_kwh} kWh</strong></span><span><small>Duration</small><strong>{latestSession.ended_at ? `${Math.max(1, Math.ceil((new Date(latestSession.ended_at).getTime() - new Date(latestSession.started_at).getTime()) / 60000))} min` : 'Finalized'}</strong></span><span><small>Final total</small><strong>{formatMoney(latestSession.total_millimes)}</strong></span></div><div className="client-session-complete-copy"><CheckCircle2 size={16} /><span><strong>Charging complete</strong><small>{latestSession.payment_status === 'paid' ? 'Payment confirmed and receipt available.' : latestSession.payment_status === 'authorized' ? 'Payment capture is being finalized.' : 'Review payment details to finish the session.'}</small></span></div><div className="client-session-actions"><Button onClick={() => onOpen(latestSession.action_url)}>View session</Button>{latestSession.payment_status === 'paid' && latestSession.payment_id && <Button type="primary" icon={<ReceiptText size={14} />} onClick={() => onViewReceipt(latestSession.payment_id!, latestSession.reference)}>View receipt</Button>}</div></div>
+  }
   if (!session) return <div className="client-no-session"><BatteryCharging size={28} /><strong>No charging session in progress</strong><span>Choose an available station to start charging.</span><Button className="client-find-station-button" type="primary" onClick={() => onOpen('/find-station')}>Find a station</Button></div>
   return <div className="client-current-session"><div><span className="session-pulse"><Zap size={18} /></span><span><StatusTag status={session.status} /><h3>{session.station}</h3><p>Connector {session.connector} - {session.reference}</p></span></div><div className="client-session-metrics"><span><small>Energy</small><strong>{session.energy_kwh} kWh</strong></span><span><small>Power</small><strong>{session.current_power_kw ?? 0} kW</strong></span><span><small>Estimated total</small><strong>{formatMoney(session.total_millimes)}</strong></span></div>{session.state_of_charge_percent !== null && <Progress percent={session.state_of_charge_percent} strokeColor="#22c55e" />}<Button type="primary" onClick={() => onOpen(session.action_url)}>Open session</Button></div>
 }

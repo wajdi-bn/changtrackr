@@ -144,7 +144,13 @@ export interface DashboardActiveSessionWidget {
   current_power_kw: number | null
   state_of_charge_percent: number | null
   total_millimes: number
+  payment_status: string
+  payment_id: number | null
   action_url: string
+}
+
+export interface DashboardLatestSessionWidget extends DashboardActiveSessionWidget {
+  ended_at: string | null
 }
 
 export interface DashboardIdentifierWidget {
@@ -182,6 +188,7 @@ export interface DashboardWidgets {
   recent_faults?: DashboardFaultWidget[]
   performance?: DashboardPerformanceWidget[]
   active_session?: DashboardActiveSessionWidget | null
+  latest_session?: DashboardLatestSessionWidget | null
   identifier?: DashboardIdentifierWidget | null
   subscription?: DashboardSubscriptionWidget | null
   recent_sessions?: DashboardRecentSessionWidget[]
