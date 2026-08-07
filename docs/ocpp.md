@@ -99,6 +99,12 @@ wss://<public-gateway-host>/ocpp/<station-identity>
 The connection requires the `ocpp1.6` WebSocket subprotocol and HTTP Basic Auth. The username must
 equal the path identity. Laravel stores only a password hash for each station.
 
+The gateway rejects an identity/username mismatch locally with WebSocket code `1008`, before
+calling Laravel. If station authentication succeeds but the opening event cannot be persisted, the
+gateway closes with `1013` and starts neither the OCPP handler nor command polling. The charge point
+may then reconnect using its normal retry policy; only a successfully persisted opening can later
+produce a closing event.
+
 The implemented OCPP messages are:
 
 - `BootNotification`: registers the station and negotiates the 30-second heartbeat interval.

@@ -102,6 +102,14 @@ async def handle_connection(
         return
 
     username, password = credentials
+    if username != identity:
+        LOGGER.warning(
+            "Station identity does not match Basic Auth username",
+            extra={"station": identity},
+        )
+        await websocket.close(code=1008, reason="Station identity mismatch")
+        return
+
     try:
         authenticated = await api_client.authenticate_station(identity, username, password)
     except GatewayApiError:
@@ -116,15 +124,24 @@ async def handle_connection(
 
     connection_id = str(uuid4())
     opened_message_id = f"{connection_id}:opened"
-    await api_client.publish_event(
-        build_event(
-            station_identity=identity,
-            connection_id=connection_id,
-            action="ConnectionOpened",
-            message_id=opened_message_id,
-            payload={},
+    try:
+        await api_client.publish_event(
+            build_event(
+                station_identity=identity,
+                connection_id=connection_id,
+                action="ConnectionOpened",
+                message_id=opened_message_id,
+                payload={},
+            )
         )
-    )
+    except GatewayApiError:
+        LOGGER.exception(
+            "Could not persist station connection",
+            extra={"station": identity},
+        )
+        await websocket.close(code=1013, reason="Event service unavailable")
+        return
+
     LOGGER.info("OCPP station connected", extra={"station": identity})
 
     charge_point = ChargeTrackrChargePoint(
