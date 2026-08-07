@@ -29,11 +29,14 @@ export function RolesPermissionsPage() {
   const saved = selectedRole?.permissions ?? []
   const dirty = selectedRole ? !samePermissions(saved, draft) : false
   const saveMutation = useMutation({
-    mutationFn: () => updateRolePermissions(selectedRole.name, draft),
+    mutationFn: () => {
+      if (!selectedRole) throw new Error('Select a role before saving permissions.')
+      return updateRolePermissions(selectedRole.name, draft)
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['platform-role-permissions'] })
       await queryClient.invalidateQueries({ queryKey: ['platform-audit-logs'] })
-      void message.success(`${selectedRole.label} permissions updated.`)
+      void message.success(`${selectedRole?.label ?? 'Role'} permissions updated.`)
     },
     onError: () => void message.error('The permission set could not be updated.'),
   })

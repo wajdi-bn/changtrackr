@@ -164,7 +164,7 @@ export function SettingsPage() {
         <Divider />
         {accountSecurityQuery.isLoading || !accountSecurityQuery.data ? <Skeleton active paragraph={{ rows: 3 }} /> : (() => {
           const security = accountSecurityQuery.data
-          const providerLabel = security.sign_in_providers.map((provider) => provider[0].toUpperCase() + provider.slice(1)).join(' · ')
+          const providerLabel = security.sign_in_providers.map((provider) => provider.charAt(0).toUpperCase() + provider.slice(1)).join(' · ')
           return <div className="account-security-summary">
             <div className="account-security-row">
               <span className="account-security-icon"><MailCheck size={18} /></span>

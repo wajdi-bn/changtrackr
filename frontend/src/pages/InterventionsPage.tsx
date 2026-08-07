@@ -73,13 +73,14 @@ export function InterventionsPage() {
   const selected = interventions.find((intervention) => intervention.id === selectedId) ?? interventions[0] ?? null
 
   useEffect(() => {
+    const firstIntervention = interventions[0]
     const requestedId = Number(searchParams.get('intervention'))
     if (Number.isInteger(requestedId) && interventions.some((intervention) => intervention.id === requestedId)) {
       if (selectedId !== requestedId) setSelectedId(requestedId)
       return
     }
-    if (selectedId === null && interventions[0]) setSelectedId(interventions[0].id)
-    if (selectedId !== null && interventions.length > 0 && !interventions.some((item) => item.id === selectedId)) setSelectedId(interventions[0].id)
+    if (selectedId === null && firstIntervention) setSelectedId(firstIntervention.id)
+    if (selectedId !== null && firstIntervention && !interventions.some((item) => item.id === selectedId)) setSelectedId(firstIntervention.id)
   }, [interventions, searchParams, selectedId])
 
   const updateMutation = useMutation({

@@ -52,7 +52,7 @@ export function PlatformAuditLogsPage() {
   })
   const logs = logsQuery.data?.data ?? []
   const facets = logsQuery.data?.facets
-  const modules = useMemo(() => Array.from(new Set((facets?.event_types ?? []).map((item) => item.value.split('.')[0]))).sort(), [facets])
+  const modules = useMemo(() => Array.from(new Set((facets?.event_types ?? []).map((item) => item.value.split('.')[0] ?? item.value))).sort(), [facets])
   const resetPage = () => setPage(1)
   const columns: ColumnsType<PlatformAuditLog> = [
     { title: 'Date / time', dataIndex: 'created_at', width: 154, render: (value: string) => <div className="audit-time"><strong>{dayjs(value).format('DD MMM YYYY')}</strong><small>{dayjs(value).format('HH:mm:ss')}</small></div> },

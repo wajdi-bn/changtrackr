@@ -37,11 +37,11 @@ import { formatDateTime } from '../utils/dateTime'
 type ProfileFormValues = Required<Pick<UpdateProfilePayload, 'name'>> & Omit<UpdateProfilePayload, 'name'>
 
 function initials(name: string): string {
-  return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+  return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase()
 }
 
 function roleLabel(role: string | undefined): string {
-  return (role ?? 'user').split('_').map((value) => value[0].toUpperCase() + value.slice(1)).join(' ')
+  return (role ?? 'user').split('_').map((value) => value.charAt(0).toUpperCase() + value.slice(1)).join(' ')
 }
 
 function LinkedInMark({ size = 15 }: { size?: number }) {
@@ -206,7 +206,7 @@ export function ProfilePage() {
               {!['super_admin', 'client'].includes(role ?? '') && <><div><dt><Building2 size={15} /> Organization</dt><dd>{user.organization?.name ?? 'Not assigned'}</dd></div>{user.team && <div><dt><Building2 size={15} /> Team</dt><dd>{user.team}</dd></div>}</>}
               <div><dt><Clock3 size={15} /> Last sign-in</dt><dd>{formatDateTime(metadata.last_login_at, user.timezone)}</dd></div>
               <div><dt><CalendarDays size={15} /> Account created</dt><dd>{formatDateTime(metadata.account_created_at, user.timezone)}</dd></div>
-              <div><dt><ShieldCheck size={15} /> Sign-in methods</dt><dd>{[metadata.local_password_configured ? 'Password' : null, ...metadata.sign_in_providers.map((provider) => provider[0].toUpperCase() + provider.slice(1))].filter(Boolean).join(' · ') || 'Not recorded'}</dd></div>
+              <div><dt><ShieldCheck size={15} /> Sign-in methods</dt><dd>{[metadata.local_password_configured ? 'Password' : null, ...metadata.sign_in_providers.map((provider) => provider.charAt(0).toUpperCase() + provider.slice(1))].filter(Boolean).join(' · ') || 'Not recorded'}</dd></div>
             </dl>
             <p className="profile-metadata-note">To protect access control, your role, organization, team and account status are maintained by the authorized administrator.</p>
           </aside>

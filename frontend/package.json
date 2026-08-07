@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node --test tests/apiErrors.test.ts tests/authSession.test.ts tests/httpInterceptors.test.ts",
+    "test": "node --test tests/apiErrors.test.ts tests/authSession.test.ts tests/httpInterceptors.test.ts tests/idempotency.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

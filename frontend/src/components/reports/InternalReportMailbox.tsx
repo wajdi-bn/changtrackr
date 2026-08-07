@@ -62,7 +62,7 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
 
   useEffect(() => {
     if (reports.length === 0) setSelectedId(undefined)
-    else if (!reports.some((report) => report.id === selectedId)) setSelectedId(reports[0].id)
+    else if (!reports.some((report) => report.id === selectedId)) setSelectedId(reports[0]?.id)
   }, [reports, selectedId])
 
   const saveMutation = useMutation({

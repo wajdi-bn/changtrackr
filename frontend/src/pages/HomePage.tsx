@@ -222,7 +222,12 @@ function AdministratorDashboard({ data, map, ...props }: RoleDashboardProps & { 
       </DashboardCard>
       <DashboardCard title="Quick actions" subtitle="Common administrator tasks">
         <div className="administrator-quick-actions">
-          {[['Add employee', '/users/employees'], ['Create tariff', '/tariffs'], ['Review stations', '/stations'], ['Generate report', '/analytics-reports']].map(([label, path]) => <button key={path} type="button" onClick={() => navigate(path)}>{label}<ChevronRight size={14} /></button>)}
+          {[
+            { label: 'Add employee', path: '/users/employees' },
+            { label: 'Create tariff', path: '/tariffs' },
+            { label: 'Review stations', path: '/stations' },
+            { label: 'Generate report', path: '/analytics-reports' },
+          ].map(({ label, path }) => <button key={path} type="button" onClick={() => navigate(path)}>{label}<ChevronRight size={14} /></button>)}
         </div>
       </DashboardCard>
     </div>

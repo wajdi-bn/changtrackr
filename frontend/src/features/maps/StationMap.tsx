@@ -78,8 +78,9 @@ function MapViewport({ stations, selectedStationId, userPosition }: Pick<Station
       return
     }
 
-    if (points.length === 1) {
-      map.setView(points[0], 12)
+    const firstPoint = points[0]
+    if (points.length === 1 && firstPoint) {
+      map.setView(firstPoint, 12)
     } else if (points.length > 1) {
       map.fitBounds(points as LatLngBoundsExpression, { padding: [36, 36], maxZoom: 12 })
     }
