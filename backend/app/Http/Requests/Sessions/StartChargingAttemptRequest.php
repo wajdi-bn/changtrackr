@@ -22,7 +22,13 @@ class StartChargingAttemptRequest extends FormRequest
             'simulation_outcome' => ['sometimes', Rule::in(['success', 'declined', 'timeout', 'provider_error'])],
             'idempotency_key' => ['required', 'uuid'],
             'limit_energy_kwh' => ['nullable', 'numeric', 'min:0.1', 'max:200', 'prohibits:limit_amount_tnd,limit_duration_minutes'],
-            'limit_amount_tnd' => ['nullable', 'numeric', 'min:1', 'max:30', 'prohibits:limit_energy_kwh,limit_duration_minutes'],
+            'limit_amount_tnd' => [
+                'nullable',
+                'numeric',
+                'min:1',
+                'max:'.(max(1, (int) config('payments.preauthorization_amount_millimes', 30000)) / 1000),
+                'prohibits:limit_energy_kwh,limit_duration_minutes',
+            ],
             'limit_duration_minutes' => ['nullable', 'integer', 'min:1', 'max:1440', 'prohibits:limit_energy_kwh,limit_amount_tnd'],
         ];
     }

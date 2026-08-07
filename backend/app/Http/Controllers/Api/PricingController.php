@@ -8,10 +8,12 @@ use App\Models\Connector;
 use App\Models\PlanSubscription;
 use App\Models\Station;
 use App\Models\User;
+use App\Services\ChargingEstimateService;
 use App\Services\TariffResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class PricingController extends Controller
@@ -52,16 +54,22 @@ class PricingController extends Controller
         ]]);
     }
 
-    public function simulate(Request $request, TariffResolver $resolver): JsonResponse
-    {
+    public function simulate(
+        Request $request,
+        TariffResolver $resolver,
+        ChargingEstimateService $estimates,
+    ): JsonResponse {
         $attributes = $request->validate([
             'station_id' => ['required', 'integer', 'exists:stations,id'],
             'connector_id' => ['nullable', 'integer', 'exists:connectors,id'],
             'charging_plan_id' => ['nullable', 'integer', 'exists:charging_plans,id'],
-            'energy_kwh' => ['required', 'numeric', 'min:0', 'max:10000'],
-            'duration_minutes' => ['required', 'integer', 'min:0', 'max:100000'],
-            'idle_minutes' => ['required', 'integer', 'min:0', 'max:100000'],
+            'target_type' => ['nullable', Rule::in(['energy', 'duration', 'amount'])],
+            'target_value' => ['required_with:target_type', 'numeric', 'min:0.1', 'max:10000'],
+            'energy_kwh' => ['required_without:target_type', 'numeric', 'min:0', 'max:10000'],
+            'duration_minutes' => ['required_without:target_type', 'integer', 'min:0', 'max:100000'],
+            'idle_minutes' => ['required_without:target_type', 'integer', 'min:0', 'max:100000'],
         ]);
+        $this->validateTarget($attributes);
         $station = Station::query()->findOrFail($attributes['station_id']);
         Gate::authorize('view', $station);
         $connector = isset($attributes['connector_id']) ? Connector::query()->findOrFail($attributes['connector_id']) : null;
@@ -85,12 +93,22 @@ class PricingController extends Controller
         }
 
         $tariff = $resolver->resolve($station, $connector);
-        $energyGross = (int) round((float) $attributes['energy_kwh'] * $tariff->pricePerKwhMillimes);
-        $discount = $plan ? (int) round($energyGross * $plan->discount_basis_points / 10000) : 0;
-        $energyNet = $energyGross - $discount;
-        $idleFee = $attributes['idle_minutes'] * $tariff->idleFeePerMinuteMillimes;
-        $subtotal = $energyNet + $tariff->sessionFeeMillimes + $idleFee;
-        $total = max($subtotal, $tariff->minimumChargeMillimes);
+        $discountBasisPoints = $plan?->discount_basis_points ?? 0;
+        $idleMinutes = (int) ($attributes['idle_minutes'] ?? 0);
+        $estimate = isset($attributes['target_type'])
+            ? $estimates->estimate(
+                $tariff,
+                (float) ($connector?->max_power_kw ?? $station->max_power_kw),
+                $attributes['target_type'],
+                (float) $attributes['target_value'],
+                $idleMinutes,
+                $discountBasisPoints,
+                max(1, (int) config('payments.preauthorization_amount_millimes', 30000)),
+            )
+            : null;
+        $energyKwh = $estimate['energy_kwh'] ?? (float) $attributes['energy_kwh'];
+        $durationMinutes = $estimate['duration_minutes'] ?? (int) $attributes['duration_minutes'];
+        $breakdown = $estimates->breakdown($tariff, $energyKwh, $idleMinutes, $discountBasisPoints);
 
         return response()->json(['data' => [
             'tariff' => [
@@ -105,22 +123,34 @@ class PricingController extends Controller
                 'discount_basis_points' => $plan->discount_basis_points,
             ] : null,
             'inputs' => [
-                'energy_kwh' => (float) $attributes['energy_kwh'],
-                'duration_minutes' => $attributes['duration_minutes'],
-                'idle_minutes' => $attributes['idle_minutes'],
+                'energy_kwh' => $energyKwh,
+                'duration_minutes' => $durationMinutes,
+                'idle_minutes' => $idleMinutes,
             ],
-            'breakdown' => [
-                'energy_gross_millimes' => $energyGross,
-                'discount_millimes' => $discount,
-                'energy_net_millimes' => $energyNet,
-                'time_cost_millimes' => 0,
-                'session_fee_millimes' => $tariff->sessionFeeMillimes,
-                'idle_fee_millimes' => $idleFee,
-                'minimum_charge_millimes' => $tariff->minimumChargeMillimes,
-                'subtotal_millimes' => $subtotal,
-                'total_millimes' => $total,
-            ],
+            'breakdown' => $breakdown,
+            'estimate' => $estimate,
         ]]);
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function validateTarget(array $attributes): void
+    {
+        if (! isset($attributes['target_type'])) {
+            return;
+        }
+
+        $maximum = match ($attributes['target_type']) {
+            'energy' => 200,
+            'duration' => 1440,
+            'amount' => max(1, (int) config('payments.preauthorization_amount_millimes', 30000)) / 1000,
+        };
+        if ((float) $attributes['target_value'] <= $maximum) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'target_value' => ["The {$attributes['target_type']} target may not be greater than {$maximum}."],
+        ]);
     }
 
     private function currentSubscription(int $userId, int $organizationId): ?PlanSubscription
