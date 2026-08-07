@@ -220,13 +220,14 @@ export function StartSessionDrawer({
     <Drawer className="charging-workflow-drawer" open={open} title="Start charging" size={720} onClose={onClose} destroyOnHidden>
       <Steps
         current={current}
+        labelPlacement="vertical"
         responsive
         items={[
           { title: 'Station' },
-          { title: 'Connector' },
+          { title: 'Plug' },
           { title: 'Connect' },
           { title: 'Target' },
-          { title: 'Payment' },
+          { title: 'Pay' },
           { title: 'Review' },
           { title: 'Start' },
         ]}
