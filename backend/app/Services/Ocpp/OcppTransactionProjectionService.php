@@ -15,7 +15,7 @@ use Carbon\CarbonImmutable;
 
 class OcppTransactionProjectionService
 {
-    private const TRANSACTION_ACTIONS = ['Authorize', 'StartTransaction', 'MeterValues', 'StopTransaction'];
+    private const TRANSACTION_ACTIONS = ['Authorize', 'StartTransaction', 'StatusNotification', 'MeterValues', 'StopTransaction'];
 
     public function __construct(
         private readonly OcppAuthorizationService $authorization,
@@ -33,6 +33,7 @@ class OcppTransactionProjectionService
         $response = match ($event->action) {
             'Authorize' => $this->authorize($event),
             'StartTransaction' => $this->start($event, $station),
+            'StatusNotification' => $this->statusNotification($event, $station),
             'MeterValues' => $this->meterValues($event, $station),
             'StopTransaction' => $this->stop($event, $station),
         };
@@ -40,6 +41,41 @@ class OcppTransactionProjectionService
         $event->update(['response_payload' => $response]);
 
         return $response;
+    }
+
+    /** @return array<string, mixed> */
+    private function statusNotification(OcppEvent $event, Station $station): array
+    {
+        $payload = $event->payload;
+        $ocppConnectorId = (int) $payload['connectorId'];
+        if ($ocppConnectorId === 0) {
+            return [];
+        }
+
+        $connector = $station->connectors()
+            ->where('ocpp_connector_id', $ocppConnectorId)
+            ->first();
+        if ($connector === null) {
+            return [];
+        }
+
+        $transaction = OcppTransaction::query()
+            ->where('station_id', $station->id)
+            ->where('connector_id', $connector->id)
+            ->where('status', 'active')
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+        if ($transaction === null) {
+            return [];
+        }
+
+        $statusAt = isset($payload['timestamp'])
+            ? CarbonImmutable::parse($payload['timestamp'])->utc()
+            : $event->occurred_at;
+        $this->sessions->updateIdleStateFromOcpp($transaction, (string) $payload['status'], $statusAt);
+
+        return [];
     }
 
     /** @return array{idTagInfo: array{status: string}} */

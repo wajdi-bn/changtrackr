@@ -7,8 +7,10 @@ use App\Models\Connector;
 use App\Models\OcppIdTag;
 use App\Models\Organization;
 use App\Models\Station;
+use App\Models\Tariff;
 use App\Models\User;
 use App\Services\Ocpp\OcppAuthorizationService;
+use Carbon\CarbonImmutable;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -97,6 +99,141 @@ class OcppTransactionProjectionTest extends TestCase
             'status' => 'completed',
             'stop_reason' => 'EVDisconnected',
         ]);
+    }
+
+    public function test_vehicle_idle_periods_are_accumulated_once_and_included_in_payment(): void
+    {
+        $startedAt = CarbonImmutable::parse('2026-08-07 10:00:00', 'UTC');
+        $this->travelTo($startedAt);
+        [$station, , $client] = $this->transactionFixture();
+        Tariff::query()->create([
+            'organization_id' => $station->organization_id,
+            'name' => 'Idle billing tariff',
+            'code' => 'IDLE-BILLING',
+            'status' => 'active',
+            'currency' => 'TND',
+            'price_per_kwh_millimes' => 1000,
+            'session_fee_millimes' => 500,
+            'idle_fee_per_minute_millimes' => 100,
+            'minimum_charge_millimes' => 0,
+            'is_default' => true,
+        ]);
+
+        $transactionId = (int) $this->send($station, 'StartTransaction', 'start-idle-billing', [
+            'connectorId' => 1,
+            'idTag' => self::ID_TAG,
+            'meterStart' => 100000,
+            'timestamp' => $startedAt->toISOString(),
+        ])->assertCreated()->json('ocpp_response.transactionId');
+
+        $this->sendStatus($station, 'idle-evse', 'SuspendedEVSE', $startedAt->addSeconds(30));
+        $session = ChargingSession::query()->sole();
+        $this->assertNull($session->idle_started_at);
+        $this->assertSame(0, $session->idle_seconds);
+
+        $this->sendStatus($station, 'idle-first-start', 'SuspendedEV', $startedAt->addMinute());
+        $this->sendStatus($station, 'idle-first-end', 'Charging', $startedAt->addMinutes(5));
+        $this->assertSame(240, $session->fresh()->idle_seconds);
+        $this->assertSame(0, $session->fresh()->idle_fee_millimes);
+
+        $duplicateEventId = (string) Str::uuid();
+        $idlePayload = [
+            'connectorId' => 1,
+            'status' => 'SuspendedEV',
+            'errorCode' => 'NoError',
+            'timestamp' => $startedAt->addMinutes(6)->toISOString(),
+        ];
+        $this->send($station, 'StatusNotification', 'idle-second-start', $idlePayload, $duplicateEventId)
+            ->assertCreated();
+        $this->send($station, 'StatusNotification', 'idle-second-start', $idlePayload, $duplicateEventId)
+            ->assertOk()
+            ->assertJsonPath('duplicate', true);
+        $this->sendStatus($station, 'idle-second-repeat', 'SuspendedEV', $startedAt->addMinutes(6)->addSeconds(30));
+        $this->sendStatus($station, 'idle-stale-resume', 'Charging', $startedAt->addMinutes(5)->addSeconds(30));
+
+        $this->send($station, 'StopTransaction', 'stop-idle-billing', [
+            'transactionId' => $transactionId,
+            'idTag' => self::ID_TAG,
+            'meterStop' => 104000,
+            'timestamp' => $startedAt->addMinutes(8)->addSecond()->toISOString(),
+            'reason' => 'EVDisconnected',
+        ])->assertCreated();
+
+        $session->refresh();
+        $this->assertSame('completed', $session->status);
+        $this->assertNull($session->idle_started_at);
+        $this->assertSame(361, $session->idle_seconds);
+        $this->assertSame(300, $session->idle_grace_seconds);
+        $this->assertSame(200, $session->idle_fee_millimes);
+        $this->assertSame(4700, $session->total_millimes);
+
+        Sanctum::actingAs($client);
+        $this->getJson("/api/charging-sessions/{$session->id}")
+            ->assertOk()
+            ->assertJsonPath('data.idle_seconds', 361)
+            ->assertJsonPath('data.idle_minutes', 2)
+            ->assertJsonPath('data.idle_fee_millimes', 200)
+            ->assertJsonPath('data.total_millimes', 4700);
+
+        $paymentId = $this->postJson("/api/charging-sessions/{$session->id}/payments", [
+            'method' => 'simulated_card',
+            'simulation_outcome' => 'success',
+            'idempotency_key' => '90000000-0000-4000-8000-000000000001',
+        ])->assertOk()
+            ->assertJsonPath('data.amount_millimes', 4700)
+            ->json('data.id');
+        $this->assertDatabaseHas('payments', [
+            'charging_session_id' => $session->id,
+            'amount_millimes' => 4700,
+            'status' => 'paid',
+        ]);
+        $this->get("/api/payments/{$paymentId}/receipt")
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_connectivity_loss_closes_vehicle_idle_period_without_future_accrual(): void
+    {
+        $startedAt = CarbonImmutable::parse('2026-08-07 12:00:00', 'UTC');
+        $this->travelTo($startedAt);
+        [$station] = $this->transactionFixture();
+        Tariff::query()->create([
+            'organization_id' => $station->organization_id,
+            'name' => 'Connectivity idle tariff',
+            'code' => 'CONNECTIVITY-IDLE',
+            'status' => 'active',
+            'currency' => 'TND',
+            'price_per_kwh_millimes' => 1000,
+            'session_fee_millimes' => 500,
+            'idle_fee_per_minute_millimes' => 100,
+            'minimum_charge_millimes' => 0,
+            'is_default' => true,
+        ]);
+
+        $this->send($station, 'StartTransaction', 'start-connectivity-idle', [
+            'connectorId' => 1,
+            'idTag' => self::ID_TAG,
+            'meterStart' => 200000,
+            'timestamp' => $startedAt->toISOString(),
+        ])->assertCreated();
+        $this->sendStatus($station, 'connectivity-idle-start', 'SuspendedEV', $startedAt->addMinute());
+
+        $this->travelTo($startedAt->addMinutes(8));
+        $this->send($station, 'ConnectionClosed', 'connectivity-idle-closed', [
+            'code' => 1006,
+            'reason' => 'network_lost',
+        ])->assertCreated();
+
+        $session = ChargingSession::query()->sole();
+        $this->assertSame('interrupted', $session->status);
+        $this->assertNull($session->idle_started_at);
+        $this->assertSame(420, $session->idle_seconds);
+        $this->assertSame(200, $session->idle_fee_millimes);
+
+        $this->travelTo($startedAt->addMinutes(20));
+        $session->refresh();
+        $this->assertSame(420, $session->idle_seconds);
+        $this->assertSame(200, $session->idle_fee_millimes);
     }
 
     public function test_start_transaction_retry_returns_the_same_transaction_and_session(): void
@@ -328,6 +465,20 @@ class OcppTransactionProjectionTest extends TestCase
         ]);
 
         return [$station, $connector, $client];
+    }
+
+    private function sendStatus(
+        Station $station,
+        string $messageId,
+        string $status,
+        CarbonImmutable $timestamp,
+    ): void {
+        $this->send($station, 'StatusNotification', $messageId, [
+            'connectorId' => 1,
+            'status' => $status,
+            'errorCode' => 'NoError',
+            'timestamp' => $timestamp->toISOString(),
+        ])->assertCreated();
     }
 
     /** @param array<string, mixed> $payload */

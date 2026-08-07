@@ -12,12 +12,14 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'organization_id', 'client_id', 'station_id', 'connector_id', 'tariff_id', 'charging_plan_id',
     'ocpp_transaction_id', 'reference', 'source', 'client_name', 'station_name',
     'connector_external_id', 'status', 'lifecycle_reason', 'payment_status',
-    'started_at', 'ended_at', 'duration_seconds', 'meter_start_kwh', 'meter_stop_kwh',
+    'started_at', 'ended_at', 'duration_seconds', 'idle_started_at', 'idle_last_ocpp_status_at',
+    'idle_seconds', 'idle_grace_seconds', 'meter_start_kwh', 'meter_stop_kwh',
     'last_meter_value_at', 'energy_kwh', 'current_power_kw', 'state_of_charge_percent',
     'limit_energy_kwh', 'limit_amount_millimes', 'limit_duration_minutes',
     'tariff_name', 'charging_plan_name', 'discount_basis_points', 'discount_millimes',
     'price_per_kwh_millimes', 'session_fee_millimes',
-    'idle_fee_per_minute_millimes', 'minimum_charge_millimes', 'total_millimes', 'currency',
+    'idle_fee_per_minute_millimes', 'idle_fee_millimes', 'minimum_charge_millimes',
+    'total_millimes', 'currency',
 ])]
 class ChargingSession extends Model
 {
@@ -77,6 +79,10 @@ class ChargingSession extends Model
             'started_at' => 'datetime',
             'ended_at' => 'datetime',
             'duration_seconds' => 'integer',
+            'idle_started_at' => 'datetime',
+            'idle_last_ocpp_status_at' => 'datetime',
+            'idle_seconds' => 'integer',
+            'idle_grace_seconds' => 'integer',
             'meter_start_kwh' => 'float',
             'meter_stop_kwh' => 'float',
             'last_meter_value_at' => 'datetime',
@@ -91,6 +97,7 @@ class ChargingSession extends Model
             'price_per_kwh_millimes' => 'integer',
             'session_fee_millimes' => 'integer',
             'idle_fee_per_minute_millimes' => 'integer',
+            'idle_fee_millimes' => 'integer',
             'minimum_charge_millimes' => 'integer',
             'total_millimes' => 'integer',
         ];

@@ -56,6 +56,10 @@ export interface ChargingSession {
   ended_at: string | null
   duration_seconds: number
   duration_minutes: number
+  idle_started_at: string | null
+  idle_seconds: number
+  idle_grace_seconds: number
+  idle_minutes: number
   meter_start_kwh: number
   meter_stop_kwh: number | null
   last_meter_value_at: string | null
@@ -78,6 +82,7 @@ export interface ChargingSession {
   price_per_kwh_millimes: number
   session_fee_millimes: number
   idle_fee_per_minute_millimes: number
+  idle_fee_millimes: number
   minimum_charge_millimes: number
   energy_gross_millimes: number
   discount_millimes: number

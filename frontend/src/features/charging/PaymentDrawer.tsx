@@ -38,6 +38,7 @@ export function PaymentDrawer({ open, session, submitting, onClose, onSubmit }: 
           <header><span>Pricing breakdown</span><strong>{session.tariff.name}</strong></header>
           <p><span>Energy · {session.energy_kwh.toFixed(3)} kWh × {(session.price_per_kwh_millimes / 1000).toFixed(3)} TND</span><strong>{(session.energy_cost_millimes / 1000).toFixed(3)} TND</strong></p>
           <p><span>Session fee</span><strong>{(session.session_fee_millimes / 1000).toFixed(3)} TND</strong></p>
+          {session.idle_fee_millimes > 0 && <p><span>Idle fee · {session.idle_minutes} min after grace period</span><strong>{(session.idle_fee_millimes / 1000).toFixed(3)} TND</strong></p>}
           {session.minimum_adjustment_millimes > 0 && <p><span>Minimum charge adjustment</span><strong>{(session.minimum_adjustment_millimes / 1000).toFixed(3)} TND</strong></p>}
         </div>
         <Form

@@ -84,6 +84,7 @@ class ChargingSessionService
                 'price_per_kwh_millimes' => $tariff->pricePerKwhMillimes,
                 'session_fee_millimes' => $tariff->sessionFeeMillimes,
                 'idle_fee_per_minute_millimes' => $tariff->idleFeePerMinuteMillimes,
+                'idle_grace_seconds' => max(0, (int) config('charging.idle_grace_seconds', 300)),
                 'minimum_charge_millimes' => $tariff->minimumChargeMillimes,
                 'currency' => $tariff->currency,
             ]);
@@ -120,13 +121,7 @@ class ChargingSessionService
             $durationSeconds = max(60, (int) round($session->started_at->diffInSeconds($endedAt)));
             $powerKw = min((float) ($connector?->max_power_kw ?? 60), 60);
             $energyKwh = max(0.5, round(($durationSeconds / 3600) * $powerKw, 3));
-            $energyGross = (int) round($energyKwh * $session->price_per_kwh_millimes);
-            $discount = (int) round($energyGross * $session->discount_basis_points / 10000);
-            $energyCost = $energyGross - $discount;
-            $totalMillimes = max(
-                $energyCost + $session->session_fee_millimes,
-                $session->minimum_charge_millimes,
-            );
+            $pricing = $this->calculatePricing($session, $energyKwh, $endedAt);
 
             $session->update([
                 'status' => 'completed',
@@ -134,8 +129,9 @@ class ChargingSessionService
                 'duration_seconds' => $durationSeconds,
                 'meter_stop_kwh' => $session->meter_start_kwh + $energyKwh,
                 'energy_kwh' => $energyKwh,
-                'discount_millimes' => $discount,
-                'total_millimes' => $totalMillimes,
+                'discount_millimes' => $pricing['discount_millimes'],
+                'idle_fee_millimes' => $pricing['idle_fee_millimes'],
+                'total_millimes' => $pricing['total_millimes'],
             ]);
 
             if ($connector && ! $station?->isOcppManaged()) {
@@ -205,6 +201,7 @@ class ChargingSessionService
                 'price_per_kwh_millimes' => $tariff->pricePerKwhMillimes,
                 'session_fee_millimes' => $tariff->sessionFeeMillimes,
                 'idle_fee_per_minute_millimes' => $tariff->idleFeePerMinuteMillimes,
+                'idle_grace_seconds' => max(0, (int) config('charging.idle_grace_seconds', 300)),
                 'minimum_charge_millimes' => $tariff->minimumChargeMillimes,
                 'currency' => $tariff->currency,
             ])->load(['organization', 'station', 'connector', 'client', 'payment']);
@@ -255,16 +252,57 @@ class ChargingSessionService
             }
 
             $energyKwh = max(0, ($meterWh - $transaction->meter_start_wh) / 1000);
-            $pricing = $this->calculatePricing($session, $energyKwh);
+            $pricing = $this->calculatePricing($session, $energyKwh, $sampledAt);
             $session->update([
                 'duration_seconds' => max(0, (int) round($session->started_at->diffInSeconds($sampledAt))),
                 'energy_kwh' => round($energyKwh, 3),
                 'discount_millimes' => $pricing['discount_millimes'],
+                'idle_fee_millimes' => $pricing['idle_fee_millimes'],
                 'total_millimes' => $pricing['total_millimes'],
                 'last_meter_value_at' => $sampledAt,
                 ...($powerKw !== null ? ['current_power_kw' => round(max(0, $powerKw), 3)] : []),
                 ...($stateOfChargePercent !== null ? ['state_of_charge_percent' => min(100, max(0, $stateOfChargePercent))] : []),
             ]);
+
+            $session = $session->fresh()->load(['organization', 'station', 'connector', 'client', 'payment']);
+            event(ChargingSessionChanged::fromSession($session));
+
+            return $session;
+        });
+    }
+
+    public function updateIdleStateFromOcpp(
+        OcppTransaction $transaction,
+        string $ocppStatus,
+        CarbonInterface $occurredAt,
+    ): ?ChargingSession {
+        return DB::transaction(function () use ($transaction, $ocppStatus, $occurredAt): ?ChargingSession {
+            $session = ChargingSession::query()
+                ->where('ocpp_transaction_id', $transaction->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($session === null || ! in_array($session->status, ['charging', 'stopping'], true)) {
+                return $session;
+            }
+            if ($session->idle_last_ocpp_status_at !== null
+                && $occurredAt->lt($session->idle_last_ocpp_status_at)) {
+                return $session;
+            }
+
+            $isVehicleIdle = strcasecmp($ocppStatus, 'SuspendedEV') === 0;
+            if ($isVehicleIdle && $session->idle_started_at === null) {
+                $session->idle_started_at = $occurredAt;
+            } elseif (! $isVehicleIdle) {
+                $this->closeIdlePeriod($session, $occurredAt);
+            }
+
+            $session->idle_last_ocpp_status_at = $occurredAt;
+            $pricing = $this->calculatePricing($session, $session->energy_kwh, $occurredAt);
+            $session->discount_millimes = $pricing['discount_millimes'];
+            $session->idle_fee_millimes = $pricing['idle_fee_millimes'];
+            $session->total_millimes = $pricing['total_millimes'];
+            $session->save();
 
             $session = $session->fresh()->load(['organization', 'station', 'connector', 'client', 'payment']);
             event(ChargingSessionChanged::fromSession($session));
@@ -294,8 +332,9 @@ class ChargingSessionService
 
             $meterStopWh = max($transaction->meter_start_wh, (int) $transaction->meter_stop_wh);
             $energyKwh = max(0, ($meterStopWh - $transaction->meter_start_wh) / 1000);
-            $pricing = $this->calculatePricing($session, $energyKwh);
             $endedAt = $transaction->stopped_at ?? now();
+            $this->closeIdlePeriod($session, $endedAt);
+            $pricing = $this->calculatePricing($session, $energyKwh, $endedAt);
             $session->update([
                 'status' => $terminalStatus,
                 'lifecycle_reason' => 'stop_transaction_'.$this->normalizeOcppReason($reason),
@@ -305,6 +344,7 @@ class ChargingSessionService
                 'last_meter_value_at' => $transaction->last_meter_value_at,
                 'energy_kwh' => round($energyKwh, 3),
                 'discount_millimes' => $pricing['discount_millimes'],
+                'idle_fee_millimes' => $pricing['idle_fee_millimes'],
                 'total_millimes' => $pricing['total_millimes'],
                 'current_power_kw' => 0,
             ]);
@@ -339,11 +379,16 @@ class ChargingSessionService
                 }
 
                 $endedAt = now()->utc();
+                $this->closeIdlePeriod($session, $endedAt);
+                $pricing = $this->calculatePricing($session, $session->energy_kwh, $endedAt);
                 $session->update([
                     'status' => 'interrupted',
                     'lifecycle_reason' => 'ocpp_connection_lost_awaiting_reconciliation',
                     'ended_at' => $endedAt,
                     'duration_seconds' => max(0, (int) round($session->started_at->diffInSeconds($endedAt))),
+                    'discount_millimes' => $pricing['discount_millimes'],
+                    'idle_fee_millimes' => $pricing['idle_fee_millimes'],
+                    'total_millimes' => $pricing['total_millimes'],
                 ]);
                 event(ChargingSessionChanged::fromSession($session->fresh()));
             });
@@ -374,7 +419,7 @@ class ChargingSessionService
             $endedAt = $session->ended_at ?? now()->utc();
             $meterStopWh = $transaction->last_meter_wh;
             $energyKwh = max(0, ($meterStopWh - $transaction->meter_start_wh) / 1000);
-            $pricing = $this->calculatePricing($session, $energyKwh);
+            $pricing = $this->calculatePricing($session, $energyKwh, $endedAt);
 
             $transaction->update([
                 'status' => 'reconciled',
@@ -388,6 +433,7 @@ class ChargingSessionService
                 'last_meter_value_at' => $transaction->last_meter_value_at,
                 'energy_kwh' => round($energyKwh, 3),
                 'discount_millimes' => $pricing['discount_millimes'],
+                'idle_fee_millimes' => $pricing['idle_fee_millimes'],
                 'total_millimes' => $pricing['total_millimes'],
                 'current_power_kw' => 0,
             ]);
@@ -458,19 +504,49 @@ class ChargingSessionService
                 && str_contains($message, 'charging_sessions.client_id'));
     }
 
-    /** @return array{discount_millimes: int, total_millimes: int} */
-    private function calculatePricing(ChargingSession $session, float $energyKwh): array
-    {
+    /** @return array{discount_millimes: int, idle_fee_millimes: int, total_millimes: int} */
+    private function calculatePricing(
+        ChargingSession $session,
+        float $energyKwh,
+        ?CarbonInterface $asOf = null,
+    ): array {
         $energyGross = (int) round($energyKwh * $session->price_per_kwh_millimes);
         $discount = (int) round($energyGross * $session->discount_basis_points / 10000);
+        $idleSeconds = $this->effectiveIdleSeconds($session, $asOf);
+        $billableIdleSeconds = max(0, $idleSeconds - $session->idle_grace_seconds);
+        $billableIdleMinutes = (int) ceil($billableIdleSeconds / 60);
+        $idleFee = $billableIdleMinutes * $session->idle_fee_per_minute_millimes;
 
         return [
             'discount_millimes' => $discount,
+            'idle_fee_millimes' => $idleFee,
             'total_millimes' => max(
-                $energyGross - $discount + $session->session_fee_millimes,
+                $energyGross - $discount + $session->session_fee_millimes + $idleFee,
                 $session->minimum_charge_millimes,
             ),
         ];
+    }
+
+    private function closeIdlePeriod(ChargingSession $session, CarbonInterface $endedAt): void
+    {
+        if ($session->idle_started_at === null) {
+            return;
+        }
+
+        if ($endedAt->gt($session->idle_started_at)) {
+            $session->idle_seconds += (int) floor($session->idle_started_at->diffInSeconds($endedAt));
+        }
+        $session->idle_started_at = null;
+    }
+
+    private function effectiveIdleSeconds(ChargingSession $session, ?CarbonInterface $asOf): int
+    {
+        $seconds = max(0, $session->idle_seconds);
+        if ($session->idle_started_at === null || $asOf === null || ! $asOf->gt($session->idle_started_at)) {
+            return $seconds;
+        }
+
+        return $seconds + (int) floor($session->idle_started_at->diffInSeconds($asOf));
     }
 
     private function normalizeOcppReason(string $reason): string
