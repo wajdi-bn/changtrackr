@@ -65,7 +65,47 @@ class ClientAuthenticationTest extends TestCase
             'password_confirmation' => 'password',
             'terms_accepted' => true,
         ])->assertUnprocessable()
-            ->assertJsonValidationErrors(['email', 'password']);
+            ->assertJsonValidationErrors(['email', 'password'])
+            ->assertJsonPath('errors.email.0', 'Registration could not be completed with the provided details.')
+            ->assertJsonMissing(['An account already exists with this email address.']);
+    }
+
+    public function test_invalid_login_does_not_reveal_whether_the_account_exists(): void
+    {
+        $client = User::factory()->create([
+            'email' => 'known.client@example.com',
+        ]);
+
+        $knownAccountResponse = $this->postJson('/api/auth/login', [
+            'email' => $client->email,
+            'password' => 'WrongPass1',
+        ]);
+        $unknownAccountResponse = $this->postJson('/api/auth/login', [
+            'email' => 'unknown.client@example.com',
+            'password' => 'WrongPass1',
+        ]);
+
+        $knownAccountResponse->assertUnprocessable();
+        $unknownAccountResponse->assertUnprocessable();
+
+        $this->assertSame($knownAccountResponse->json(), $unknownAccountResponse->json());
+    }
+
+    public function test_missing_account_still_performs_a_password_hash_check(): void
+    {
+        Hash::partialMock()
+            ->shouldReceive('check')
+            ->once()
+            ->with('WrongPass1', \Mockery::on(
+                fn (string $hash): bool => str_starts_with($hash, '$2y$'),
+            ))
+            ->andReturnFalse();
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'missing.client@example.com',
+            'password' => 'WrongPass1',
+        ])->assertUnprocessable()
+            ->assertJsonPath('errors.email.0', 'The provided credentials are incorrect.');
     }
 
     public function test_unverified_client_cannot_sign_in_until_signed_link_is_used(): void

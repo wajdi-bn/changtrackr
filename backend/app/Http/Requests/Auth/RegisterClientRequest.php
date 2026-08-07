@@ -34,7 +34,7 @@ class RegisterClientRequest extends FormRequest
                 'max:255',
                 function (string $attribute, mixed $value, Closure $fail): void {
                     if (User::query()->whereRaw('LOWER(email) = ?', [$value])->exists()) {
-                        $fail('An account already exists with this email address.');
+                        $fail('Registration could not be completed with the provided details.');
                     }
                 },
             ],

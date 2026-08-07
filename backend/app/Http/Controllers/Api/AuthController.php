@@ -14,6 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    private const DUMMY_PASSWORD_HASH = '$2y$12$uP7p6bkzSr1Vy5N8GqDRVeNGAUoSP9C0YPyTmbcIwcivOSfPkn8Ay';
+
     public function session(Request $request): JsonResponse
     {
         /** @var User|null $user */
@@ -57,7 +59,13 @@ class AuthController extends Controller
             ->where('email', $credentials['email'])
             ->first();
 
-        if (! $user || ! $user->hasLocalPasswordLogin() || ! Hash::check($credentials['password'], $user->password)) {
+        $hasLocalPassword = $user !== null
+            && $user->hasLocalPasswordLogin()
+            && is_string($user->password);
+        $passwordHash = $hasLocalPassword ? $user->password : self::DUMMY_PASSWORD_HASH;
+        $passwordMatches = Hash::check($credentials['password'], $passwordHash);
+
+        if (! $user || ! $hasLocalPassword || ! $passwordMatches) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
