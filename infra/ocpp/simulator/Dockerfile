@@ -1,4 +1,4 @@
-FROM node:24-alpine AS builder
+FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS builder
 
 ARG SAP_SIMULATOR_REF
 
@@ -22,7 +22,7 @@ RUN --mount=type=cache,id=chargetrackr-sap-pnpm,target=/pnpm/store \
 
 RUN pnpm build && pnpm --filter cli build
 
-FROM node:24-alpine AS simulator
+FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS simulator
 
 WORKDIR /usr/app
 COPY --from=builder /source/node_modules ./node_modules
@@ -39,7 +39,7 @@ RUN chmod +x /usr/local/bin/configure-and-run
 EXPOSE 8080
 ENTRYPOINT ["configure-and-run"]
 
-FROM node:24-alpine AS cli
+FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS cli
 
 WORKDIR /usr/app
 COPY --from=builder /source/ui/cli/dist ./cli

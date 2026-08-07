@@ -25,7 +25,7 @@
     "infra:up:redis": "docker compose --env-file infra/.env -f infra/docker-compose.yml up -d redis",
     "infra:down": "docker compose --env-file infra/.env -f infra/docker-compose.yml down",
     "infra:status": "docker compose --env-file infra/.env -f infra/docker-compose.yml ps",
-    "test:infra-config": "node --test infra/docker-compose.test.mjs",
+    "test:infra-config": "node --test infra/*.test.mjs",
     "ocpp:configure": "powershell -ExecutionPolicy Bypass -File scripts/configure-ocpp-env.ps1",
     "ocpp:provision-fleet": "powershell -ExecutionPolicy Bypass -File scripts/provision-ocpp-simulator-fleet.ps1",
     "ocpp:add-simulator-station": "cd backend && C:/php/php.exe artisan ocpp:register-simulator-station",
