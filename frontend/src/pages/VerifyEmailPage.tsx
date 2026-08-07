@@ -5,13 +5,14 @@ import { Link, useLocation } from 'react-router-dom'
 import { getApiErrorMessage } from '../api/apiErrors'
 import { AuthPageShell } from '../features/auth/AuthPageShell'
 import { resendVerificationRequest } from '../features/auth/authApi'
+import { safeInternalPath } from '../utils/navigation'
 
 export function VerifyEmailPage() {
   const location = useLocation()
   const params = new URLSearchParams(location.search)
   const status = params.get('status')
   const initialEmail = params.get('email') ?? ''
-  const redirect = safeRedirectPath(params.get('redirect'))
+  const redirect = safeInternalPath(params.get('redirect'))
   const [sentEmail, setSentEmail] = useState(status === 'sent' ? initialEmail : '')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -106,8 +107,4 @@ export function VerifyEmailPage() {
       )}
     </AuthPageShell>
   )
-}
-
-function safeRedirectPath(value: string | null): string | null {
-  return value?.startsWith('/') && !value.startsWith('//') ? value : null
 }

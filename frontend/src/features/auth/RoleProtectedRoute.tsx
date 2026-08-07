@@ -4,9 +4,13 @@ import { getRoleConfig } from './roleConfig'
 import { useAuth } from './useAuth'
 
 export function RoleProtectedRoute({ allowedRoles }: { allowedRoles: UserRole[] }) {
-  const { primaryRole } = useAuth()
+  const { hasRole, primaryRole } = useAuth()
 
-  if (!primaryRole || !allowedRoles.includes(primaryRole)) {
+  if (!primaryRole) {
+    return <Navigate to="/login?oauth_error=invalid_role" replace />
+  }
+
+  if (!hasRole(allowedRoles)) {
     return <Navigate to={getRoleConfig(primaryRole).defaultPath} replace />
   }
 

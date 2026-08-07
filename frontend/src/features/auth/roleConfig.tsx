@@ -112,6 +112,6 @@ export const roleConfigs: Record<UserRole, RoleConfig> = {
   },
 }
 
-export function getRoleConfig(role: UserRole | null): RoleConfig {
-  return role ? roleConfigs[role] : roleConfigs.operator
+export function getRoleConfig(role: UserRole): RoleConfig {
+  return roleConfigs[role]
 }

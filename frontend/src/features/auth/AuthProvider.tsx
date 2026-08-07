@@ -6,6 +6,7 @@ import { loginRequest, logoutRequest, resetSessionRequestCache, sessionRequest }
 import { markSessionActive, subscribeToSessionExpiration } from './authSession'
 import { AuthContext } from './authContext'
 import type { AuthContextValue } from './authContext'
+import { hasAnyRole, resolvePrimaryRole } from './roleResolution'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -73,18 +74,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(nextUser)
   }, [])
 
-  const primaryRole = user?.roles[0] ?? null
+  const primaryRole = resolvePrimaryRole(user?.roles)
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
-      isAuthenticated: Boolean(user),
+      isAuthenticated: Boolean(user && primaryRole),
       isLoading,
       primaryRole,
       login,
       logout,
       updateCurrentUser,
-      hasRole: (roles) => Boolean(primaryRole && roles.includes(primaryRole)),
+      hasRole: (roles) => hasAnyRole(user?.roles, roles),
     }),
     [isLoading, login, logout, primaryRole, updateCurrentUser, user],
   )

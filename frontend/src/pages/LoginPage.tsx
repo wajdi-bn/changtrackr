@@ -8,6 +8,7 @@ import { getAuthenticatedEntryPath } from '../features/auth/authNavigation'
 import { getAuthErrorCode } from '../features/auth/authApi'
 import { getRoleConfig } from '../features/auth/roleConfig'
 import { useAuth } from '../features/auth/useAuth'
+import { safeInternalPath } from '../utils/navigation'
 
 interface LoginFormValues {
   email: string
@@ -19,6 +20,7 @@ const oauthErrors: Record<string, string> = {
   account_inactive: 'This account is inactive. Contact your administrator.',
   email_not_verified: 'Google did not provide a verified email address.',
   invalid_organization: 'This employee account is not linked to an active organization.',
+  invalid_role: 'This account does not have a supported application role. Contact an administrator.',
   missing_identity: 'Google did not provide the information required to sign in.',
   provider_error: 'Google sign in could not be completed. Please try again.',
   session_not_created: 'The sign-in session could not be created. Please try again.',
@@ -35,14 +37,14 @@ export function LoginPage() {
     ? (oauthErrors[oauthErrorCode] ?? oauthErrors.provider_error)
     : null
 
-  if (isAuthenticated) {
+  if (isAuthenticated && primaryRole) {
     return <Navigate to={getRoleConfig(primaryRole).defaultPath} replace />
   }
 
   const requestedPath =
     (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ??
     new URLSearchParams(location.search).get('redirect')
-  const from = safeRedirectPath(requestedPath) ?? getRoleConfig(primaryRole).defaultPath
+  const from = safeInternalPath(requestedPath)
 
   async function handleSubmit(values: LoginFormValues) {
     setErrorMessage(null)
@@ -51,7 +53,7 @@ export function LoginPage() {
     try {
       const user = await login(values.email, values.password)
       const postLoginPath = getAuthenticatedEntryPath(user)
-      navigate(user.onboarding.should_show || from === '/login' ? postLoginPath : from, {
+      navigate(user.onboarding.should_show || !from || from === '/login' ? postLoginPath : from, {
         replace: true,
       })
     } catch (error) {
@@ -152,12 +154,8 @@ export function LoginPage() {
 
             <p className="prototype-login-security-note">
               New to ChargeTrackr?{' '}
-              <Link to={`/register?redirect=${encodeURIComponent(from)}`}>Create a client account</Link>
+              <Link to={`/register?redirect=${encodeURIComponent(from ?? '/overview')}`}>Create a client account</Link>
             </p>
     </AuthPageShell>
   )
-}
-
-function safeRedirectPath(value: string | null | undefined): string | null {
-  return value?.startsWith('/') && !value.startsWith('//') ? value : null
 }

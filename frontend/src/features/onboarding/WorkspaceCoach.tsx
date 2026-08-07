@@ -34,7 +34,6 @@ export function WorkspaceCoach() {
   const { message } = App.useApp()
   const { user, primaryRole, updateCurrentUser } = useAuth()
   const [closedLocally, setClosedLocally] = useState(false)
-  const role = primaryRole ?? 'client'
   const progress = user?.onboarding.progress
   const shouldOpen = Boolean(
     user?.onboarding.completed
@@ -47,8 +46,12 @@ export function WorkspaceCoach() {
     onError: (error) => void message.error(getApiErrorMessage(error, 'The workspace tour state could not be saved.')),
   })
 
+  if (!user || !primaryRole) return null
+
+  const role = primaryRole
+
   function finishTour() {
-    if (!user || closedLocally) return
+    if (closedLocally) return
     setClosedLocally(true)
     saveMutation.mutate({
       action: 'progress',

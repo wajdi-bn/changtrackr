@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { getApiErrorMessage } from '../api/apiErrors'
 import { getRoleConfig } from '../features/auth/roleConfig'
 import { useAuth } from '../features/auth/useAuth'
@@ -92,13 +92,13 @@ export function WelcomePage() {
   const { message } = App.useApp()
   const { user, primaryRole, updateCurrentUser } = useAuth()
   const navigate = useNavigate()
-  const role = primaryRole ?? 'client'
-  const guide = roleGuides[role]
+  const role = primaryRole
+  const guide = role ? roleGuides[role] : null
   const savedStep = Math.min(user?.onboarding.progress.current_step ?? 0, stepIds.length - 1)
   const [currentStep, setCurrentStep] = useState(savedStep)
   const [organizationForm] = Form.useForm<OrganizationOnboardingPayload>()
   const [organizationSaved, setOrganizationSaved] = useState(false)
-  const defaultPath = getRoleConfig(role).defaultPath
+  const defaultPath = role ? getRoleConfig(role).defaultPath : '/login?oauth_error=invalid_role'
   const reviewingCompletedGuide = Boolean(user?.onboarding.completed)
 
   useEffect(() => {
@@ -132,6 +132,12 @@ export function WelcomePage() {
     () => stepIds.slice(0, Math.max(currentStep, 0)),
     [currentStep],
   )
+
+  if (!role || !guide) {
+    return <Navigate to="/login?oauth_error=invalid_role" replace />
+  }
+
+  const roleConfig = getRoleConfig(role)
 
   function saveProgress(nextStep: number) {
     setCurrentStep(nextStep)
@@ -179,7 +185,7 @@ export function WelcomePage() {
         </Link>
 
         <div className="onboarding-rail-copy">
-          <span>{getRoleConfig(role).label}</span>
+          <span>{roleConfig.label}</span>
           <h1>{guide.welcome}</h1>
           <p>{guide.mission}</p>
         </div>
@@ -224,7 +230,7 @@ export function WelcomePage() {
               <div className="onboarding-duration"><Clock3 size={16} /><span>About 2 minutes</span><i />You can skip and return from your account menu</div>
               <div className="onboarding-access-summary">
                 <span><ShieldCheck size={18} /></span>
-                <div><strong>{getRoleConfig(role).label}</strong><small>{user?.organization?.name ?? (role === 'client' ? 'Independent driver account' : 'Platform scope')}</small></div>
+                <div><strong>{roleConfig.label}</strong><small>{user?.organization?.name ?? (role === 'client' ? 'Independent driver account' : 'Platform scope')}</small></div>
                 <Check size={18} />
               </div>
             </section>

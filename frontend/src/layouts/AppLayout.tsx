@@ -33,10 +33,14 @@ export function AppLayout() {
   const { user, primaryRole, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const roleConfig = getRoleConfig(primaryRole)
+  const roleConfig = primaryRole ? getRoleConfig(primaryRole) : null
   const notificationSummary = useNotificationNavigation(location.pathname)
   const commercialBlocked = Boolean(user?.organization?.commercial?.operations_blocked)
   const allowedDuringSuspension = ['/profile', '/settings', '/help', '/organization-billing', '/subscription-required'].includes(location.pathname)
+
+  if (!roleConfig) {
+    return <Navigate to="/login?oauth_error=invalid_role" replace />
+  }
 
   if (commercialBlocked && !allowedDuringSuspension) {
     return <Navigate to={primaryRole === 'admin' ? '/organization-billing' : '/subscription-required'} replace />

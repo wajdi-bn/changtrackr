@@ -8,6 +8,7 @@ import { AuthPageShell } from '../features/auth/AuthPageShell'
 import { registerClientRequest, type RegisterClientPayload } from '../features/auth/authApi'
 import { getRoleConfig } from '../features/auth/roleConfig'
 import { useAuth } from '../features/auth/useAuth'
+import { safeInternalPath } from '../utils/navigation'
 
 interface RegisterFormValues {
   name: string
@@ -23,9 +24,9 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const redirect = safeRedirectPath(new URLSearchParams(location.search).get('redirect'))
+  const redirect = safeInternalPath(new URLSearchParams(location.search).get('redirect'))
 
-  if (isAuthenticated) {
+  if (isAuthenticated && primaryRole) {
     return <Navigate to={getRoleConfig(primaryRole).defaultPath} replace />
   }
 
@@ -160,8 +161,4 @@ export function RegisterPage() {
       </p>
     </AuthPageShell>
   )
-}
-
-function safeRedirectPath(value: string | null): string | null {
-  return value?.startsWith('/') && !value.startsWith('//') ? value : null
 }
