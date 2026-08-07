@@ -120,6 +120,66 @@ class OcppTransactionProjectionTest extends TestCase
         $this->assertDatabaseCount('charging_sessions', 1);
     }
 
+    public function test_concurrent_client_start_is_returned_as_an_ocpp_concurrent_transaction(): void
+    {
+        [$station, $connector, $client] = $this->transactionFixture();
+        $competingSession = ChargingSession::query()->create([
+            'organization_id' => $station->organization_id,
+            'client_id' => $client->id,
+            'station_id' => $station->id,
+            'connector_id' => $connector->id,
+            'reference' => 'SES-OCPP-RACE-WINNER',
+            'source' => 'ocpp',
+            'client_name' => $client->name,
+            'station_name' => $station->name,
+            'connector_external_id' => $connector->external_id,
+            'status' => 'completed',
+            'payment_status' => 'unpaid',
+            'started_at' => now()->subHour(),
+            'ended_at' => now()->subMinutes(30),
+            'meter_start_kwh' => 100,
+            'meter_stop_kwh' => 110,
+            'energy_kwh' => 10,
+            'price_per_kwh_millimes' => 850,
+            'session_fee_millimes' => 500,
+            'total_millimes' => 9000,
+            'currency' => 'TND',
+        ]);
+        $injected = false;
+
+        ChargingSession::creating(function () use ($competingSession, &$injected): void {
+            if ($injected) {
+                return;
+            }
+
+            $injected = true;
+            ChargingSession::query()->whereKey($competingSession->id)->update([
+                'status' => 'charging',
+                'ended_at' => null,
+            ]);
+        });
+
+        try {
+            $this->send($station, 'StartTransaction', 'start-client-race', [
+                'connectorId' => 1,
+                'idTag' => self::ID_TAG,
+                'meterStart' => 300000,
+                'timestamp' => now()->toISOString(),
+            ])
+                ->assertCreated()
+                ->assertJsonPath('ocpp_response.idTagInfo.status', 'ConcurrentTx');
+        } finally {
+            ChargingSession::flushEventListeners();
+        }
+
+        $this->assertDatabaseCount('charging_sessions', 1);
+        $this->assertSame('completed', $competingSession->fresh()->status);
+        $this->assertDatabaseHas('ocpp_transactions', [
+            'status' => 'rejected',
+            'rejection_reason' => 'active_client_session_exists',
+        ]);
+    }
+
     public function test_unknown_tag_is_rejected_without_creating_a_billable_session(): void
     {
         [$station] = $this->transactionFixture();

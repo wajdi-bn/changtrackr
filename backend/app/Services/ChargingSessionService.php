@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\ChargingAttemptChanged;
 use App\Events\ChargingSessionChanged;
+use App\Exceptions\ActiveChargingSessionConflictException;
 use App\Models\ChargingAttempt;
 use App\Models\ChargingSession;
 use App\Models\Connector;
@@ -12,12 +13,17 @@ use App\Models\PlanSubscription;
 use App\Models\Station;
 use App\Models\User;
 use Carbon\CarbonInterface;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ChargingSessionService
 {
+    private const ACTIVE_CLIENT_INDEX = 'charging_sessions_one_active_per_client_unique';
+
+    private const ACTIVE_STATUSES = ['pending', 'charging', 'stopping'];
+
     public function __construct(private readonly TariffResolver $tariffResolver) {}
 
     /** @param array{station_id:int, connector_id:int} $attributes */
@@ -44,14 +50,7 @@ class ChargingSessionService
                 throw ValidationException::withMessages(['connector_id' => ['The selected connector is no longer available.']]);
             }
 
-            $hasActiveSession = ChargingSession::query()
-                ->whereIn('status', ['pending', 'charging', 'stopping'])
-                ->where(fn ($query) => $query->where('client_id', $client->id)->orWhere('connector_id', $connector->id))
-                ->exists();
-
-            if ($hasActiveSession) {
-                throw ValidationException::withMessages(['session' => ['The client or connector already has an active session.']]);
-            }
+            $this->assertNoActiveSession($client, $connector);
 
             $tariff = $this->tariffResolver->resolve($station, $connector);
             $subscription = PlanSubscription::query()
@@ -63,7 +62,7 @@ class ChargingSessionService
                 ->latest('id')
                 ->first();
 
-            $session = ChargingSession::query()->create([
+            $session = $this->createSession([
                 'organization_id' => $station->organization_id,
                 'client_id' => $client->id,
                 'station_id' => $station->id,
@@ -163,14 +162,7 @@ class ChargingSessionService
         OcppTransaction $transaction,
     ): ChargingSession {
         return DB::transaction(function () use ($client, $station, $connector, $transaction): ChargingSession {
-            $hasActiveSession = ChargingSession::query()
-                ->whereIn('status', ['pending', 'charging', 'stopping'])
-                ->where(fn ($query) => $query->where('client_id', $client->id)->orWhere('connector_id', $connector->id))
-                ->exists();
-
-            if ($hasActiveSession) {
-                throw ValidationException::withMessages(['session' => ['The client or connector already has an active session.']]);
-            }
+            $this->assertNoActiveSession($client, $connector);
 
             $tariff = $this->tariffResolver->resolve($station, $connector);
             $subscription = $this->currentSubscription($client, $station);
@@ -184,7 +176,7 @@ class ChargingSessionService
                 ->lockForUpdate()
                 ->first();
 
-            $session = ChargingSession::query()->create([
+            $session = $this->createSession([
                 'organization_id' => $station->organization_id,
                 'client_id' => $client->id,
                 'station_id' => $station->id,
@@ -417,6 +409,53 @@ class ChargingSessionService
             ->with('chargingPlan')
             ->latest('id')
             ->first();
+    }
+
+    private function assertNoActiveSession(User $client, Connector $connector): void
+    {
+        if (ChargingSession::query()
+            ->where('client_id', $client->id)
+            ->whereIn('status', self::ACTIVE_STATUSES)
+            ->exists()) {
+            throw new ActiveChargingSessionConflictException;
+        }
+
+        if (ChargingSession::query()
+            ->where('connector_id', $connector->id)
+            ->whereIn('status', self::ACTIVE_STATUSES)
+            ->exists()) {
+            throw ValidationException::withMessages([
+                'connector_id' => ['The selected connector already has an active session.'],
+            ]);
+        }
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function createSession(array $attributes): ChargingSession
+    {
+        try {
+            return ChargingSession::query()->create($attributes);
+        } catch (QueryException $exception) {
+            if (! $this->isActiveClientConstraintViolation($exception)) {
+                throw $exception;
+            }
+
+            throw new ActiveChargingSessionConflictException($exception);
+        }
+    }
+
+    private function isActiveClientConstraintViolation(QueryException $exception): bool
+    {
+        $sqlState = (string) ($exception->errorInfo[0] ?? $exception->getCode());
+        if (! in_array($sqlState, ['23000', '23505'], true)) {
+            return false;
+        }
+
+        $message = strtolower($exception->getMessage());
+
+        return str_contains($message, self::ACTIVE_CLIENT_INDEX)
+            || (DB::getDriverName() === 'sqlite'
+                && str_contains($message, 'charging_sessions.client_id'));
     }
 
     /** @return array{discount_millimes: int, total_millimes: int} */

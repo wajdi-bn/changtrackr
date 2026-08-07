@@ -2,6 +2,7 @@
 
 namespace App\Services\Ocpp;
 
+use App\Exceptions\ActiveChargingSessionConflictException;
 use App\Jobs\CaptureAuthorizedSessionPayment;
 use App\Models\ChargingSession;
 use App\Models\Connector;
@@ -93,8 +94,16 @@ class OcppTransactionProjectionService
         ]);
 
         if ($status === 'Accepted' && $connector !== null && $authorization->user !== null) {
-            $this->sessions->startFromOcpp($authorization->user, $station, $connector, $transaction);
-            $this->commands->confirmStart($transaction);
+            try {
+                $this->sessions->startFromOcpp($authorization->user, $station, $connector, $transaction);
+                $this->commands->confirmStart($transaction);
+            } catch (ActiveChargingSessionConflictException) {
+                [$status, $rejectionReason] = ['ConcurrentTx', 'active_client_session_exists'];
+                $transaction->update([
+                    'status' => 'rejected',
+                    'rejection_reason' => $rejectionReason,
+                ]);
+            }
         }
 
         return [

@@ -51,6 +51,48 @@ class ChargingSessionPaymentApiTest extends TestCase
         $this->assertDatabaseHas('connectors', ['id' => $connector->id, 'status' => 'available']);
     }
 
+    public function test_concurrent_client_start_is_returned_as_a_validation_conflict(): void
+    {
+        [$client, $organization] = $this->userWithRole('client');
+        [$station, $connector] = $this->stationWithConnector($organization, 'CT-RACE-TARGET');
+        [$otherStation, $otherConnector] = $this->stationWithConnector($organization, 'CT-RACE-WINNER');
+        $competingSession = $this->completedSession(
+            $client,
+            $otherStation,
+            $otherConnector,
+            'SES-RACE-WINNER',
+        );
+        $injected = false;
+
+        ChargingSession::creating(function () use ($competingSession, &$injected): void {
+            if ($injected) {
+                return;
+            }
+
+            $injected = true;
+            ChargingSession::query()->whereKey($competingSession->id)->update([
+                'status' => 'charging',
+                'ended_at' => null,
+            ]);
+        });
+
+        try {
+            Sanctum::actingAs($client);
+            $this->postJson('/api/charging-sessions', [
+                'station_id' => $station->id,
+                'connector_id' => $connector->id,
+            ])
+                ->assertUnprocessable()
+                ->assertJsonPath('message', 'An active charging session already exists for this client.')
+                ->assertJsonValidationErrors('session');
+        } finally {
+            ChargingSession::flushEventListeners();
+        }
+
+        $this->assertSame('completed', $competingSession->fresh()->status);
+        $this->assertDatabaseCount('charging_sessions', 1);
+    }
+
     public function test_global_client_can_charge_with_two_different_organizations(): void
     {
         [$client, $firstOrganization] = $this->userWithRole('client');
