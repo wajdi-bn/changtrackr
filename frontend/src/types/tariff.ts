@@ -103,13 +103,17 @@ export interface ChargingPlanSubscribers {
   }>
 }
 
+export type ChargingTargetType = 'energy' | 'duration' | 'amount'
+
 export interface PricingSimulationPayload {
   station_id: number
   connector_id?: number
   charging_plan_id?: number
-  energy_kwh: number
-  duration_minutes: number
-  idle_minutes: number
+  target_type?: ChargingTargetType
+  target_value?: number
+  energy_kwh?: number
+  duration_minutes?: number
+  idle_minutes?: number
 }
 
 export interface PricingSimulation {
@@ -127,4 +131,19 @@ export interface PricingSimulation {
     subtotal_millimes: number
     total_millimes: number
   }
+  estimate: {
+    target_type: ChargingTargetType
+    target_value: number
+    energy_kwh: number
+    duration_minutes: number
+    amount_millimes: number
+    connector_power_kw: number
+    preauthorization_amount_millimes: number
+    within_preauthorization: boolean
+    maximums: {
+      energy_kwh: number
+      duration_minutes: number
+      amount_millimes: number
+    }
+  } | null
 }

@@ -1,16 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Button, Drawer, Empty, Form, InputNumber, Radio, Result, Select, Space, Spin, Steps, Tag } from 'antd'
+import { Alert, App, Button, Drawer, Empty, Form, Input, InputNumber, Radio, Result, Select, Slider, Spin, Steps, Tag } from 'antd'
 import type { FormInstance } from 'antd'
 import { motion } from 'framer-motion'
 import { BadgePercent, BatteryCharging, CheckCircle2, CircleDollarSign, Clock3, CreditCard, Gauge, MapPin, PlugZap, ShieldCheck, Zap } from 'lucide-react'
 import { getApiErrorMessage } from '../../api/apiErrors'
 import type { ChargingAttempt, ChargingAttemptPayload, ChargingSession, PaymentSimulationOutcome, SimulatedPaymentMethod } from '../../types/charging'
 import type { Connector, Station } from '../../types/station'
+import type { ChargingTargetType, PricingSimulation } from '../../types/tariff'
 import { getStation } from '../stations/stationApi'
-import { getEffectivePricing } from '../tariffs/tariffApi'
+import { getEffectivePricing, simulatePricing } from '../tariffs/tariffApi'
 import { getChargingAttempt, startChargingAttempt } from './chargingApi'
+import { buildChargingLimitPayload, linkedTargetValues } from './chargingEstimate'
 import { ConnectorTypeIcon } from './ConnectorTypeIcon'
+import { PaymentMethodBrand } from './PaymentMethodBrand'
 import { createIdempotencyKey } from '../../lib/idempotency'
 
 type ChargeableStation = Pick<Station, 'id' | 'name' | 'city' | 'location' | 'model_image' | 'available_connectors_count' | 'remote_start_available'> & {
@@ -22,8 +26,15 @@ type FormValues = {
   connector_id: number
   method: SimulatedPaymentMethod
   simulation_outcome: PaymentSimulationOutcome
-  limit_type: 'none' | 'energy' | 'amount' | 'duration'
-  limit_value?: number
+  cardholder_name?: string
+  card_number?: string
+  card_expiry?: string
+  card_cvc?: string
+  edinar_card_number?: string
+  edinar_expiry?: string
+  edinar_code?: string
+  d17_phone?: string
+  d17_code?: string
 }
 
 interface StartSessionDrawerProps {
@@ -50,6 +61,8 @@ export function StartSessionDrawer({
   const [form] = Form.useForm<FormValues>()
   const [current, setCurrent] = useState(0)
   const [attemptUuid, setAttemptUuid] = useState<string | null>(initialAttemptUuid ?? null)
+  const [targetType, setTargetType] = useState<ChargingTargetType>('amount')
+  const [targetValue, setTargetValue] = useState(15)
   const notifiedSessionId = useRef<number | null>(null)
   const initializedKey = useRef<string | null>(null)
   const idempotencyKey = useRef(createIdempotencyKey())
@@ -57,7 +70,9 @@ export function StartSessionDrawer({
   const { message } = App.useApp()
   const stationId = Form.useWatch('station_id', { form, preserve: true })
   const connectorId = Form.useWatch('connector_id', { form, preserve: true })
-  const limitType = Form.useWatch('limit_type', { form, preserve: true })
+  const paymentMethod = Form.useWatch('method', { form, preserve: true })
+  const deferredTargetValue = useDeferredValue(targetValue)
+  const estimatePending = targetValue !== deferredTargetValue
   const effectiveStationId = stationId ?? initialStationId ?? null
   const effectiveConnectorId = connectorId ?? initialConnectorId ?? null
   const availableStations = useMemo(
@@ -71,6 +86,17 @@ export function StartSessionDrawer({
     queryKey: ['effective-pricing', effectiveStationId, effectiveConnectorId],
     queryFn: () => getEffectivePricing(effectiveStationId!, effectiveConnectorId!),
     enabled: Boolean(effectiveStationId && effectiveConnectorId),
+  })
+  const estimateQuery = useQuery({
+    queryKey: ['charging-estimate', effectiveStationId, effectiveConnectorId, targetType, deferredTargetValue],
+    queryFn: () => simulatePricing({
+      station_id: effectiveStationId!,
+      connector_id: effectiveConnectorId!,
+      target_type: targetType,
+      target_value: deferredTargetValue,
+    }),
+    enabled: open && current >= 3 && current < 6 && effectiveStationId != null && effectiveConnectorId != null,
+    placeholderData: (previous) => previous,
   })
   const attemptQuery = useQuery({
     queryKey: ['charging-attempt', attemptUuid],
@@ -90,7 +116,7 @@ export function StartSessionDrawer({
     mutationFn: startChargingAttempt,
     onSuccess: (attempt) => {
       setAttemptUuid(attempt.uuid)
-      setCurrent(4)
+      setCurrent(6)
       queryClient.setQueryData(['charging-attempt', attempt.uuid], attempt)
       void queryClient.invalidateQueries({ queryKey: ['charging-attempts'] })
     },
@@ -108,11 +134,13 @@ export function StartSessionDrawer({
     initializedKey.current = key
     if (initialAttemptUuid) {
       setAttemptUuid(initialAttemptUuid)
-      setCurrent(4)
+      setCurrent(6)
       return
     }
     setAttemptUuid(null)
     idempotencyKey.current = createIdempotencyKey()
+    setTargetType('amount')
+    setTargetValue(15)
     const initialStation = initialStationId != null
       ? availableStations.find((station) => station.id === initialStationId)
       : undefined
@@ -128,8 +156,6 @@ export function StartSessionDrawer({
       connector_id: initialConnector?.id,
       method: 'simulated_card',
       simulation_outcome: 'success',
-      limit_type: 'none',
-      limit_value: undefined,
     })
   }, [availableStations, form, initialAttemptUuid, initialConnectorId, initialStationId, open, stations.length])
 
@@ -152,6 +178,24 @@ export function StartSessionDrawer({
   }, [attemptQuery.data?.charging_session, onSessionStarted, queryClient])
 
   async function next() {
+    if (current === 3) {
+      if (estimatePending || estimateQuery.isFetching) return
+      if (!estimateQuery.data || estimateQuery.isError) {
+        void message.error('The charging estimate is not available yet.')
+        return
+      }
+      if (!estimateQuery.data.estimate?.within_preauthorization) {
+        void message.error('Choose a target within the payment authorization limit.')
+        return
+      }
+      setCurrent(4)
+      return
+    }
+    if (current === 4) {
+      await form.validateFields(['method', 'simulation_outcome', ...paymentFields(paymentMethod)])
+      setCurrent(5)
+      return
+    }
     const fields = current === 0 ? ['station_id'] : ['connector_id']
     await form.validateFields(fields)
     setCurrent((value) => Math.min(2, value + 1))
@@ -159,7 +203,7 @@ export function StartSessionDrawer({
 
   async function submit() {
     if (startMutation.isPending) return
-    await form.validateFields()
+    await form.validateFields(['station_id', 'connector_id', 'method', 'simulation_outcome', ...paymentFields(paymentMethod)])
     const values = form.getFieldsValue(true) as FormValues
     const payload: ChargingAttemptPayload = {
       station_id: values.station_id,
@@ -167,10 +211,8 @@ export function StartSessionDrawer({
       method: values.method,
       simulation_outcome: values.simulation_outcome,
       idempotency_key: idempotencyKey.current,
+      ...buildChargingLimitPayload(targetType, targetValue),
     }
-    if (values.limit_type === 'energy') payload.limit_energy_kwh = values.limit_value
-    if (values.limit_type === 'amount') payload.limit_amount_tnd = values.limit_value
-    if (values.limit_type === 'duration') payload.limit_duration_minutes = values.limit_value
     startMutation.mutate(payload)
   }
 
@@ -183,7 +225,9 @@ export function StartSessionDrawer({
           { title: 'Station' },
           { title: 'Connector' },
           { title: 'Connect' },
+          { title: 'Target' },
           { title: 'Payment' },
+          { title: 'Review' },
           { title: 'Start' },
         ]}
       />
@@ -192,17 +236,19 @@ export function StartSessionDrawer({
           {current === 0 && <StationStep stations={availableStations} selectedStation={selectedStation} form={form} />}
           {current === 1 && <ConnectorStep connectors={availableConnectors} selectedConnector={selectedConnector} form={form} />}
           {current === 2 && <ConnectionStep connector={selectedConnector} liveConnector={liveConnector} loading={connectorConnectionQuery.isLoading} error={connectorConnectionQuery.isError} />}
-          {current === 3 && <PaymentStep pricing={pricingQuery.data} limitType={limitType} />}
-          {current === 4 && <AttemptStep attempt={attemptQuery.data} loading={attemptQuery.isLoading || startMutation.isPending} />}
+          {current === 3 && <ChargingTargetStep targetType={targetType} targetValue={targetValue} quote={estimateQuery.data} loading={estimatePending || estimateQuery.isFetching} error={estimateQuery.isError} onChange={(type, value) => { setTargetType(type); setTargetValue(value) }} />}
+          {current === 4 && <PaymentStep quote={estimateQuery.data} method={paymentMethod} />}
+          {current === 5 && <PaymentReviewStep pricing={pricingQuery.data} quote={estimateQuery.data} method={paymentMethod} />}
+          {current === 6 && <AttemptStep attempt={attemptQuery.data} loading={attemptQuery.isLoading || startMutation.isPending} />}
         </motion.div>
       </Form>
-      {current < 4 && <footer className="charging-workflow-footer">
+      {current < 6 && <footer className="charging-workflow-footer">
         <Button disabled={current === 0} onClick={() => setCurrent((value) => Math.max(0, value - 1))}>Back</Button>
-        {current < 3
+        {current < 5
           ? current === 2
             ? <Button type="primary" loading disabled>Waiting for cable</Button>
-            : <Button type="primary" onClick={() => void next()}>Continue</Button>
-          : <Button type="primary" icon={<Zap size={16} />} loading={startMutation.isPending} onClick={() => void submit()}>Authorize 30 TND & start</Button>}
+            : <Button type="primary" loading={current === 3 && (estimatePending || estimateQuery.isFetching)} onClick={() => void next()}>{current === 4 ? 'Review payment' : 'Continue'}</Button>
+          : <Button type="primary" icon={<Zap size={16} />} loading={startMutation.isPending} onClick={() => void submit()}>Authorize {formatTnd(estimateQuery.data?.estimate?.preauthorization_amount_millimes ?? 30000)} & start</Button>}
       </footer>}
     </Drawer>
   )
@@ -251,31 +297,172 @@ function ConnectionStep({ connector, liveConnector, loading, error }: { connecto
   </section>
 }
 
-function PaymentStep({ pricing, limitType }: { pricing?: Awaited<ReturnType<typeof getEffectivePricing>>; limitType?: FormValues['limit_type'] }) {
-  const limitLabel = limitType === 'energy' ? 'kWh' : limitType === 'amount' ? 'TND' : 'minutes'
-  return <section className="charging-workflow-step"><header><CreditCard size={20} /><span><h2>Authorize payment and set a limit</h2><p>30.000 TND is temporarily authorized. Only the final measured amount is captured.</p></span></header>
-    <div className="preauthorization-card"><ShieldCheck size={23} /><span><small>Temporary authorization</small><strong>30.000 TND</strong><p>Automatically released if charging does not start.</p></span></div>
+function ChargingTargetStep({
+  targetType,
+  targetValue,
+  quote,
+  loading,
+  error,
+  onChange,
+}: {
+  targetType: ChargingTargetType
+  targetValue: number
+  quote?: PricingSimulation
+  loading: boolean
+  error: boolean
+  onChange: (type: ChargingTargetType, value: number) => void
+}) {
+  const estimate = quote?.estimate
+  const values = linkedTargetValues(estimate, targetType, targetValue)
+  const maximumEnergy = Math.max(0.1, estimate?.maximums.energy_kwh ?? 40)
+  const maximumDuration = Math.max(1, estimate?.maximums.duration_minutes ?? 60)
+  const maximumAmount = Math.max(1, (estimate?.maximums.amount_millimes ?? 30000) / 1000)
+
+  return <section className="charging-workflow-step charging-target-step">
+    <header><Gauge size={20} /><span><h2>Choose what should stop charging</h2><p>Adjust energy, time or budget. The other two values update from the station tariff and connector power.</p></span></header>
+    <div className="charging-target-context">
+      <span><Zap size={16} /><strong>{estimate?.connector_power_kw ?? 0} kW</strong> connector maximum</span>
+      <span className={loading ? 'is-loading' : ''}><Spin size="small" spinning={loading} />{loading ? 'Updating estimate' : 'Estimate up to date'}</span>
+    </div>
+    <div className="charging-target-grid">
+      <ChargingTargetControl icon={<BatteryCharging />} type="energy" label="Energy" help="Energy delivered before the automatic stop" value={values.energy} min={0.1} max={maximumEnergy} step={0.1} unit="kWh" active={targetType === 'energy'} onChange={onChange} />
+      <ChargingTargetControl icon={<Clock3 />} type="duration" label="Time" help="Estimated at the connector's maximum power" value={values.duration} min={1} max={maximumDuration} step={1} unit="min" active={targetType === 'duration'} onChange={onChange} />
+      <ChargingTargetControl icon={<CircleDollarSign />} type="amount" label="Budget" help="Includes tariff, start fee and membership discount" value={values.amount} min={1} max={maximumAmount} step={0.1} unit="TND" active={targetType === 'amount'} onChange={onChange} />
+    </div>
+    {estimate && <div className="charging-estimate-summary">
+      <div><small>Estimated energy</small><strong>{estimate.energy_kwh.toFixed(2)} kWh</strong></div>
+      <div><small>Estimated time</small><strong>{estimate.duration_minutes} min</strong></div>
+      <div><small>Estimated total</small><strong>{formatTnd(estimate.amount_millimes)}</strong></div>
+      <Tag color={estimate.within_preauthorization ? 'success' : 'error'}>{estimate.within_preauthorization ? 'Within authorization' : 'Above authorization'}</Tag>
+    </div>}
+    <Alert
+      type="info"
+      showIcon
+      title="Planning estimate, not a guaranteed charging speed"
+      description="The estimate uses the connector's maximum power. Vehicle limits, battery temperature and charge level can reduce actual power. Final billing always uses OCPP meter values."
+    />
+    {error && <Alert type="error" showIcon title="The estimate could not be refreshed" description="Check the connection and try the selected value again." />}
+  </section>
+}
+
+function ChargingTargetControl({
+  icon,
+  type,
+  label,
+  help,
+  value,
+  min,
+  max,
+  step,
+  unit,
+  active,
+  onChange,
+}: {
+  icon: ReactNode
+  type: ChargingTargetType
+  label: string
+  help: string
+  value: number
+  min: number
+  max: number
+  step: number
+  unit: string
+  active: boolean
+  onChange: (type: ChargingTargetType, value: number) => void
+}) {
+  const boundedValue = Math.min(max, Math.max(min, value))
+  return <article className={`charging-target-control${active ? ' is-active' : ''}`}>
+    <header><span>{icon}</span><div><strong>{label}</strong><small>{help}</small></div>{active && <b>Stop target</b>}</header>
+    <div className="charging-target-control__input">
+      <Slider min={min} max={max} step={step} value={boundedValue} onChange={(next) => onChange(type, next)} tooltip={{ formatter: (next) => `${next ?? 0} ${unit}` }} />
+      <InputNumber min={min} max={max} step={step} value={boundedValue} onChange={(next) => next != null && onChange(type, next)} controls />
+      <span>{unit}</span>
+    </div>
+  </article>
+}
+
+function PaymentStep({
+  quote,
+  method,
+}: {
+  quote?: PricingSimulation
+  method?: SimulatedPaymentMethod
+}) {
+  const selectedMethod = method ?? 'simulated_card'
+  const estimate = quote?.estimate
+
+  return <section className="charging-workflow-step charging-payment-step">
+    <header><CreditCard size={20} /><span><h2>Enter payment details</h2><p>Select a sandbox payment method and complete only the fields required by that method.</p></span></header>
+    {estimate && <div className="payment-charge-summary">
+      <div><small>Charging target</small><strong>{targetSummary(estimate)}</strong></div>
+      <div><small>Estimated session</small><strong>{estimate.energy_kwh.toFixed(2)} kWh · {estimate.duration_minutes} min</strong></div>
+      <div><small>Estimated total</small><strong>{formatTnd(estimate.amount_millimes)}</strong></div>
+    </div>}
     <Form.Item label="Payment method" name="method" rules={[{ required: true }]}>
-      <Radio.Group className="payment-method-grid" options={[
-        { value: 'simulated_card', label: <span><CreditCard size={17} />Bank card</span> },
-        { value: 'simulated_edinar', label: <span><CircleDollarSign size={17} />e-DINAR</span> },
-        { value: 'simulated_d17', label: <span><Zap size={17} />D17</span> },
-      ]} optionType="button" />
+      <Radio.Group className="payment-method-grid">
+        <Radio.Button value="simulated_card"><PaymentMethodBrand method="simulated_card" /><span><strong>Bank card</strong><small>Visa or Mastercard sandbox</small></span></Radio.Button>
+        <Radio.Button value="simulated_edinar"><PaymentMethodBrand method="simulated_edinar" /><span><strong>e-DINAR</strong><small>Postal card sandbox</small></span></Radio.Button>
+        <Radio.Button value="simulated_d17"><PaymentMethodBrand method="simulated_d17" /><span><strong>D17</strong><small>Mobile wallet sandbox</small></span></Radio.Button>
+      </Radio.Group>
     </Form.Item>
-    <Form.Item label="Optional charging limit" name="limit_type">
-      <Radio.Group options={[{ value: 'none', label: 'No custom limit' }, { value: 'energy', label: 'Energy' }, { value: 'amount', label: 'Amount' }, { value: 'duration', label: 'Duration' }]} />
-    </Form.Item>
-    {limitType && limitType !== 'none' && <Form.Item label={`Maximum ${limitType}`} name="limit_value" rules={[{ required: true, message: 'Enter a limit' }]}>
-      <Space.Compact block><InputNumber className="charging-limit-input" min={limitType === 'energy' ? 0.1 : 1} max={limitType === 'amount' ? 30 : limitType === 'duration' ? 1440 : 200} step={limitType === 'energy' ? 0.5 : 1} /><Button disabled>{limitLabel}</Button></Space.Compact>
-    </Form.Item>}
+    <div className="payment-details-panel">
+      <header><span><ShieldCheck size={18} /></span><div><strong>{paymentMethodTitle(selectedMethod)}</strong><small>Sandbox fields are validated locally and never included in the API request.</small></div></header>
+      {selectedMethod === 'simulated_card' && <div className="payment-details-grid">
+        <Form.Item className="is-wide" label="Sandbox cardholder" name="cardholder_name" preserve={false} rules={[{ required: true, message: 'Enter the sandbox cardholder name' }]}><Input autoComplete="off" placeholder="Demo customer" /></Form.Item>
+        <Form.Item className="is-wide" label="Sandbox card number" name="card_number" preserve={false} rules={[{ required: true }, { pattern: /^\d{16}$/, message: 'Enter 16 sandbox digits' }]}><Input inputMode="numeric" autoComplete="off" maxLength={16} placeholder="4242424242424242" /></Form.Item>
+        <Form.Item label="Expiry" name="card_expiry" preserve={false} rules={[{ required: true }, { pattern: /^(0[1-9]|1[0-2])\/\d{2}$/, message: 'Use MM/YY' }]}><Input inputMode="numeric" autoComplete="off" maxLength={5} placeholder="12/30" /></Form.Item>
+        <Form.Item label="Demo CVC" name="card_cvc" preserve={false} rules={[{ required: true }, { pattern: /^\d{3}$/, message: 'Enter 3 sandbox digits' }]}><Input.Password inputMode="numeric" autoComplete="off" maxLength={3} placeholder="123" /></Form.Item>
+      </div>}
+      {selectedMethod === 'simulated_edinar' && <div className="payment-details-grid">
+        <Form.Item className="is-wide" label="e-DINAR sandbox card number" name="edinar_card_number" preserve={false} rules={[{ required: true }, { pattern: /^\d{16}$/, message: 'Enter 16 sandbox digits' }]}><Input inputMode="numeric" autoComplete="off" maxLength={16} placeholder="5359400000000000" /></Form.Item>
+        <Form.Item label="Expiry" name="edinar_expiry" preserve={false} rules={[{ required: true }, { pattern: /^(0[1-9]|1[0-2])\/\d{2}$/, message: 'Use MM/YY' }]}><Input inputMode="numeric" autoComplete="off" maxLength={5} placeholder="12/30" /></Form.Item>
+        <Form.Item label="Demo verification code" name="edinar_code" preserve={false} rules={[{ required: true }, { pattern: /^\d{4}$/, message: 'Enter 4 sandbox digits' }]}><Input.Password inputMode="numeric" autoComplete="off" maxLength={4} placeholder="0000" /></Form.Item>
+      </div>}
+      {selectedMethod === 'simulated_d17' && <div className="payment-details-grid">
+        <Form.Item className="is-wide" label="D17 sandbox mobile number" name="d17_phone" preserve={false} rules={[{ required: true }, { pattern: /^\+216\d{8}$/, message: 'Use +216 followed by 8 digits' }]}><Input inputMode="tel" autoComplete="off" placeholder="+21620123456" /></Form.Item>
+        <Form.Item className="is-wide" label="Demo confirmation code" name="d17_code" preserve={false} rules={[{ required: true }, { pattern: /^\d{6}$/, message: 'Enter 6 sandbox digits' }]}><Input.Password inputMode="numeric" autoComplete="off" maxLength={6} placeholder="000000" /></Form.Item>
+      </div>}
+    </div>
     {import.meta.env.DEV && <Form.Item label="External sandbox result" name="simulation_outcome"><Select options={[
       { value: 'success', label: 'Authorize successfully' },
       { value: 'declined', label: 'Provider decline' },
       { value: 'timeout', label: 'Provider timeout' },
       { value: 'provider_error', label: 'Provider unavailable' },
     ]} /></Form.Item>}
+    <Alert type="info" showIcon title="Simulation only" description="Use only demo values. ChargeTrackr does not send these fields to the backend or to a real payment provider." />
+  </section>
+}
+
+function PaymentReviewStep({
+  pricing,
+  quote,
+  method,
+}: {
+  pricing?: Awaited<ReturnType<typeof getEffectivePricing>>
+  quote?: PricingSimulation
+  method?: SimulatedPaymentMethod
+}) {
+  const estimate = quote?.estimate
+  const selectedMethod = method ?? 'simulated_card'
+
+  if (!estimate) {
+    return <Result status="warning" title="The payment estimate is unavailable" subTitle="Go back to the charging target and refresh the estimate before continuing." />
+  }
+
+  return <section className="charging-workflow-step payment-review-step">
+    <header><ShieldCheck size={20} /><span><h2>Review and authorize</h2><p>Confirm the charging target, estimated cost and simulated payment method before sending the remote-start command.</p></span></header>
+    <div className="payment-review-overview">
+      <div className="payment-review-method"><span><PaymentMethodBrand method={selectedMethod} /></span><div><small>Payment method</small><strong>{paymentMethodLabel(selectedMethod)}</strong><p>Sandbox authorization</p></div></div>
+      <div className="payment-review-target"><small>Automatic stop target</small><strong>{targetSummary(estimate)}</strong><p>{estimate.energy_kwh.toFixed(2)} kWh / {estimate.duration_minutes} min estimated</p></div>
+    </div>
+    <div className="payment-review-amounts">
+      <div><small>Estimated charging total</small><strong>{formatTnd(estimate.amount_millimes)}</strong></div>
+      <div><small>Temporary authorization</small><strong>{formatTnd(estimate.preauthorization_amount_millimes)}</strong></div>
+    </div>
     {pricing && <div className="effective-pricing-card"><div><small>Applied tariff</small><strong>{pricing.name}</strong><span>{pricingSourceLabel(pricing.source)}</span></div><div><small>Energy</small><strong>{(pricing.effective_price_per_kwh_millimes / 1000).toFixed(3)} TND/kWh</strong></div><div><small>Start fee</small><strong>{(pricing.session_fee_millimes / 1000).toFixed(3)} TND</strong></div><div><small>Minimum</small><strong>{(pricing.minimum_charge_millimes / 1000).toFixed(3)} TND</strong></div></div>}
     {pricing?.plan && <div className="start-plan-benefit"><BadgePercent size={15} /><span><strong>{pricing.plan.name}</strong><small>{(pricing.plan.discount_basis_points / 100).toFixed(0)}% subscription discount is applied automatically.</small></span></div>}
+    <div className="preauthorization-card"><ShieldCheck size={23} /><span><small>How the final charge works</small><strong>{formatTnd(estimate.preauthorization_amount_millimes)}</strong><p>The sandbox authorizes this ceiling first. ChargeTrackr captures only the final amount calculated from OCPP meter values and releases the unused balance.</p></span></div>
+    <Alert type="success" showIcon title="Ready to authorize and start" description="The next action authorizes the simulated payment, then asks the OCPP station to start charging. No session is created until the station confirms it." />
   </section>
 }
 
@@ -296,4 +483,32 @@ function AttemptStep({ attempt, loading }: { attempt?: ChargingAttempt; loading:
 
 function pricingSourceLabel(source: string) {
   return ({ connector: 'Connector-specific', station: 'Station-specific', organization_default: 'Organization default', configuration_fallback: 'Configuration fallback' } as Record<string, string>)[source] ?? source
+}
+
+function paymentFields(method?: SimulatedPaymentMethod): Array<keyof FormValues> {
+  if (method === 'simulated_edinar') return ['edinar_card_number', 'edinar_expiry', 'edinar_code']
+  if (method === 'simulated_d17') return ['d17_phone', 'd17_code']
+  return ['cardholder_name', 'card_number', 'card_expiry', 'card_cvc']
+}
+
+function paymentMethodTitle(method: SimulatedPaymentMethod): string {
+  if (method === 'simulated_edinar') return 'e-DINAR sandbox details'
+  if (method === 'simulated_d17') return 'D17 sandbox confirmation'
+  return 'Bank card sandbox details'
+}
+
+function paymentMethodLabel(method: SimulatedPaymentMethod): string {
+  if (method === 'simulated_edinar') return 'e-DINAR Smart'
+  if (method === 'simulated_d17') return 'D17 mobile wallet'
+  return 'Visa / Mastercard'
+}
+
+function targetSummary(estimate: NonNullable<PricingSimulation['estimate']>): string {
+  if (estimate.target_type === 'duration') return `${Math.round(estimate.target_value)} minutes`
+  if (estimate.target_type === 'amount') return `${estimate.target_value.toFixed(3)} TND budget`
+  return `${estimate.target_value.toFixed(2)} kWh`
+}
+
+function formatTnd(amountMillimes: number): string {
+  return `${(amountMillimes / 1000).toFixed(3)} TND`
 }
