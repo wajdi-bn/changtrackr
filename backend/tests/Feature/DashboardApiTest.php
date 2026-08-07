@@ -167,6 +167,8 @@ class DashboardApiTest extends TestCase
             ->assertJsonPath('data.kpis.1.value', 2)
             ->assertJsonPath('data.kpis.2.value', 20)
             ->assertJsonPath('data.kpis.3.value', 13)
+            ->assertJsonPath('data.widgets.latest_session.id', $secondSession->id)
+            ->assertJsonPath('data.widgets.latest_session.payment_status', 'paid')
             ->assertJsonCount(2, 'data.widgets.recent_sessions');
 
         $this->assertStringNotContainsString('OTHER-CLIENT', json_encode($response->json('data')));

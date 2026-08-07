@@ -38,6 +38,12 @@ class ChargingSessionController extends Controller
                 ->latest('started_at')
                 ->first()
             : null;
+        $latestSession = $user->hasRole('client')
+            ? (clone $scope)
+                ->with(self::RELATIONS)
+                ->latest('started_at')
+                ->first()
+            : null;
 
         $sessions = $this->applyFilters($scope, $filters)
             ->with(self::RELATIONS)
@@ -48,6 +54,7 @@ class ChargingSessionController extends Controller
         return response()->json([
             'data' => ChargingSessionResource::collection($sessions->getCollection()),
             'active_session' => $activeSession ? new ChargingSessionResource($activeSession) : null,
+            'latest_session' => $latestSession ? new ChargingSessionResource($latestSession) : null,
             'summary' => [
                 'total' => (clone $summary)->count(),
                 'active' => (clone $summary)->whereIn('status', ['pending', 'charging', 'stopping'])->count(),

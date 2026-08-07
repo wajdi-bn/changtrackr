@@ -323,9 +323,10 @@ class DashboardService
         $paymentsQuery = Payment::query()->where('user_id', $user->id)->where('status', 'paid');
         $sessions = $this->sessionsInPeriod((clone $sessionsQuery)->with('station'), $period);
         $payments = $this->paymentsInPeriod(clone $paymentsQuery, $period);
-        $activeSession = (clone $sessionsQuery)->whereIn('status', ['charging', 'stopping'])->count();
+        $activeSession = (clone $sessionsQuery)->whereIn('status', ['pending', 'charging', 'stopping'])->count();
         $subscriptions = PlanSubscription::query()->where('user_id', $user->id)->current()->count();
-        $activeSessionRecord = (clone $sessionsQuery)->with(['station', 'connector', 'chargingPlan', 'payment'])->whereIn('status', ['charging', 'stopping'])->latest('started_at')->first();
+        $activeSessionRecord = (clone $sessionsQuery)->with(['station', 'connector', 'chargingPlan', 'payment'])->whereIn('status', ['pending', 'charging', 'stopping'])->latest('started_at')->first();
+        $latestSessionRecord = (clone $sessionsQuery)->with(['station', 'connector', 'chargingPlan', 'payment'])->latest('started_at')->first();
         $identifier = OcppIdTag::query()->where('user_id', $user->id)->where('status', 'active')->latest('last_used_at')->first();
         $currentSubscription = PlanSubscription::query()->with(['organization', 'chargingPlan'])->where('user_id', $user->id)->current()->latest('starts_at')->first();
         $allPayments = Payment::query()->where('user_id', $user->id)->get();
@@ -372,7 +373,25 @@ class DashboardService
                     'current_power_kw' => $activeSessionRecord->current_power_kw,
                     'state_of_charge_percent' => $activeSessionRecord->state_of_charge_percent,
                     'total_millimes' => $activeSessionRecord->total_millimes,
+                    'payment_status' => $activeSessionRecord->payment_status,
+                    'payment_id' => $activeSessionRecord->payment?->id,
                     'action_url' => '/my-sessions?session='.$activeSessionRecord->id,
+                ] : null,
+                'latest_session' => $latestSessionRecord ? [
+                    'id' => $latestSessionRecord->id,
+                    'reference' => $latestSessionRecord->reference,
+                    'station' => $latestSessionRecord->station?->name ?? $latestSessionRecord->station_name,
+                    'connector' => $latestSessionRecord->connector?->external_id ?? $latestSessionRecord->connector_external_id,
+                    'status' => $latestSessionRecord->status,
+                    'started_at' => $latestSessionRecord->started_at->toIso8601String(),
+                    'ended_at' => $latestSessionRecord->ended_at?->toIso8601String(),
+                    'energy_kwh' => (float) $latestSessionRecord->energy_kwh,
+                    'current_power_kw' => $latestSessionRecord->current_power_kw,
+                    'state_of_charge_percent' => $latestSessionRecord->state_of_charge_percent,
+                    'total_millimes' => $latestSessionRecord->total_millimes,
+                    'payment_status' => $latestSessionRecord->payment_status,
+                    'payment_id' => $latestSessionRecord->payment?->id,
+                    'action_url' => '/my-sessions?session='.$latestSessionRecord->id,
                 ] : null,
                 'identifier' => $identifier ? [
                     'label' => $identifier->label,

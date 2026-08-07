@@ -174,6 +174,7 @@ class ChargingSessionPaymentApiTest extends TestCase
             ->assertJsonPath('summary.total', 13)
             ->assertJsonPath('summary.active', 1)
             ->assertJsonPath('active_session.id', $activeSession->id)
+            ->assertJsonPath('latest_session.id', $activeSession->id)
             ->assertJsonPath('meta.current_page', 2)
             ->assertJsonPath('meta.last_page', 3)
             ->assertJsonPath('meta.per_page', 5)
