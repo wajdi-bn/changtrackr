@@ -45,6 +45,7 @@ WORKDIR /usr/app
 COPY --from=builder /source/ui/cli/dist ./cli
 COPY infra/ocpp/simulator/cli-config-template.json ./cli-config-template.json
 COPY infra/ocpp/simulator/read-station-state.mjs ./read-station-state.mjs
+COPY infra/ocpp/simulator/write-cli-config.mjs ./write-cli-config.mjs
 COPY infra/ocpp/simulator/run-scenario.sh /usr/local/bin/run-ocpp-scenario
 COPY infra/ocpp/simulator/run-transaction-scenario.sh /usr/local/bin/run-ocpp-transaction-scenario
 COPY infra/ocpp/simulator/run-connector-status.sh /usr/local/bin/run-ocpp-connector-status

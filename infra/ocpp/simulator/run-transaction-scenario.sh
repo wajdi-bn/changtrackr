@@ -6,8 +6,7 @@ set -eu
 : "${OCPP_SIMULATOR_ID_TAG:=TEST-TAG-001}"
 
 config_file="/tmp/evse-cli-config.json"
-cp /usr/app/cli-config-template.json "${config_file}"
-sed -i "s|__OCPP_SIMULATOR_UI_PASSWORD__|${OCPP_SIMULATOR_UI_PASSWORD}|g" "${config_file}"
+node /usr/app/write-cli-config.mjs /usr/app/cli-config-template.json "${config_file}"
 
 cli="node /usr/app/cli/cli.js --config ${config_file} --json"
 

@@ -45,7 +45,7 @@
     "payment:status": "docker compose -f infra/payment-simulator/compose.yaml ps",
     "payment:logs": "docker compose -f infra/payment-simulator/compose.yaml logs -f payment-simulator",
     "payment:reset": "curl.exe -X POST http://127.0.0.1:9090/__admin/requests/reset",
-    "test:ocpp-tools": "node --test infra/ocpp/simulator/read-station-state.test.mjs",
+    "test:ocpp-tools": "node --test infra/ocpp/simulator/*.test.mjs",
     "test:ocpp-gateway": "docker build --target test -t chargetrackr-ocpp-gateway-test ocpp-gateway && docker run --rm chargetrackr-ocpp-gateway-test"
   },
   "engines": {
