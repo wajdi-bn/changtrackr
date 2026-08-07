@@ -7,7 +7,7 @@
     "urlPath": "/v1/payment-operations",
     "headers": {
       "X-Simulator-Api-Key": {
-        "equalTo": "chargetrackr-local"
+        "equalTo": "__PAYMENT_SIMULATOR_API_KEY__"
       }
     },
     "bodyPatterns": [

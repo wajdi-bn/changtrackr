@@ -36,6 +36,7 @@ work/
 outputs/
 tmp/
 infra/ocpp/certs/
+infra/payment-simulator/generated/
 **/__pycache__/
 **/.pytest_cache/
 **/.venv/

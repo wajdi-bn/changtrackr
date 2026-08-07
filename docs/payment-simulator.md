@@ -21,6 +21,8 @@ npm run payment:up
 npm run payment:status
 ```
 
+`payment:up` reads `PAYMENT_SIMULATOR_API_KEY` from the ignored `backend/.env` file. It generates a strong local key when the value is missing or still uses the retired development default, renders private WireMock mappings under an ignored directory, clears Laravel's configuration cache, and then starts WireMock. The key is never printed or committed.
+
 Use `npm run payment:logs` to inspect provider requests and callbacks. Use `npm run payment:reset` to clear WireMock's request journal and `npm run payment:down` to stop it.
 
 ## Scenarios
@@ -38,6 +40,6 @@ Successful and declined callbacks carry an HMAC SHA-256 signature in `X-ChargeTr
 
 ## Configuration
 
-All local values are declared in `backend/.env.example`. Production must replace them with provider-specific secrets and endpoints. The simulator's API key and webhook secret are development values only.
+All local variable names are declared in `backend/.env.example` without a simulator API key value. Production must supply provider-specific secrets and endpoints through its secret manager. The simulator's webhook secret is a development value only.
 
 Automated tests force `PAYMENT_DRIVER=simulated` in `backend/phpunit.xml`; adapter and webhook contract tests explicitly cover the external integration without requiring Docker.

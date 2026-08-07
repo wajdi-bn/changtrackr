@@ -19,7 +19,7 @@ return [
     'simulator' => [
         'base_url' => env('PAYMENT_SIMULATOR_BASE_URL', 'http://127.0.0.1:9090'),
         'operation_endpoint' => env('PAYMENT_SIMULATOR_OPERATION_ENDPOINT', '/v1/payment-operations'),
-        'api_key' => env('PAYMENT_SIMULATOR_API_KEY', 'chargetrackr-local'),
+        'api_key' => env('PAYMENT_SIMULATOR_API_KEY'),
         'webhook_url' => env('PAYMENT_SIMULATOR_WEBHOOK_URL', 'http://host.docker.internal:8000/api/internal/payments/webhooks'),
         'webhook_secret' => env('PAYMENT_SIMULATOR_WEBHOOK_SECRET', 'local-payment-webhook-secret'),
         'timeout_seconds' => (int) env('PAYMENT_SIMULATOR_TIMEOUT_SECONDS', 3),
