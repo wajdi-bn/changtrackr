@@ -68,6 +68,7 @@ class StationTelemetryApiTest extends TestCase
 
     public function test_technician_can_view_operational_telemetry_without_financial_values(): void
     {
+        $this->travelTo(now()->startOfDay()->addHours(12));
         [$technician, $organization] = $this->userWithRole('technician', 'field-network');
         $station = $this->station($organization, 'CT-FIELD-001');
         $client = User::factory()->create(['status' => 'active']);
