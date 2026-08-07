@@ -14,8 +14,8 @@ export function GoogleOAuthCallbackPage() {
     }
 
     navigate(
-      isAuthenticated
-        ? getAuthenticatedEntryPath(user!)
+      isAuthenticated && user
+        ? getAuthenticatedEntryPath(user)
         : '/login?oauth_error=session_not_created',
       { replace: true },
     )

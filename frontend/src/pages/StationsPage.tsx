@@ -74,7 +74,7 @@ export function StationsPage() {
   })
 
   const saveStation = useMutation({
-    mutationFn: (values: StationPayload) => updateStation((selectedStation as Station).id, values),
+    mutationFn: ({ stationId, values }: { stationId: number; values: StationPayload }) => updateStation(stationId, values),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['stations'] })
       setDrawerOpen(false)
@@ -290,7 +290,9 @@ export function StationsPage() {
         submitting={saveStation.isPending}
         initialCoordinates={initialCoordinates}
         onClose={() => { setDrawerOpen(false); setSelectedStation(null); setInitialCoordinates(null) }}
-        onSubmit={(values) => saveStation.mutate(values)}
+        onSubmit={(values) => {
+          if (selectedStation) saveStation.mutate({ stationId: selectedStation.id, values })
+        }}
       />
       <StationCommissioningDrawer
         open={commissioningOpen}
