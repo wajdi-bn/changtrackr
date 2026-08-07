@@ -8990,6 +8990,15 @@ html {
   gap: 4px;
 }
 
+.maintenance-schedule-cell.is-overdue > strong,
+.maintenance-schedule-cell .maintenance-overdue-label {
+  color: #c93636;
+}
+
+.maintenance-schedule-cell .maintenance-overdue-label {
+  font-weight: 700;
+}
+
 .maintenance-row-actions {
   display: flex;
   justify-content: flex-end;

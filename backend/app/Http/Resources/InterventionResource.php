@@ -10,6 +10,10 @@ class InterventionResource extends JsonResource
     /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
+        $isOverdue = $this->scheduled_at !== null
+            && $this->scheduled_at->isPast()
+            && in_array($this->status, ['assigned', 'in-progress', 'paused', 'waiting-parts'], true);
+
         return [
             'id' => $this->id,
             'reference' => $this->reference,
@@ -21,6 +25,8 @@ class InterventionResource extends JsonResource
             'status' => $this->status,
             'priority' => $this->priority,
             'scheduled_at' => $this->scheduled_at?->toISOString(),
+            'is_overdue' => $isOverdue,
+            'overdue_by_minutes' => $isOverdue ? (int) floor($this->scheduled_at->diffInMinutes(now())) : 0,
             'started_at' => $this->started_at?->toISOString(),
             'ended_at' => $this->ended_at?->toISOString(),
             'estimated_duration_minutes' => $this->estimated_duration_minutes,

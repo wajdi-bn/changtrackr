@@ -36,6 +36,7 @@ import dayjs from 'dayjs'
 import {
   CalendarDays,
   CalendarRange,
+  CircleAlert,
   CheckCircle2,
   Clock3,
   FileDown,
@@ -228,7 +229,11 @@ export function MaintenancePage() {
       title: 'Schedule',
       key: 'schedule',
       width: 150,
-      render: (_, occurrence) => <div className="maintenance-schedule-cell"><strong>{occurrence.scheduled_at ? dayjs(occurrence.scheduled_at).format('DD MMM YYYY, HH:mm') : 'Not scheduled'}</strong><small><Clock3 size={12} />{occurrence.estimated_duration_minutes ?? 0} minutes</small></div>,
+      render: (_, occurrence) => <div className={`maintenance-schedule-cell${occurrence.is_overdue ? ' is-overdue' : ''}`}>
+        <strong>{occurrence.scheduled_at ? dayjs(occurrence.scheduled_at).format('DD MMM YYYY, HH:mm') : 'Not scheduled'}</strong>
+        <small><Clock3 size={12} />{occurrence.estimated_duration_minutes ?? 0} minutes</small>
+        {occurrence.is_overdue && <small className="maintenance-overdue-label"><CircleAlert size={12} />Overdue</small>}
+      </div>,
     },
     {
       title: 'Recurrence',
@@ -273,6 +278,7 @@ export function MaintenancePage() {
 
     <MetricStrip className="maintenance-summary-grid">
       <SummaryMetric icon={CalendarRange} label="Planned" value={summary?.planned ?? 0} tone="purple" />
+      <SummaryMetric icon={CircleAlert} label="Overdue" value={summary?.overdue ?? 0} tone="red" />
       <SummaryMetric icon={Wrench} label="In progress" value={summary?.in_progress ?? 0} tone="blue" />
       <SummaryMetric icon={CheckCircle2} label="Completed" value={summary?.completed ?? 0} tone="green" />
       <SummaryMetric icon={XCircle} label="Cancelled" value={summary?.cancelled ?? 0} tone="gray" />

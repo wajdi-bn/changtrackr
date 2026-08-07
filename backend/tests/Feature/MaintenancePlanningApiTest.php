@@ -9,6 +9,7 @@ use App\Models\Organization;
 use App\Models\Station;
 use App\Models\User;
 use App\Services\Maintenance\MaintenancePlanService;
+use Carbon\CarbonImmutable;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -28,7 +29,7 @@ class MaintenancePlanningApiTest extends TestCase
         Storage::fake('local');
     }
 
-    public function test_admin_can_plan_recurring_maintenance_and_occurrences_are_idempotent(): void
+    public function test_recurring_maintenance_keeps_one_open_occurrence_and_completes_after_the_last_one(): void
     {
         Queue::fake();
         $organization = $this->organization('maintenance-network');
@@ -65,9 +66,142 @@ class MaintenancePlanningApiTest extends TestCase
         ]);
 
         $service = app(MaintenancePlanService::class);
-        $this->assertSame(3, $service->generateUpcoming($planId, 40));
+        $this->assertSame(0, $service->generateUpcoming($planId, 40));
+        $this->assertSame(1, Intervention::query()->where('maintenance_plan_id', $planId)->count());
+
+        for ($number = 1; $number <= 4; $number++) {
+            $occurrence = Intervention::query()
+                ->where('maintenance_plan_id', $planId)
+                ->where('maintenance_occurrence_number', $number)
+                ->firstOrFail();
+
+            $this->patchJson("/api/interventions/{$occurrence->id}", ['status' => 'cancelled'])
+                ->assertOk()
+                ->assertJsonPath('data.status', 'cancelled');
+
+            $expectedCount = min(4, $number + 1);
+            $this->assertSame($expectedCount, Intervention::query()->where('maintenance_plan_id', $planId)->count());
+            $this->assertSame(0, $service->generateUpcoming($planId, 40));
+        }
+
         $this->assertSame(0, $service->generateUpcoming($planId, 40));
         $this->assertSame(4, Intervention::query()->where('maintenance_plan_id', $planId)->count());
+        $this->assertDatabaseHas('maintenance_plans', ['id' => $planId, 'status' => 'completed']);
+    }
+
+    public function test_monthly_recurrence_remains_anchored_across_short_months_and_preserves_the_instant(): void
+    {
+        Queue::fake();
+        $this->travelTo(CarbonImmutable::parse('2026-01-05 08:00:00', 'UTC'));
+        $organization = $this->organization('calendar-anchor-network');
+        $admin = $this->user($organization, 'admin');
+        $technician = $this->user($organization, 'technician');
+        $station = $this->station($organization, 'CT-MNT-ANCHOR');
+        Sanctum::actingAs($admin);
+        $first = CarbonImmutable::parse('2026-01-31 09:00:00', 'Africa/Tunis');
+
+        $result = app(MaintenancePlanService::class)->create([
+            'station_id' => $station->id,
+            'connector_id' => null,
+            'assigned_technician_id' => $technician->id,
+            'title' => 'Month-end inspection',
+            'type' => 'preventive',
+            'priority' => 'info',
+            'instructions' => 'Inspect the charging hardware at the end of every month.',
+            'first_scheduled_at' => $first->toIso8601String(),
+            'estimated_duration_minutes' => 45,
+            'recurrence_frequency' => 'monthly',
+            'recurrence_interval' => 1,
+            'recurrence_ends_at' => CarbonImmutable::parse('2026-04-30 23:59:59', 'Africa/Tunis')->toIso8601String(),
+        ], $admin, $organization->id);
+
+        $expectedUtcDates = [
+            '2026-01-31 08:00:00',
+            '2026-02-28 08:00:00',
+            '2026-03-31 08:00:00',
+            '2026-04-30 08:00:00',
+        ];
+        $planId = $result['plan']->id;
+
+        foreach ($expectedUtcDates as $index => $expected) {
+            $occurrence = Intervention::query()
+                ->where('maintenance_plan_id', $planId)
+                ->where('maintenance_occurrence_number', $index + 1)
+                ->firstOrFail();
+            $this->assertSame($expected, $occurrence->scheduled_at->utc()->format('Y-m-d H:i:s'));
+            $this->patchJson("/api/interventions/{$occurrence->id}", ['status' => 'cancelled'])->assertOk();
+        }
+
+        $this->assertDatabaseHas('maintenance_plans', ['id' => $planId, 'status' => 'completed']);
+    }
+
+    public function test_next_occurrence_requires_an_active_technician_in_the_same_organization(): void
+    {
+        Queue::fake();
+        $organization = $this->organization('technician-validity-network');
+        $admin = $this->user($organization, 'admin');
+        $technician = $this->user($organization, 'technician');
+        $station = $this->station($organization, 'CT-MNT-TECHNICIAN');
+        Sanctum::actingAs($admin);
+        $first = now()->addDay()->startOfHour();
+
+        $result = app(MaintenancePlanService::class)->create([
+            'station_id' => $station->id,
+            'connector_id' => null,
+            'assigned_technician_id' => $technician->id,
+            'title' => 'Technician validity inspection',
+            'type' => 'preventive',
+            'priority' => 'warning',
+            'instructions' => 'Verify that future assignments remain valid.',
+            'first_scheduled_at' => $first->toISOString(),
+            'estimated_duration_minutes' => 30,
+            'recurrence_frequency' => 'weekly',
+            'recurrence_interval' => 1,
+            'recurrence_ends_at' => $first->addWeek()->toISOString(),
+        ], $admin, $organization->id);
+        $technician->update(['status' => 'inactive']);
+
+        $this->patchJson("/api/interventions/{$result['occurrence']->id}", ['status' => 'cancelled'])->assertOk();
+
+        $next = Intervention::query()
+            ->where('maintenance_plan_id', $result['plan']->id)
+            ->where('maintenance_occurrence_number', 2)
+            ->firstOrFail();
+        $this->assertNull($next->assigned_technician_id);
+        $this->assertStringContainsString('requires reassignment', $next->events()->firstOrFail()->description);
+    }
+
+    public function test_maintenance_api_marks_only_open_past_occurrences_as_overdue(): void
+    {
+        Queue::fake();
+        $this->travelTo(CarbonImmutable::parse('2026-08-07 12:00:00', 'UTC'));
+        $organization = $this->organization('overdue-network');
+        $admin = $this->user($organization, 'admin');
+        $technician = $this->user($organization, 'technician');
+        $station = $this->station($organization, 'CT-MNT-OVERDUE');
+        Sanctum::actingAs($admin);
+
+        $result = app(MaintenancePlanService::class)->create([
+            'station_id' => $station->id,
+            'connector_id' => null,
+            'assigned_technician_id' => $technician->id,
+            'title' => 'Overdue inspection',
+            'type' => 'corrective',
+            'priority' => 'critical',
+            'instructions' => 'Inspect the overdue maintenance item.',
+            'first_scheduled_at' => now()->subHours(2)->toISOString(),
+            'estimated_duration_minutes' => 30,
+            'recurrence_frequency' => 'none',
+            'recurrence_interval' => 1,
+            'recurrence_ends_at' => null,
+        ], $admin, $organization->id);
+
+        $this->getJson('/api/maintenances')
+            ->assertOk()
+            ->assertJsonPath('summary.overdue', 1)
+            ->assertJsonPath('data.0.id', $result['occurrence']->id)
+            ->assertJsonPath('data.0.is_overdue', true)
+            ->assertJsonPath('data.0.overdue_by_minutes', 120);
     }
 
     public function test_organization_scope_is_enforced_for_station_connector_and_technician(): void

@@ -87,6 +87,11 @@ class MaintenanceController extends Controller
             'summary' => [
                 'total' => (clone $summaryQuery)->count(),
                 'planned' => (clone $summaryQuery)->where('status', 'assigned')->count(),
+                'overdue' => (clone $summaryQuery)
+                    ->whereIn('status', ['assigned', 'in-progress', 'paused', 'waiting-parts'])
+                    ->whereNotNull('scheduled_at')
+                    ->where('scheduled_at', '<', now())
+                    ->count(),
                 'in_progress' => (clone $summaryQuery)->whereIn('status', ['in-progress', 'paused', 'waiting-parts'])->count(),
                 'completed' => (clone $summaryQuery)->where('status', 'resolved')->count(),
                 'cancelled' => (clone $summaryQuery)->where('status', 'cancelled')->count(),

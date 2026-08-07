@@ -8,12 +8,13 @@ use App\Models\MaintenancePlan;
 use App\Models\User;
 use App\Services\Notifications\OperationalNotificationService;
 use Carbon\CarbonImmutable;
-use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class MaintenancePlanService
 {
+    private const OPEN_OCCURRENCE_STATUSES = ['assigned', 'in-progress', 'paused', 'waiting-parts'];
+
     public function __construct(private readonly OperationalNotificationService $notifications) {}
 
     /**
@@ -56,8 +57,10 @@ class MaintenancePlanService
         $planIds = MaintenancePlan::query()
             ->where('status', 'active')
             ->where('recurrence_frequency', '!=', 'none')
-            ->whereNotNull('next_occurrence_at')
-            ->where('next_occurrence_at', '<=', $horizon)
+            ->where(function ($query) use ($horizon): void {
+                $query->whereNull('next_occurrence_at')
+                    ->orWhere('next_occurrence_at', '<=', $horizon);
+            })
             ->when($planId !== null, fn ($query) => $query->whereKey($planId))
             ->orderBy('id')
             ->pluck('id');
@@ -70,23 +73,61 @@ class MaintenancePlanService
                     return 0;
                 }
 
-                $count = 0;
-                while ($plan->next_occurrence_at !== null && $plan->next_occurrence_at->lte($horizon)) {
-                    if ($plan->recurrence_ends_at !== null && $plan->next_occurrence_at->gt($plan->recurrence_ends_at)) {
-                        $plan->update(['next_occurrence_at' => null, 'status' => 'completed']);
-                        break;
-                    }
-
-                    $this->generateNextOccurrence($plan);
-                    $plan->refresh();
-                    $count++;
+                if ($this->hasOpenOccurrence($plan)) {
+                    return 0;
                 }
 
-                return $count;
+                if ($plan->next_occurrence_at === null) {
+                    $plan->update(['status' => 'completed']);
+
+                    return 0;
+                }
+
+                if ($plan->recurrence_ends_at !== null && $plan->next_occurrence_at->gt($plan->recurrence_ends_at)) {
+                    $plan->update(['next_occurrence_at' => null, 'status' => 'completed']);
+
+                    return 0;
+                }
+
+                if ($plan->next_occurrence_at->gt($horizon)) {
+                    return 0;
+                }
+
+                $this->generateNextOccurrence($plan);
+
+                return 1;
             });
         }
 
         return $generated;
+    }
+
+    public function advanceAfterClosure(Intervention $occurrence): ?Intervention
+    {
+        if ($occurrence->maintenance_plan_id === null) {
+            return null;
+        }
+
+        return DB::transaction(function () use ($occurrence): ?Intervention {
+            $plan = MaintenancePlan::query()->lockForUpdate()->find($occurrence->maintenance_plan_id);
+            if ($plan === null || $plan->status !== 'active' || $this->hasOpenOccurrence($plan, $occurrence->id)) {
+                return null;
+            }
+
+            if (! $plan->isRecurring()) {
+                $plan->update(['status' => $occurrence->status === 'cancelled' ? 'cancelled' : 'completed']);
+
+                return null;
+            }
+
+            if ($plan->next_occurrence_at === null) {
+                $plan->update(['status' => 'completed']);
+
+                return null;
+            }
+
+            return $this->generateNextOccurrence($plan);
+        });
     }
 
     private function generateNextOccurrence(MaintenancePlan $plan): Intervention
@@ -97,6 +138,12 @@ class MaintenancePlanService
         }
 
         $occurrenceNumber = $plan->last_occurrence_number + 1;
+        $technicianId = User::query()
+            ->whereKey($plan->assigned_technician_id)
+            ->where('organization_id', $plan->organization_id)
+            ->where('status', 'active')
+            ->role('technician')
+            ->value('id');
         $intervention = Intervention::query()->create([
             'organization_id' => $plan->organization_id,
             'alert_id' => null,
@@ -104,7 +151,7 @@ class MaintenancePlanService
             'maintenance_occurrence_number' => $occurrenceNumber,
             'station_id' => $plan->station_id,
             'connector_id' => $plan->connector_id,
-            'assigned_technician_id' => $plan->assigned_technician_id,
+            'assigned_technician_id' => $technicianId,
             'created_by_id' => $plan->created_by_id,
             'reference' => $plan->reference.'-'.str_pad((string) $occurrenceNumber, 3, '0', STR_PAD_LEFT),
             'status' => 'assigned',
@@ -113,17 +160,18 @@ class MaintenancePlanService
             'estimated_duration_minutes' => $plan->estimated_duration_minutes,
             'problem' => $plan->instructions,
         ]);
+        $assignmentNote = $technicianId === null ? ' It requires reassignment to an active organization technician.' : '';
         $intervention->events()->create([
             'actor_id' => $plan->created_by_id,
             'event_type' => 'maintenance_scheduled',
-            'description' => "Maintenance {$plan->reference} scheduled for {$scheduledAt->toIso8601String()}",
+            'description' => "Maintenance {$plan->reference} scheduled for {$scheduledAt->toIso8601String()}.{$assignmentNote}",
             'occurred_at' => now(),
         ]);
 
         $plan->update([
             'last_occurrence_number' => $occurrenceNumber,
             'last_generated_at' => now(),
-            'next_occurrence_at' => $this->nextDate($plan, $scheduledAt),
+            'next_occurrence_at' => $this->nextDate($plan, $occurrenceNumber),
         ]);
 
         $this->notifications->notifyMaintenanceScheduled(
@@ -133,17 +181,19 @@ class MaintenancePlanService
         return $intervention;
     }
 
-    private function nextDate(MaintenancePlan $plan, CarbonInterface $current): ?CarbonInterface
+    private function nextDate(MaintenancePlan $plan, int $currentOccurrenceNumber): ?CarbonImmutable
     {
         if (! $plan->isRecurring()) {
             return null;
         }
 
         $interval = max(1, $plan->recurrence_interval);
+        $offset = $interval * $currentOccurrenceNumber;
+        $anchor = CarbonImmutable::instance($plan->first_scheduled_at)->utc();
         $next = match ($plan->recurrence_frequency) {
-            'daily' => $current->copy()->addDays($interval),
-            'weekly' => $current->copy()->addWeeks($interval),
-            'monthly' => $current->copy()->addMonthsNoOverflow($interval),
+            'daily' => $anchor->addDays($offset),
+            'weekly' => $anchor->addWeeks($offset),
+            'monthly' => $anchor->addMonthsNoOverflow($offset),
             default => null,
         };
 
@@ -152,5 +202,14 @@ class MaintenancePlanService
         }
 
         return $next;
+    }
+
+    private function hasOpenOccurrence(MaintenancePlan $plan, ?int $exceptId = null): bool
+    {
+        return $plan->interventions()
+            ->reorder()
+            ->whereIn('status', self::OPEN_OCCURRENCE_STATUSES)
+            ->when($exceptId !== null, fn ($query) => $query->whereKeyNot($exceptId))
+            ->exists();
     }
 }

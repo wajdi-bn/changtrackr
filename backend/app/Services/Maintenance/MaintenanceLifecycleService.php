@@ -14,6 +14,7 @@ class MaintenanceLifecycleService
     public function __construct(
         private readonly OcppCommandService $commands,
         private readonly AvailabilityProjectionService $availability,
+        private readonly MaintenancePlanService $plans,
     ) {}
 
     public function applyTransition(Intervention $intervention, string $previousStatus, string $nextStatus, User $actor): void
@@ -28,7 +29,7 @@ class MaintenanceLifecycleService
 
         if (in_array($nextStatus, ['resolved', 'cancelled'], true)) {
             $this->leaveMaintenance($intervention, $actor);
-            $this->completeOneTimePlan($intervention, $nextStatus);
+            $this->plans->advanceAfterClosure($intervention);
         }
     }
 
@@ -113,15 +114,5 @@ class MaintenanceLifecycleService
             'description' => $description,
             'occurred_at' => now(),
         ]);
-    }
-
-    private function completeOneTimePlan(Intervention $intervention, string $status): void
-    {
-        $plan = $intervention->maintenancePlan()->lockForUpdate()->first();
-        if ($plan === null || $plan->isRecurring()) {
-            return;
-        }
-
-        $plan->update(['status' => $status === 'cancelled' ? 'cancelled' : 'completed']);
     }
 }

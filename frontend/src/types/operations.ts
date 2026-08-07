@@ -61,6 +61,8 @@ export interface InterventionItem {
   status: InterventionStatus
   priority: AlertSeverity
   scheduled_at: string | null
+  is_overdue: boolean
+  overdue_by_minutes: number
   started_at: string | null
   ended_at: string | null
   estimated_duration_minutes: number | null
@@ -151,7 +153,7 @@ export interface MaintenanceStationOption {
 
 export interface MaintenancesResponse {
   data: InterventionItem[]
-  summary: { total: number; planned: number; in_progress: number; completed: number; cancelled: number }
+  summary: { total: number; planned: number; overdue: number; in_progress: number; completed: number; cancelled: number }
   technicians: TechnicianOption[]
   stations: MaintenanceStationOption[]
 }
