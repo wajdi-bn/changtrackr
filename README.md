@@ -24,6 +24,7 @@ The video presents the role-based workspaces, charging-station supervision, OCPP
 - `backend/` is configured locally to use PostgreSQL.
 - Password and Google sign-in use the same server-side Sanctum session flow.
 - The OCPP gateway authenticates a nine-station SAP simulator fleet and stores normalized technical events through Laravel.
+- The gateway fails closed on insecure non-local transports: physical stations use WSS and gateway-to-Laravel traffic uses HTTPS.
 - Provisioned OCPP stations use calculated availability, audited transitions, automatic alerts and Reverb updates.
 - Organization teams can plan preventive or corrective maintenance, generate recurring work orders, and synchronize active maintenance with OCPP availability.
 - Technicians complete interventions through a guided, immutable report with private before/after evidence and controlled alert follow-up.

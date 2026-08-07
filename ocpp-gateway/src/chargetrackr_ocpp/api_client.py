@@ -9,6 +9,7 @@ import httpx
 
 from chargetrackr_ocpp.config import Settings
 from chargetrackr_ocpp.signing import sign_json_body
+from chargetrackr_ocpp.tls import build_backend_ssl_context
 
 LOGGER = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ class LaravelOcppClient:
         self._client = httpx.AsyncClient(
             timeout=settings.http_timeout_seconds,
             transport=transport,
+            verify=build_backend_ssl_context(settings),
         )
 
     async def __aenter__(self) -> "LaravelOcppClient":

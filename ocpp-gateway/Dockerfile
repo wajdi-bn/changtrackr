@@ -14,6 +14,8 @@ RUN pip install --no-cache-dir . \
 
 USER gateway
 EXPOSE 9000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD ["python", "-m", "chargetrackr_ocpp.healthcheck"]
 CMD ["chargetrackr-ocpp"]
 
 FROM runtime AS test

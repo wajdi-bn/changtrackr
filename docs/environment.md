@@ -85,3 +85,24 @@ DEMO_TRIAL_DAYS=30
 requests. Account invitation tokens are stored only as SHA-256 hashes, expire after the configured
 period, and can be accepted once. The Resend sandbox can deliver these messages only to the email
 associated with the Resend account until a sending domain is verified.
+
+## OCPP Transport
+
+The local simulator configuration is explicit and remains loopback-only:
+
+```dotenv
+OCPP_ENVIRONMENT=local
+OCPP_GATEWAY_TLS_MODE=disabled
+OCPP_GATEWAY_PUBLIC_URL=ws://localhost:9000/ocpp
+OCPP_LARAVEL_BASE_URL=http://host.docker.internal:8000/api/internal/ocpp
+```
+
+For a non-local deployment, set `OCPP_ENVIRONMENT=production`, use an HTTPS Laravel URL and choose
+one secure station transport:
+
+- `direct`: the gateway loads `OCPP_GATEWAY_TLS_CERTIFICATE_FILE` and
+  `OCPP_GATEWAY_TLS_PRIVATE_KEY_FILE` from read-only mounts;
+- `proxy`: a trusted reverse proxy terminates the public `wss://` connection.
+
+Both secure modes require `OCPP_GATEWAY_PUBLIC_URL` to use `wss://`. A private CA bundle can be
+provided through `OCPP_LARAVEL_CA_FILE`; server certificate verification cannot be disabled.

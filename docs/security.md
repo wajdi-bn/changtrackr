@@ -54,6 +54,16 @@ Important rules:
 - Enforce invitation revocation or expiration before issuing a replacement one-time token.
 - Add audit logs for sensitive actions: user changes, role changes, tariff changes, station edits, payment status changes.
 
+## OCPP Transport
+
+- Permit plain `ws://` only in local, development or test environments.
+- Require `wss://` for every physical or remotely reachable charging station.
+- Terminate TLS directly in the gateway or at a trusted reverse proxy; TLS 1.2 is the minimum.
+- Reject an HTTP gateway-to-Laravel URL outside local environments, even though requests are HMAC-signed.
+- Keep HTTPS certificate verification enabled and mount any private CA bundle read-only.
+- Mount gateway certificates and private keys read-only; never commit them or place them in container images.
+- Keep station Basic Auth credentials inside the encrypted WebSocket transport and store only their hashes in Laravel.
+
 ## Location Privacy
 
 - Request browser geolocation only after an explicit user action such as `Near me`.

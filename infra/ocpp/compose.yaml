@@ -7,11 +7,17 @@ services:
       dockerfile: Dockerfile
       target: runtime
     environment:
+      OCPP_ENVIRONMENT: ${OCPP_ENVIRONMENT:-local}
       OCPP_GATEWAY_HOST: 0.0.0.0
       OCPP_GATEWAY_PORT: 9000
       OCPP_GATEWAY_PATH_PREFIX: /ocpp
+      OCPP_GATEWAY_TLS_MODE: ${OCPP_GATEWAY_TLS_MODE:-disabled}
+      OCPP_GATEWAY_PUBLIC_URL: ${OCPP_GATEWAY_PUBLIC_URL:-ws://localhost:9000/ocpp}
+      OCPP_GATEWAY_TLS_CERTIFICATE_FILE: ${OCPP_GATEWAY_TLS_CERTIFICATE_FILE:-}
+      OCPP_GATEWAY_TLS_PRIVATE_KEY_FILE: ${OCPP_GATEWAY_TLS_PRIVATE_KEY_FILE:-}
       OCPP_GATEWAY_SHARED_SECRET: ${OCPP_GATEWAY_SHARED_SECRET:?Configure infra/ocpp/.env first}
-      OCPP_LARAVEL_BASE_URL: http://host.docker.internal:8000/api/internal/ocpp
+      OCPP_LARAVEL_BASE_URL: ${OCPP_LARAVEL_BASE_URL:-http://host.docker.internal:8000/api/internal/ocpp}
+      OCPP_LARAVEL_CA_FILE: ${OCPP_LARAVEL_CA_FILE:-}
       OCPP_HEARTBEAT_INTERVAL_SECONDS: 30
       OCPP_COMMAND_POLL_INTERVAL_SECONDS: ${OCPP_COMMAND_POLL_INTERVAL_SECONDS:-1.5}
     extra_hosts:
@@ -28,7 +34,8 @@ services:
       args:
         SAP_SIMULATOR_REF: 6119452049739c05506351a9589d753e84c59e9f
     depends_on:
-      - ocpp-gateway
+      ocpp-gateway:
+        condition: service_healthy
     environment:
       OCPP_SIMULATOR_STATION_SECRET: ${OCPP_SIMULATOR_STATION_SECRET:?Configure infra/ocpp/.env first}
       OCPP_SIMULATOR_UI_PASSWORD: ${OCPP_SIMULATOR_UI_PASSWORD:?Configure infra/ocpp/.env first}

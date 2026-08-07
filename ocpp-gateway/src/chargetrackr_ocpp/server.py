@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import suppress
+from http import HTTPStatus
 import logging
+from typing import Any
 from urllib.parse import unquote
 from uuid import uuid4
 
@@ -14,8 +16,16 @@ from chargetrackr_ocpp.auth import parse_basic_authorization
 from chargetrackr_ocpp.charge_point import ChargeTrackrChargePoint
 from chargetrackr_ocpp.config import Settings
 from chargetrackr_ocpp.events import build_event
+from chargetrackr_ocpp.tls import build_server_ssl_context
 
 LOGGER = logging.getLogger(__name__)
+
+
+def health_check_response(connection: Any, request: Any) -> Any | None:
+    if request.path != "/health":
+        return None
+
+    return connection.respond(HTTPStatus.OK, "ok\n")
 
 
 async def poll_commands(
@@ -164,6 +174,7 @@ async def handle_connection(
 
 async def main() -> None:
     settings = Settings.from_env()
+    ssl_context = build_server_ssl_context(settings)
     async with LaravelOcppClient(settings) as api_client:
         async with serve(
             lambda websocket: handle_connection(websocket, settings, api_client),
@@ -173,12 +184,16 @@ async def main() -> None:
             ping_interval=20,
             ping_timeout=20,
             max_size=1024 * 1024,
+            ssl=ssl_context,
+            process_request=health_check_response,
         ):
             LOGGER.info(
-                "OCPP Gateway listening on %s:%s%s",
+                "OCPP Gateway listening on %s://%s:%s%s (TLS mode: %s)",
+                "wss" if ssl_context else "ws",
                 settings.host,
                 settings.port,
                 settings.path_prefix,
+                settings.tls_mode,
             )
             await asyncio.Future()
 

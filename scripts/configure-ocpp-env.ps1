@@ -75,6 +75,10 @@ Set-EnvValue $backendEnv 'OCPP_SIMULATOR_STATION_SECRET' $stationSecret
 Remove-EnvValue $backendEnv 'OCPP_SIMULATOR_STATION_IDENTITY'
 
 $composeLines = @(
+    'OCPP_ENVIRONMENT=local',
+    'OCPP_GATEWAY_TLS_MODE=disabled',
+    'OCPP_GATEWAY_PUBLIC_URL=ws://localhost:9000/ocpp',
+    'OCPP_LARAVEL_BASE_URL=http://host.docker.internal:8000/api/internal/ocpp',
     "OCPP_GATEWAY_SHARED_SECRET=$gatewaySecret",
     "OCPP_SIMULATOR_STATION_SECRET=$stationSecret",
     "OCPP_SIMULATOR_UI_PASSWORD=$uiPassword"
