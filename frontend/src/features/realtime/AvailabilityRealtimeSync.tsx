@@ -5,9 +5,11 @@ import { createRealtimeClient } from './echo'
 
 export function AvailabilityRealtimeSync() {
   const { user, primaryRole } = useAuth()
+  const userId = user?.id
+  const organizationId = user?.organization?.id
 
   useEffect(() => {
-    if (!user) return
+    if (!userId) return
 
     const publicNetwork = primaryRole === 'client'
     const globalNetwork = primaryRole === 'super_admin'
@@ -15,9 +17,9 @@ export function AvailabilityRealtimeSync() {
       ? 'stations.super-admin'
       : publicNetwork
         ? 'stations.public'
-      : `organizations.${user.organization?.id}.stations`
+      : `organizations.${organizationId}.stations`
 
-    if (!publicNetwork && !globalNetwork && !user.organization?.id) return
+    if (!publicNetwork && !globalNetwork && !organizationId) return
 
     const echo = createRealtimeClient()
     const channel = echo.private(channelName)
@@ -25,8 +27,8 @@ export function AvailabilityRealtimeSync() {
     const sessionChannelName = primaryRole === 'super_admin'
       ? 'sessions.super-admin'
       : primaryRole === 'client'
-        ? `users.${user.id}.sessions`
-        : `organizations.${user.organization?.id}.sessions`
+        ? `users.${userId}.sessions`
+        : `organizations.${organizationId}.sessions`
     const sessionChannel = canReceiveSessions ? echo.private(sessionChannelName) : null
 
     if (import.meta.env.DEV) {
@@ -75,7 +77,7 @@ export function AvailabilityRealtimeSync() {
       echo.leave(channelName)
       if (sessionChannel) echo.leave(sessionChannelName)
     }
-  }, [primaryRole, user])
+  }, [organizationId, primaryRole, userId])
 
   return null
 }

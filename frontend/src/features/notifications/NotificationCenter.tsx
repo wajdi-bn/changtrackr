@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { UserNotification } from '../../types/notification'
+import { safeInternalPath } from '../../utils/navigation'
 import { useAuth } from '../auth/useAuth'
 import { createRealtimeClient } from '../realtime/echo'
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from './notificationApi'
@@ -22,6 +23,7 @@ import { AnimatedBellIcon } from '../../components/AnimatedIcon'
 
 export function NotificationCenter() {
   const { user } = useAuth()
+  const userId = user?.id
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
@@ -45,9 +47,9 @@ export function NotificationCenter() {
   })
 
   useEffect(() => {
-    if (!user) return
+    if (!userId) return
     const echo = createRealtimeClient()
-    const channelName = `users.${user.id}.notifications`
+    const channelName = `users.${userId}.notifications`
     const channel = echo.private(channelName)
     channel.listen('.user-notification.created', () => {
       void Promise.all([
@@ -65,12 +67,13 @@ export function NotificationCenter() {
     }
 
     return () => echo.leave(channelName)
-  }, [queryClient, user])
+  }, [queryClient, userId])
 
   async function openNotification(notification: UserNotification) {
     if (!notification.is_read) await readMutation.mutateAsync(notification.id)
     setOpen(false)
-    if (notification.action_url) navigate(notification.action_url)
+    const actionPath = safeInternalPath(notification.action_url)
+    if (actionPath) navigate(actionPath)
   }
 
   const unread = notificationsQuery.data?.summary.unread ?? 0
