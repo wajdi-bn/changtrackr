@@ -124,6 +124,11 @@ The implemented OCPP messages are:
 Every message is normalized to a UUID event with connection ID, OCPP message ID, action, payload,
 protocol version and occurrence time.
 
+The local simulator samples active transactions every 2 seconds so the driver workflow feels
+responsive during demonstrations. This setting is limited to the development profile; real charge
+points keep their own negotiated telemetry cadence, while availability supervision continues to use
+the independent 30-second heartbeat and 90-second connectivity timeout.
+
 ## Internal API security
 
 The gateway calls only:
