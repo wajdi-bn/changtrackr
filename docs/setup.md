@@ -83,12 +83,21 @@ For local development after migrations:
 php artisan db:seed
 ```
 
-Run the backend and its asynchronous email worker in separate terminals:
+Start authenticated Redis, synchronize only its ignored backend settings, then run the backend and
+its asynchronous worker in separate terminals:
 
 ```bash
+pnpm infra:configure:redis
+pnpm infra:up:redis
 pnpm dev:backend
 pnpm dev:queue
 ```
+
+The default worker consumes `payments,broadcasts,emails,maintenance,default` in priority order.
+For workload isolation during load tests or production preparation, run the four dedicated
+`dev:queue:*` scripts in separate terminals. Queue workers use `queue:work`, three attempts and a
+finite timeout; `queue:listen` is intentionally not used.
+Failed-job records remain in PostgreSQL for durable diagnostics even though pending jobs use Redis.
 
 Account verification and password reset notifications are queued. When Mailpit is running,
 open `http://localhost:8025` to inspect them. With `MAIL_MAILER=log`, the messages are written
@@ -229,7 +238,15 @@ The current PostgreSQL database is local and managed outside this repository.
 - Redis
 - Mailpit
 
-Configure this optional stack before starting it:
+To preserve an existing PostgreSQL installation and start only the Redis required by Laravel:
+
+```bash
+npm run infra:configure:redis
+npm run infra:up:redis
+npm run infra:status
+```
+
+To use the complete Dockerized PostgreSQL, Redis and Mailpit stack instead:
 
 ```bash
 npm run infra:configure
@@ -241,6 +258,8 @@ The configurator writes strong generated database secrets only to the ignored `i
 PostgreSQL, authenticated Redis, Mailpit SMTP and the Mailpit UI are bound to `127.0.0.1`; they are
 therefore available to local processes but not published to the LAN. Existing `backend/.env`
 database settings are deliberately preserved. Use
+`npm run infra:configure:redis` to synchronize the generated Redis password, isolated logical
+databases and Redis Laravel drivers without touching the current PostgreSQL credentials. Use
 `powershell -ExecutionPolicy Bypass -File scripts/configure-infra-env.ps1 -SyncBackend` only when
 the backend must use this Dockerized PostgreSQL and Redis stack.
 

@@ -13,7 +13,10 @@ class GenerateMaintenanceOccurrences implements ShouldBeUnique, ShouldQueue
 
     public int $uniqueFor = 300;
 
-    public function __construct(public readonly ?int $maintenancePlanId = null) {}
+    public function __construct(public readonly ?int $maintenancePlanId = null)
+    {
+        $this->onQueue((string) config('queue.names.maintenance', 'maintenance'));
+    }
 
     public function handle(MaintenancePlanService $plans): void
     {

@@ -119,7 +119,7 @@ simultanees, latence ou disponibilite definis pendant l'industrialisation.
 ## Ordre de realisation propose
 
 1. Stabiliser les workflows financiers, OCPP et frontend.
-2. Securiser Redis et basculer les drivers Laravel valides.
+2. Pilotes Laravel Redis securises et separes realises ; valider les workers dedies sous charge.
 3. Conteneuriser les services et mettre en place l'observabilite.
 4. Mesurer la capacite d'une instance avec des tests de charge.
 5. Optimiser les images apres le rangement des ressources.

@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Events\Concerns\RoutesBroadcastsToQueue;
 use App\Models\OcppCommand;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -12,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 
 class OcppCommandChanged implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, InteractsWithSockets, RoutesBroadcastsToQueue, SerializesModels;
 
     /** @param array<string, mixed>|null $result */
     public function __construct(

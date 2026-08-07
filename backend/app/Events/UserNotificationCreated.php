@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Events\Concerns\RoutesBroadcastsToQueue;
 use App\Models\UserNotification;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -12,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 
 class UserNotificationCreated implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, InteractsWithSockets, RoutesBroadcastsToQueue, SerializesModels;
 
     public function __construct(
         public readonly int $notificationId,

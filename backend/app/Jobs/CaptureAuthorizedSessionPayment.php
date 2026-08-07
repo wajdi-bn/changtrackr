@@ -21,7 +21,10 @@ class CaptureAuthorizedSessionPayment implements ShouldBeUnique, ShouldQueue
 
     public int $uniqueFor = 900;
 
-    public function __construct(public readonly int $chargingSessionId) {}
+    public function __construct(public readonly int $chargingSessionId)
+    {
+        $this->onQueue((string) config('queue.names.payments', 'payments'));
+    }
 
     public function uniqueId(): string
     {

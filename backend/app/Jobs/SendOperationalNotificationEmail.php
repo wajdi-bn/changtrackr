@@ -23,6 +23,7 @@ class SendOperationalNotificationEmail implements ShouldQueue
     public function __construct(public readonly int $deliveryId)
     {
         $this->afterCommit();
+        $this->onQueue((string) config('queue.names.emails', 'emails'));
     }
 
     public function handle(): void

@@ -13,7 +13,7 @@ The video presents the role-based workspaces, charging-station supervision, OCPP
 - Frontend: React, TypeScript, Ant Design, React Router, TanStack Query, Axios, Recharts, Leaflet, Framer Motion, GSAP
 - Backend: Laravel, REST API, Sanctum session cookies, OAuth2 Google, Laravel Reverb, Queue, Scheduler
 - Data: PostgreSQL
-- Infrastructure services: database-backed queues and cache, Mailpit for local email testing, Resend for transactional email
+- Infrastructure services: authenticated Redis for cache, sessions and dedicated queues; Mailpit for local email testing; Resend for transactional email
 - EV communication: OCPP 1.6 JSON gateway and SAP charging-station simulator
 - Payment: extensible gateway with in-memory tests and an external WireMock sandbox
 
@@ -45,6 +45,8 @@ Open the frontend URL printed by Vite.
 Backend:
 
 ```bash
+npm run infra:configure:redis
+npm run infra:up:redis
 cd backend
 C:\php\php.exe artisan migrate
 C:\php\php.exe artisan serve
@@ -57,6 +59,10 @@ npm run dev:queue
 npm run dev:scheduler
 npm run dev:reverb
 ```
+
+`npm run dev:queue` serves all queues in priority order. For isolated local workers, use
+`dev:queue:payments`, `dev:queue:broadcasts`, `dev:queue:emails` and `dev:queue:maintenance`
+in separate terminals.
 
 External payment sandbox:
 

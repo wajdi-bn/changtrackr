@@ -240,6 +240,8 @@ OCPP connector IDs.
 Run the queue, scheduler and Reverb server in separate terminals:
 
 ```bash
+npm run infra:configure:redis
+npm run infra:up:redis
 npm run dev:queue
 npm run dev:scheduler
 npm run dev:reverb

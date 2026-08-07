@@ -52,9 +52,11 @@ Trying to read another user's notification returns `404` so identifiers do not d
 
 ## Local processes
 
-The complete flow requires the backend server, queue worker, scheduler and Reverb server:
+The complete flow requires authenticated Redis, the backend server, queue worker, scheduler and Reverb server:
 
 ```bash
+npm run infra:configure:redis
+npm run infra:up:redis
 npm run dev:backend
 npm run dev:queue
 npm run dev:scheduler
@@ -62,6 +64,8 @@ npm run dev:reverb
 ```
 
 Use `C:\php\php.exe artisan queue:restart` after changing long-lived job or notification code.
+Queued mail is routed to the Redis `emails` queue; realtime broadcasts, payments and maintenance
+use separate queues so a slow mail provider cannot block operational processing.
 
 ## Current scope
 

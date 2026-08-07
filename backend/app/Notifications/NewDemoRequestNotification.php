@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\DemoRequest;
+use App\Notifications\Concerns\RoutesMailToQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -10,7 +11,7 @@ use Illuminate\Notifications\Notification;
 
 class NewDemoRequestNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RoutesMailToQueue;
 
     public function __construct(private readonly DemoRequest $demoRequest)
     {
