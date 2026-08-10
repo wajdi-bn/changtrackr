@@ -248,10 +248,10 @@ function AdministratorDashboard({ data, map, ...props }: RoleDashboardProps & { 
     </div>
     <div className="administrator-chart-grid">
       <DashboardCard title="Revenue trend" subtitle="Settled revenue in TND">
-        <ChartFrame><AreaChart data={data.trend.points}><ChartGrid /><ChartAxes /><ChartTooltip /><Area type="monotone" dataKey="revenue_tnd" name="Revenue (TND)" stroke="#22c55e" fill="#dcfce7" strokeWidth={2.3} /></AreaChart></ChartFrame>
+        <ChartFrame><AreaChart data={data.trend.points}><ChartGrid /><ChartAxes /><ChartTooltip /><Area type="monotone" dataKey="revenue_tnd" name="Revenue (TND)" stroke="#22c55e" fill="var(--chart-green-fill)" strokeWidth={2.3} /></AreaChart></ChartFrame>
       </DashboardCard>
       <DashboardCard title="Energy delivered trend" subtitle="Delivered energy in kWh">
-        <ChartFrame><AreaChart data={data.trend.points}><ChartGrid /><ChartAxes /><ChartTooltip /><Area type="monotone" dataKey="energy_kwh" name="Energy (kWh)" stroke="#0ea5e9" fill="#e0f2fe" strokeWidth={2.3} /></AreaChart></ChartFrame>
+        <ChartFrame><AreaChart data={data.trend.points}><ChartGrid /><ChartAxes /><ChartTooltip /><Area type="monotone" dataKey="energy_kwh" name="Energy (kWh)" stroke="#0ea5e9" fill="var(--chart-blue-fill)" strokeWidth={2.3} /></AreaChart></ChartFrame>
       </DashboardCard>
     </div>
     <div className="administrator-live-grid">
@@ -374,7 +374,7 @@ function ChartFrame({ children, large = false }: { children: ReactNode; large?: 
 }
 
 function ChartGrid() {
-  return <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+  return <CartesianGrid strokeDasharray="3 3" stroke="var(--app-grid)" vertical={false} />
 }
 
 function ChartAxes() {
@@ -384,7 +384,7 @@ function ChartAxes() {
 function DonutWithLegend({ breakdown: item, compact = false }: { breakdown: DashboardBreakdown | null; compact?: boolean }) {
   if (!item || item.items.length === 0) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No data available" />
   return <div className={`role-donut-layout${compact ? ' is-compact' : ''}`}>
-    <div className="role-donut-chart"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={item.items} dataKey="count" nameKey="label" innerRadius="57%" outerRadius="79%" paddingAngle={3} stroke="#fff" strokeWidth={3}>{item.items.map((entry, index) => <Cell key={entry.key} fill={chartColors[index % chartColors.length]} />)}</Pie><ChartTooltip /></PieChart></ResponsiveContainer><span><strong>{item.total}</strong><small>Total</small></span></div>
+    <div className="role-donut-chart"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={item.items} dataKey="count" nameKey="label" innerRadius="57%" outerRadius="79%" paddingAngle={3} stroke="var(--app-surface)" strokeWidth={3}>{item.items.map((entry, index) => <Cell key={entry.key} fill={chartColors[index % chartColors.length]} />)}</Pie><ChartTooltip /></PieChart></ResponsiveContainer><span><strong>{item.total}</strong><small>Total</small></span></div>
     <Legend breakdown={item} />
   </div>
 }
