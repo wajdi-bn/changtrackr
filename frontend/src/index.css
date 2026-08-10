@@ -14934,6 +14934,9 @@ body {
   .maintenance-summary-card .ant-card-body > span,
   .maintenance-drawer-intro > span,
   .document-manager-header > div > span,
+  .help-welcome > div > span,
+  .help-topic-grid header > span,
+  .help-support > span,
   .profile-section-heading > span,
   .settings-editor > header > div > span,
   .admin-metric > span
@@ -14994,6 +14997,9 @@ body {
   .maintenance-summary-card .ant-card-body > span,
   .maintenance-drawer-intro > span,
   .document-manager-header > div > span,
+  .help-welcome > div > span,
+  .help-topic-grid header > span,
+  .help-support > span,
   .profile-section-heading > span,
   .settings-editor > header > div > span,
   .admin-metric > span
@@ -15019,7 +15025,8 @@ body {
   .demo-summary-tile--gold > span,
   .session-kpi > span.gold,
   .customer-kpi--orange > span,
-  .subscription-kpi--orange > span
+  .subscription-kpi--orange > span,
+  .help-support > span
 ) {
   --legacy-icon-start: #ffd94d;
   --legacy-icon-end: #f2b500;
