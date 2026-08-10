@@ -25,6 +25,31 @@ class OrganizationCommercialManagementTest extends TestCase
         $this->seed([RolePermissionSeeder::class, SaasPlanSeeder::class]);
     }
 
+    public function test_public_plan_catalog_exposes_only_active_customer_facing_fields_and_refreshes_after_updates(): void
+    {
+        $this->getJson('/api/public/commercial-plans')
+            ->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->assertJsonPath('data.0.code', 'STARTER')
+            ->assertJsonPath('data.1.code', 'BUSINESS')
+            ->assertJsonMissingPath('data.0.id')
+            ->assertJsonMissingPath('data.0.status')
+            ->assertJsonMissingPath('data.0.sort_order');
+
+        $superAdministrator = $this->user(null, 'super_admin');
+        $starter = SaasPlan::query()->where('code', 'STARTER')->firstOrFail();
+        Sanctum::actingAs($superAdministrator);
+
+        $this->patchJson("/api/commercial/plans/{$starter->id}", ['status' => 'archived'])
+            ->assertOk();
+
+        auth()->forgetGuards();
+        $this->getJson('/api/public/commercial-plans')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonMissing(['code' => 'STARTER']);
+    }
+
     public function test_trial_has_four_employee_quota_excluding_the_administrator(): void
     {
         Notification::fake();

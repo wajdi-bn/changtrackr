@@ -51,6 +51,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/demo-requests', [DemoRequestController::class, 'store'])
     ->middleware('throttle:demo-request-submit');
+Route::get('/public/commercial-plans', [OrganizationCommercialController::class, 'publicPlans'])
+    ->middleware('throttle:60,1');
 Route::post('/account-invitations/inspect', [AccountInvitationController::class, 'inspect'])
     ->middleware('throttle:invitation-inspect');
 Route::post('/account-invitations/accept', [AccountInvitationController::class, 'accept'])

@@ -14,11 +14,14 @@ use App\Services\PlatformAuditService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
 class OrganizationCommercialController extends Controller
 {
+    private const PUBLIC_PLANS_CACHE_KEY = 'commercial:public-plans:v1';
+
     public function __construct(
         private readonly OrganizationBillingService $billing,
         private readonly OrganizationEntitlementService $entitlements,
@@ -36,10 +39,25 @@ class OrganizationCommercialController extends Controller
         return response()->json(['data' => $plans->map(fn (SaasPlan $plan) => $this->planPayload($plan))->values()]);
     }
 
+    public function publicPlans(): JsonResponse
+    {
+        $plans = Cache::remember(self::PUBLIC_PLANS_CACHE_KEY, now()->addMinutes(10), fn () => SaasPlan::query()
+            ->where('status', 'active')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (SaasPlan $plan) => $this->publicPlanPayload($plan))
+            ->values()
+            ->all());
+
+        return response()->json(['data' => $plans]);
+    }
+
     public function storePlan(Request $request, PlatformAuditService $audit): JsonResponse
     {
         $this->authorizeSuperAdmin($request);
         $plan = SaasPlan::query()->create($this->validatedPlan($request));
+        Cache::forget(self::PUBLIC_PLANS_CACHE_KEY);
         $audit->record($request->user(), 'saas_plan.created', $plan, "Created SaaS plan {$plan->name}.");
 
         return response()->json(['data' => $this->planPayload($plan)], 201);
@@ -50,6 +68,7 @@ class OrganizationCommercialController extends Controller
         $this->authorizeSuperAdmin($request);
         $attributes = $this->validatedPlan($request, $saasPlan);
         $saasPlan->update($attributes);
+        Cache::forget(self::PUBLIC_PLANS_CACHE_KEY);
         $audit->record($request->user(), 'saas_plan.updated', $saasPlan, "Updated SaaS plan {$saasPlan->name}.", ['changed_fields' => array_keys($attributes)]);
 
         return response()->json(['data' => $this->planPayload($saasPlan->fresh())]);
@@ -216,6 +235,22 @@ class OrganizationCommercialController extends Controller
             'monthly_price_millimes' => $plan->monthly_price_millimes, 'annual_price_millimes' => $plan->annual_price_millimes,
             'max_stations' => $plan->max_stations, 'max_employees' => $plan->max_employees, 'features' => $plan->features ?? [],
             'is_featured' => $plan->is_featured, 'status' => $plan->status, 'sort_order' => $plan->sort_order,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function publicPlanPayload(SaasPlan $plan): array
+    {
+        return [
+            'name' => $plan->name,
+            'code' => $plan->code,
+            'description' => $plan->description,
+            'monthly_price_millimes' => $plan->monthly_price_millimes,
+            'annual_price_millimes' => $plan->annual_price_millimes,
+            'max_stations' => $plan->max_stations,
+            'max_employees' => $plan->max_employees,
+            'features' => $plan->features ?? [],
+            'is_featured' => $plan->is_featured,
         ];
     }
 
