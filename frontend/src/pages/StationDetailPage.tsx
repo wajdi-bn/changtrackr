@@ -32,6 +32,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { IconSurface, type IconSurfaceTone } from '../components/IconSurface'
 import { createConnector, deleteConnector, getStation, getStationCommands, getStationTelemetry, restartStation, rotateStationCredentials, setStationMaintenanceMode, unlockStationConnector, updateConnector, updateStation } from '../features/stations/stationApi'
 import { StationCommissioningResultModal } from '../features/stations/StationCommissioningResultModal'
 import { StationStatusTag } from '../features/stations/StationStatusTag'
@@ -297,7 +298,7 @@ export function StationDetailPage() {
           {overviewView === 'snapshot' ? (
             <section className="station-verified-snapshot">
               <header>
-                <span><Activity size={19} /></span>
+                <IconSurface tone={station.ocpp_is_connected ? 'brand' : 'graphite'} size="large"><Activity size={19} /></IconSurface>
                 <div>
                   <h2>Verified station snapshot</h2>
                   <p>Current projections returned by the backend. No synthetic historical series are displayed.</p>
@@ -350,7 +351,7 @@ export function StationDetailPage() {
             {station.connectors.map((connector) => (
               <div key={connector.id} className="connector-card">
                 <div className="connector-heading">
-                  <span className="connector-icon"><Zap size={18} /></span>
+                  <IconSurface className="connector-icon" tone="teal"><Zap size={18} /></IconSurface>
                   <div><h3>Connector {connector.external_id}</h3><p>{connector.type} - {connector.current_type}</p></div>
                   <StationStatusTag status={connector.status} />
                 </div>
@@ -823,9 +824,17 @@ function StationRelatedMetric({ icon, label, value, tone = 'purple' }: {
   value: string | number
   tone?: 'purple' | 'green' | 'blue' | 'amber' | 'red'
 }) {
+  const iconTone: IconSurfaceTone = {
+    purple: 'teal',
+    green: 'brand',
+    blue: 'blue',
+    amber: 'amber',
+    red: 'red',
+  }[tone] as IconSurfaceTone
+
   return (
     <div className={`station-related-metric station-related-metric--${tone}`}>
-      <span>{icon}</span>
+      <IconSurface tone={iconTone}>{icon}</IconSurface>
       <div><small>{label}</small><strong>{value}</strong></div>
     </div>
   )

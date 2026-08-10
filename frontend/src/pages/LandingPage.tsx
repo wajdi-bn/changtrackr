@@ -28,6 +28,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Link, useNavigate } from 'react-router-dom'
 import { getApiErrorMessage, getApiErrorStatus, getApiValidationErrors } from '../api/apiErrors'
+import { IconSurface, type IconSurfaceTone } from '../components/IconSurface'
 import { submitDemoRequest } from '../features/demoRequests/demoRequestApi'
 import { demoObjectiveOptions } from '../features/demoRequests/demoRequestOptions'
 import { getPublicSaasPlans, type PublicSaasPlan } from '../features/commercial/publicCommercialApi'
@@ -55,7 +56,7 @@ const productStories = [
     eyebrow: 'Network supervision',
     title: 'From station signal to a trustworthy availability state.',
     copy: 'The OCPP gateway receives boot, heartbeat, connector, transaction and meter events. ChargeTrackr applies business rules before updating maps, dashboards and alerts.',
-    image: '/assets/ev-operations-desk.png',
+    image: '/assets/landing/ocpp-supervision.webp',
     alt: 'Charging network operations team monitoring station status',
     points: ['Heartbeat and connectivity monitoring', 'Connector-level status and fault context', 'Remote commands with a complete history'],
   },
@@ -73,7 +74,7 @@ const productStories = [
     eyebrow: 'Driver experience',
     title: 'Guide every charging session from discovery to receipt.',
     copy: 'Drivers find an available station, select a compatible connector, follow the physical connection steps, authorize payment and monitor the live OCPP session until completion.',
-    image: '/assets/ev-charging-hub.png',
+    image: '/assets/landing/driver-checkout.webp',
     alt: 'Electric vehicle charging at a modern public hub',
     points: ['Map, route and connector compatibility', 'Guided charging target and payment authorization', 'Live energy, cost, completion and PDF receipt'],
   },
@@ -86,7 +87,7 @@ const roleWorkspaces = [
     eyebrow: 'Super Administrator',
     title: 'Govern organizations and platform-wide controls.',
     copy: 'Review demo requests, provision organization administrators, manage commercial plans, inspect integrations, permissions, audit trails and global settings.',
-    image: '/assets/ev-operations-desk.png',
+    image: '/assets/landing/platform-governance.webp',
     icon: Building2,
     features: ['Organization lifecycle', 'Commercial catalog', 'Platform audit and integrations'],
   },
@@ -116,7 +117,7 @@ const roleWorkspaces = [
     eyebrow: 'Field Technician',
     title: 'Work from an assigned field queue, not a generic dashboard.',
     copy: 'Consult station context, execute interventions and maintenance tasks, document before-and-after evidence and submit a structured technical outcome.',
-    image: '/assets/ev-technician.png',
+    image: '/assets/landing/field-technician.webp',
     icon: Wrench,
     features: ['Assigned interventions', 'Maintenance execution', 'Evidence and field reports'],
   },
@@ -126,7 +127,7 @@ const roleWorkspaces = [
     eyebrow: 'Client / Driver',
     title: 'Find, charge, pay and keep every receipt in one place.',
     copy: 'Use the public station map, scan a connector QR code, follow a guided charging workflow, monitor the current session and manage network memberships.',
-    image: '/assets/ev-charging-hub.png',
+    image: '/assets/landing/driver-station-finder.webp',
     icon: CarFront,
     features: ['Station discovery', 'Guided live charging', 'Payments and memberships'],
   },
@@ -140,13 +141,18 @@ const operationalFlow = [
   { icon: ReceiptText, title: 'Evidence', copy: 'Receipts, reports and audit history preserve the operational result.' },
 ]
 
-const capabilityCards = [
-  { icon: MapPinned, title: 'Map and station catalog', copy: 'Filter availability, inspect connectors, open directions and commission new charging assets.' },
-  { icon: Activity, title: 'Live OCPP supervision', copy: 'Follow heartbeats, connector events, transactions and authorized remote commands.' },
-  { icon: ClipboardCheck, title: 'Alerts and field work', copy: 'Move from operational alert to assigned intervention, maintenance and verified closure.' },
-  { icon: CircleDollarSign, title: 'Tariffs and payments', copy: 'Apply station pricing, charging plans, payment authorization and traceable settlement.' },
-  { icon: FileText, title: 'Role-specific reporting', copy: 'Use focused analytics, internal report exchange and branded CSV, JSON or PDF exports.' },
-  { icon: ShieldCheck, title: 'Scoped access', copy: 'Separate platform governance, organization assets, field duties and driver data.' },
+const capabilityCards: Array<{
+  icon: typeof MapPinned
+  title: string
+  copy: string
+  tone: IconSurfaceTone
+}> = [
+  { icon: MapPinned, tone: 'teal', title: 'Map and station catalog', copy: 'Filter availability, inspect connectors, open directions and commission new charging assets.' },
+  { icon: Activity, tone: 'brand', title: 'Live OCPP supervision', copy: 'Follow heartbeats, connector events, transactions and authorized remote commands.' },
+  { icon: ClipboardCheck, tone: 'amber', title: 'Alerts and field work', copy: 'Move from operational alert to assigned intervention, maintenance and verified closure.' },
+  { icon: CircleDollarSign, tone: 'graphite', title: 'Tariffs and payments', copy: 'Apply station pricing, charging plans, payment authorization and traceable settlement.' },
+  { icon: FileText, tone: 'blue', title: 'Role-specific reporting', copy: 'Use focused analytics, internal report exchange and branded CSV, JSON or PDF exports.' },
+  { icon: ShieldCheck, tone: 'red', title: 'Scoped access', copy: 'Separate platform governance, organization assets, field duties and driver data.' },
 ]
 
 const fallbackPlans: PublicSaasPlan[] = [
@@ -396,7 +402,7 @@ export function LandingPage() {
         <section id="product" className="landing-section landing-about">
           <div data-reveal>
             <p className="landing-section-label">One operating system</p>
-            <img src="/assets/ev-technician.png" alt="Technician inspecting an EV charging station" />
+            <img src="/assets/landing/team-coordination.webp" alt="Charging network team coordinating field operations" />
           </div>
           <div data-reveal>
             <h2>See the station, coordinate the team, and guide the driver from the same source of truth.</h2>
@@ -501,7 +507,7 @@ export function LandingPage() {
 
         <section id="reports" className="landing-report-section">
           <div className="landing-report-panel" data-reveal>
-            <img src="/assets/ev-operations-desk.png" alt="Role-specific charging network reports" />
+            <img src="/assets/landing/operations-reporting.webp" alt="Role-specific charging network reports" />
             <div className="landing-report-body">
               <div>
                 <p>Operational intelligence</p>
@@ -526,7 +532,7 @@ export function LandingPage() {
           <div className="landing-capability-grid" data-reveal-group>
             {capabilityCards.map((capability) => (
               <article key={capability.title}>
-                <span><capability.icon size={20} /></span>
+                <IconSurface tone={capability.tone} size="large"><capability.icon size={20} /></IconSurface>
                 <h3>{capability.title}</h3>
                 <p>{capability.copy}</p>
               </article>
@@ -633,7 +639,7 @@ export function LandingPage() {
         </section>
 
         <section className="landing-final-cta">
-          <img src="/assets/ev-route-corridor.png" alt="EV charging corridor at dusk" />
+          <img src="/assets/landing/coastal-charging-plaza.webp" alt="Public electric vehicle charging plaza on the Tunisian coast" />
           <div data-reveal>
             <h2>Operate Your Charging Future With Us</h2>
             <p>Monitor stations, resolve incidents, follow payments, and report impact from one focused EV operations workspace.</p>

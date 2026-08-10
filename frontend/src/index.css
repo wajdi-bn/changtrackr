@@ -14,6 +14,59 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Shared tactile icon language: solid semantic surface, white glyph and restrained depth. */
+.icon-surface {
+  --icon-fill: #168f62;
+  --icon-depth: #0f6d4a;
+  --icon-shadow: rgba(16, 75, 52, 0.2);
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 8px;
+  background: var(--icon-fill);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.12),
+    0 3px 0 var(--icon-depth),
+    0 6px 12px var(--icon-shadow);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.icon-surface svg {
+  color: inherit;
+  stroke-width: 2;
+}
+
+.icon-surface--small { width: 32px; height: 32px; }
+.icon-surface--medium { width: 38px; height: 38px; }
+.icon-surface--large { width: 44px; height: 44px; }
+.icon-surface--brand { --icon-fill: #168f62; --icon-depth: #0f6d4a; --icon-shadow: rgba(16, 75, 52, 0.2); }
+.icon-surface--teal { --icon-fill: #187f84; --icon-depth: #105c62; --icon-shadow: rgba(16, 78, 82, 0.2); }
+.icon-surface--blue { --icon-fill: #2876a7; --icon-depth: #19577d; --icon-shadow: rgba(25, 87, 125, 0.2); }
+.icon-surface--amber { --icon-fill: #c77912; --icon-depth: #8d550a; --icon-shadow: rgba(117, 72, 12, 0.2); }
+.icon-surface--red { --icon-fill: #c84a45; --icon-depth: #91322f; --icon-shadow: rgba(117, 37, 34, 0.2); }
+.icon-surface--graphite { --icon-fill: #58645e; --icon-depth: #39433f; --icon-shadow: rgba(34, 42, 38, 0.2); }
+
+button:hover .icon-surface {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.12),
+    0 4px 0 var(--icon-depth),
+    0 7px 14px var(--icon-shadow);
+}
+
+button:active .icon-surface {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.14),
+    0 1px 0 var(--icon-depth),
+    0 3px 7px var(--icon-shadow);
+}
+
 /* Client charging memberships */
 .subscription-view-switcher {
   display: flex;
@@ -2792,24 +2845,8 @@ html {
   border-bottom: 1px solid #dfe6e2;
 }
 
-.landing-capability-grid article > span {
+.landing-capability-grid article > .icon-surface {
   display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border-radius: 7px;
-  background: #e4f5ec;
-  color: #14875a;
-}
-
-.landing-capability-grid article:nth-child(3n + 2) > span {
-  background: #eee9ff;
-  color: #704bd4;
-}
-
-.landing-capability-grid article:nth-child(3n + 3) > span {
-  background: #fff1d8;
-  color: #a76709;
 }
 
 .landing-capability-grid h3 {
@@ -5065,35 +5102,10 @@ html {
   border-right: 0;
 }
 
-.station-related-metric > span {
-  display: grid;
+.station-related-metric > .icon-surface {
   width: 36px;
   height: 36px;
-  flex: 0 0 36px;
-  place-items: center;
-  border-radius: 8px;
-  background: #f0e9ff;
-  color: #7b35ee;
-}
-
-.station-related-metric--green > span {
-  background: #e5f7ef;
-  color: #119961;
-}
-
-.station-related-metric--blue > span {
-  background: #e5f4fb;
-  color: #168bc4;
-}
-
-.station-related-metric--amber > span {
-  background: #fff3de;
-  color: #d07b13;
-}
-
-.station-related-metric--red > span {
-  background: #ffebe8;
-  color: #d34b41;
+  flex-basis: 36px;
 }
 
 .station-related-metric > div {
@@ -5172,14 +5184,9 @@ html {
   background: #fbfdfc;
 }
 
-.station-verified-snapshot > header > span:first-child {
-  display: grid;
+.station-verified-snapshot > header > .icon-surface:first-child {
   width: 42px;
   height: 42px;
-  place-items: center;
-  border-radius: 8px;
-  background: #e5f7ef;
-  color: #159c69;
 }
 
 .station-verified-snapshot > header h2,
@@ -5536,13 +5543,8 @@ html {
 }
 
 .connector-icon {
-  display: grid;
   width: 40px;
   height: 40px;
-  place-items: center;
-  border-radius: 9px;
-  background: #ecfdf5;
-  color: #16865b;
 }
 
 .connector-heading h3 {
@@ -7254,9 +7256,8 @@ html {
   gap: 7px;
 }
 
-.alert-meta-grid svg {
-  margin-top: 2px;
-  color: #84908a;
+.alert-meta-grid .icon-surface {
+  margin-top: 1px;
 }
 
 .alert-meta-grid span {
@@ -11840,21 +11841,9 @@ body {
 .metric-strip__item:first-child { border-left: 0; }
 
 .metric-strip__icon {
-  display: grid;
   width: 38px;
   height: 38px;
-  place-items: center;
-  border-radius: 9px;
-  background: #e8f8ef;
-  color: #12945a;
 }
-
-.metric-strip__item--blue .metric-strip__icon { background: #e7f5fd; color: #0b83c9; }
-.metric-strip__item--purple .metric-strip__icon { background: #f1eafe; color: #7c3aed; }
-.metric-strip__item--orange .metric-strip__icon,
-.metric-strip__item--amber .metric-strip__icon { background: #fff4df; color: #c8750a; }
-.metric-strip__item--red .metric-strip__icon { background: #feeeee; color: #df4141; }
-.metric-strip__item--gray .metric-strip__icon { background: #eef1f4; color: #64748b; }
 
 .metric-strip__content {
   display: grid;
@@ -13772,14 +13761,8 @@ body {
 }
 
 .admin-module-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 38px;
   height: 38px;
-  border-radius: 7px;
-  background: #e8f5ee;
-  color: #168451;
 }
 
 .super-admin-footer-grid {

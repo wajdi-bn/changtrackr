@@ -1,4 +1,5 @@
 import { Children, type ReactNode } from 'react'
+import { IconSurface, type IconSurfaceTone } from './IconSurface'
 
 export type MetricTone = 'green' | 'blue' | 'purple' | 'orange' | 'amber' | 'red' | 'gray'
 
@@ -21,8 +22,18 @@ export function MetricItem({
   tone?: MetricTone
   badge?: ReactNode
 }) {
+  const iconTone: IconSurfaceTone = {
+    green: 'brand',
+    blue: 'blue',
+    purple: 'teal',
+    orange: 'amber',
+    amber: 'amber',
+    red: 'red',
+    gray: 'graphite',
+  }[tone] as IconSurfaceTone
+
   return <article className={`metric-strip__item metric-strip__item--${tone}`}>
-    <span className="metric-strip__icon">{icon}</span>
+    <IconSurface className="metric-strip__icon" tone={iconTone}>{icon}</IconSurface>
     <div className="metric-strip__content">
       <small>{label}</small>
       <strong>{value}</strong>

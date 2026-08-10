@@ -46,6 +46,7 @@ import {
 } from 'recharts'
 import { useNavigate } from 'react-router-dom'
 import { MountainBanner } from '../components/MountainBanner'
+import { IconSurface } from '../components/IconSurface'
 import { MetricItem, MetricStrip } from '../components/MetricStrip'
 import { useAuth } from '../features/auth/useAuth'
 import { getDashboard } from '../features/dashboard/dashboardApi'
@@ -186,7 +187,7 @@ function SuperAdminDashboard(props: RoleDashboardProps) {
       {moduleGroups.map((group) => <DashboardCard key={group.title} title={group.title} subtitle="Django Admin-style module index in the ChargeTrackr interface">
         <div className="admin-index-grid">
           {group.modules.map((module) => <button key={module.path} type="button" onClick={() => navigate(module.path)}>
-            <span className="admin-module-icon"><module.icon size={18} /></span>
+            <IconSurface className="admin-module-icon" tone="brand"><module.icon size={18} /></IconSurface>
             <span><strong>{module.label}</strong><small>{module.helper}</small></span>
             {counts[module.key] !== undefined && <b>{counts[module.key]}</b>}
             <ChevronRight size={15} />
