@@ -187,7 +187,7 @@ function SuperAdminDashboard(props: RoleDashboardProps) {
       {moduleGroups.map((group) => <DashboardCard key={group.title} title={group.title} subtitle="Django Admin-style module index in the ChargeTrackr interface">
         <div className="admin-index-grid">
           {group.modules.map((module) => <button key={module.path} type="button" onClick={() => navigate(module.path)}>
-            <IconSurface className="admin-module-icon" tone="brand"><module.icon size={18} /></IconSurface>
+            <IconSurface className="admin-module-icon"><module.icon size={18} /></IconSurface>
             <span><strong>{module.label}</strong><small>{module.helper}</small></span>
             {counts[module.key] !== undefined && <b>{counts[module.key]}</b>}
             <ChevronRight size={15} />

@@ -250,9 +250,9 @@ function AlertDetails({ alert, technicianMode, canManageAlerts, canAssignAlerts,
     <header><div><h2>{alert.title}</h2><p>{alert.reference} - {alert.station.name}</p></div><Button type="text" icon={<MoreHorizontal size={17} />} /></header>
     <div className="alert-detail-tags"><WorkflowTag value={alert.severity} /><WorkflowTag value={alert.status} /><span>Problem type: {alert.problem_type}</span></div>
     <div className="alert-meta-grid">
-      <div><IconSurface size="small" tone="graphite"><CalendarDays size={15} /></IconSurface><span><strong>{dayjs(alert.detected_at).format('MMM D, HH:mm')}</strong><small>Created</small></span></div>
-      <div><IconSurface size="small" tone="brand"><UserRound size={15} /></IconSurface><span><strong>{alert.assigned_technician?.name ?? 'Unassigned'}</strong><small>Assigned technician</small></span></div>
-      <div><IconSurface size="small" tone="amber"><ClipboardCheck size={15} /></IconSurface><span><strong>{alert.intervention?.reference ?? 'Field intervention'}</strong><small>Intervention</small></span></div>
+      <div><IconSurface size="small"><CalendarDays size={15} /></IconSurface><span><strong>{dayjs(alert.detected_at).format('MMM D, HH:mm')}</strong><small>Created</small></span></div>
+      <div><IconSurface size="small"><UserRound size={15} /></IconSurface><span><strong>{alert.assigned_technician?.name ?? 'Unassigned'}</strong><small>Assigned technician</small></span></div>
+      <div><IconSurface size="small" tone="yellow"><ClipboardCheck size={15} /></IconSurface><span><strong>{alert.intervention?.reference ?? 'Field intervention'}</strong><small>Intervention</small></span></div>
     </div>
     <section className="alert-description"><h3>Description</h3><p>{alert.description}</p></section>
     {alert.ocpp_log && <section className="ocpp-context"><h3>OCPP context</h3><pre>{alert.ocpp_log}</pre></section>}

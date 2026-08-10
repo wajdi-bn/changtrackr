@@ -16,53 +16,54 @@
 
 /* Shared tactile icon language: solid semantic surface, white glyph and restrained depth. */
 .icon-surface {
-  --icon-fill: #168f62;
-  --icon-depth: #0f6d4a;
-  --icon-shadow: rgba(16, 75, 52, 0.2);
+  --icon-fill-start: #65ef7d;
+  --icon-fill-end: #25c75a;
+  --icon-depth: #159a43;
+  --icon-shadow: rgba(18, 135, 58, 0.32);
   display: inline-grid;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  border-radius: 8px;
-  background: var(--icon-fill);
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 25%;
+  background: linear-gradient(155deg, var(--icon-fill-start), var(--icon-fill-end));
   color: #ffffff;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.36),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.12),
-    0 3px 0 var(--icon-depth),
-    0 6px 12px var(--icon-shadow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -4px 7px rgba(0, 92, 34, 0.18),
+    0 2px 0 var(--icon-depth),
+    0 5px 9px var(--icon-shadow);
   transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
 .icon-surface svg {
+  width: 56%;
+  height: 56%;
   color: inherit;
-  stroke-width: 2;
+  filter: drop-shadow(0 2px 1px rgba(0, 82, 31, 0.26));
+  stroke-width: 2.35;
 }
 
 .icon-surface--small { width: 32px; height: 32px; }
 .icon-surface--medium { width: 38px; height: 38px; }
 .icon-surface--large { width: 44px; height: 44px; }
-.icon-surface--brand { --icon-fill: #168f62; --icon-depth: #0f6d4a; --icon-shadow: rgba(16, 75, 52, 0.2); }
-.icon-surface--teal { --icon-fill: #187f84; --icon-depth: #105c62; --icon-shadow: rgba(16, 78, 82, 0.2); }
-.icon-surface--blue { --icon-fill: #2876a7; --icon-depth: #19577d; --icon-shadow: rgba(25, 87, 125, 0.2); }
-.icon-surface--amber { --icon-fill: #c77912; --icon-depth: #8d550a; --icon-shadow: rgba(117, 72, 12, 0.2); }
-.icon-surface--red { --icon-fill: #c84a45; --icon-depth: #91322f; --icon-shadow: rgba(117, 37, 34, 0.2); }
-.icon-surface--graphite { --icon-fill: #58645e; --icon-depth: #39433f; --icon-shadow: rgba(34, 42, 38, 0.2); }
+.icon-surface--green { --icon-fill-start: #65ef7d; --icon-fill-end: #25c75a; --icon-depth: #159a43; --icon-shadow: rgba(18, 135, 58, 0.32); }
+.icon-surface--yellow { --icon-fill-start: #ffd94d; --icon-fill-end: #f2b500; --icon-depth: #bd8200; --icon-shadow: rgba(163, 108, 0, 0.3); }
+.icon-surface--red { --icon-fill-start: #ff6b61; --icon-fill-end: #f3342b; --icon-depth: #bd211b; --icon-shadow: rgba(174, 31, 25, 0.3); }
 
 button:hover .icon-surface {
   transform: translateY(-1px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.12),
-    0 4px 0 var(--icon-depth),
-    0 7px 14px var(--icon-shadow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -4px 7px rgba(0, 0, 0, 0.16),
+    0 3px 0 var(--icon-depth),
+    0 7px 13px var(--icon-shadow);
 }
 
 button:active .icon-surface {
   transform: translateY(2px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.16),
     0 1px 0 var(--icon-depth),
     0 3px 7px var(--icon-shadow);
 }
@@ -14893,4 +14894,162 @@ body {
   .plan-subscriber-summary {
     grid-template-columns: 1fr;
   }
+}
+
+/* Unified tactile icon tiles. Status badges, map markers and connector diagrams stay untouched. */
+:is(
+  .integration-card__icon,
+  .safeguard-icon,
+  .global-search-result-icon,
+  .stat-icon,
+  .maintenance-type-icon,
+  .notification-icon,
+  .document-card-icon,
+  .dashboard-activity-icon,
+  .notification-preference-icon,
+  .account-security-icon,
+  .role-kpi-icon,
+  .admin-module-icon,
+  .role-activity-icon,
+  .station-live-icon,
+  .operator-live-strip > header > span,
+  .report-mailbox__header > div > span,
+  .report-template-picker > header > span,
+  .commercial-drawer-content > header > span,
+  .permission-role-option > span,
+  .permission-role-heading > span,
+  .audit-detail > header > span,
+  .settings-group-option > span,
+  .landing-flow-list article > span,
+  .demo-summary-tile > span,
+  .commissioning-location > header > div > span,
+  .commissioning-result-header > span,
+  .onboarding-hero-icon,
+  .onboarding-access-summary > span,
+  .onboarding-guide-grid article > span,
+  .onboarding-first-win-icon,
+  .onboarding-next-action > span,
+  .report-step-heading > span,
+  .session-kpi > span,
+  .payment-kpis > div > span,
+  .payment-checkout-heading > span,
+  .customer-kpi > span,
+  .subscription-kpi > span,
+  .subscription-modal-plan > span,
+  .user-info-panel > span,
+  .assignment-symbol,
+  .maintenance-summary-card .ant-card-body > span,
+  .maintenance-drawer-intro > span,
+  .document-manager-header > div > span,
+  .profile-section-heading > span,
+  .settings-editor > header > div > span,
+  .admin-metric > span
+) {
+  --legacy-icon-start: #65ef7d;
+  --legacy-icon-end: #25c75a;
+  --legacy-icon-depth: #159a43;
+  --legacy-icon-shadow: rgb(18 135 58 / 32%);
+  color: #fff !important;
+  border: 1px solid rgb(255 255 255 / 62%) !important;
+  border-radius: 25% !important;
+  background: linear-gradient(155deg, var(--legacy-icon-start), var(--legacy-icon-end)) !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 58%),
+    inset 0 -5px 8px color-mix(in srgb, var(--legacy-icon-depth) 44%, transparent),
+    0 2px 0 var(--legacy-icon-depth),
+    0 6px 11px var(--legacy-icon-shadow) !important;
+}
+
+:is(
+  .integration-card__icon,
+  .safeguard-icon,
+  .global-search-result-icon,
+  .stat-icon,
+  .maintenance-type-icon,
+  .notification-icon,
+  .document-card-icon,
+  .dashboard-activity-icon,
+  .notification-preference-icon,
+  .account-security-icon,
+  .role-kpi-icon,
+  .admin-module-icon,
+  .role-activity-icon,
+  .station-live-icon,
+  .operator-live-strip > header > span,
+  .report-mailbox__header > div > span,
+  .report-template-picker > header > span,
+  .commercial-drawer-content > header > span,
+  .permission-role-option > span,
+  .permission-role-heading > span,
+  .audit-detail > header > span,
+  .settings-group-option > span,
+  .landing-flow-list article > span,
+  .demo-summary-tile > span,
+  .commissioning-location > header > div > span,
+  .commissioning-result-header > span,
+  .onboarding-hero-icon,
+  .onboarding-access-summary > span,
+  .onboarding-guide-grid article > span,
+  .onboarding-first-win-icon,
+  .onboarding-next-action > span,
+  .report-step-heading > span,
+  .session-kpi > span,
+  .payment-kpis > div > span,
+  .payment-checkout-heading > span,
+  .customer-kpi > span,
+  .subscription-kpi > span,
+  .subscription-modal-plan > span,
+  .user-info-panel > span,
+  .assignment-symbol,
+  .maintenance-summary-card .ant-card-body > span,
+  .maintenance-drawer-intro > span,
+  .document-manager-header > div > span,
+  .profile-section-heading > span,
+  .settings-editor > header > div > span,
+  .admin-metric > span
+) > svg {
+  width: 56%;
+  height: 56%;
+  color: #fff !important;
+  filter: drop-shadow(0 1px 1px rgb(0 68 31 / 28%));
+  stroke-width: 2.35;
+}
+
+:is(
+  .integration-card--attention .integration-card__icon,
+  .global-search-result-icon.alert,
+  .global-search-result-icon.intervention,
+  .maintenance-type-icon.corrective,
+  .notification-icon.warning,
+  .dashboard-activity-icon.intervention,
+  .role-activity-icon.intervention,
+  .station-live-icon.maintenance,
+  .dashboard-kpi-heading .stat-icon.tone-amber,
+  .role-kpi-icon.tone-amber,
+  .demo-summary-tile--gold > span,
+  .session-kpi > span.gold,
+  .customer-kpi--orange > span,
+  .subscription-kpi--orange > span
+) {
+  --legacy-icon-start: #ffd94d;
+  --legacy-icon-end: #f2b500;
+  --legacy-icon-depth: #bd8200;
+  --legacy-icon-shadow: rgb(181 119 0 / 30%);
+}
+
+:is(
+  .global-search-result-icon.alert,
+  .notification-icon.critical,
+  .dashboard-activity-icon.alert,
+  .role-activity-icon.alert,
+  .station-live-icon.faulted,
+  .station-live-icon.offline,
+  .dashboard-kpi-heading .stat-icon.tone-red,
+  .role-kpi-icon.tone-red,
+  .demo-summary-tile--red > span
+) {
+  --legacy-icon-start: #ff6b61;
+  --legacy-icon-end: #f3342b;
+  --legacy-icon-depth: #bd211b;
+  --legacy-icon-shadow: rgb(184 30 28 / 30%);
 }

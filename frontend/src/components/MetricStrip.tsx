@@ -23,13 +23,13 @@ export function MetricItem({
   badge?: ReactNode
 }) {
   const iconTone: IconSurfaceTone = {
-    green: 'brand',
-    blue: 'blue',
-    purple: 'teal',
-    orange: 'amber',
-    amber: 'amber',
+    green: 'green',
+    blue: 'green',
+    purple: 'green',
+    orange: 'yellow',
+    amber: 'yellow',
     red: 'red',
-    gray: 'graphite',
+    gray: 'green',
   }[tone] as IconSurfaceTone
 
   return <article className={`metric-strip__item metric-strip__item--${tone}`}>

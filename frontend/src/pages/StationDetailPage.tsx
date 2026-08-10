@@ -298,7 +298,7 @@ export function StationDetailPage() {
           {overviewView === 'snapshot' ? (
             <section className="station-verified-snapshot">
               <header>
-                <IconSurface tone={station.ocpp_is_connected ? 'brand' : 'graphite'} size="large"><Activity size={19} /></IconSurface>
+                <IconSurface tone={station.ocpp_is_connected ? 'green' : 'red'} size="large"><Activity size={19} /></IconSurface>
                 <div>
                   <h2>Verified station snapshot</h2>
                   <p>Current projections returned by the backend. No synthetic historical series are displayed.</p>
@@ -351,7 +351,7 @@ export function StationDetailPage() {
             {station.connectors.map((connector) => (
               <div key={connector.id} className="connector-card">
                 <div className="connector-heading">
-                  <IconSurface className="connector-icon" tone="teal"><Zap size={18} /></IconSurface>
+                  <IconSurface className="connector-icon"><Zap size={18} /></IconSurface>
                   <div><h3>Connector {connector.external_id}</h3><p>{connector.type} - {connector.current_type}</p></div>
                   <StationStatusTag status={connector.status} />
                 </div>
@@ -825,10 +825,10 @@ function StationRelatedMetric({ icon, label, value, tone = 'purple' }: {
   tone?: 'purple' | 'green' | 'blue' | 'amber' | 'red'
 }) {
   const iconTone: IconSurfaceTone = {
-    purple: 'teal',
-    green: 'brand',
-    blue: 'blue',
-    amber: 'amber',
+    purple: 'green',
+    green: 'green',
+    blue: 'green',
+    amber: 'yellow',
     red: 'red',
   }[tone] as IconSurfaceTone
 

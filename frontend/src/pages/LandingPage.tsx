@@ -147,11 +147,11 @@ const capabilityCards: Array<{
   copy: string
   tone: IconSurfaceTone
 }> = [
-  { icon: MapPinned, tone: 'teal', title: 'Map and station catalog', copy: 'Filter availability, inspect connectors, open directions and commission new charging assets.' },
-  { icon: Activity, tone: 'brand', title: 'Live OCPP supervision', copy: 'Follow heartbeats, connector events, transactions and authorized remote commands.' },
-  { icon: ClipboardCheck, tone: 'amber', title: 'Alerts and field work', copy: 'Move from operational alert to assigned intervention, maintenance and verified closure.' },
-  { icon: CircleDollarSign, tone: 'graphite', title: 'Tariffs and payments', copy: 'Apply station pricing, charging plans, payment authorization and traceable settlement.' },
-  { icon: FileText, tone: 'blue', title: 'Role-specific reporting', copy: 'Use focused analytics, internal report exchange and branded CSV, JSON or PDF exports.' },
+  { icon: MapPinned, tone: 'green', title: 'Map and station catalog', copy: 'Filter availability, inspect connectors, open directions and commission new charging assets.' },
+  { icon: Activity, tone: 'green', title: 'Live OCPP supervision', copy: 'Follow heartbeats, connector events, transactions and authorized remote commands.' },
+  { icon: ClipboardCheck, tone: 'yellow', title: 'Alerts and field work', copy: 'Move from operational alert to assigned intervention, maintenance and verified closure.' },
+  { icon: CircleDollarSign, tone: 'green', title: 'Tariffs and payments', copy: 'Apply station pricing, charging plans, payment authorization and traceable settlement.' },
+  { icon: FileText, tone: 'green', title: 'Role-specific reporting', copy: 'Use focused analytics, internal report exchange and branded CSV, JSON or PDF exports.' },
   { icon: ShieldCheck, tone: 'red', title: 'Scoped access', copy: 'Separate platform governance, organization assets, field duties and driver data.' },
 ]
 

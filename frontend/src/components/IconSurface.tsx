@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react'
 
-export type IconSurfaceTone = 'brand' | 'teal' | 'blue' | 'amber' | 'red' | 'graphite'
+export type IconSurfaceTone = 'green' | 'yellow' | 'red'
 export type IconSurfaceSize = 'small' | 'medium' | 'large'
 
 export function IconSurface({
   children,
-  tone = 'brand',
+  tone = 'green',
   size = 'medium',
   className = '',
 }: {
