@@ -95,7 +95,7 @@ La part des points n'est pas un pourcentage d'achèvement linéaire : une User S
 8. **Tarification et facturation** - tarifs, reçus, abonnements clients et gestion commerciale des organisations sont intégrés ; les plages horaires de US-31 restent à compléter avant un éventuel prestataire financier réel.
 9. **Dashboards et rapports** - les tableaux de bord par rôle, analyses, échanges internes, pièces jointes et exports sont réalisés ; leur ergonomie reste à consolider par recette.
 10. **Modules complémentaires** - l'onboarding, les paramètres, intégrations et documents sont réalisés ; US-28 reste partielle tant qu'aucun badge RFID physique n'est testé.
-11. **Industrialisation** - préparer sécurité, tests non fonctionnels, CI/CD, déploiement, sauvegardes, supervision et documentation.
+11. **Industrialisation** - conteneurisation locale et CI GitHub réalisées ; déploiement, TLS, sauvegardes automatisées et supervision de production restent à préparer.
 12. **Firmware** - conserver US-38 reportée jusqu'à la stabilisation d'OCPP et la disponibilité d'une procédure fournisseur ou d'une borne de test.
 
 ## Décisions externes encore nécessaires

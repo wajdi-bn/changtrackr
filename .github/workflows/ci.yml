@@ -1,0 +1,284 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend / PostgreSQL and Redis
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18@sha256:a02db8cac496f15b094798a38254f14d6e00741f709360e5e00bb6668ea31636
+        env:
+          POSTGRES_DB: changetrackr_ci
+          POSTGRES_USER: changetrackr_ci
+          POSTGRES_PASSWORD: ci-postgres-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U changetrackr_ci -d changetrackr_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      REDIS_CLIENT: predis
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_CACHE_DB: 1
+      REDIS_SESSION_DB: 2
+      REDIS_QUEUE_DB: 3
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      BROADCAST_CONNECTION: "null"
+      MAIL_MAILER: array
+      PAYMENT_DRIVER: simulated
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@db91e1a0e48e84637d325a7ee4d2677e146ceec4 # 2.36.0
+        with:
+          php-version: "8.5"
+          extensions: bcmath, fileinfo, gd, intl, mbstring, pcntl, pdo_pgsql, pgsql, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Locate Composer cache
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-php85-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php85-
+
+      - name: Validate Composer metadata
+        run: composer validate --strict --no-check-publish
+
+      - name: Install backend dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare Laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+          php artisan config:clear
+
+      - name: Validate PostgreSQL migrations
+        run: php artisan migrate:fresh --force
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: changetrackr_ci
+          DB_USERNAME: changetrackr_ci
+          DB_PASSWORD: ci-postgres-password
+          DB_TIMEZONE: UTC
+
+      - name: Validate Redis cache connectivity
+        run: >-
+          php artisan tinker --execute="if (! cache()->store('redis')->put('ci-probe', 'ok', 30)
+          || cache()->store('redis')->pull('ci-probe') !== 'ok') {
+          throw new RuntimeException('Redis cache probe failed'); }"
+
+      - name: Check backend formatting
+        run: vendor/bin/pint --test
+
+      - name: Run complete backend test suite
+        run: php artisan test
+
+      - name: Run critical compatibility tests on PostgreSQL
+        run: >-
+          php artisan test
+          tests/Feature/Database/ForeignKeyIndexCoverageTest.php
+          tests/Feature/AvailabilityMetricsTest.php
+          tests/Feature/ChargingSessionPaymentApiTest.php
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: changetrackr_ci
+          DB_USERNAME: changetrackr_ci
+          DB_PASSWORD: ci-postgres-password
+          DB_TIMEZONE: UTC
+
+      - name: Audit Composer dependencies
+        run: composer audit --locked --no-interaction
+
+  frontend:
+    name: Frontend / lint, tests and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 11.16.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit pnpm dependencies
+        run: pnpm audit --audit-level high
+
+      - name: Lint frontend
+        run: pnpm lint:frontend
+
+      - name: Test frontend
+        run: pnpm test:frontend
+
+      - name: Build frontend
+        run: pnpm build:frontend
+
+  infrastructure:
+    name: Infrastructure / configuration policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      POSTGRES_PASSWORD: ci-compose-postgres-password
+      REDIS_PASSWORD: ci-compose-redis-password
+      REVERB_APP_ID: ci
+      REVERB_APP_KEY: ci-reverb-public-key
+      REVERB_APP_SECRET: ci-reverb-private-secret
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+
+      - name: Run infrastructure policy tests
+        run: npm run test:infra-config
+
+      - name: Run OCPP tooling tests
+        run: npm run test:ocpp-tools
+
+      - name: Prepare non-secret CI environment files
+        run: |
+          cp infra/.env.example infra/.env
+          cp backend/.env.example backend/.env
+          cp infra/ocpp/.env.example infra/ocpp/.env
+
+      - name: Validate unified Compose configuration
+        run: >-
+          docker compose --env-file infra/.env -f infra/docker-compose.yml
+          --profile simulators --profile tools config --quiet
+
+      - name: Reject tracked environment files and known secret signatures
+        shell: bash
+        run: |
+          if git ls-files | grep -Eq '(^|/)\.env$'; then
+            echo "A real .env file is tracked." >&2
+            exit 1
+          fi
+          if git grep -nE 'GOCSPX-|sk_(live|test)_[A-Za-z0-9]+|re_[A-Za-z0-9]{20,}|BEGIN [A-Z ]*PRIVATE KEY' -- ':!pnpm-lock.yaml'; then
+            echo "A known secret signature is present in tracked files." >&2
+            exit 1
+          fi
+
+  ocpp-gateway:
+    name: OCPP gateway / Python tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Build OCPP gateway test image
+        run: docker build --target test -t chargetrackr-ocpp-gateway-test ocpp-gateway
+
+      - name: Run OCPP gateway tests
+        run: docker run --rm chargetrackr-ocpp-gateway-test
+
+  docker-images:
+    name: Docker / application images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    needs: [backend, frontend, infrastructure, ocpp-gateway]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build Laravel runtime image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          target: runtime
+          push: false
+          cache-from: type=gha,scope=backend-runtime
+          cache-to: type=gha,mode=max,scope=backend-runtime
+
+      - name: Build Laravel web image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          target: web
+          push: false
+          cache-from: type=gha,scope=backend-web
+          cache-to: type=gha,mode=max,scope=backend-web
+
+      - name: Build frontend image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: frontend/Dockerfile
+          target: runtime
+          push: false
+          build-args: |
+            VITE_REVERB_APP_KEY=ci-reverb-public-key
+            VITE_REVERB_PORT=8080
+            VITE_REVERB_SCHEME=http
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend

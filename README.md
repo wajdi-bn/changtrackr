@@ -1,5 +1,7 @@
 # ChargeTrackr
 
+[![CI](https://github.com/wajdi-bn/changtrackr/actions/workflows/ci.yml/badge.svg)](https://github.com/wajdi-bn/changtrackr/actions/workflows/ci.yml)
+
 ChargeTrackr is a web platform for visualizing, supervising, and monitoring the availability of electric vehicle charging stations.
 
 ## Video Demo
@@ -51,6 +53,9 @@ sandbox, the OCPP gateway and the SAP station simulator. Use
 
 See [docs/containerization.md](docs/containerization.md) for service boundaries,
 profiles, persistent volumes, LAN access and troubleshooting.
+
+See [docs/ci-cd.md](docs/ci-cd.md) for the GitHub Actions quality gates, local equivalents and the
+boundary between continuous integration and future production delivery.
 
 ### Native development
 
