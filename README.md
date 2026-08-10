@@ -36,6 +36,24 @@ The video presents the role-based workspaces, charging-station supervision, OCPP
 
 ## Quick Start
 
+### Complete Docker stack
+
+With Docker Desktop and its WSL2 engine running:
+
+```bash
+pnpm stack:up
+```
+
+Open `http://localhost:5173`. This single command starts the frontend, Laravel,
+the queue worker, scheduler, Reverb, PostgreSQL, Redis, Mailpit, the payment
+sandbox, the OCPP gateway and the SAP station simulator. Use
+`pnpm stack:status`, `pnpm stack:logs` and `pnpm stack:down` for daily operation.
+
+See [docs/containerization.md](docs/containerization.md) for service boundaries,
+profiles, persistent volumes, LAN access and troubleshooting.
+
+### Native development
+
 ```bash
 pnpm --dir frontend install
 pnpm dev:frontend
@@ -83,6 +101,7 @@ Backend requirements:
 Excel/XLSX export uses `openspout/openspout` because `maatwebsite/excel` is not compatible with the current PHP 8.5 runtime.
 
 See [docs/setup.md](docs/setup.md) for complete setup notes.
+See [docs/containerization.md](docs/containerization.md) for the unified Docker stack.
 See [docs/environment.md](docs/environment.md) for environment rules.
 See [docs/security.md](docs/security.md) for the security baseline.
 See [docs/ocpp.md](docs/ocpp.md) for the OCPP gateway and simulator workflow.

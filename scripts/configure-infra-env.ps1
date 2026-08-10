@@ -69,11 +69,18 @@ $infraValues = [ordered]@{
     POSTGRES_DB = $postgresDatabase
     POSTGRES_USER = $postgresUser
     POSTGRES_PASSWORD = $postgresPassword
-    POSTGRES_FORWARD_PORT = '5432'
+    POSTGRES_FORWARD_PORT = $(if (Get-EnvValue $infraEnv 'POSTGRES_FORWARD_PORT') { Get-EnvValue $infraEnv 'POSTGRES_FORWARD_PORT' } else { '5433' })
     REDIS_PASSWORD = $redisPassword
-    REDIS_FORWARD_PORT = '6379'
-    MAILPIT_SMTP_FORWARD_PORT = '1025'
-    MAILPIT_UI_FORWARD_PORT = '8025'
+    REDIS_FORWARD_PORT = $(if (Get-EnvValue $infraEnv 'REDIS_FORWARD_PORT') { Get-EnvValue $infraEnv 'REDIS_FORWARD_PORT' } else { '6379' })
+    MAILPIT_SMTP_FORWARD_PORT = $(if (Get-EnvValue $infraEnv 'MAILPIT_SMTP_FORWARD_PORT') { Get-EnvValue $infraEnv 'MAILPIT_SMTP_FORWARD_PORT' } else { '1025' })
+    MAILPIT_UI_FORWARD_PORT = $(if (Get-EnvValue $infraEnv 'MAILPIT_UI_FORWARD_PORT') { Get-EnvValue $infraEnv 'MAILPIT_UI_FORWARD_PORT' } else { '8025' })
+    APP_BIND_ADDRESS = $(if (Get-EnvValue $infraEnv 'APP_BIND_ADDRESS') { Get-EnvValue $infraEnv 'APP_BIND_ADDRESS' } else { '127.0.0.1' })
+    FRONTEND_FORWARD_PORT = $(if (Get-EnvValue $infraEnv 'FRONTEND_FORWARD_PORT') { Get-EnvValue $infraEnv 'FRONTEND_FORWARD_PORT' } else { '5173' })
+    BACKEND_FORWARD_PORT = $(if (Get-EnvValue $infraEnv 'BACKEND_FORWARD_PORT') { Get-EnvValue $infraEnv 'BACKEND_FORWARD_PORT' } else { '8000' })
+    REVERB_FORWARD_PORT = $(if (Get-EnvValue $infraEnv 'REVERB_FORWARD_PORT') { Get-EnvValue $infraEnv 'REVERB_FORWARD_PORT' } else { '8080' })
+    OCPP_GATEWAY_FORWARD_PORT = $(if (Get-EnvValue $infraEnv 'OCPP_GATEWAY_FORWARD_PORT') { Get-EnvValue $infraEnv 'OCPP_GATEWAY_FORWARD_PORT' } else { '9000' })
+    OCPP_SIMULATOR_FORWARD_PORT = $(if (Get-EnvValue $infraEnv 'OCPP_SIMULATOR_FORWARD_PORT') { Get-EnvValue $infraEnv 'OCPP_SIMULATOR_FORWARD_PORT' } else { '8082' })
+    PAYMENT_SIMULATOR_FORWARD_PORT = $(if (Get-EnvValue $infraEnv 'PAYMENT_SIMULATOR_FORWARD_PORT') { Get-EnvValue $infraEnv 'PAYMENT_SIMULATOR_FORWARD_PORT' } else { '9090' })
 }
 
 foreach ($entry in $infraValues.GetEnumerator()) {
@@ -86,7 +93,7 @@ if ($SyncBackend -or $SyncRedisDrivers) {
     }
 
     Set-EnvValue $backendEnv 'REDIS_HOST' '127.0.0.1'
-    Set-EnvValue $backendEnv 'REDIS_PORT' '6379'
+    Set-EnvValue $backendEnv 'REDIS_PORT' $infraValues.REDIS_FORWARD_PORT
     Set-EnvValue $backendEnv 'REDIS_PASSWORD' $redisPassword
     Set-EnvValue $backendEnv 'CACHE_STORE' 'redis'
     Set-EnvValue $backendEnv 'REDIS_CACHE_CONNECTION' 'cache'
@@ -110,7 +117,7 @@ if ($SyncBackend -or $SyncRedisDrivers) {
 
 if ($SyncBackend) {
     Set-EnvValue $backendEnv 'DB_HOST' '127.0.0.1'
-    Set-EnvValue $backendEnv 'DB_PORT' '5432'
+    Set-EnvValue $backendEnv 'DB_PORT' $infraValues.POSTGRES_FORWARD_PORT
     Set-EnvValue $backendEnv 'DB_DATABASE' $postgresDatabase
     Set-EnvValue $backendEnv 'DB_USERNAME' $postgresUser
     Set-EnvValue $backendEnv 'DB_PASSWORD' $postgresPassword

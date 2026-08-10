@@ -380,7 +380,9 @@ npm run ocpp:fleet-status
 
 Stop the containers with `npm run ocpp:down`.
 
-The simulator UI is exposed on `http://localhost:8082`. Port `8080` is reserved for Reverb.
+The simulator's authenticated control WebSocket is exposed on `ws://localhost:8082`.
+It is consumed by the provided `ocpp:*` CLI commands and is not a browser page.
+Port `8080` is reserved for Reverb.
 
 ## Data model boundary
 

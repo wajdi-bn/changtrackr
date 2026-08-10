@@ -222,17 +222,17 @@ configuration when it is displayed; Laravel persists only its hash. `Inventory o
 credential and therefore no live OCPP availability.
 
 The scheduler recalculates provisioned OCPP station availability every 30 seconds. Reverb uses
-`localhost:8080`; the SAP simulator UI uses `localhost:8082`.
+`localhost:8080`; the SAP simulator control WebSocket uses `localhost:8082`.
 
 Use `npm run ocpp:down` to stop the OCPP containers. The generated gateway, station and simulator
-UI credentials exist only in ignored `.env` files. See [ocpp.md](ocpp.md) for the component
+control credentials exist only in ignored `.env` files. See [ocpp.md](ocpp.md) for the component
 boundaries and security contract.
 
 ## 4. Local Services
 
-The current PostgreSQL database is local and managed outside this repository.
-
-`infra/docker-compose.yml` can optionally provide:
+Native development can keep using a PostgreSQL installation on the host. The unified Docker stack
+defined in `infra/docker-compose.yml` provides the managed services used by the containerized
+application:
 
 - PostgreSQL
 - Redis
@@ -263,7 +263,9 @@ databases and Redis Laravel drivers without touching the current PostgreSQL cred
 `powershell -ExecutionPolicy Bypass -File scripts/configure-infra-env.ps1 -SyncBackend` only when
 the backend must use this Dockerized PostgreSQL and Redis stack.
 
-The OCPP-specific services are defined separately in `infra/ocpp/compose.yaml`.
+The legacy OCPP-only Compose file remains available in `infra/ocpp/compose.yaml` for focused
+gateway development. Normal application startup uses the unified root stack documented in
+`docs/containerization.md`.
 
 ## 5. Environment Files
 

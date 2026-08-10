@@ -1,17 +1,62 @@
 name: chargetrackr-local
 
+x-backend-environment: &backend-environment
+  APP_ENV: local
+  APP_DEBUG: "false"
+  APP_URL: http://localhost:${BACKEND_FORWARD_PORT:-8000}
+  FRONTEND_URL: http://localhost:${FRONTEND_FORWARD_PORT:-5173}
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_DATABASE: ${POSTGRES_DB:-changetrackr}
+  DB_USERNAME: ${POSTGRES_USER:-changetrackr}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:?Run npm run stack:configure first}
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  REDIS_PASSWORD: ${REDIS_PASSWORD:?Run npm run stack:configure first}
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  QUEUE_CONNECTION: redis
+  MAIL_MAILER: smtp
+  MAIL_HOST: mailpit
+  MAIL_PORT: 1025
+  REVERB_HOST: reverb
+  REVERB_PORT: 8080
+  REVERB_SCHEME: http
+  REVERB_APP_ID: ${REVERB_APP_ID:?Run npm run stack:configure first}
+  REVERB_APP_KEY: ${REVERB_APP_KEY:?Run npm run stack:configure first}
+  REVERB_APP_SECRET: ${REVERB_APP_SECRET:?Run npm run stack:configure first}
+  REVERB_SERVER_HOST: 0.0.0.0
+  REVERB_SERVER_PORT: 8080
+  PAYMENT_SIMULATOR_BASE_URL: http://payment-simulator:8080
+  PAYMENT_SIMULATOR_WEBHOOK_URL: http://backend/api/internal/payments/webhooks
+  OCPP_GATEWAY_PUBLIC_URL: ws://localhost:${OCPP_GATEWAY_FORWARD_PORT:-9000}/ocpp
+
+x-backend-runtime: &backend-runtime
+  image: chargetrackr-backend:local
+  build:
+    context: ../backend
+    dockerfile: Dockerfile
+    target: runtime
+  env_file:
+    - ../backend/.env
+  environment: *backend-environment
+  volumes:
+    - backend_storage:/app/storage
+  restart: unless-stopped
+
 services:
   postgres:
-    image: postgres:16
+    image: postgres:18@sha256:a02db8cac496f15b094798a38254f14d6e00741f709360e5e00bb6668ea31636
     container_name: chargetrackr-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-changetrackr}
       POSTGRES_USER: ${POSTGRES_USER:-changetrackr}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run npm run infra:configure first}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run npm run stack:configure first}
     ports:
-      - "127.0.0.1:${POSTGRES_FORWARD_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_FORWARD_PORT:-5433}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 10s
@@ -20,11 +65,11 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
     container_name: chargetrackr-redis
     command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""]
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?Run npm run infra:configure first}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Run npm run stack:configure first}
     ports:
       - "127.0.0.1:${REDIS_FORWARD_PORT:-6379}:6379"
     volumes:
@@ -37,13 +82,190 @@ services:
     restart: unless-stopped
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:latest@sha256:d5ecbb067db3705fa953d79e1b7f81ef84038df67aba6c52825d8c02a1ea748a
     container_name: chargetrackr-mailpit
     ports:
       - "127.0.0.1:${MAILPIT_SMTP_FORWARD_PORT:-1025}:1025"
       - "127.0.0.1:${MAILPIT_UI_FORWARD_PORT:-8025}:8025"
     restart: unless-stopped
 
+  migrate:
+    <<: *backend-runtime
+    command: ["php", "artisan", "migrate", "--force"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: "no"
+
+  backend-php:
+    <<: *backend-runtime
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  backend:
+    image: chargetrackr-backend-web:local
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      target: web
+    ports:
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${BACKEND_FORWARD_PORT:-8000}:80"
+    volumes:
+      - backend_storage:/var/www/storage:ro
+    depends_on:
+      backend-php:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/up"]
+      interval: 15s
+      timeout: 3s
+      start_period: 20s
+      retries: 5
+    restart: unless-stopped
+
+  queue-worker:
+    <<: *backend-runtime
+    command:
+      - php
+      - artisan
+      - queue:work
+      - redis
+      - --queue=payments,broadcasts,emails,maintenance,default
+      - --sleep=1
+      - --tries=3
+      - --timeout=90
+    user: www-data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  scheduler:
+    <<: *backend-runtime
+    command: ["php", "artisan", "schedule:work"]
+    user: www-data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  reverb:
+    <<: *backend-runtime
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    user: www-data
+    ports:
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${REVERB_FORWARD_PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "php", "-r", "$$s=@fsockopen('127.0.0.1',8080); exit($$s?0:1);"]
+      interval: 15s
+      timeout: 3s
+      start_period: 15s
+      retries: 5
+
+  frontend:
+    image: chargetrackr-frontend:local
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+      target: runtime
+      args:
+        VITE_REVERB_APP_KEY: ${REVERB_APP_KEY:?Run npm run stack:configure first}
+        VITE_REVERB_PORT: ${REVERB_FORWARD_PORT:-8080}
+        VITE_REVERB_SCHEME: http
+    ports:
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_FORWARD_PORT:-5173}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+      reverb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 3s
+      start_period: 10s
+      retries: 5
+    restart: unless-stopped
+
+  payment-simulator:
+    profiles: [simulators]
+    image: wiremock/wiremock:3.13.1@sha256:d61e7720f89483fdef5366843b58d1dfd06bcce5828179c9f2f54de5c28354b0
+    command:
+      - --global-response-templating
+      - --verbose
+    ports:
+      - "127.0.0.1:${PAYMENT_SIMULATOR_FORWARD_PORT:-9090}:8080"
+    volumes:
+      - ./payment-simulator/generated/mappings:/home/wiremock/mappings:ro
+    restart: unless-stopped
+
+  ocpp-gateway:
+    profiles: [simulators]
+    image: chargetrackr-ocpp-gateway:local
+    build:
+      context: ../ocpp-gateway
+      dockerfile: Dockerfile
+      target: runtime
+    env_file:
+      - ../backend/.env
+      - ./ocpp/.env
+    environment:
+      OCPP_ENVIRONMENT: local
+      OCPP_GATEWAY_HOST: 0.0.0.0
+      OCPP_GATEWAY_PORT: 9000
+      OCPP_GATEWAY_PATH_PREFIX: /ocpp
+      OCPP_GATEWAY_TLS_MODE: disabled
+      OCPP_GATEWAY_PUBLIC_URL: ws://localhost:${OCPP_GATEWAY_FORWARD_PORT:-9000}/ocpp
+      OCPP_LARAVEL_BASE_URL: http://backend/api/internal/ocpp
+      OCPP_HEARTBEAT_INTERVAL_SECONDS: 30
+      OCPP_COMMAND_POLL_INTERVAL_SECONDS: 1.5
+    ports:
+      - "127.0.0.1:${OCPP_GATEWAY_FORWARD_PORT:-9000}:9000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ocpp-simulator:
+    profiles: [simulators]
+    image: chargetrackr-ocpp-simulator:local
+    build:
+      context: ..
+      dockerfile: infra/ocpp/simulator/Dockerfile
+      target: simulator
+      args:
+        SAP_SIMULATOR_REF: 6119452049739c05506351a9589d753e84c59e9f
+    env_file:
+      - ./ocpp/.env
+    ports:
+      - "127.0.0.1:${OCPP_SIMULATOR_FORWARD_PORT:-8082}:8080"
+    depends_on:
+      ocpp-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ocpp-cli:
+    profiles: [tools]
+    image: chargetrackr-ocpp-simulator-cli:local
+    build:
+      context: ..
+      dockerfile: infra/ocpp/simulator/Dockerfile
+      target: cli
+      args:
+        SAP_SIMULATOR_REF: 6119452049739c05506351a9589d753e84c59e9f
+    env_file:
+      - ./ocpp/.env
+    environment:
+      OCPP_SIMULATOR_STATION_IDENTITY: CT-TUN-001
+    depends_on:
+      ocpp-simulator:
+        condition: service_started
+
 volumes:
   postgres_data:
   redis_data:
+  backend_storage:

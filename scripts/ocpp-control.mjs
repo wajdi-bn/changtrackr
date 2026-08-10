@@ -8,7 +8,8 @@ const repoRoot = path.dirname(scriptDirectory)
 const manifestPath = path.join(repoRoot, 'infra', 'ocpp', 'simulator', 'stations.json')
 const stations = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
 const stationMap = new Map(stations.map((station) => [station.identity, station]))
-const [action, requestedStation = 'CT-TUN-001', requestedConnector = '1'] = process.argv.slice(2)
+const cliArguments = process.argv.slice(2).filter((argument) => argument !== '--')
+const [action, requestedStation = 'CT-TUN-001', requestedConnector = '1'] = cliArguments
 
 function run(command, args, cwd = repoRoot) {
   const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: false })
@@ -33,7 +34,7 @@ function requireConnector(station, value) {
   return connectorId
 }
 
-const compose = [
+const legacyCompose = [
   'compose',
   '--env-file', 'infra/ocpp/.env',
   '-f', 'infra/ocpp/compose.yaml',
@@ -41,47 +42,96 @@ const compose = [
   'run', '--rm',
 ]
 
+const stackCompose = [
+  'compose',
+  '--env-file', 'infra/.env',
+  '-f', 'infra/docker-compose.yml',
+  '--profile', 'simulators',
+  '--profile', 'tools',
+]
+
+function isUnifiedStackRunning() {
+  if (!fs.existsSync(path.join(repoRoot, 'infra', '.env'))) return false
+
+  const result = spawnSync('docker', [...stackCompose, 'ps', '--status', 'running', '-q', 'ocpp-simulator'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    shell: false,
+  })
+
+  return result.status === 0 && result.stdout.trim().length > 0
+}
+
+const unifiedStack = isUnifiedStackRunning()
+const compose = unifiedStack ? [...stackCompose, 'run', '--rm'] : legacyCompose
+
+function runArtisan(args) {
+  if (unifiedStack) {
+    return run('docker', [...stackCompose, 'exec', '-T', 'backend-php', 'php', 'artisan', ...args])
+  }
+
+  return run('C:\\php\\php.exe', ['artisan', ...args], path.join(repoRoot, 'backend'))
+}
+
+function runSimulatorTool(entrypoint, environment) {
+  return run('docker', [
+    ...compose,
+    '--entrypoint', entrypoint,
+    ...environment.flatMap((value) => ['-e', value]),
+    'ocpp-cli',
+  ])
+}
+
 if (action === 'fleet-status') {
   for (const station of stations) {
-    if (!run('C:\\php\\php.exe', ['artisan', 'ocpp:status', station.identity], path.join(repoRoot, 'backend'))) break
+    if (!runArtisan(['ocpp:status', station.identity])) break
   }
 } else if (action === 'status') {
   requireStation(requestedStation)
-  run('C:\\php\\php.exe', ['artisan', 'ocpp:status', requestedStation], path.join(repoRoot, 'backend'))
+  runArtisan(['ocpp:status', requestedStation])
 } else if (action === 'plug' || action === 'unplug') {
   const station = requireStation(requestedStation)
   const connector = requireConnector(station, requestedConnector)
   const status = action === 'plug' ? 'Preparing' : 'Available'
-  run('docker', [
-    ...compose,
-    '-e', `OCPP_SIMULATOR_STATION_IDENTITY=${station.identity}`,
-    '-e', `OCPP_SIMULATOR_CONNECTOR_ID=${connector}`,
-    '-e', `OCPP_SIMULATOR_CONNECTOR_STATUS=${status}`,
-    'ocpp-plug',
-  ])
+  const environment = [
+    `OCPP_SIMULATOR_STATION_IDENTITY=${station.identity}`,
+    `OCPP_SIMULATOR_CONNECTOR_ID=${connector}`,
+    `OCPP_SIMULATOR_CONNECTOR_STATUS=${status}`,
+  ]
+  if (unifiedStack) {
+    runSimulatorTool('run-ocpp-connector-status', environment)
+  } else {
+    run('docker', [...compose, ...environment.flatMap((value) => ['-e', value]), 'ocpp-plug'])
+  }
 } else if (action === 'scenario' || action === 'transaction-scenario') {
   const station = requireStation(requestedStation)
   const service = action === 'scenario' ? 'ocpp-scenario' : 'ocpp-transaction-scenario'
-  run('docker', [
-    ...compose,
-    '-e', `OCPP_SIMULATOR_STATION_IDENTITY=${station.identity}`,
-    service,
-  ])
+  const environment = [`OCPP_SIMULATOR_STATION_IDENTITY=${station.identity}`]
+  const entrypoint = action === 'scenario' ? 'run-ocpp-scenario' : 'run-ocpp-transaction-scenario'
+  if (unifiedStack) {
+    runSimulatorTool(entrypoint, environment)
+  } else {
+    run('docker', [...compose, ...environment.flatMap((value) => ['-e', value]), service])
+  }
 } else if (action === 'stop-transaction') {
   const station = requireStation(requestedStation)
-  run('docker', [
-    ...compose,
-    '-e', `OCPP_SIMULATOR_STATION_IDENTITY=${station.identity}`,
-    'ocpp-stop-transaction',
-  ])
+  const environment = [`OCPP_SIMULATOR_STATION_IDENTITY=${station.identity}`]
+  if (unifiedStack) {
+    runSimulatorTool('run-ocpp-stop-transaction', environment)
+  } else {
+    run('docker', [...compose, ...environment.flatMap((value) => ['-e', value]), 'ocpp-stop-transaction'])
+  }
 } else if (action === 'connect' || action === 'disconnect') {
   const station = requireStation(requestedStation)
-  run('docker', [
-    ...compose,
-    '-e', `OCPP_SIMULATOR_STATION_IDENTITY=${station.identity}`,
-    '-e', `OCPP_SIMULATOR_CONNECTION_ACTION=${action === 'connect' ? 'open' : 'close'}`,
-    'ocpp-connection',
-  ])
+  const environment = [
+    `OCPP_SIMULATOR_STATION_IDENTITY=${station.identity}`,
+    `OCPP_SIMULATOR_CONNECTION_ACTION=${action === 'connect' ? 'open' : 'close'}`,
+  ]
+  if (unifiedStack) {
+    runSimulatorTool('run-ocpp-connection-state', environment)
+  } else {
+    run('docker', [...compose, ...environment.flatMap((value) => ['-e', value]), 'ocpp-connection'])
+  }
 } else {
   throw new Error('Usage: ocpp-control <status|fleet-status|plug|unplug|scenario|transaction-scenario|stop-transaction|connect|disconnect> [station] [connector]')
 }

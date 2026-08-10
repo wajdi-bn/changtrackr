@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
 const dockerfiles = [
+  new URL('../backend/Dockerfile', import.meta.url),
+  new URL('../frontend/Dockerfile', import.meta.url),
   new URL('../ocpp-gateway/Dockerfile', import.meta.url),
   new URL('./ocpp/simulator/Dockerfile', import.meta.url),
 ]
@@ -19,4 +21,13 @@ test('external Docker base images are pinned to immutable digests', async () => 
       assert.match(image, /^[^@\s]+@sha256:[a-f0-9]{64}$/)
     }
   }
+})
+
+test('frontend image requires the public Reverb application key without embedding a secret', async () => {
+  const frontendDockerfile = await readFile(new URL('../frontend/Dockerfile', import.meta.url), 'utf8')
+
+  assert.match(frontendDockerfile, /ARG VITE_REVERB_APP_KEY\r?\n/)
+  assert.doesNotMatch(frontendDockerfile, /VITE_REVERB_APP_KEY=local-key/)
+  assert.match(frontendDockerfile, /test -n "\$VITE_REVERB_APP_KEY"/)
+  assert.doesNotMatch(frontendDockerfile, /REVERB_APP_SECRET/)
 })
