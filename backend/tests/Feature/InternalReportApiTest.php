@@ -6,6 +6,8 @@ use App\Models\Organization;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -17,6 +19,40 @@ class InternalReportApiTest extends TestCase
     {
         parent::setUp();
         $this->seed(RolePermissionSeeder::class);
+        Storage::fake('local');
+    }
+
+    public function test_sender_can_attach_a_file_to_a_draft_before_sending_it(): void
+    {
+        $organization = $this->organization('Attachment Network');
+        $operator = $this->user('operator', $organization);
+        $technician = $this->user('technician', $organization);
+        Sanctum::actingAs($operator);
+
+        $reportId = $this->postJson('/api/internal-reports', [
+            'recipient_id' => $technician->id,
+            'title' => 'Connector diagnosis',
+            'category' => 'intervention',
+            'priority' => 'important',
+            'body' => 'The connector requires a field diagnosis before the next shift.',
+        ])->assertCreated()->assertJsonPath('data.status', 'draft')->json('data.id');
+
+        $this->post("/api/internal-reports/{$reportId}/attachments", [
+            'file' => UploadedFile::fake()->createWithContent('diagnosis.pdf', "%PDF-1.4\n%%EOF"),
+            'category' => 'report_attachment',
+            'title' => 'Connector diagnosis evidence',
+        ])->assertCreated()->assertJsonPath('data.original_name', 'diagnosis.pdf');
+
+        $this->postJson("/api/internal-reports/{$reportId}/send")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'sent')
+            ->assertJsonCount(1, 'data.attachments');
+
+        Sanctum::actingAs($technician);
+        $this->getJson('/api/internal-reports?mailbox=inbox')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $reportId)
+            ->assertJsonPath('data.0.attachments.0.original_name', 'diagnosis.pdf');
     }
 
     public function test_organization_employees_can_exchange_read_archive_and_download_reports(): void

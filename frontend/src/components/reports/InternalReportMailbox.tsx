@@ -6,6 +6,7 @@ import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
 import { Archive, Download, Eye, FilePenLine, Inbox, Mail, MailOpen, Paperclip, Plus, Reply, Search, Send, Trash2, UploadCloud } from 'lucide-react'
 import { deleteAssetDocument, getAssetDocumentContent, uploadAssetDocument } from '../../features/documents/documentApi'
+import { getApiErrorMessage } from '../../api/apiErrors'
 import { DocumentPreviewModal } from '../../features/documents/DocumentPreviewModal'
 import {
   archiveInternalReport,
@@ -31,6 +32,24 @@ interface ComposeValues {
   summary?: string
   body: string
   period?: [Dayjs, Dayjs]
+}
+
+class ReportAttachmentUploadError extends Error {
+  readonly draft: InternalReport
+  readonly failedFileName: string
+  readonly remainingFiles: UploadFile[]
+
+  constructor(
+    draft: InternalReport,
+    failedFileName: string,
+    remainingFiles: UploadFile[],
+    cause: unknown,
+  ) {
+    super(getApiErrorMessage(cause, `The attachment ${failedFileName} could not be uploaded.`))
+    this.draft = draft
+    this.failedFileName = failedFileName
+    this.remainingFiles = remainingFiles
+  }
 }
 
 const mailboxOptions: Array<{ value: ReportMailbox; label: string; icon: typeof Inbox }> = [
@@ -81,19 +100,33 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
       const draft = editing
         ? await updateInternalReport(editing.id, payload)
         : await createInternalReport({ ...payload, send_now: false })
-      for (const pendingFile of pendingFiles) {
+      for (const [index, pendingFile] of pendingFiles.entries()) {
         const file = pendingFile.originFileObj
         if (!file) continue
-        await uploadAssetDocument('report', draft.id, {
-          file,
-          category: 'report_attachment',
-          title: file.name.replace(/\.[^.]+$/, ''),
-        })
+        try {
+          const baseTitle = file.name.replace(/\.[^.]+$/, '').trim()
+          await uploadAssetDocument('report', draft.id, {
+            file,
+            category: 'report_attachment',
+            title: baseTitle.length >= 2 ? baseTitle : `Report attachment - ${file.name}`,
+          })
+        } catch (error) {
+          throw new ReportAttachmentUploadError(draft, file.name, pendingFiles.slice(index), error)
+        }
       }
       return sendNow ? sendInternalReport(draft.id, values.recipient_id) : draft
     },
     onSuccess: async (_, variables) => { await refresh(); setComposeOpen(false); setEditing(null); setPendingFiles([]); form.resetFields(); void message.success(variables.sendNow ? 'Report and attachments sent securely.' : 'Draft saved.') },
-    onError: () => void message.error('The report could not be saved. Review the fields, recipient and attachments.'),
+    onError: async (error) => {
+      if (error instanceof ReportAttachmentUploadError) {
+        setEditing(error.draft)
+        setPendingFiles(error.remainingFiles)
+        await refresh()
+        void message.error(`${error.message} The report remains saved as draft; retry the remaining files.`)
+        return
+      }
+      void message.error(getApiErrorMessage(error, 'The report could not be saved. Review the fields and recipient.'))
+    },
   })
   const readMutation = useMutation({ mutationFn: readInternalReport, onSuccess: refresh })
   const archiveMutation = useMutation({ mutationFn: archiveInternalReport, onSuccess: async () => { await refresh(); void message.success('Report archived.') } })
