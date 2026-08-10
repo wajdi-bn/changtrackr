@@ -986,7 +986,7 @@ function StationTelemetryPanel({
             {hasDailyActivity ? (
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={dailyChartData} margin={{ top: 8, right: 8, bottom: 0, left: -14 }}>
-                  <CartesianGrid stroke="var(--app-grid)" strokeDasharray="3 3" vertical={false} />
+                  <CartesianGrid stroke="#e7eeea" strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="label" axisLine={false} tickLine={false} />
                   <YAxis yAxisId="energy" axisLine={false} tickLine={false} width={44} unit=" kWh" />
                   <YAxis yAxisId="sessions" orientation="right" axisLine={false} tickLine={false} allowDecimals={false} width={24} />
@@ -1008,7 +1008,7 @@ function StationTelemetryPanel({
                       <stop offset="100%" stopColor="#7148f5" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="var(--app-grid)" strokeDasharray="3 3" vertical={false} />
+                  <CartesianGrid stroke="#e7eeea" strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="label" axisLine={false} tickLine={false} minTickGap={34} />
                   <YAxis axisLine={false} tickLine={false} width={42} unit=" kW" />
                   <ChartTooltip contentStyle={chartTooltipStyle} formatter={(value) => [`${Number(value).toFixed(3)} kW`, 'Power']} />

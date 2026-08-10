@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { App, Button, Card, Divider, Form, Input, Modal, Radio, Segmented, Select, Skeleton, Switch } from 'antd'
-import { BellRing, CalendarClock, Clock3, CreditCard, KeyRound, LockKeyhole, MailCheck, MonitorCog, Moon, Navigation, ShieldAlert, Sun, Wrench } from 'lucide-react'
+import { App, Button, Card, Divider, Form, Input, Modal, Radio, Select, Skeleton, Switch } from 'antd'
+import { BellRing, CalendarClock, Clock3, CreditCard, KeyRound, LockKeyhole, MailCheck, Navigation, ShieldAlert, Wrench } from 'lucide-react'
 import { MountainBanner } from '../components/MountainBanner'
 import { getAccountPreferences, updateAccountPreferences } from '../features/account/accountPreferenceApi'
 import { changeAccountPassword, getAccountSecurity, type ChangePasswordPayload } from '../features/account/accountSecurityApi'
@@ -11,8 +11,6 @@ import {
   updateNotificationPreferences,
   type NotificationPreferences,
 } from '../features/notifications/notificationApi'
-import type { ThemeMode } from '../features/theme/themePreference'
-import { useTheme } from '../features/theme/useTheme'
 import { deviceTimeZone, formatDateTime } from '../utils/dateTime'
 
 const timeZoneOptions = [
@@ -40,7 +38,6 @@ export function SettingsPage() {
   const queryClient = useQueryClient()
   const { message } = App.useApp()
   const { user, updateCurrentUser, primaryRole } = useAuth()
-  const { mode: themeMode, resolvedTheme, setMode: setThemeMode } = useTheme()
   const [passwordForm] = Form.useForm<ChangePasswordPayload>()
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const preferencesQuery = useQuery({
@@ -102,31 +99,6 @@ export function SettingsPage() {
         title="Settings"
         subtitle="Control which operational updates are also delivered by email."
       />
-
-      <Card className="settings-card settings-appearance-card" title="Appearance">
-        <div className="settings-appearance-layout">
-          <div className="settings-intro settings-intro--appearance">
-            <MonitorCog size={20} />
-            <div>
-              <strong>Interface theme</strong>
-              <p>Use the system appearance or keep ChargeTrackr consistently light or dark on this browser.</p>
-            </div>
-          </div>
-          <div className="theme-preference-control">
-            <Segmented
-              value={themeMode}
-              onChange={(value) => setThemeMode(value as ThemeMode)}
-              options={[
-                { value: 'system', label: 'System', icon: <MonitorCog size={16} /> },
-                { value: 'light', label: 'Light', icon: <Sun size={16} /> },
-                { value: 'dark', label: 'Dark', icon: <Moon size={16} /> },
-              ]}
-              aria-label="Interface theme"
-            />
-            <small>Currently using {resolvedTheme} appearance.</small>
-          </div>
-        </div>
-      </Card>
 
       <Card className="settings-card" title="Notification delivery">
         <div className="settings-intro">
