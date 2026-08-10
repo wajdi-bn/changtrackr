@@ -18,20 +18,17 @@
 .icon-surface {
   --icon-fill-start: #65ef7d;
   --icon-fill-end: #25c75a;
-  --icon-depth: #159a43;
-  --icon-shadow: rgba(18, 135, 58, 0.32);
+  --icon-shadow: rgba(18, 135, 58, 0.18);
   display: inline-grid;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.58);
+  border: 0;
   border-radius: 25%;
   background: linear-gradient(155deg, var(--icon-fill-start), var(--icon-fill-end));
   color: #ffffff;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    inset 0 -4px 7px rgba(0, 92, 34, 0.18),
-    0 2px 0 var(--icon-depth),
-    0 5px 9px var(--icon-shadow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 2px 5px var(--icon-shadow);
   transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
@@ -39,33 +36,29 @@
   width: 56%;
   height: 56%;
   color: inherit;
-  filter: drop-shadow(0 2px 1px rgba(0, 82, 31, 0.26));
+  filter: drop-shadow(0 1px 1px rgba(0, 82, 31, 0.18));
   stroke-width: 2.35;
 }
 
 .icon-surface--small { width: 32px; height: 32px; }
 .icon-surface--medium { width: 38px; height: 38px; }
 .icon-surface--large { width: 44px; height: 44px; }
-.icon-surface--green { --icon-fill-start: #65ef7d; --icon-fill-end: #25c75a; --icon-depth: #159a43; --icon-shadow: rgba(18, 135, 58, 0.32); }
-.icon-surface--yellow { --icon-fill-start: #ffd94d; --icon-fill-end: #f2b500; --icon-depth: #bd8200; --icon-shadow: rgba(163, 108, 0, 0.3); }
-.icon-surface--red { --icon-fill-start: #ff6b61; --icon-fill-end: #f3342b; --icon-depth: #bd211b; --icon-shadow: rgba(174, 31, 25, 0.3); }
+.icon-surface--green { --icon-fill-start: #65ef7d; --icon-fill-end: #25c75a; --icon-shadow: rgba(18, 135, 58, 0.18); }
+.icon-surface--yellow { --icon-fill-start: #ffd94d; --icon-fill-end: #f2b500; --icon-shadow: rgba(163, 108, 0, 0.16); }
+.icon-surface--red { --icon-fill-start: #ff6b61; --icon-fill-end: #f3342b; --icon-shadow: rgba(174, 31, 25, 0.16); }
 
 button:hover .icon-surface {
   transform: translateY(-1px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.65),
-    inset 0 -4px 7px rgba(0, 0, 0, 0.16),
-    0 3px 0 var(--icon-depth),
-    0 7px 13px var(--icon-shadow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 3px 7px var(--icon-shadow);
 }
 
 button:active .icon-surface {
-  transform: translateY(2px);
+  transform: translateY(0);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.42),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.16),
-    0 1px 0 var(--icon-depth),
-    0 3px 7px var(--icon-shadow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 1px 3px var(--icon-shadow);
 }
 
 /* Client charging memberships */
@@ -14947,17 +14940,14 @@ body {
 ) {
   --legacy-icon-start: #65ef7d;
   --legacy-icon-end: #25c75a;
-  --legacy-icon-depth: #159a43;
-  --legacy-icon-shadow: rgb(18 135 58 / 32%);
+  --legacy-icon-shadow: rgb(18 135 58 / 18%);
   color: #fff !important;
-  border: 1px solid rgb(255 255 255 / 62%) !important;
+  border: 0 !important;
   border-radius: 25% !important;
   background: linear-gradient(155deg, var(--legacy-icon-start), var(--legacy-icon-end)) !important;
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 58%),
-    inset 0 -5px 8px color-mix(in srgb, var(--legacy-icon-depth) 44%, transparent),
-    0 2px 0 var(--legacy-icon-depth),
-    0 6px 11px var(--legacy-icon-shadow) !important;
+    inset 0 1px 0 rgb(255 255 255 / 28%),
+    0 2px 5px var(--legacy-icon-shadow) !important;
 }
 
 :is(
@@ -15011,7 +15001,7 @@ body {
   width: 56%;
   height: 56%;
   color: #fff !important;
-  filter: drop-shadow(0 1px 1px rgb(0 68 31 / 28%));
+  filter: drop-shadow(0 1px 1px rgb(0 68 31 / 18%));
   stroke-width: 2.35;
 }
 
@@ -15033,8 +15023,7 @@ body {
 ) {
   --legacy-icon-start: #ffd94d;
   --legacy-icon-end: #f2b500;
-  --legacy-icon-depth: #bd8200;
-  --legacy-icon-shadow: rgb(181 119 0 / 30%);
+  --legacy-icon-shadow: rgb(181 119 0 / 16%);
 }
 
 :is(
@@ -15050,6 +15039,5 @@ body {
 ) {
   --legacy-icon-start: #ff6b61;
   --legacy-icon-end: #f3342b;
-  --legacy-icon-depth: #bd211b;
-  --legacy-icon-shadow: rgb(184 30 28 / 30%);
+  --legacy-icon-shadow: rgb(184 30 28 / 16%);
 }
