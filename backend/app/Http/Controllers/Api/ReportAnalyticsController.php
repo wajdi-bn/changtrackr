@@ -12,17 +12,19 @@ use App\Models\Payment;
 use App\Models\Station;
 use App\Models\User;
 use App\Services\Reports\ReportExportService;
+use App\Services\Reports\ReportingSnapshotFormatter;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
 class ReportAnalyticsController extends Controller
 {
-    public function export(Request $request, string $scope, ReportExportService $exports): Response
+    public function export(Request $request, string $scope, ReportExportService $exports, ReportingSnapshotFormatter $formatter): Response
     {
         $validated = $request->validate([
             'format' => ['required', Rule::in(['csv', 'json', 'pdf'])],
@@ -37,7 +39,7 @@ class ReportAnalyticsController extends Controller
         };
         $payload = $response->getData(true)['data'];
         $period = $payload['period'];
-        $rows = $this->flattenSnapshot($payload);
+        $rows = $formatter->rows($scope, $payload);
         $title = match ($scope) {
             'platform' => 'Platform governance report',
             'organization' => 'Organization performance report',
@@ -50,7 +52,7 @@ class ReportAnalyticsController extends Controller
             $scope.'-report-'.$period['to'],
             $title,
             'Verified reporting snapshot for '.$period['label'].'.',
-            ['section' => 'Section', 'metric' => 'Metric', 'value' => 'Value'],
+            ['section' => 'Section', 'indicator' => 'Indicator', 'result' => 'Result', 'context' => 'Operational context'],
             $rows,
             $request->user(),
             ['period' => $period['label'], 'from' => $period['from'], 'to' => $period['to']],
@@ -271,37 +273,8 @@ class ReportAnalyticsController extends Controller
         ];
     }
 
-    private function days(CarbonImmutable $from, CarbonImmutable $to): \Illuminate\Support\Collection
+    private function days(CarbonImmutable $from, CarbonImmutable $to): Collection
     {
         return collect(CarbonPeriod::create($from, $to))->map(fn ($date) => $date->format('Y-m-d'));
-    }
-
-    /** @param array<string, mixed> $payload */
-    private function flattenSnapshot(array $payload): array
-    {
-        return collect($payload)->except(['role', 'period', 'generated_by'])->flatMap(function (mixed $value, string $section): array {
-            if (! is_array($value)) {
-                return [['section' => $this->humanize($section), 'metric' => 'Value', 'value' => $value]];
-            }
-
-            if (array_is_list($value)) {
-                return collect($value)->map(fn (mixed $item, int $index) => [
-                    'section' => $this->humanize($section),
-                    'metric' => is_array($item) ? ($item['name'] ?? $item['label'] ?? $item['date'] ?? '#'.($index + 1)) : '#'.($index + 1),
-                    'value' => is_array($item) ? json_encode($item, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : $item,
-                ])->all();
-            }
-
-            return collect($value)->map(fn (mixed $item, string $metric) => [
-                'section' => $this->humanize($section),
-                'metric' => $this->humanize($metric),
-                'value' => is_array($item) ? json_encode($item, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : $item,
-            ])->values()->all();
-        })->values()->all();
-    }
-
-    private function humanize(string $value): string
-    {
-        return str_replace('_', ' ', ucfirst($value));
     }
 }

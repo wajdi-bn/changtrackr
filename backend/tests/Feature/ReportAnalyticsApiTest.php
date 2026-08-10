@@ -49,7 +49,10 @@ class ReportAnalyticsApiTest extends TestCase
         $this->get('/api/reporting/platform/export?period=30d&format=csv')
             ->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
         $this->getJson('/api/reporting/platform/export?period=30d&format=json')
-            ->assertOk()->assertJsonStructure(['metadata', 'data']);
+            ->assertOk()
+            ->assertJsonStructure(['metadata', 'data' => [['section', 'indicator', 'result', 'context']]])
+            ->assertJsonPath('data.0.section', 'Platform footprint')
+            ->assertJsonPath('data.0.indicator', 'Organizations');
         $this->get('/api/reporting/platform/export?period=30d&format=pdf')
             ->assertOk()->assertHeader('content-type', 'application/pdf');
     }

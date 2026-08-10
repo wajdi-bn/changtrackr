@@ -8,7 +8,8 @@
         body { margin: 0; color: #1c2d25; font-family: DejaVu Sans, sans-serif; font-size: 9px; }
         header { position: fixed; top: -54px; left: 0; right: 0; height: 42px; border-bottom: 2px solid #159a61; }
         .brand { float: left; color: #117c4e; font-size: 17px; font-weight: bold; }
-        .brand-mark { display: inline-block; margin-right: 7px; padding: 4px 7px; border-radius: 5px; color: #fff; background: #159a61; }
+        .brand img { width: 29px; height: 29px; margin-right: 7px; vertical-align: middle; object-fit: contain; }
+        .brand span { vertical-align: middle; }
         .scope { float: right; padding-top: 7px; color: #65756d; font-size: 8px; text-align: right; }
         footer { position: fixed; bottom: -33px; left: 0; right: 0; padding-top: 8px; border-top: 1px solid #dfe8e3; color: #7a8881; font-size: 7px; }
         footer .page { float: right; }
@@ -31,7 +32,7 @@
 </head>
 <body>
 <header>
-    <div class="brand"><span class="brand-mark">CT</span>ChargeTrackr</div>
+    <div class="brand"><img src="{{ public_path('assets/brand/charge-trackr-logo.png') }}" alt=""><span>ChargeTrackr</span></div>
     <div class="scope">{{ $metadata['scope'] }}<br>{{ $metadata['generated_at'] }}</div>
 </header>
 <footer>
