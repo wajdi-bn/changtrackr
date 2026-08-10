@@ -1,13 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
-import { App, Button, Card, Checkbox, Drawer, Form, Input, InputNumber, Select } from 'antd'
+import { useQuery } from '@tanstack/react-query'
+import { App, Button, Card, Checkbox, Drawer, Form, Input, InputNumber, Segmented, Select, Skeleton } from 'antd'
 import {
   Activity,
   ArrowUpRight,
   BatteryCharging,
+  BellRing,
+  Building2,
+  CarFront,
+  Check,
+  CircleDollarSign,
+  ClipboardCheck,
+  CreditCard,
+  FileText,
   Gauge,
+  MapPinned,
   Menu as MenuIcon,
+  RadioTower,
+  ReceiptText,
   ShieldCheck,
+  Users,
+  Wrench,
   X,
+  Zap,
 } from 'lucide-react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -15,62 +30,138 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getApiErrorMessage, getApiErrorStatus, getApiValidationErrors } from '../api/apiErrors'
 import { submitDemoRequest } from '../features/demoRequests/demoRequestApi'
 import { demoObjectiveOptions } from '../features/demoRequests/demoRequestOptions'
+import { getPublicSaasPlans, type PublicSaasPlan } from '../features/commercial/publicCommercialApi'
 import type { PublicDemoRequestPayload } from '../types/demoRequest'
+import { formatLandingPlanLimit, getLandingPlanPrice, type LandingBillingCycle } from './landingPlanPricing'
 
 const navLinks = [
-  { label: 'Network', href: '#network' },
-  { label: 'Operations', href: '#operations' },
-  { label: 'Reports', href: '#reports' },
-  { label: 'Updates', href: '#updates' },
-  { label: 'Contact', href: '#demo' },
+  { label: 'Product', href: '#product' },
+  { label: 'Workflow', href: '#workflow' },
+  { label: 'Workspaces', href: '#workspaces' },
+  { label: 'Pricing', href: '#pricing' },
+  { label: 'Demo', href: '#demo' },
 ]
 
-const collageTiles = [
-  { src: '/assets/charge-hero.png', alt: 'Electric vehicle charging beside a fast charger', className: 'collage-one' },
-  { src: '/assets/ev-charging-hub.png', alt: 'Fast EV charging hub with green charger lights', className: 'collage-two' },
-  { src: '/assets/ev-operations-desk.png', alt: 'EV charging network operations dashboard', className: 'collage-three' },
-  { src: '/assets/ev-route-corridor.png', alt: 'EV charging corridor at dusk', className: 'collage-four' },
-  { src: '/assets/ev-technician.png', alt: 'Technician inspecting an EV fast charger', className: 'collage-five' },
-  { src: '/assets/ev-charging-hub.png', alt: 'Mediterranean EV charging station', className: 'collage-six' },
+const platformFacts = [
+  { value: 'OCPP 1.6J', label: 'Gateway and simulated station fleet' },
+  { value: 'Live rules', label: 'Availability derived from station signals' },
+  { value: '5 workspaces', label: 'Access tailored to each responsibility' },
+  { value: 'Traceable', label: 'Payments, actions, reports and audit history' },
 ]
 
-const operationCards = [
+const productStories = [
   {
-    icon: Activity,
-    label: 'Live supervision',
-    copy: 'Track heartbeat health, connector state, charging load, and uptime from a single operational view.',
-  },
-  {
-    icon: ShieldCheck,
-    label: 'Faster intervention',
-    copy: 'Prioritize faulted connectors, offline stations, maintenance windows, and assigned technician actions.',
-  },
-  {
-    icon: Gauge,
-    label: 'Network insight',
-    copy: 'Turn sessions, utilization, revenue, and avoided CO2 into export-ready reports for operators.',
-  },
-]
-
-const updates = [
-  {
-    image: '/assets/ev-charging-hub.png',
-    label: 'Network operations',
-    title: 'Lac 1 Fast Hub keeps 99.4% uptime across morning commuter demand.',
-  },
-  {
-    image: '/assets/ev-route-corridor.png',
-    label: 'Energy impact',
-    title: 'Delivered energy reaches 24.5 MWh while station availability stays above target.',
-  },
-  {
+    icon: RadioTower,
+    eyebrow: 'Network supervision',
+    title: 'From station signal to a trustworthy availability state.',
+    copy: 'The OCPP gateway receives boot, heartbeat, connector, transaction and meter events. ChargeTrackr applies business rules before updating maps, dashboards and alerts.',
     image: '/assets/ev-operations-desk.png',
-    label: 'City rollout',
-    title: 'Tunisia coverage dashboard expands live views across coastal and airport stations.',
+    alt: 'Charging network operations team monitoring station status',
+    points: ['Heartbeat and connectivity monitoring', 'Connector-level status and fault context', 'Remote commands with a complete history'],
+  },
+  {
+    icon: Wrench,
+    eyebrow: 'Field operations',
+    title: 'Turn operational attention into an assigned, documented response.',
+    copy: 'Operators qualify alerts and coordinate work. Technicians receive focused assignments, attach evidence, record actions and hand a verified report back to the organization.',
+    image: '/assets/ev-technician.png',
+    alt: 'Technician inspecting an electric vehicle charging station',
+    points: ['Priorities, assignments and SLA follow-up', 'Maintenance calendar and intervention evidence', 'Role-specific handovers and internal reports'],
+  },
+  {
+    icon: CreditCard,
+    eyebrow: 'Driver experience',
+    title: 'Guide every charging session from discovery to receipt.',
+    copy: 'Drivers find an available station, select a compatible connector, follow the physical connection steps, authorize payment and monitor the live OCPP session until completion.',
+    image: '/assets/ev-charging-hub.png',
+    alt: 'Electric vehicle charging at a modern public hub',
+    points: ['Map, route and connector compatibility', 'Guided charging target and payment authorization', 'Live energy, cost, completion and PDF receipt'],
   },
 ]
 
-const footerLinks = ['Overview', 'Stations', 'Map', 'Alerts', 'Sessions', 'Reports']
+const roleWorkspaces = [
+  {
+    key: 'platform',
+    label: 'Platform',
+    eyebrow: 'Super Administrator',
+    title: 'Govern organizations and platform-wide controls.',
+    copy: 'Review demo requests, provision organization administrators, manage commercial plans, inspect integrations, permissions, audit trails and global settings.',
+    image: '/assets/ev-operations-desk.png',
+    icon: Building2,
+    features: ['Organization lifecycle', 'Commercial catalog', 'Platform audit and integrations'],
+  },
+  {
+    key: 'admin',
+    label: 'Administrator',
+    eyebrow: 'Organization Administrator',
+    title: 'Control one organization, its people and charging assets.',
+    copy: 'Manage employees and customers within the organization boundary, commission stations, define tariffs, follow billing and turn operational data into business decisions.',
+    image: '/assets/charge-hero.png',
+    icon: Users,
+    features: ['Organization workforce', 'Stations and pricing', 'Business reports and billing'],
+  },
+  {
+    key: 'operator',
+    label: 'Operator',
+    eyebrow: 'Network Operator',
+    title: 'Keep the charging network visible and actionable.',
+    copy: 'Watch the live map, diagnose alerts, use authorized OCPP commands, assign interventions and prepare clear shift handovers without crossing organization boundaries.',
+    image: '/assets/ev-route-corridor.png',
+    icon: Activity,
+    features: ['Live station map', 'Alerts and remote actions', 'Shift reporting'],
+  },
+  {
+    key: 'technician',
+    label: 'Technician',
+    eyebrow: 'Field Technician',
+    title: 'Work from an assigned field queue, not a generic dashboard.',
+    copy: 'Consult station context, execute interventions and maintenance tasks, document before-and-after evidence and submit a structured technical outcome.',
+    image: '/assets/ev-technician.png',
+    icon: Wrench,
+    features: ['Assigned interventions', 'Maintenance execution', 'Evidence and field reports'],
+  },
+  {
+    key: 'driver',
+    label: 'Driver',
+    eyebrow: 'Client / Driver',
+    title: 'Find, charge, pay and keep every receipt in one place.',
+    copy: 'Use the public station map, scan a connector QR code, follow a guided charging workflow, monitor the current session and manage network memberships.',
+    image: '/assets/ev-charging-hub.png',
+    icon: CarFront,
+    features: ['Station discovery', 'Guided live charging', 'Payments and memberships'],
+  },
+]
+
+const operationalFlow = [
+  { icon: RadioTower, title: 'Station signal', copy: 'Boot, heartbeat, status and meter events arrive through OCPP.' },
+  { icon: Gauge, title: 'Availability', copy: 'Rules calculate a usable state instead of trusting a stale database value.' },
+  { icon: BellRing, title: 'Response', copy: 'Alerts, interventions and maintenance coordinate human action.' },
+  { icon: Zap, title: 'Charging', copy: 'The driver journey links connector, target, authorization and live session.' },
+  { icon: ReceiptText, title: 'Evidence', copy: 'Receipts, reports and audit history preserve the operational result.' },
+]
+
+const capabilityCards = [
+  { icon: MapPinned, title: 'Map and station catalog', copy: 'Filter availability, inspect connectors, open directions and commission new charging assets.' },
+  { icon: Activity, title: 'Live OCPP supervision', copy: 'Follow heartbeats, connector events, transactions and authorized remote commands.' },
+  { icon: ClipboardCheck, title: 'Alerts and field work', copy: 'Move from operational alert to assigned intervention, maintenance and verified closure.' },
+  { icon: CircleDollarSign, title: 'Tariffs and payments', copy: 'Apply station pricing, charging plans, payment authorization and traceable settlement.' },
+  { icon: FileText, title: 'Role-specific reporting', copy: 'Use focused analytics, internal report exchange and branded CSV, JSON or PDF exports.' },
+  { icon: ShieldCheck, title: 'Scoped access', copy: 'Separate platform governance, organization assets, field duties and driver data.' },
+]
+
+const fallbackPlans: PublicSaasPlan[] = [
+  { name: 'Starter', code: 'STARTER', description: 'Essential supervision for a small charging network.', monthly_price_millimes: 149000, annual_price_millimes: 1490000, max_stations: 5, max_employees: 5, features: ['Live station monitoring', 'Alerts and interventions', 'Standard reports'], is_featured: false },
+  { name: 'Business', code: 'BUSINESS', description: 'Operations, maintenance and analytics for a growing network.', monthly_price_millimes: 399000, annual_price_millimes: 3990000, max_stations: 50, max_employees: 25, features: ['Everything in Starter', 'Remote OCPP operations', 'Advanced analytics and exports', 'Priority support'], is_featured: true },
+  { name: 'Enterprise', code: 'ENTERPRISE', description: 'Governance and unlimited scale for large charging portfolios.', monthly_price_millimes: 999000, annual_price_millimes: 9990000, max_stations: null, max_employees: null, features: ['Everything in Business', 'Unlimited stations and employees', 'Custom onboarding', 'Dedicated support'], is_featured: false },
+]
+
+const footerLinks = [
+  { label: 'Product', href: '#product' },
+  { label: 'Workflow', href: '#workflow' },
+  { label: 'Workspaces', href: '#workspaces' },
+  { label: 'Pricing', href: '#pricing' },
+  { label: 'Request a demo', href: '#demo' },
+]
 
 const demoRequestFieldNames = new Set<keyof PublicDemoRequestPayload>([
   'full_name',
@@ -85,14 +176,25 @@ const demoRequestFieldNames = new Set<keyof PublicDemoRequestPayload>([
 
 export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null)
+  const workspaceRef = useRef<HTMLElement>(null)
   const [compactNav, setCompactNav] = useState(false)
   const [pastHero, setPastHero] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [demoSubmitting, setDemoSubmitting] = useState(false)
+  const [workspaceKey, setWorkspaceKey] = useState('operator')
+  const [billingCycle, setBillingCycle] = useState<LandingBillingCycle>('monthly')
   const demoSubmittingRef = useRef(false)
   const [demoForm] = Form.useForm<PublicDemoRequestPayload>()
   const navigate = useNavigate()
   const { message } = App.useApp()
+  const plansQuery = useQuery({
+    queryKey: ['public-commercial-plans'],
+    queryFn: getPublicSaasPlans,
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  })
+  const plans = plansQuery.data?.length ? plansQuery.data : fallbackPlans
+  const activeWorkspace = roleWorkspaces.find((workspace) => workspace.key === workspaceKey) ?? roleWorkspaces[2]!
 
   useEffect(() => {
     const handleScroll = () => {
@@ -145,20 +247,42 @@ export function LandingPage() {
         })
       })
 
-      gsap.utils.toArray<HTMLElement>('.landing-collage-image').forEach((element, index) => {
-        gsap.from(element, {
+      gsap.utils.toArray<HTMLElement>('[data-reveal-group]').forEach((group) => {
+        gsap.from(Array.from(group.children), {
           opacity: 0,
-          y: 75,
-          duration: 0.7,
-          delay: index * 0.06,
+          y: 28,
+          duration: 0.65,
+          stagger: 0.09,
           ease: 'power3.out',
-          scrollTrigger: { trigger: '.landing-collage', start: 'top 72%', once: true },
+          scrollTrigger: { trigger: group, start: 'top 84%', once: true },
         })
+      })
+
+      gsap.utils.toArray<HTMLElement>('[data-parallax]').forEach((element) => {
+        gsap.fromTo(element, { yPercent: -3 }, {
+          yPercent: 3,
+          ease: 'none',
+          scrollTrigger: { trigger: element, start: 'top bottom', end: 'bottom top', scrub: 0.8 },
+        })
+      })
+
+      gsap.from('.landing-flow-progress', {
+        scaleX: 0,
+        transformOrigin: 'left center',
+        ease: 'none',
+        scrollTrigger: { trigger: '.landing-flow-list', start: 'top 82%', end: 'bottom 65%', scrub: 0.6 },
       })
     }, rootRef)
 
     return () => context.revert()
   }, [])
+
+  useEffect(() => {
+    if (!workspaceRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const targets = workspaceRef.current.querySelectorAll('[data-workspace-content]')
+    gsap.fromTo(targets, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.42, stagger: 0.05, ease: 'power2.out' })
+  }, [workspaceKey])
 
   async function submitDemo(values: PublicDemoRequestPayload) {
     if (demoSubmittingRef.current) return
@@ -191,6 +315,10 @@ export function LandingPage() {
     navigate('/login')
   }
 
+  function scrollToDemo() {
+    document.querySelector('#demo')?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   return (
     <div ref={rootRef} className="landing-page">
       <header className={`landing-header ${compactNav ? 'is-compact' : ''} ${pastHero ? 'is-green' : ''}`}>
@@ -209,7 +337,7 @@ export function LandingPage() {
           <div className="landing-nav-actions">
             <Button type="text" className="landing-sign-in" onClick={() => navigate('/login')}>Sign in</Button>
             <Button className="landing-register" onClick={() => navigate('/register')}>Create account</Button>
-            <Button type="primary" shape="round" onClick={() => document.querySelector('#demo')?.scrollIntoView({ behavior: 'smooth' })}>
+            <Button type="primary" shape="round" onClick={scrollToDemo}>
               Request a demo <ArrowUpRight size={14} />
             </Button>
             <Button
@@ -236,6 +364,7 @@ export function LandingPage() {
           ))}
           <Button onClick={() => navigate('/login')}>Sign in</Button>
           <Button type="primary" onClick={() => navigate('/register')}>Create client account</Button>
+          <Button onClick={() => { setMobileMenuOpen(false); scrollToDemo() }}>Request an organization demo</Button>
         </nav>
       </Drawer>
 
@@ -264,107 +393,192 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="network" className="landing-section landing-about">
+        <section id="product" className="landing-section landing-about">
           <div data-reveal>
-            <p className="landing-section-label">About ChargeTrackr</p>
+            <p className="landing-section-label">One operating system</p>
             <img src="/assets/ev-technician.png" alt="Technician inspecting an EV charging station" />
           </div>
           <div data-reveal>
-            <h2>We design visibility for charging networks that have to stay available, profitable, and ready for the next driver.</h2>
-            <p>From heartbeat monitoring to payment follow-up, ChargeTrackr turns daily station operations into a clear, executive-ready operating picture.</p>
-            <Button onClick={openDashboard}>Learn more about us <ArrowUpRight size={15} /></Button>
+            <h2>See the station, coordinate the team, and guide the driver from the same source of truth.</h2>
+            <p>ChargeTrackr connects charging-station signals to availability rules, operational response, driver sessions, payment records and decision-ready reporting. Each person sees the tools that match their responsibility.</p>
+            <div className="landing-about-actions">
+              <Button onClick={() => document.querySelector('#workflow')?.scrollIntoView({ behavior: 'smooth' })}>See the operating flow <ArrowUpRight size={15} /></Button>
+              <Button type="text" onClick={openDashboard}>Sign in to a workspace</Button>
+            </div>
           </div>
         </section>
 
-        <section className="landing-section landing-collage" data-reveal>
-          <h2>A network built for every route.</h2>
-          <div className="landing-collage-canvas">
-            {collageTiles.map((tile) => (
-              <img key={`${tile.src}-${tile.className}`} src={tile.src} alt={tile.alt} className={`landing-collage-image ${tile.className}`} />
+        <section className="landing-proof" aria-label="Platform foundations">
+          <div className="landing-section landing-proof-grid" data-reveal-group>
+            {platformFacts.map((fact) => (
+              <div key={fact.value}>
+                <strong>{fact.value}</strong>
+                <span>{fact.label}</span>
+              </div>
             ))}
-            <Button onClick={() => navigate('/login')}>Explore stations <ArrowUpRight size={15} /></Button>
+          </div>
+        </section>
+
+        <section className="landing-section landing-product-stories">
+          <header className="landing-narrative-heading" data-reveal>
+            <p className="landing-section-label">Connected workflows</p>
+            <h2>Not another static dashboard.</h2>
+            <p>The platform carries verified information from the charging station to the person who must act on it.</p>
+          </header>
+          <div className="landing-product-story-list">
+            {productStories.map((story, index) => (
+              <article key={story.title} className={index % 2 === 1 ? 'is-reversed' : ''} data-reveal>
+                <figure className="landing-product-visual">
+                  <img src={story.image} alt={story.alt} data-parallax />
+                  <span><story.icon size={19} />{story.eyebrow}</span>
+                </figure>
+                <div className="landing-product-copy">
+                  <small>0{index + 1}</small>
+                  <h3>{story.title}</h3>
+                  <p>{story.copy}</p>
+                  <ul>{story.points.map((point) => <li key={point}><Check size={15} />{point}</li>)}</ul>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="workflow" className="landing-flow-section">
+          <div className="landing-section">
+            <header className="landing-narrative-heading landing-narrative-heading--light" data-reveal>
+              <p className="landing-section-label">A complete operational chain</p>
+              <h2>Every event should lead somewhere useful.</h2>
+              <p>ChargeTrackr preserves the connection between machine state, human response, charging activity and business evidence.</p>
+            </header>
+            <div className="landing-flow-list" data-reveal-group>
+              <span className="landing-flow-progress" aria-hidden="true" />
+              {operationalFlow.map((step, index) => (
+                <article key={step.title}>
+                  <span><step.icon size={19} /></span>
+                  <small>0{index + 1}</small>
+                  <h3>{step.title}</h3>
+                  <p>{step.copy}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="workspaces" ref={workspaceRef} className="landing-section landing-workspaces">
+          <header className="landing-narrative-heading" data-reveal>
+            <p className="landing-section-label">Built around responsibility</p>
+            <h2>One platform. Five focused workspaces.</h2>
+            <p>Navigation, metrics and actions change with the role. Data access remains scoped to the platform or organization boundary.</p>
+          </header>
+          <Segmented
+            block
+            className="landing-role-selector"
+            value={workspaceKey}
+            onChange={(value) => setWorkspaceKey(String(value))}
+            options={roleWorkspaces.map((workspace) => ({ label: workspace.label, value: workspace.key }))}
+          />
+          <Select
+            className="landing-role-select"
+            aria-label="Choose a workspace"
+            value={workspaceKey}
+            onChange={(value) => setWorkspaceKey(value)}
+            options={roleWorkspaces.map((workspace) => ({ label: workspace.label, value: workspace.key }))}
+          />
+          <div className="landing-workspace-stage">
+            <div className="landing-workspace-copy" data-workspace-content>
+              <span><activeWorkspace.icon size={19} />{activeWorkspace.eyebrow}</span>
+              <h3>{activeWorkspace.title}</h3>
+              <p>{activeWorkspace.copy}</p>
+              <ul>{activeWorkspace.features.map((feature) => <li key={feature}><Check size={15} />{feature}</li>)}</ul>
+              <Button onClick={openDashboard}>Open workspace <ArrowUpRight size={15} /></Button>
+            </div>
+            <figure data-workspace-content>
+              <img src={activeWorkspace.image} alt={`${activeWorkspace.label} ChargeTrackr workspace context`} />
+              <figcaption><span>ROLE</span><strong>{activeWorkspace.label}</strong><small>Scoped access and role-specific decisions</small></figcaption>
+            </figure>
           </div>
         </section>
 
         <section id="reports" className="landing-report-section">
           <div className="landing-report-panel" data-reveal>
-            <img src="/assets/ev-technician.png" alt="Technician inspecting an EV fast charger" />
+            <img src="/assets/ev-operations-desk.png" alt="Role-specific charging network reports" />
             <div className="landing-report-body">
               <div>
                 <p>Operational intelligence</p>
-                <h2>2026<br />Network Report</h2>
+                <h2>Evidence,<br />not noise.</h2>
               </div>
               <div className="landing-report-bottom">
-                <p>A complete view of station availability, delivered energy, revenue, incidents, and field actions across the ChargeTrackr network.</p>
+                <p>Administrators, operators and technicians receive different analytics and report templates. Teams can exchange reports with attachments and export readable CSV, JSON or branded PDF documents.</p>
                 <button type="button" onClick={openDashboard}>
-                  <small>.PDF</small>
-                  <span>Read the report <ArrowUpRight size={18} /></span>
+                  <small>REPORTING</small>
+                  <span>Open reports <ArrowUpRight size={18} /></span>
                 </button>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="operations" className="landing-section landing-operations">
-          <h2 data-reveal>One network, shared visibility, faster resolution.</h2>
-          <div data-reveal>
-            <p>Our operating layer helps teams see what changed, what needs attention, and where the next charging session can start.</p>
-            <Button onClick={openDashboard}>Explore active operations <ArrowUpRight size={15} /></Button>
-          </div>
-        </section>
-
-        <section className="landing-snapshot">
-          <div className="landing-section landing-snapshot-grid" data-reveal>
-            <div className="landing-snapshot-intro">
-              <div>
-                <h2>Network Snapshot</h2>
-                <p>Live prototype numbers drawn from the same operating dataset used in the dashboard.</p>
-              </div>
-              <img src="/assets/ev-operations-desk.png" alt="EV charging network dashboard" />
-              <Button onClick={openDashboard}>Open overview <ArrowUpRight size={15} /></Button>
-            </div>
-            <div className="landing-snapshot-score">
-              <div className="landing-snapshot-heading"><span>ChargeTrackr network</span><span>Tunisia</span></div>
-              <strong>98.7%</strong>
-              <div className="landing-metrics">
-                <Metric label="Stations" value="1,248" />
-                <Metric label="Active sites" value="956" />
-                <Metric label="Energy" value="24.5 MWh" />
-                <Metric label="Critical alerts" value="5" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="landing-section landing-modules">
-          <div className="landing-section-heading" data-reveal>
-            <div><p className="landing-section-label">Platform modules</p><h2>Built for EV station operations</h2></div>
-            <Button type="link" onClick={openDashboard}>View all <ArrowUpRight size={15} /></Button>
-          </div>
-          <div className="landing-module-grid">
-            {operationCards.map((card) => (
-              <Card key={card.label} className="landing-module-card" data-reveal>
-                <card.icon size={22} />
-                <h3>{card.label}</h3>
-                <p>{card.copy}</p>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        <section id="updates" className="landing-section landing-updates">
-          <div className="landing-section-heading" data-reveal>
-            <h2>Latest Updates</h2>
-            <Button type="link" onClick={openDashboard}>View all <ArrowUpRight size={15} /></Button>
-          </div>
-          <div className="landing-updates-grid">
-            {updates.map((item) => (
-              <article key={item.title} data-reveal>
-                <img src={item.image} alt="" />
-                <small>{item.label}</small>
-                <h3>{item.title}</h3>
+        <section className="landing-section landing-capabilities">
+          <header className="landing-narrative-heading" data-reveal>
+            <p className="landing-section-label">Platform capabilities</p>
+            <h2>The workflows teams expect are already connected.</h2>
+          </header>
+          <div className="landing-capability-grid" data-reveal-group>
+            {capabilityCards.map((capability) => (
+              <article key={capability.title}>
+                <span><capability.icon size={20} /></span>
+                <h3>{capability.title}</h3>
+                <p>{capability.copy}</p>
               </article>
             ))}
+          </div>
+        </section>
+
+        <section id="pricing" className="landing-pricing-section">
+          <div className="landing-section">
+            <header className="landing-pricing-heading" data-reveal>
+              <div>
+                <p className="landing-section-label">Organization plans</p>
+                <h2>Start with a 14-day evaluation workspace.</h2>
+                <p>After evaluation, the organization administrator requests the capacity that fits the network. Driver charging memberships remain separate and are configured by each organization.</p>
+              </div>
+              <Segmented
+                value={billingCycle}
+                onChange={(value) => setBillingCycle(value as LandingBillingCycle)}
+                options={[{ label: 'Monthly', value: 'monthly' }, { label: 'Annual', value: 'annual' }]}
+              />
+            </header>
+            {plansQuery.isLoading && !plansQuery.data ? (
+              <div className="landing-plan-grid">{Array.from({ length: 3 }, (_, index) => <Skeleton key={index} active />)}</div>
+            ) : (
+              <div className="landing-plan-grid" data-reveal-group>
+                {plans.map((plan) => {
+                  const price = getLandingPlanPrice(plan, billingCycle)
+                  return (
+                    <article key={plan.code} className={plan.is_featured ? 'is-featured' : ''}>
+                      <header>
+                        <span>{plan.code}</span>
+                        {plan.is_featured && <b>Most popular</b>}
+                      </header>
+                      <h3>{plan.name}</h3>
+                      <p>{plan.description}</p>
+                      <div className="landing-plan-price">
+                        <strong>{price.amount.toLocaleString('en-US', { maximumFractionDigits: 3 })}</strong>
+                        <span>TND / {price.period}</span>
+                        {price.monthlyEquivalent !== null && <small>{price.monthlyEquivalent.toLocaleString('en-US', { maximumFractionDigits: 3 })} TND monthly equivalent</small>}
+                      </div>
+                      <div className="landing-plan-capacity">
+                        <span><RadioTower size={14} />{formatLandingPlanLimit(plan.max_stations, 'stations')}</span>
+                        <span><Users size={14} />{formatLandingPlanLimit(plan.max_employees, 'employees')}</span>
+                      </div>
+                      <ul>{plan.features.map((feature) => <li key={feature}><Check size={14} />{feature}</li>)}</ul>
+                      <Button type={plan.is_featured ? 'primary' : 'default'} onClick={scrollToDemo}>Request this plan <ArrowUpRight size={14} /></Button>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+            {plansQuery.isError && <p className="landing-pricing-fallback">The standard catalog is shown while live pricing reconnects.</p>}
           </div>
         </section>
 
@@ -437,7 +651,7 @@ export function LandingPage() {
           <div>
             <nav>
               {footerLinks.map((link) => (
-                <button key={link} type="button" onClick={openDashboard}>{link}<ArrowUpRight size={18} /></button>
+                <a key={link.href} href={link.href}>{link.label}<ArrowUpRight size={18} /></a>
               ))}
             </nav>
             <div className="landing-footer-columns">
@@ -450,10 +664,6 @@ export function LandingPage() {
       </footer>
     </div>
   )
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return <div><small>{label}</small><strong>{value}</strong></div>
 }
 
 function FooterColumn({ title, links }: { title: string; links: string[] }) {

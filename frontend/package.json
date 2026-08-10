@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node --test tests/apiErrors.test.ts tests/authSession.test.ts tests/chargingEstimate.test.ts tests/httpInterceptors.test.ts tests/idempotency.test.ts tests/multipartPayload.test.ts tests/navigation.test.ts tests/reportComposeProfiles.test.ts tests/roleResolution.test.ts tests/sessionLifecycle.test.ts",
+    "test": "node --test tests/apiErrors.test.ts tests/authSession.test.ts tests/chargingEstimate.test.ts tests/httpInterceptors.test.ts tests/idempotency.test.ts tests/landingPlanPricing.test.ts tests/multipartPayload.test.ts tests/navigation.test.ts tests/reportComposeProfiles.test.ts tests/roleResolution.test.ts tests/sessionLifecycle.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
