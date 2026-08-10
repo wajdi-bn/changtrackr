@@ -4,7 +4,7 @@ import { App, Avatar, Button, DatePicker, Drawer, Empty, Form, Input, Popconfirm
 import type { UploadFile } from 'antd'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
-import { Archive, Download, Eye, FilePenLine, Inbox, Mail, MailOpen, Paperclip, Plus, Reply, Search, Send, Trash2, UploadCloud } from 'lucide-react'
+import { Archive, Check, Download, Eye, FilePenLine, Inbox, Mail, MailOpen, Paperclip, Plus, Reply, Search, Send, Sparkles, Trash2, UploadCloud } from 'lucide-react'
 import { deleteAssetDocument, getAssetDocumentContent, uploadAssetDocument } from '../../features/documents/documentApi'
 import { getApiErrorMessage } from '../../api/apiErrors'
 import { DocumentPreviewModal } from '../../features/documents/DocumentPreviewModal'
@@ -23,6 +23,7 @@ import type { InternalReport, InternalReportCategory, InternalReportPayload, Int
 import type { AssetDocument } from '../../types/documents'
 import { downloadBlob } from '../../utils/downloadBlob'
 import { humanize } from './reportingUtils'
+import { reportComposeProfiles, type ReportComposeTemplate, type ReportComposeVariant } from './reportComposeProfiles'
 
 interface ComposeValues {
   recipient_id?: number
@@ -61,7 +62,7 @@ const mailboxOptions: Array<{ value: ReportMailbox; label: string; icon: typeof 
 
 const categoryOptions: InternalReportCategory[] = ['operations', 'incident', 'intervention', 'maintenance', 'performance', 'handover']
 
-export function InternalReportMailbox({ variant, title = 'Internal report exchange', subtitle = 'Send protected operational reports to employees in your organization.' }: { variant: 'admin' | 'operator' | 'technician'; title?: string; subtitle?: string }) {
+export function InternalReportMailbox({ variant, title = 'Internal report exchange', subtitle = 'Send protected operational reports to employees in your organization.' }: { variant: ReportComposeVariant; title?: string; subtitle?: string }) {
   const [mailbox, setMailbox] = useState<ReportMailbox>('inbox')
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<string>()
@@ -69,6 +70,7 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
   const [composeOpen, setComposeOpen] = useState(false)
   const [editing, setEditing] = useState<InternalReport | null>(null)
   const [pendingFiles, setPendingFiles] = useState<UploadFile[]>([])
+  const [selectedTemplate, setSelectedTemplate] = useState<string>()
   const [previewDocument, setPreviewDocument] = useState<AssetDocument | null>(null)
   const [form] = Form.useForm<ComposeValues>()
   const queryClient = useQueryClient()
@@ -143,6 +145,7 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
     onError: () => void message.error('The attachment could not be removed.'),
   })
   const summary = reportsQuery.data?.summary
+  const composeProfile = reportComposeProfiles[variant]
 
   const recipientOptions = useMemo(() => (recipientsQuery.data ?? []).map((person) => ({ value: person.id, label: `${person.name} - ${humanize(person.role)}` })), [recipientsQuery.data])
 
@@ -150,6 +153,7 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
     const isDraft = report?.status === 'draft' && !reply
     setEditing(isDraft ? report : null)
     setPendingFiles([])
+    setSelectedTemplate(undefined)
     form.setFieldsValue(report ? {
       recipient_id: reply ? report.sender?.id : report.recipient?.id,
       title: reply ? `Re: ${report.title}` : report.title,
@@ -158,8 +162,18 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
       summary: reply ? `Response to report #${report.id}` : (report.summary ?? undefined),
       body: reply ? '' : report.body,
       period: report.period_start && report.period_end ? [dayjs(report.period_start), dayjs(report.period_end)] : undefined,
-    } : { category: variant === 'technician' ? 'intervention' : variant === 'operator' ? 'handover' : 'performance', priority: 'normal' })
+    } : { category: composeProfile.categories[0], priority: 'normal' })
     setComposeOpen(true)
+  }
+  const applyTemplate = (template: ReportComposeTemplate) => {
+    setSelectedTemplate(template.key)
+    form.setFieldsValue({
+      title: template.title,
+      category: template.category,
+      priority: template.priority,
+      summary: template.summary,
+      body: template.body,
+    })
   }
   const save = async (sendNow: boolean) => {
     try { saveMutation.mutate({ values: await form.validateFields(), sendNow }) } catch { /* Ant Design displays field errors. */ }
@@ -182,14 +196,14 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
           const person = mailbox === 'sent' || mailbox === 'drafts' ? report.recipient : report.sender
           return <button key={report.id} className={`${selected?.id === report.id ? 'selected' : ''} ${!report.read_at && mailbox === 'inbox' ? 'unread' : ''}`} onClick={() => selectReport(report)}>
             <Avatar src={person?.avatar_url ?? undefined}>{initials(person?.name ?? 'Draft')}</Avatar>
-            <span><span><strong>{report.title}</strong><time>{dayjs(report.sent_at ?? report.updated_at).format('DD MMM')}</time></span><small>{person?.name ?? 'Recipient not selected'} · {humanize(report.category)}</small><p>{report.summary ?? report.body}</p></span>
+            <span><span><strong>{report.title}</strong><time>{dayjs(report.sent_at ?? report.updated_at).format('DD MMM')}</time></span><small>{person?.name ?? 'Recipient not selected'} / {humanize(report.category)}</small><p>{report.summary ?? report.body}</p></span>
             <Tag color={priorityColor(report.priority)}>{humanize(report.priority)}</Tag>
           </button>
         })}
       </div>
       <div className="report-mailbox__detail">
         {!selected ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Select a report to read it" /> : <>
-          <header><div><Tag color={priorityColor(selected.priority)}>{humanize(selected.priority)}</Tag><Tag>{humanize(selected.category)}</Tag><h3>{selected.title}</h3><p>{mailbox === 'sent' || mailbox === 'drafts' ? `To ${selected.recipient?.name ?? 'No recipient'}` : `From ${selected.sender?.name ?? 'Unknown sender'}`} · {dayjs(selected.sent_at ?? selected.updated_at).format('DD MMM YYYY, HH:mm')}</p></div><div>
+          <header><div><Tag color={priorityColor(selected.priority)}>{humanize(selected.priority)}</Tag><Tag>{humanize(selected.category)}</Tag><h3>{selected.title}</h3><p>{mailbox === 'sent' || mailbox === 'drafts' ? `To ${selected.recipient?.name ?? 'No recipient'}` : `From ${selected.sender?.name ?? 'Unknown sender'}`} / {dayjs(selected.sent_at ?? selected.updated_at).format('DD MMM YYYY, HH:mm')}</p></div><div>
             {mailbox === 'inbox' && <Tooltip title="Reply"><Button icon={<Reply size={15} />} onClick={() => openCompose(selected, true)} /></Tooltip>}
             {selected.status === 'draft' && <Tooltip title="Edit draft"><Button icon={<FilePenLine size={15} />} onClick={() => openCompose(selected)} /></Tooltip>}
             {selected.status !== 'draft' && <Tooltip title="Download signed PDF"><Button icon={<Download size={15} />} loading={downloadMutation.isPending} onClick={() => downloadMutation.mutate(selected.id)} /></Tooltip>}
@@ -202,7 +216,7 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
             <h4><Paperclip size={14} />Attachments <span>{selected.attachments?.length ?? 0}</span></h4>
             <div>{(selected.attachments ?? []).map((document) => <article key={document.id}>
               <FilePenLine size={17} />
-              <span><strong>{document.title}</strong><small>{document.original_name} · {formatBytes(document.size_bytes)}</small></span>
+              <span><strong>{document.title}</strong><small>{document.original_name} / {formatBytes(document.size_bytes)}</small></span>
               {document.previewable && <Tooltip title="Preview"><Button type="text" icon={<Eye size={14} />} onClick={() => setPreviewDocument(document)} /></Tooltip>}
               <Tooltip title="Download"><Button type="text" icon={<Download size={14} />} loading={attachmentDownloadMutation.isPending && attachmentDownloadMutation.variables?.id === document.id} onClick={() => attachmentDownloadMutation.mutate(document)} /></Tooltip>
               {selected.status === 'draft' && <Popconfirm title="Remove this attachment?" onConfirm={() => attachmentDeleteMutation.mutate(document.id)}><Button type="text" danger icon={<Trash2 size={14} />} /></Popconfirm>}
@@ -214,13 +228,17 @@ export function InternalReportMailbox({ variant, title = 'Internal report exchan
     </div>
     <Drawer className="report-compose-drawer" open={composeOpen} size={620} onClose={() => { setComposeOpen(false); setEditing(null) }} title={editing ? 'Edit report draft' : 'Compose internal report'} extra={<MailOpen size={18} />}>
       <Form form={form} layout="vertical" requiredMark="optional">
+        {!editing && <section className={`report-template-picker report-template-picker--${variant}`}>
+          <header><span><Sparkles size={17} /></span><div><small>{composeProfile.eyebrow}</small><strong>Start from a role-specific structure</strong><p>{composeProfile.guidance}</p></div></header>
+          <div>{composeProfile.templates.map((template) => <button type="button" key={template.key} className={selectedTemplate === template.key ? 'active' : ''} onClick={() => applyTemplate(template)}><span><strong>{template.label}</strong><small>{template.description}</small></span>{selectedTemplate === template.key ? <Check size={16} /> : <span>{humanize(template.category)}</span>}</button>)}</div>
+        </section>}
         <div className="report-compose-grid"><Form.Item name="recipient_id" label="Recipient" rules={[{ required: true }]}><Select showSearch optionFilterProp="label" loading={recipientsQuery.isLoading} options={recipientOptions} placeholder="Organization employee" /></Form.Item><Form.Item name="priority" label="Priority" rules={[{ required: true }]}><Select options={(['normal', 'important', 'urgent'] as InternalReportPriority[]).map((value) => ({ value, label: humanize(value) }))} /></Form.Item></div>
         <Form.Item name="title" label="Report title" rules={[{ required: true, min: 3, max: 180 }]}><Input placeholder="Clear operational subject" /></Form.Item>
-        <div className="report-compose-grid"><Form.Item name="category" label="Category" rules={[{ required: true }]}><Select options={categoryOptions.map((value) => ({ value, label: humanize(value) }))} /></Form.Item><Form.Item name="period" label="Covered period"><DatePicker.RangePicker style={{ width: '100%' }} /></Form.Item></div>
+        <div className="report-compose-grid"><Form.Item name="category" label="Category" rules={[{ required: true }]}><Select options={composeProfile.categories.map((value) => ({ value, label: humanize(value) }))} /></Form.Item><Form.Item name="period" label="Covered period"><DatePicker.RangePicker style={{ width: '100%' }} /></Form.Item></div>
         <Form.Item name="summary" label="Executive summary"><Input.TextArea rows={3} maxLength={800} showCount placeholder="Decision-ready summary" /></Form.Item>
         <Form.Item name="body" label="Report details" rules={[{ required: true, min: 10 }]}><Input.TextArea rows={10} maxLength={20000} showCount placeholder="Facts, observations, actions and recommendations" /></Form.Item>
         <div className="report-compose-attachments">
-          <label><Paperclip size={15} />Supporting files <span>Optional · PDF, image, Word or Excel · 10 MB each</span></label>
+          <label><Paperclip size={15} />Supporting files <span>Optional / PDF, image, Word or Excel / 10 MB each</span></label>
           <Upload.Dragger
             fileList={pendingFiles}
             multiple

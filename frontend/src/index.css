@@ -800,11 +800,11 @@
 .report-mailbox__header > div { display: flex; align-items: center; gap: 10px; }
 .report-mailbox__header > div > span { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 8px; color: #159a61; background: #e6f7ee; }
 .report-mailbox__header h2 { margin: 0; color: #17251e; font-size: 15px; }
-.report-mailbox__header p { margin: 2px 0 0; color: #7a8780; font-size: 10px; }
+.report-mailbox__header p { margin: 2px 0 0; color: #6f7e76; font-size: 12px; }
 .report-mailbox--operator .report-mailbox__header > div > span { color: #0e8580; background: #e2f6f4; }
 .report-mailbox--technician .report-mailbox__header > div > span { color: #c9770e; background: #fff2dd; }
 .report-mailbox__nav { display: grid; grid-template-columns: repeat(4, auto) minmax(190px, 1fr) 170px; gap: 7px; align-items: center; padding: 9px 12px; border-bottom: 1px solid #e8eeeb; background: #fbfcfb; }
-.report-mailbox__nav > button { position: relative; display: inline-flex; min-height: 34px; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; border-radius: 6px; color: #65736b; background: transparent; font-size: 10px; cursor: pointer; }
+.report-mailbox__nav > button { position: relative; display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; border-radius: 6px; color: #65736b; background: transparent; font-size: 12px; cursor: pointer; }
 .report-mailbox__nav > button:hover,
 .report-mailbox__nav > button.active { border-color: #cce4d8; color: #117c4e; background: #eef9f3; }
 .report-mailbox__nav > button b { display: grid; min-width: 17px; height: 17px; place-items: center; border-radius: 9px; color: #607169; background: #e8eeeb; font-size: 8px; }
@@ -819,19 +819,19 @@
 .report-mailbox__list > button.unread::after { position: absolute; top: 11px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: #159a61; content: ''; }
 .report-mailbox__list > button > span:nth-child(2) { display: grid; min-width: 0; gap: 3px; }
 .report-mailbox__list > button > span > span { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.report-mailbox__list strong { overflow: hidden; color: #1d2b24; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.report-mailbox__list strong { overflow: hidden; color: #1d2b24; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .report-mailbox__list time,
-.report-mailbox__list small { color: #859189; font-size: 8px; }
-.report-mailbox__list p { overflow: hidden; margin: 0; color: #66756c; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.report-mailbox__list .ant-tag { align-self: end; margin: 0; padding-inline: 4px; font-size: 7px; line-height: 15px; }
+.report-mailbox__list small { color: #7a8780; font-size: 10px; }
+.report-mailbox__list p { overflow: hidden; margin: 0; color: #66756c; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.report-mailbox__list .ant-tag { align-self: end; margin: 0; padding-inline: 6px; font-size: 9px; line-height: 18px; }
 .report-mailbox__detail { min-width: 0; padding: 17px 19px; }
 .report-mailbox__detail > .ant-empty { margin-top: 90px; }
 .report-mailbox__detail > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 13px; border-bottom: 1px solid #e8eeeb; }
 .report-mailbox__detail > header h3 { margin: 8px 0 3px; color: #192820; font-size: 17px; }
-.report-mailbox__detail > header p { margin: 0; color: #7b8881; font-size: 9px; }
+.report-mailbox__detail > header p { margin: 0; color: #717f78; font-size: 11px; }
 .report-mailbox__detail > header > div:last-child { display: flex; gap: 5px; }
-.report-mailbox__detail blockquote { margin: 15px 0; padding: 10px 12px; border-left: 3px solid #159a61; color: #3d5147; background: #f3faf6; font-size: 10px; font-style: normal; }
-.report-mailbox__body { min-height: 170px; color: #46574e; font-size: 11px; line-height: 1.6; }
+.report-mailbox__detail blockquote { margin: 15px 0; padding: 11px 13px; border-left: 3px solid #159a61; color: #3d5147; background: #f3faf6; font-size: 12px; font-style: normal; }
+.report-mailbox__body { min-height: 170px; color: #3f5148; font-size: 13px; line-height: 1.65; }
 .report-mailbox__body p { margin: 0 0 8px; }
 .report-mailbox__detail > footer { display: flex; flex-wrap: wrap; gap: 8px 18px; padding-top: 12px; border-top: 1px solid #e8eeeb; color: #7d8a83; font-size: 9px; }
 .report-attachments { margin: 16px 0; padding: 12px; border: 1px solid #e1e9e5; border-radius: 7px; background: #fafcfb; }
@@ -854,6 +854,23 @@
 .report-compose-attachments > small { display: block; margin-top: 7px; color: #7e8c84; font-size: 9px; }
 .report-compose-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .report-compose-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 14px; border-top: 1px solid #e7ece9; }
+.report-template-picker { margin: 0 0 20px; padding: 14px; border: 1px solid #dce8e2; border-radius: 8px; background: #f8fbf9; }
+.report-template-picker > header { display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: start; gap: 10px; margin-bottom: 11px; }
+.report-template-picker > header > span { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 8px; color: #137f52; background: #e3f5ec; }
+.report-template-picker > header > div { display: grid; gap: 2px; }
+.report-template-picker > header small { color: #138252; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.report-template-picker > header strong { color: #1c2b23; font-size: 14px; }
+.report-template-picker > header p { margin: 0; color: #718078; font-size: 11px; line-height: 1.45; }
+.report-template-picker > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.report-template-picker button { display: flex; min-height: 104px; align-items: flex-start; justify-content: space-between; gap: 7px; padding: 11px; border: 1px solid #dfe7e3; border-radius: 7px; color: inherit; background: #fff; text-align: left; cursor: pointer; }
+.report-template-picker button:hover,
+.report-template-picker button.active { border-color: #159a61; box-shadow: inset 0 0 0 1px #159a61; }
+.report-template-picker button > span:first-child { display: grid; gap: 4px; }
+.report-template-picker button strong { color: #24352c; font-size: 12px; }
+.report-template-picker button small { color: #7a8880; font-size: 10px; line-height: 1.35; }
+.report-template-picker button > span:last-child { color: #138252; font-size: 9px; font-weight: 650; white-space: nowrap; }
+.report-template-picker--operator > header > span { color: #0c7c78; background: #e3f5f3; }
+.report-template-picker--technician > header > span { color: #b9680b; background: #fff1dd; }
 
 @media (max-width: 1250px) {
   .platform-report-grid,
@@ -904,6 +921,7 @@
   .report-mailbox__detail > header { flex-direction: column; }
   .report-compose-grid { grid-template-columns: 1fr; gap: 0; }
   .report-compose-actions { flex-wrap: wrap; }
+  .report-template-picker > div { grid-template-columns: 1fr; }
 }
 
 /* Shared Super Admin data-management surfaces */
