@@ -14,6 +14,15 @@ prioritaires du projet.
 - Mesurer les performances avant et apres chaque refonte avec des scenarios
   reproductibles.
 
+## Correctif retire du TODO
+
+L'optimisation des ressources publiques du constat performance #4 est terminee.
+Les medias utilises sont ranges par domaine, les images lourdes sont converties
+en WebP, les dimensions intrinseques et le chargement differe sont declares, et
+la police Inter est auto-hebergee. Le poids de `frontend/public` est passe de
+33,1 Mo a 2,73 Mo, avec un test automatique qui borne chaque image optimisee a
+250 Ko.
+
 ## 1. Remplacer le polling OCPP par du push ou du long-poll controle
 
 **Source :** rapport performance, constat #2.
@@ -47,40 +56,7 @@ de demonstration depasse la capacite validee par les tests de charge.
 - les evenements restent scopes par organisation et utilisateur autorise ;
 - les tests de charge demontrent une baisse mesurable des requetes HTTP.
 
-## 2. Optimiser les images en WebP ou AVIF
-
-**Source :** rapport performance, constat #4.
-
-**Etat actuel :** plusieurs images PNG/JPEG sont lourdes et certaines pages
-chargent plus de donnees visuelles que necessaire. Le favicon sera corrige dans
-les quick wins, independamment de cette refonte.
-
-**Pourquoi cette refonte est reportee :** une conversion automatique sans audit
-visuel peut degrader les logos, les transparences et les captures utilisees dans
-les livrables. Elle doit suivre le rangement des ressources et la stabilisation
-des interfaces.
-
-**Travail prevu :**
-
-- inventorier les images reellement utilisees et supprimer les doublons ;
-- produire des variantes WebP/AVIF et des tailles responsives ;
-- conserver les originaux uniquement lorsque la fidelite l'exige ;
-- utiliser `srcset`, le lazy loading et des dimensions explicites ;
-- verifier visuellement chaque page sur desktop et mobile.
-
-**Prerequis :** arborescence des ressources stabilisee, inventaire des usages et
-captures de reference des ecrans principaux.
-
-**Critere de reprise :** le bloc de rangement des ressources est termine.
-
-**Criteres d'acceptation :**
-
-- aucune regression visuelle des logos et illustrations ;
-- reduction mesurable du poids total des images chargees sur la landing page ;
-- absence de decalage de mise en page cause par les medias ;
-- fallback disponible pour les navigateurs non compatibles si necessaire.
-
-## 3. Rendre Reverb et le gateway OCPP multi-processus
+## 2. Rendre Reverb et le gateway OCPP multi-processus
 
 **Source :** rapport performance, constats #17 et #18.
 
@@ -122,6 +98,5 @@ simultanees, latence ou disponibilite definis pendant l'industrialisation.
 2. Pilotes Laravel Redis securises et separes realises ; valider les workers dedies sous charge.
 3. Conteneuriser les services et mettre en place l'observabilite.
 4. Mesurer la capacite d'une instance avec des tests de charge.
-5. Optimiser les images apres le rangement des ressources.
-6. Remplacer le polling lorsque les contrats d'evenements sont stabilises.
-7. Activer le scaling multi-processus seulement si les mesures le justifient.
+5. Remplacer le polling lorsque les contrats d'evenements sont stabilises.
+6. Activer le scaling multi-processus seulement si les mesures le justifient.

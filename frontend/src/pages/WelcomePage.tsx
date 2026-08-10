@@ -180,7 +180,7 @@ export function WelcomePage() {
     <main className="onboarding-page">
       <aside className="onboarding-rail">
         <Link className="onboarding-brand" to={defaultPath} aria-label="ChargeTrackr">
-          <img src="/assets/Logo.png" alt="" />
+          <img src="/assets/branding/charge-trackr-logo.webp" alt="" width={384} height={384} />
           <span>ChargeTrackr</span>
         </Link>
 

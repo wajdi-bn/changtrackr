@@ -63,8 +63,10 @@ export function ActiveSessionModal({ open, session, stopping, onClose, onStop, o
               <span />
               <span />
               <motion.img
-                src="/assets/ChatGPT Image 27 juil. 2026, 00_06_12.png"
+                src="/assets/charging/active-session.webp"
                 alt="Electric vehicle connected to a charging station"
+                width={960}
+                height={640}
                 animate={{ y: [0, -5, 0] }}
                 transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
               />

@@ -179,7 +179,7 @@ class StationCommissioningTest extends TestCase
             'model' => 'Terra 124',
             'manufacturer' => 'ABB',
             'ocpp_version' => 'OCPP 1.6J',
-            'model_image' => '/assets/charger-terra-hp-150.png',
+            'model_image' => '/assets/stations/models/terra-hp-150.webp',
             'commissioning_target' => $target,
             'connectors' => [
                 [

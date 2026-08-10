@@ -148,7 +148,7 @@ export function FindStationPage() {
     </section>}
     {stationsQuery.isLoading ? <div className={view === 'map' ? 'finder-map-loading' : view === 'list' ? 'finder-list-loading' : 'finder-grid'}>{Array.from({ length: view === 'map' ? 1 : view === 'list' ? 4 : 6 }, (_, index) => <Skeleton key={index} active />)}</div> : stations.length === 0 ? <Empty description={emptyDescription} /> : view === 'cards' && (
       <div className="finder-grid">{stations.map((station) => <article className="finder-card" key={station.id}>
-        <img src={station.model_image ?? '/assets/charger-terra-hp-150.png'} alt={`${station.name} charging station`} />
+        <img src={station.model_image ?? '/assets/stations/models/terra-hp-150.webp'} alt={`${station.name} charging station`} width={960} height={540} loading="lazy" decoding="async" />
         <div className="finder-card-body">
           <div className="finder-card-title"><div><h2>{station.name}</h2><small>{station.organization?.name ?? 'Charging network'}</small><p><MapPin size={13} />{station.location}</p></div><strong>{userPosition ? `${distanceInKilometers(userPosition, station).toFixed(1)} km` : `${station.available_connectors_count} available`}</strong></div>
           <div className="finder-card-facts"><span><Zap size={14} /><b>{station.max_power_kw} kW</b>Maximum power</span><span><Gauge size={14} /><b>{station.uptime_percent}%</b>Uptime</span></div>
@@ -161,7 +161,7 @@ export function FindStationPage() {
       <header><span>Station</span><span>Connectors</span><span>Power</span><span>Distance</span><span aria-label="Actions" /></header>
       {stations.map((station) => <article key={station.id}>
         <div className="finder-list-station">
-          <img src={station.model_image ?? '/assets/charger-terra-hp-150.png'} alt="" />
+          <img src={station.model_image ?? '/assets/stations/models/terra-hp-150.webp'} alt="" width={960} height={540} loading="lazy" decoding="async" />
           <span><strong>{station.name}</strong><small>{station.organization?.name ?? 'Charging network'} - {station.location}</small></span>
         </div>
         <div className="finder-list-connectors"><strong>{station.available_connectors_count}/{station.connectors_count}</strong><small>{station.connectors.filter((connector) => connector.status === 'available').slice(0, 2).map((connector) => connector.type).join(', ')}</small></div>

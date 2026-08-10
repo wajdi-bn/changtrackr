@@ -80,7 +80,7 @@ export function LoginPage() {
             </header>
 
             <Button className="prototype-google-button" block onClick={handleGoogleLogin}>
-              <img src="/assets/google.png" alt="Google" />
+              <img src="/assets/branding/google-logo.png" alt="Google" width={632} height={316} />
               Continue with Google
             </Button>
 

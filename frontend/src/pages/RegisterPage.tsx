@@ -63,7 +63,7 @@ export function RegisterPage() {
         block
         onClick={() => window.location.assign(`${backendUrl}/auth/oauth/google/redirect`)}
       >
-        <img src="/assets/google.png" alt="Google" />
+        <img src="/assets/branding/google-logo.png" alt="Google" width={632} height={316} />
         Continue with Google
       </Button>
 

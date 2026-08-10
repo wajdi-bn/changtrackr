@@ -57,6 +57,8 @@ const productStories = [
     title: 'From station signal to a trustworthy availability state.',
     copy: 'The OCPP gateway receives boot, heartbeat, connector, transaction and meter events. ChargeTrackr applies business rules before updating maps, dashboards and alerts.',
     image: '/assets/landing/ocpp-supervision.webp',
+    imageWidth: 1535,
+    imageHeight: 960,
     alt: 'Charging network operations team monitoring station status',
     points: ['Heartbeat and connectivity monitoring', 'Connector-level status and fault context', 'Remote commands with a complete history'],
   },
@@ -65,7 +67,9 @@ const productStories = [
     eyebrow: 'Field operations',
     title: 'Turn operational attention into an assigned, documented response.',
     copy: 'Operators qualify alerts and coordinate work. Technicians receive focused assignments, attach evidence, record actions and hand a verified report back to the organization.',
-    image: '/assets/ev-technician.png',
+    image: '/assets/landing/ev-technician.webp',
+    imageWidth: 1400,
+    imageHeight: 788,
     alt: 'Technician inspecting an electric vehicle charging station',
     points: ['Priorities, assignments and SLA follow-up', 'Maintenance calendar and intervention evidence', 'Role-specific handovers and internal reports'],
   },
@@ -75,6 +79,8 @@ const productStories = [
     title: 'Guide every charging session from discovery to receipt.',
     copy: 'Drivers find an available station, select a compatible connector, follow the physical connection steps, authorize payment and monitor the live OCPP session until completion.',
     image: '/assets/landing/driver-checkout.webp',
+    imageWidth: 1536,
+    imageHeight: 960,
     alt: 'Electric vehicle charging at a modern public hub',
     points: ['Map, route and connector compatibility', 'Guided charging target and payment authorization', 'Live energy, cost, completion and PDF receipt'],
   },
@@ -88,6 +94,8 @@ const roleWorkspaces = [
     title: 'Govern organizations and platform-wide controls.',
     copy: 'Review demo requests, provision organization administrators, manage commercial plans, inspect integrations, permissions, audit trails and global settings.',
     image: '/assets/landing/platform-governance.webp',
+    imageWidth: 1536,
+    imageHeight: 960,
     icon: Building2,
     features: ['Organization lifecycle', 'Commercial catalog', 'Platform audit and integrations'],
   },
@@ -97,7 +105,9 @@ const roleWorkspaces = [
     eyebrow: 'Organization Administrator',
     title: 'Control one organization, its people and charging assets.',
     copy: 'Manage employees and customers within the organization boundary, commission stations, define tariffs, follow billing and turn operational data into business decisions.',
-    image: '/assets/charge-hero.png',
+    image: '/assets/landing/charging-network-hero.webp',
+    imageWidth: 1600,
+    imageHeight: 800,
     icon: Users,
     features: ['Organization workforce', 'Stations and pricing', 'Business reports and billing'],
   },
@@ -107,7 +117,9 @@ const roleWorkspaces = [
     eyebrow: 'Network Operator',
     title: 'Keep the charging network visible and actionable.',
     copy: 'Watch the live map, diagnose alerts, use authorized OCPP commands, assign interventions and prepare clear shift handovers without crossing organization boundaries.',
-    image: '/assets/ev-route-corridor.png',
+    image: '/assets/landing/ev-route-corridor.webp',
+    imageWidth: 1400,
+    imageHeight: 788,
     icon: Activity,
     features: ['Live station map', 'Alerts and remote actions', 'Shift reporting'],
   },
@@ -118,6 +130,8 @@ const roleWorkspaces = [
     title: 'Work from an assigned field queue, not a generic dashboard.',
     copy: 'Consult station context, execute interventions and maintenance tasks, document before-and-after evidence and submit a structured technical outcome.',
     image: '/assets/landing/field-technician.webp',
+    imageWidth: 1536,
+    imageHeight: 960,
     icon: Wrench,
     features: ['Assigned interventions', 'Maintenance execution', 'Evidence and field reports'],
   },
@@ -128,6 +142,8 @@ const roleWorkspaces = [
     title: 'Find, charge, pay and keep every receipt in one place.',
     copy: 'Use the public station map, scan a connector QR code, follow a guided charging workflow, monitor the current session and manage network memberships.',
     image: '/assets/landing/driver-station-finder.webp',
+    imageWidth: 1536,
+    imageHeight: 960,
     icon: CarFront,
     features: ['Station discovery', 'Guided live charging', 'Payments and memberships'],
   },
@@ -330,7 +346,7 @@ export function LandingPage() {
       <header className={`landing-header ${compactNav ? 'is-compact' : ''} ${pastHero ? 'is-green' : ''}`}>
         <div className="landing-nav-shell">
           <Link to="/" className="landing-brand" aria-label="ChargeTrackr home">
-            <img src="/assets/Logo.png" alt="" />
+            <img src="/assets/branding/charge-trackr-logo.webp" alt="" width={384} height={384} />
             <span>ChargeTrackr</span>
           </Link>
 
@@ -377,7 +393,7 @@ export function LandingPage() {
       <main>
         <section className="landing-hero">
           <div className="landing-hero-media">
-            <img src="/assets/ev-charging-hub.png" alt="Electric vehicle connected to a modern charging station" />
+            <img src="/assets/landing/ev-charging-hub.webp" alt="Electric vehicle connected to a modern charging station" width={1600} height={878} fetchPriority="high" />
             <div className="landing-hero-overlay" />
             <div className="landing-hero-content">
               <div className="landing-hero-copy">
@@ -389,7 +405,7 @@ export function LandingPage() {
               </div>
 
               <button className="landing-report-float" type="button" onClick={openDashboard}>
-                <img src="/assets/ev-operations-desk.png" alt="EV charging operations dashboard" />
+                <img src="/assets/landing/ev-operations-desk.webp" alt="EV charging operations dashboard" width={1400} height={768} decoding="async" />
                 <span className="landing-report-copy">
                   <span><small>Latest network brief</small><strong>2026 Operations Report</strong></span>
                   <span className="landing-circle-arrow"><ArrowUpRight size={16} /></span>
@@ -402,7 +418,7 @@ export function LandingPage() {
         <section id="product" className="landing-section landing-about">
           <div data-reveal>
             <p className="landing-section-label">One operating system</p>
-            <img src="/assets/landing/team-coordination.webp" alt="Charging network team coordinating field operations" />
+            <img src="/assets/landing/team-coordination.webp" alt="Charging network team coordinating field operations" width={1536} height={960} loading="lazy" decoding="async" />
           </div>
           <div data-reveal>
             <h2>See the station, coordinate the team, and guide the driver from the same source of truth.</h2>
@@ -435,7 +451,7 @@ export function LandingPage() {
             {productStories.map((story, index) => (
               <article key={story.title} className={index % 2 === 1 ? 'is-reversed' : ''} data-reveal>
                 <figure className="landing-product-visual">
-                  <img src={story.image} alt={story.alt} data-parallax />
+                  <img src={story.image} alt={story.alt} width={story.imageWidth} height={story.imageHeight} loading="lazy" decoding="async" data-parallax />
                   <span><story.icon size={19} />{story.eyebrow}</span>
                 </figure>
                 <div className="landing-product-copy">
@@ -499,7 +515,7 @@ export function LandingPage() {
               <Button onClick={openDashboard}>Open workspace <ArrowUpRight size={15} /></Button>
             </div>
             <figure data-workspace-content>
-              <img src={activeWorkspace.image} alt={`${activeWorkspace.label} ChargeTrackr workspace context`} />
+              <img src={activeWorkspace.image} alt={`${activeWorkspace.label} ChargeTrackr workspace context`} width={activeWorkspace.imageWidth} height={activeWorkspace.imageHeight} loading="lazy" decoding="async" />
               <figcaption><span>ROLE</span><strong>{activeWorkspace.label}</strong><small>Scoped access and role-specific decisions</small></figcaption>
             </figure>
           </div>
@@ -507,7 +523,7 @@ export function LandingPage() {
 
         <section id="reports" className="landing-report-section">
           <div className="landing-report-panel" data-reveal>
-            <img src="/assets/landing/operations-reporting.webp" alt="Role-specific charging network reports" />
+            <img src="/assets/landing/operations-reporting.webp" alt="Role-specific charging network reports" width={1536} height={960} loading="lazy" decoding="async" />
             <div className="landing-report-body">
               <div>
                 <p>Operational intelligence</p>
@@ -639,7 +655,7 @@ export function LandingPage() {
         </section>
 
         <section className="landing-final-cta">
-          <img src="/assets/landing/coastal-charging-plaza.webp" alt="Public electric vehicle charging plaza on the Tunisian coast" />
+          <img src="/assets/landing/coastal-charging-plaza.webp" alt="Public electric vehicle charging plaza on the Tunisian coast" width={1535} height={960} loading="lazy" decoding="async" />
           <div data-reveal>
             <h2>Operate Your Charging Future With Us</h2>
             <p>Monitor stations, resolve incidents, follow payments, and report impact from one focused EV operations workspace.</p>
@@ -651,7 +667,7 @@ export function LandingPage() {
       <footer className="landing-footer">
         <div className="landing-section landing-footer-grid">
           <div>
-            <div className="landing-footer-brand"><img src="/assets/Logo.png" alt="" /><span>ChargeTrackr</span></div>
+            <div className="landing-footer-brand"><img src="/assets/branding/charge-trackr-logo.webp" alt="" width={384} height={384} loading="lazy" decoding="async" /><span>ChargeTrackr</span></div>
             <p>EV station supervision for operators who need every connector, session, alert, and report in one reliable workspace.</p>
           </div>
           <div>

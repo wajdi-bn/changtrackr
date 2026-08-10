@@ -20,14 +20,17 @@ export function AuthPageShell({
     <main className="prototype-login-page">
       <section className="prototype-login-visual" aria-label="Electric vehicle charging">
         <img
-          src="/assets/charge-hero.png"
+          src="/assets/landing/charging-network-hero.webp"
           alt="Electric vehicle connected to a charging station"
           className="prototype-login-hero-image"
+          width={1600}
+          height={800}
+          fetchPriority="high"
         />
         <div className="prototype-login-overlay" />
         <div className="prototype-login-visual-content">
           <Link to="/" className="prototype-login-brand prototype-login-brand-light">
-            <img src="/assets/Logo.png" alt="ChargeTrackr logo" />
+            <img src="/assets/branding/charge-trackr-logo.webp" alt="ChargeTrackr logo" width={384} height={384} />
             <span>ChargeTrackr</span>
           </Link>
 
@@ -58,7 +61,7 @@ export function AuthPageShell({
         >
           <Card className="prototype-login-card">
             <Link to="/" className="prototype-login-brand prototype-login-mobile-brand">
-              <img src="/assets/Logo.png" alt="ChargeTrackr logo" />
+              <img src="/assets/branding/charge-trackr-logo.webp" alt="ChargeTrackr logo" width={384} height={384} />
               <span>ChargeTrackr</span>
             </Link>
             {children}

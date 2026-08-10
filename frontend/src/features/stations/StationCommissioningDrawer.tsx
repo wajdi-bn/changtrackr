@@ -63,7 +63,7 @@ export function StationCommissioningDrawer({
       longitude: initialCoordinates?.longitude ?? 10.1815,
       max_power_kw: 120,
       ocpp_version: 'OCPP 1.6J',
-      model_image: '/assets/charger-terra-hp-150.png',
+      model_image: '/assets/stations/models/terra-hp-150.webp',
       commissioning_target: 'simulator',
       connectors: [{
         external_id: 'A1',
@@ -174,10 +174,10 @@ export function StationCommissioningDrawer({
             <Form.Item name="max_power_kw" label="Station maximum power" rules={[{ required: true }]}><InputNumber min={1} max={1000} suffix="kW" style={{ width: '100%' }} /></Form.Item>
             <Form.Item name="ocpp_version" label="OCPP version" rules={[{ required: true }]}><Select options={[{ value: 'OCPP 1.6J' }, { value: 'OCPP 2.0.1', disabled: true, label: 'OCPP 2.0.1 - planned' }]} /></Form.Item>
             <Form.Item className="commissioning-field-wide" name="model_image" label="Station visual"><Select options={[
-              { value: '/assets/charger-terra-hp-150.png', label: 'ABB Terra HP 150' },
-              { value: '/assets/charger-evbox-troniq.png', label: 'EVBox Troniq' },
-              { value: '/assets/charger-enext-park-dc.png', label: 'eNext Park DC' },
-              { value: '/assets/charger-raption-100.png', label: 'Raption 100' },
+              { value: '/assets/stations/models/terra-hp-150.webp', label: 'ABB Terra HP 150' },
+              { value: '/assets/stations/models/evbox-troniq.webp', label: 'EVBox Troniq' },
+              { value: '/assets/stations/models/enext-park-dc.webp', label: 'eNext Park DC' },
+              { value: '/assets/stations/models/raption-100.webp', label: 'Raption 100' },
             ]} /></Form.Item>
           </div>
           <Divider />

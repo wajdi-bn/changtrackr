@@ -261,7 +261,7 @@ function StationStep({ stations, selectedStation, form }: { stations: Chargeable
       <Form.Item label="Charging station" name="station_id" rules={[{ required: true, message: 'Choose a station' }]}>
         <Select showSearch optionFilterProp="label" placeholder="Select a station" onChange={() => form.setFieldValue('connector_id', undefined)} options={stations.map((station) => ({ value: station.id, label: `${station.name} - ${station.city}` }))} />
       </Form.Item>
-      {selectedStation && <div className="start-station-context"><img src={selectedStation.model_image ?? '/assets/charger-terra-hp-150.png'} alt="" /><div><strong>{selectedStation.name}</strong><span><MapPin size={13} />{selectedStation.location}</span></div><b>{selectedStation.available_connectors_count} free</b></div>}
+      {selectedStation && <div className="start-station-context"><img src={selectedStation.model_image ?? '/assets/stations/models/terra-hp-150.webp'} alt="" width={960} height={540} loading="lazy" decoding="async" /><div><strong>{selectedStation.name}</strong><span><MapPin size={13} />{selectedStation.location}</span></div><b>{selectedStation.available_connectors_count} free</b></div>}
     </>}
   </section>
 }

@@ -130,7 +130,7 @@ export function StationsPage() {
     {
       title: 'Station',
       key: 'station',
-      render: (_, station) => <button type="button" className="station-table-name" onClick={() => navigate(`/stations/${station.id}`)}><img src={station.model_image ?? '/assets/charger-terra-hp-150.png'} alt="" /><span><strong>{station.name}</strong><small>{station.reference}</small></span></button>,
+      render: (_, station) => <button type="button" className="station-table-name" onClick={() => navigate(`/stations/${station.id}`)}><img src={station.model_image ?? '/assets/stations/models/terra-hp-150.webp'} alt="" width={960} height={540} loading="lazy" decoding="async" /><span><strong>{station.name}</strong><small>{station.reference}</small></span></button>,
     },
     { title: 'Location', dataIndex: 'location', key: 'location' },
     { title: 'Status', dataIndex: 'status', key: 'status', render: (value: StationStatus) => <StationStatusTag status={value} /> },
@@ -156,7 +156,7 @@ export function StationsPage() {
   return (
     <div className="stations-page">
       <section className="stations-hero">
-        <img src="/assets/charge-hero.png" alt="Charging station network" />
+        <img src="/assets/landing/charging-network-hero.webp" alt="Charging station network" width={1600} height={800} fetchPriority="high" />
         <div className="stations-hero-overlay" />
         <div className="stations-hero-panel">
           <h1>Charging station inventory</h1>
@@ -216,7 +216,7 @@ export function StationsPage() {
       ) : view === 'grid' ? (
         <div className="stations-grid">
           {stations.map((station) => (
-            <Card key={station.id} className="station-card" cover={station.model_image ? <img src={station.model_image} alt={`${station.model} charger`} /> : undefined}>
+            <Card key={station.id} className="station-card" cover={station.model_image ? <img src={station.model_image} alt={`${station.model} charger`} width={960} height={540} loading="lazy" decoding="async" /> : undefined}>
               <div className="station-card-heading">
                 <div><h2>{station.name}</h2><p><MapPin size={12} />{station.location}</p></div>
                 <StationStatusTag status={station.status} />
@@ -252,7 +252,7 @@ export function StationsPage() {
           {stations.map((station) => (
             <div className="station-list-row" key={station.id}>
               <button className="station-list-open" type="button" onClick={() => navigate(`/stations/${station.id}`)}>
-                <img src={station.model_image ?? '/assets/charger-terra-hp-150.png'} alt="" />
+                <img src={station.model_image ?? '/assets/stations/models/terra-hp-150.webp'} alt="" width={960} height={540} loading="lazy" decoding="async" />
                 <span className="station-list-name"><strong>{station.name}</strong><small>{station.model} - {station.location}</small></span>
                 <StationStatusTag status={station.status} />
                 <span>{station.connectors_count} connectors</span>

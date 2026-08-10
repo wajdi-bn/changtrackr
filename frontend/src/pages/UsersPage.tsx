@@ -394,7 +394,7 @@ function UserEditorModal({ user, submitting, onClose, onSubmit }: { user: Manage
         <Form.Item name="phone" label="Phone"><Input placeholder="+216 00 000 000" /></Form.Item>
         <Form.Item name="address" label="Address"><Input placeholder="Tunis, Tunisia" /></Form.Item>
         {user && <Form.Item name="status" label="Status" rules={[{ required: true }]}><Select disabled={user.status === 'pending'} options={user.status === 'pending' ? [{ value: 'pending', label: 'Pending activation' }] : [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Suspended' }]} /></Form.Item>}
-        <Form.Item name="avatar_url" label="Avatar URL"><Input placeholder="/assets/avatar-vendor-1.jpg" /></Form.Item>
+        <Form.Item name="avatar_url" label="Avatar URL"><Input placeholder="/assets/avatars/admin-sami-ben-amor.webp" /></Form.Item>
       </div>
       <div className="user-modal-actions"><Button onClick={onClose}>Cancel</Button><Button className="users-save-button" type="primary" htmlType="submit" loading={submitting}>{user ? 'Save changes' : 'Send invitation'}</Button></div>
     </Form>

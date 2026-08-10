@@ -97,7 +97,7 @@ export function AppLayout() {
       <WorkspaceCoach />
       <aside className="app-sidebar">
         <button className="brand-button" onClick={() => navigate(roleConfig.defaultPath)}>
-          <img className="brand-mark" src="/assets/Logo.png" alt="" />
+          <img className="brand-mark" src="/assets/branding/charge-trackr-logo.webp" alt="" width={384} height={384} />
           <span className="brand-name">ChargeTrackr</span>
         </button>
 
@@ -130,7 +130,7 @@ export function AppLayout() {
       <Layout className="app-main-layout">
         <Header className="app-header">
           <div className="topbar-brand">
-            <img src="/assets/Logo.png" alt="" />
+            <img src="/assets/branding/charge-trackr-logo.webp" alt="" width={384} height={384} />
             <div><strong>ChargeTrackr</strong><small>{roleConfig.shortLabel} workspace</small></div>
           </div>
 
