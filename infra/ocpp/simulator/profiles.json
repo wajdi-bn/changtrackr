@@ -1,0 +1,73 @@
+[
+  {
+    "key": "dc_fast_single",
+    "template": "chargetrackr-profile-dc-fast-single",
+    "label": "DC fast - single connector",
+    "description": "One CCS2 connector for a compact 120 kW fast-charging station.",
+    "manufacturer": "SAP E-Mobility",
+    "model": "ChargeTrackr DC 120",
+    "max_power_kw": 120,
+    "model_image": "/assets/stations/models/terra-hp-150.webp",
+    "connectors": [
+      {
+        "external_id": "A1",
+        "ocpp_connector_id": 1,
+        "type": "CCS2",
+        "current_type": "DC",
+        "max_power_kw": 120
+      }
+    ]
+  },
+  {
+    "key": "dc_fast_dual",
+    "template": "chargetrackr-profile-dc-fast-dual",
+    "label": "DC fast - dual connector",
+    "description": "CCS2 and CHAdeMO connectors sharing a 150 kW station supply.",
+    "manufacturer": "SAP E-Mobility",
+    "model": "ChargeTrackr DC 150 Duo",
+    "max_power_kw": 150,
+    "model_image": "/assets/stations/models/evbox-troniq.webp",
+    "connectors": [
+      {
+        "external_id": "A1",
+        "ocpp_connector_id": 1,
+        "type": "CCS2",
+        "current_type": "DC",
+        "max_power_kw": 150
+      },
+      {
+        "external_id": "A2",
+        "ocpp_connector_id": 2,
+        "type": "CHAdeMO",
+        "current_type": "DC",
+        "max_power_kw": 150
+      }
+    ]
+  },
+  {
+    "key": "ac_destination_dual",
+    "template": "chargetrackr-profile-ac-destination-dual",
+    "label": "AC destination - dual connector",
+    "description": "Two Type 2 connectors for destination charging at up to 22 kW each.",
+    "manufacturer": "SAP E-Mobility",
+    "model": "ChargeTrackr AC 44 Duo",
+    "max_power_kw": 44,
+    "model_image": "/assets/stations/models/enext-park-dc.webp",
+    "connectors": [
+      {
+        "external_id": "A1",
+        "ocpp_connector_id": 1,
+        "type": "Type 2",
+        "current_type": "AC",
+        "max_power_kw": 22
+      },
+      {
+        "external_id": "A2",
+        "ocpp_connector_id": 2,
+        "type": "Type 2",
+        "current_type": "AC",
+        "max_power_kw": 22
+      }
+    ]
+  }
+]

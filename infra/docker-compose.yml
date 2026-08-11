@@ -243,6 +243,10 @@ services:
         SAP_SIMULATOR_REF: 6119452049739c05506351a9589d753e84c59e9f
     env_file:
       - ./ocpp/.env
+    environment:
+      OCPP_SIMULATOR_STATIONS_FILE: /runtime/stations.json
+    volumes:
+      - ocpp_simulator_runtime:/runtime
     ports:
       - "127.0.0.1:${OCPP_SIMULATOR_FORWARD_PORT:-8082}:8080"
     depends_on:
@@ -263,6 +267,11 @@ services:
       - ./ocpp/.env
     environment:
       OCPP_SIMULATOR_CONTROL_TOKEN: ${OCPP_SIMULATOR_CONTROL_TOKEN:?Run npm run stack:configure first}
+      OCPP_SIMULATOR_STATIONS_FILE: /runtime/stations.json
+      OCPP_SIMULATOR_PROFILES_FILE: /usr/app/profiles.json
+      OCPP_SIMULATOR_SUPERVISION_URL: ws://ocpp-gateway:9000/ocpp
+    volumes:
+      - ocpp_simulator_runtime:/runtime
     depends_on:
       ocpp-simulator:
         condition: service_started
@@ -295,3 +304,4 @@ volumes:
   postgres_data:
   redis_data:
   backend_storage:
+  ocpp_simulator_runtime:

@@ -31,7 +31,8 @@ COPY --from=builder /source/package.json ./package.json
 COPY infra/ocpp/simulator/config.json ./dist/assets/config.json
 COPY infra/ocpp/simulator/chargetrackr-idtags.json ./dist/assets/chargetrackr-idtags.json
 COPY infra/ocpp/simulator/chargetrackr.station-template.json ./dist/assets/station-templates/chargetrackr.station-template.json
-COPY infra/ocpp/simulator/stations.json ./dist/assets/chargetrackr-stations.json
+COPY infra/ocpp/simulator/stations.json ./dist/assets/chargetrackr-stations.seed.json
+COPY infra/ocpp/simulator/profiles.json ./dist/assets/chargetrackr-simulator-profiles.json
 COPY infra/ocpp/simulator/generate-simulator-config.mjs /usr/local/lib/chargetrackr/generate-simulator-config.mjs
 COPY infra/ocpp/simulator/configure-and-run.sh /usr/local/bin/configure-and-run
 RUN chmod +x /usr/local/bin/configure-and-run
@@ -58,5 +59,7 @@ ENTRYPOINT ["run-ocpp-scenario"]
 FROM cli AS control
 
 COPY infra/ocpp/simulator/control-server.mjs ./control-server.mjs
+COPY infra/ocpp/simulator/profiles.json ./profiles.json
+COPY infra/ocpp/simulator/stations.json ./stations.seed.json
 EXPOSE 8081
 ENTRYPOINT ["sh", "-c", "node /usr/app/write-cli-config.mjs /usr/app/cli-config-template.json /tmp/evse-cli-config.json && exec node /usr/app/control-server.mjs"]

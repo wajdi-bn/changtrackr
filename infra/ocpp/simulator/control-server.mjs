@@ -1,6 +1,9 @@
 import { spawn } from 'node:child_process'
 import { createHash, timingSafeEqual } from 'node:crypto'
+import fs from 'node:fs'
 import http from 'node:http'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const host = process.env.OCPP_SIMULATOR_CONTROL_HOST ?? '0.0.0.0'
 const port = Number(process.env.OCPP_SIMULATOR_CONTROL_PORT ?? 8081)
@@ -8,10 +11,52 @@ const token = process.env.OCPP_SIMULATOR_CONTROL_TOKEN ?? ''
 const cliConfig = process.env.OCPP_SIMULATOR_CLI_CONFIG ?? '/tmp/evse-cli-config.json'
 const cliPath = process.env.OCPP_SIMULATOR_CLI_PATH ?? '/usr/app/cli/cli.js'
 const commandTimeoutMs = Number(process.env.OCPP_SIMULATOR_CONTROL_TIMEOUT_MS ?? 15000)
+const stationSecret = process.env.OCPP_SIMULATOR_STATION_SECRET ?? ''
+const supervisionUrl = process.env.OCPP_SIMULATOR_SUPERVISION_URL ?? 'ws://ocpp-gateway:9000/ocpp'
+const profilesPath = process.env.OCPP_SIMULATOR_PROFILES_FILE ?? fileURLToPath(new URL('./profiles.json', import.meta.url))
+const stationsPath = process.env.OCPP_SIMULATOR_STATIONS_FILE ?? fileURLToPath(new URL('./stations.json', import.meta.url))
 
 const connectorActions = new Set(['plug', 'unplug', 'inject_fault', 'recover'])
 const stationActions = new Set(['connect', 'disconnect', 'heartbeat'])
 const scenarios = new Set(['normal_cycle', 'fault_recovery'])
+
+function readJsonFile(file) {
+  return JSON.parse(fs.readFileSync(file, 'utf8'))
+}
+
+export function loadProfiles(file = profilesPath) {
+  const profiles = readJsonFile(file)
+  if (!Array.isArray(profiles) || profiles.length === 0) {
+    throw new Error('The simulator profile catalog is invalid.')
+  }
+  return profiles
+}
+
+export function publicProfiles(profiles) {
+  return profiles.map(({ key, label, description, manufacturer, model, max_power_kw, model_image, connectors }) => ({
+    key,
+    label,
+    description,
+    manufacturer,
+    model,
+    max_power_kw,
+    model_image,
+    connectors,
+  }))
+}
+
+export function validateProvisionPayload(payload, profiles) {
+  const identity = String(payload?.identity ?? '')
+  const profileKey = String(payload?.profile ?? '')
+  if (!/^[A-Za-z0-9._:-]{1,80}$/.test(identity)) {
+    throw new Error('A valid simulator station identity is required.')
+  }
+  const profile = profiles.find((candidate) => candidate.key === profileKey)
+  if (!profile) {
+    throw new Error('The selected simulator profile is not supported.')
+  }
+  return { identity, profile }
+}
 
 export function findStation(payload, identity) {
   const stations = Array.isArray(payload?.chargingStations) ? payload.chargingStations : []
@@ -109,6 +154,64 @@ async function stationState(identity) {
   return summarizeStation(findStation(payload, identity))
 }
 
+export function upsertStationManifest(identity, profile, manifestPath = stationsPath) {
+  fs.mkdirSync(path.dirname(manifestPath), { recursive: true })
+  const stations = fs.existsSync(manifestPath) ? readJsonFile(manifestPath) : []
+  if (!Array.isArray(stations)) throw new Error('The simulator station manifest is invalid.')
+
+  const entry = {
+    identity,
+    profile: profile.key,
+    manufacturer: profile.manufacturer,
+    model: profile.model,
+    maxPowerKw: profile.max_power_kw,
+    connectorPowersKw: profile.connectors.map((connector) => connector.max_power_kw),
+  }
+  const index = stations.findIndex((station) => station?.identity === identity)
+  if (index >= 0) stations[index] = entry
+  else stations.push(entry)
+
+  const temporaryPath = `${manifestPath}.${process.pid}.tmp`
+  fs.writeFileSync(temporaryPath, `${JSON.stringify(stations, null, 2)}\n`)
+  fs.renameSync(temporaryPath, manifestPath)
+}
+
+async function waitForStation(identity) {
+  for (let attempt = 1; attempt <= 20; attempt += 1) {
+    const station = await stationState(identity)
+    if (station) return station
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  throw new Error('The simulator did not expose the provisioned station in time.')
+}
+
+async function provisionStation(payload) {
+  const profiles = loadProfiles()
+  const { identity, profile } = validateProvisionPayload(payload, profiles)
+  const existing = await stationState(identity)
+  if (existing) {
+    upsertStationManifest(identity, profile)
+    return existing
+  }
+  if (stationSecret.length < 32) {
+    throw new Error('The simulator station secret is not configured.')
+  }
+
+  const result = await runCli([
+    'station', 'add', '--template', profile.template, '--count', '1', '--auto-start',
+    '--base-name', identity, '--fixed-name', '--ocpp-strict', '--persistent-config',
+    '--supervision-url', supervisionUrl, '--supervision-user', identity,
+    '--supervision-password', stationSecret,
+  ])
+  if (result?.status !== 'success') {
+    throw new Error(result?.errorMessage ?? 'The simulator rejected station provisioning.')
+  }
+
+  const station = await waitForStation(identity)
+  upsertStationManifest(identity, profile)
+  return station
+}
+
 async function stationHash(identity) {
   const payload = await runCli(['station', 'list'])
   const station = findStation(payload, identity)
@@ -187,6 +290,27 @@ export const server = http.createServer(async (request, response) => {
     return
   }
 
+  if (request.method === 'GET' && request.url === '/profiles') {
+    try {
+      sendJson(response, 200, { data: publicProfiles(loadProfiles()) })
+    } catch (error) {
+      sendJson(response, 500, { message: error instanceof Error ? error.message : 'Profile catalog unavailable.' })
+    }
+    return
+  }
+
+  if (request.method === 'POST' && request.url === '/stations') {
+    try {
+      const payload = await readJson(request)
+      const station = await serialized(() => provisionStation(payload))
+      sendJson(response, 201, { data: station })
+    } catch (error) {
+      process.stderr.write(`[simulator-control] ${error instanceof Error ? error.message : 'Unknown error'}\n`)
+      sendJson(response, 422, { message: error instanceof Error ? error.message : 'Simulator provisioning failed.' })
+    }
+    return
+  }
+
   const match = request.url?.match(/^\/stations\/([A-Za-z0-9._:-]{1,100})(?:\/actions)?$/)
   if (!match) {
     sendJson(response, 404, { message: 'Not found.' })
@@ -222,6 +346,7 @@ const isEntryPoint = process.argv[1]
   && new URL(import.meta.url).pathname.endsWith(process.argv[1].replaceAll('\\', '/'))
 if (isEntryPoint) {
   if (!token) throw new Error('OCPP_SIMULATOR_CONTROL_TOKEN is required.')
+  if (stationSecret.length < 32) throw new Error('OCPP_SIMULATOR_STATION_SECRET must contain at least 32 characters.')
   await waitForSimulator()
   server.listen(port, host, () => {
     process.stdout.write(`OCPP simulator control listening on ${host}:${port}\n`)
