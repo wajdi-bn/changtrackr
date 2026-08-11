@@ -69,9 +69,14 @@ if ($null -eq $stationSecret -or $Rotate) { $stationSecret = New-HexSecret }
 $uiPassword = if ($Rotate) { $null } else { Get-EnvValue $composeEnv 'OCPP_SIMULATOR_UI_PASSWORD' }
 if ($null -eq $uiPassword -or $Rotate) { $uiPassword = New-HexSecret }
 
+$controlToken = if ($Rotate) { $null } else { Get-EnvValue $backendEnv 'OCPP_SIMULATOR_CONTROL_TOKEN' }
+if ($null -eq $controlToken) { $controlToken = Get-EnvValue $composeEnv 'OCPP_SIMULATOR_CONTROL_TOKEN' }
+if ($null -eq $controlToken -or $Rotate) { $controlToken = New-HexSecret }
+
 Set-EnvValue $backendEnv 'OCPP_GATEWAY_SHARED_SECRET' $gatewaySecret
 Set-EnvValue $backendEnv 'OCPP_GATEWAY_SIGNATURE_TOLERANCE_SECONDS' '300'
 Set-EnvValue $backendEnv 'OCPP_SIMULATOR_STATION_SECRET' $stationSecret
+Set-EnvValue $backendEnv 'OCPP_SIMULATOR_CONTROL_TOKEN' $controlToken
 Remove-EnvValue $backendEnv 'OCPP_SIMULATOR_STATION_IDENTITY'
 
 $composeLines = @(
@@ -81,7 +86,8 @@ $composeLines = @(
     'OCPP_LARAVEL_BASE_URL=http://host.docker.internal:8000/api/internal/ocpp',
     "OCPP_GATEWAY_SHARED_SECRET=$gatewaySecret",
     "OCPP_SIMULATOR_STATION_SECRET=$stationSecret",
-    "OCPP_SIMULATOR_UI_PASSWORD=$uiPassword"
+    "OCPP_SIMULATOR_UI_PASSWORD=$uiPassword",
+    "OCPP_SIMULATOR_CONTROL_TOKEN=$controlToken"
 )
 [System.IO.Directory]::CreateDirectory((Split-Path -Parent $composeEnv)) | Out-Null
 [System.IO.File]::WriteAllLines($composeEnv, $composeLines)

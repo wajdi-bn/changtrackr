@@ -31,6 +31,8 @@ x-backend-environment: &backend-environment
   PAYMENT_SIMULATOR_BASE_URL: http://payment-simulator:8080
   PAYMENT_SIMULATOR_WEBHOOK_URL: http://backend/api/internal/payments/webhooks
   OCPP_GATEWAY_PUBLIC_URL: ws://localhost:${OCPP_GATEWAY_FORWARD_PORT:-9000}/ocpp
+  OCPP_SIMULATOR_CONTROL_URL: http://ocpp-simulator-control:8081
+  OCPP_SIMULATOR_CONTROL_TOKEN: ${OCPP_SIMULATOR_CONTROL_TOKEN:?Run npm run stack:configure first}
 
 x-backend-runtime: &backend-runtime
   image: chargetrackr-backend:local
@@ -246,6 +248,30 @@ services:
     depends_on:
       ocpp-gateway:
         condition: service_healthy
+    restart: unless-stopped
+
+  ocpp-simulator-control:
+    profiles: [simulators]
+    image: chargetrackr-ocpp-simulator-control:local
+    build:
+      context: ..
+      dockerfile: infra/ocpp/simulator/Dockerfile
+      target: control
+      args:
+        SAP_SIMULATOR_REF: 6119452049739c05506351a9589d753e84c59e9f
+    env_file:
+      - ./ocpp/.env
+    environment:
+      OCPP_SIMULATOR_CONTROL_TOKEN: ${OCPP_SIMULATOR_CONTROL_TOKEN:?Run npm run stack:configure first}
+    depends_on:
+      ocpp-simulator:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/health"]
+      interval: 10s
+      timeout: 3s
+      start_period: 20s
+      retries: 5
     restart: unless-stopped
 
   ocpp-cli:

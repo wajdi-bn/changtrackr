@@ -54,3 +54,9 @@ COPY infra/ocpp/simulator/run-stop-transaction.sh /usr/local/bin/run-ocpp-stop-t
 RUN chmod +x /usr/local/bin/run-ocpp-scenario /usr/local/bin/run-ocpp-transaction-scenario /usr/local/bin/run-ocpp-connector-status /usr/local/bin/run-ocpp-connection-state /usr/local/bin/run-ocpp-stop-transaction
 
 ENTRYPOINT ["run-ocpp-scenario"]
+
+FROM cli AS control
+
+COPY infra/ocpp/simulator/control-server.mjs ./control-server.mjs
+EXPOSE 8081
+ENTRYPOINT ["sh", "-c", "node /usr/app/write-cli-config.mjs /usr/app/cli-config-template.json /tmp/evse-cli-config.json && exec node /usr/app/control-server.mjs"]

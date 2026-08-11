@@ -87,5 +87,6 @@ if ($null -eq $paymentWebhookSecret -or $paymentWebhookSecret.Length -lt 32) {
 Set-EnvValue $infraEnv 'REVERB_APP_ID' $reverbAppId
 Set-EnvValue $infraEnv 'REVERB_APP_KEY' $reverbAppKey
 Set-EnvValue $infraEnv 'REVERB_APP_SECRET' $reverbAppSecret
+Set-EnvValue $infraEnv 'OCPP_SIMULATOR_CONTROL_TOKEN' (Get-EnvValue $backendEnv 'OCPP_SIMULATOR_CONTROL_TOKEN')
 
 Write-Output 'The complete local stack is configured. Existing secrets were retained.'

@@ -19,5 +19,8 @@ return [
     'simulator' => [
         'station_secret' => env('OCPP_SIMULATOR_STATION_SECRET'),
         'id_tag' => env('OCPP_SIMULATOR_ID_TAG', 'TEST-TAG-001'),
+        'control_url' => env('OCPP_SIMULATOR_CONTROL_URL', 'http://127.0.0.1:8081'),
+        'control_token' => env('OCPP_SIMULATOR_CONTROL_TOKEN'),
+        'control_timeout_seconds' => (int) env('OCPP_SIMULATOR_CONTROL_TIMEOUT_SECONDS', 15),
     ],
 ];
