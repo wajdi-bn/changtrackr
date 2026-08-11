@@ -8,6 +8,27 @@ use RuntimeException;
 
 class OcppSimulatorControlClient
 {
+    /** @return list<array<string, mixed>> */
+    public function profiles(): array
+    {
+        return $this->request()
+            ->get('/profiles')
+            ->throw()
+            ->json('data');
+    }
+
+    /** @return array<string, mixed> */
+    public function provision(string $identity, string $profile): array
+    {
+        return $this->request()
+            ->post('/stations', [
+                'identity' => $identity,
+                'profile' => $profile,
+            ])
+            ->throw()
+            ->json('data');
+    }
+
     /** @return array<string, mixed> */
     public function state(string $identity): array
     {

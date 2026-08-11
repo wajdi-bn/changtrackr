@@ -129,7 +129,9 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
 
     Route::get('/stations/map', [StationController::class, 'map']);
     Route::get('/connector-qr/{token}', [ConnectorQrController::class, 'show']);
+    Route::get('/stations/commissioning/profiles', [StationCommissioningController::class, 'profiles']);
     Route::post('/stations/commission', [StationCommissioningController::class, 'store']);
+    Route::post('/stations/{station}/commissioning/retry', [StationCommissioningController::class, 'retry']);
     Route::post('/stations/{station}/commissioning/rotate-credentials', [StationCommissioningController::class, 'rotateCredentials']);
     Route::get('/stations/{station}/telemetry', StationTelemetryController::class);
     Route::apiResource('stations', StationController::class);

@@ -16,6 +16,8 @@ class CommissionStationRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
+        $isSimulator = $this->input('commissioning_target') === 'simulator';
+
         return [
             'organization_id' => [
                 Rule::prohibitedIf(! $this->user()?->hasRole('super_admin')),
@@ -38,13 +40,21 @@ class CommissionStationRequest extends FormRequest
             'address' => ['required', 'string', 'max:255'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
-            'max_power_kw' => ['required', 'numeric', 'min:1', 'max:1000'],
-            'model' => ['required', 'string', 'max:120'],
-            'manufacturer' => ['required', 'string', 'max:120'],
-            'ocpp_version' => ['required', Rule::in(['OCPP 1.6J', 'OCPP 2.0.1'])],
-            'model_image' => ['nullable', 'string', 'max:255'],
+            'max_power_kw' => [Rule::prohibitedIf($isSimulator), Rule::requiredIf(! $isSimulator), 'nullable', 'numeric', 'min:1', 'max:1000'],
+            'model' => [Rule::prohibitedIf($isSimulator), Rule::requiredIf(! $isSimulator), 'nullable', 'string', 'max:120'],
+            'manufacturer' => [Rule::prohibitedIf($isSimulator), Rule::requiredIf(! $isSimulator), 'nullable', 'string', 'max:120'],
+            'ocpp_version' => [Rule::prohibitedIf($isSimulator), Rule::requiredIf(! $isSimulator), 'nullable', Rule::in(['OCPP 1.6J', 'OCPP 2.0.1'])],
+            'model_image' => [Rule::prohibitedIf($isSimulator), 'nullable', 'string', 'max:255'],
             'commissioning_target' => ['required', Rule::in(['external', 'simulator', 'inventory'])],
-            'connectors' => ['required', 'array', 'min:1', 'max:16'],
+            'simulator_profile' => [
+                Rule::requiredIf($isSimulator),
+                Rule::prohibitedIf(! $isSimulator),
+                'nullable',
+                'string',
+                'max:80',
+                'regex:/^[a-z0-9_-]+$/',
+            ],
+            'connectors' => [Rule::prohibitedIf($isSimulator), Rule::requiredIf(! $isSimulator), 'nullable', 'array', 'min:1', 'max:16'],
             'connectors.*.external_id' => ['required', 'string', 'max:60', 'distinct:strict'],
             'connectors.*.ocpp_connector_id' => ['required', 'integer', 'min:1', 'max:65535', 'distinct:strict'],
             'connectors.*.type' => ['required', Rule::in(['CCS2', 'Type 2', 'CHAdeMO'])],
@@ -58,28 +68,13 @@ class CommissionStationRequest extends FormRequest
         return [
             function (Validator $validator): void {
                 $target = $this->input('commissioning_target');
-                if ($target !== 'inventory' && $this->input('ocpp_version') !== 'OCPP 1.6J') {
+                if ($target === 'external' && $this->input('ocpp_version') !== 'OCPP 1.6J') {
                     $validator->errors()->add(
                         'ocpp_version',
                         'The current gateway can commission only OCPP 1.6J stations.',
                     );
                 }
 
-                if ($target === 'simulator') {
-                    $ids = collect($this->input('connectors', []))
-                        ->pluck('ocpp_connector_id')
-                        ->map(fn ($id): int => (int) $id)
-                        ->sort()
-                        ->values()
-                        ->all();
-                    $expected = range(1, count($ids));
-                    if ($ids !== $expected) {
-                        $validator->errors()->add(
-                            'connectors',
-                            'SAP simulator connector IDs must be contiguous and start at 1.',
-                        );
-                    }
-                }
             },
         ];
     }

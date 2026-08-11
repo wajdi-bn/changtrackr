@@ -62,9 +62,9 @@ class OcppStationProvisioningService
             'username' => $identity,
             'secret' => $secret,
             'secret_visible_once' => $secret !== null,
-            'simulator_command' => $station->ocpp_commissioning_target === 'simulator'
-                ? 'npm run ocpp:add-simulator-station -- '.$identity
-                : null,
+            'simulator_profile' => $station->ocpp_simulator_profile,
+            'provisioning_status' => $station->ocpp_provisioning_status,
+            'provisioning_error' => $station->ocpp_provisioning_error,
         ];
     }
 }

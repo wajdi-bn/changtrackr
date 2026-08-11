@@ -2,15 +2,20 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProvisionOcppSimulatorStation;
 use App\Models\Organization;
 use App\Models\Station;
 use App\Models\User;
+use App\Services\Ocpp\OcppSimulatorControlClient;
 use App\Services\Ocpp\OcppStationAuthenticationService;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
+use RuntimeException;
 use Tests\TestCase;
 
 class StationCommissioningTest extends TestCase
@@ -21,6 +26,9 @@ class StationCommissioningTest extends TestCase
     {
         parent::setUp();
         $this->seed(RolePermissionSeeder::class);
+        config()->set('ocpp.simulator.control_url', 'http://simulator-control:8081');
+        config()->set('ocpp.simulator.control_token', 'private-control-token');
+        config()->set('ocpp.simulator.station_secret', str_repeat('s', 40));
     }
 
     public function test_admin_commissions_an_external_station_and_receives_the_secret_only_once(): void
@@ -59,6 +67,8 @@ class StationCommissioningTest extends TestCase
 
     public function test_commissioning_is_atomic_and_rejects_tenant_injection_and_invalid_connectors(): void
     {
+        Queue::fake();
+        Http::fake(['http://simulator-control:8081/profiles' => Http::response(['data' => $this->simulatorProfiles()])]);
         [$admin] = $this->userWithRole('admin');
         $otherOrganization = Organization::query()->create([
             'name' => 'Other Network',
@@ -72,27 +82,99 @@ class StationCommissioningTest extends TestCase
             'organization_id' => $otherOrganization->id,
         ])->assertUnprocessable()->assertJsonValidationErrors('organization_id');
 
-        $invalid = $this->payload('CT-COMMISSION-003', 'simulator');
-        $invalid['connectors'][1]['ocpp_connector_id'] = 3;
+        $invalid = $this->payload('CT-COMMISSION-003', 'external');
+        $invalid['connectors'][1]['current_type'] = 'invalid';
         $this->postJson('/api/stations/commission', $invalid)
             ->assertUnprocessable()
-            ->assertJsonValidationErrors('connectors');
+            ->assertJsonValidationErrors('connectors.1.current_type');
 
         $this->assertDatabaseMissing('stations', ['reference' => 'CT-COMMISSION-003']);
     }
 
-    public function test_simulator_station_returns_a_local_command_without_exposing_a_secret(): void
+    public function test_simulator_station_uses_a_server_profile_and_queues_provisioning_without_a_shell_command(): void
     {
+        Queue::fake();
+        Http::fake(['http://simulator-control:8081/profiles' => Http::response(['data' => $this->simulatorProfiles()])]);
         [$operator] = $this->userWithRole('operator');
         Sanctum::actingAs($operator);
 
         $this->postJson('/api/stations/commission', $this->payload('CT-SIM-101', 'simulator'))
             ->assertCreated()
             ->assertJsonPath('data.ocpp_commissioning_target', 'simulator')
-            ->assertJsonPath('data.commissioning_status', 'not_provisioned')
+            ->assertJsonPath('data.ocpp_simulator_profile', 'dc_fast_dual')
+            ->assertJsonPath('data.commissioning_status', 'provisioning')
+            ->assertJsonPath('data.connectors.0.type', 'CCS2')
+            ->assertJsonPath('data.connectors.1.type', 'CHAdeMO')
             ->assertJsonPath('commissioning.secret', null)
             ->assertJsonPath('commissioning.secret_visible_once', false)
-            ->assertJsonPath('commissioning.simulator_command', 'npm run ocpp:add-simulator-station -- CT-SIM-101');
+            ->assertJsonPath('commissioning.simulator_profile', 'dc_fast_dual')
+            ->assertJsonPath('commissioning.provisioning_status', 'queued')
+            ->assertJsonMissingPath('commissioning.simulator_command');
+
+        $station = Station::query()->where('reference', 'CT-SIM-101')->firstOrFail();
+        $this->assertTrue(Hash::check(str_repeat('s', 40), $station->ocpp_auth_secret_hash));
+        Queue::assertPushed(ProvisionOcppSimulatorStation::class, fn ($job): bool => $job->stationId === $station->id);
+    }
+
+    public function test_authorized_user_can_read_the_safe_simulator_profile_catalog(): void
+    {
+        Http::fake(['http://simulator-control:8081/profiles' => Http::response(['data' => $this->simulatorProfiles()])]);
+        [$operator] = $this->userWithRole('operator');
+        Sanctum::actingAs($operator);
+
+        $this->getJson('/api/stations/commissioning/profiles')
+            ->assertOk()
+            ->assertJsonPath('data.0.key', 'dc_fast_dual')
+            ->assertJsonMissingPath('data.0.template');
+    }
+
+    public function test_provisioning_job_registers_the_station_and_records_success(): void
+    {
+        Queue::fake();
+        Http::fake([
+            'http://simulator-control:8081/profiles' => Http::response(['data' => $this->simulatorProfiles()]),
+            'http://simulator-control:8081/stations' => Http::response([
+                'data' => ['identity' => 'CT-SIM-JOB-001', 'started' => true, 'connected' => true],
+            ], 201),
+        ]);
+        [$operator] = $this->userWithRole('operator');
+        Sanctum::actingAs($operator);
+        $stationId = (int) $this->postJson('/api/stations/commission', $this->payload('CT-SIM-JOB-001', 'simulator'))
+            ->assertCreated()
+            ->json('data.id');
+
+        (new ProvisionOcppSimulatorStation($stationId))->handle(app(OcppSimulatorControlClient::class));
+
+        $station = Station::query()->findOrFail($stationId);
+        $this->assertSame('provisioned', $station->ocpp_provisioning_status);
+        $this->assertNotNull($station->ocpp_provisioned_at);
+        $this->assertNull($station->ocpp_provisioning_error);
+        Http::assertSent(fn ($request): bool => $request->url() === 'http://simulator-control:8081/stations'
+            && $request['identity'] === 'CT-SIM-JOB-001'
+            && $request['profile'] === 'dc_fast_dual');
+    }
+
+    public function test_failed_simulator_provisioning_can_be_retried_without_exposing_internal_errors(): void
+    {
+        Queue::fake();
+        Http::fake(['http://simulator-control:8081/profiles' => Http::response(['data' => $this->simulatorProfiles()])]);
+        [$admin] = $this->userWithRole('admin');
+        Sanctum::actingAs($admin);
+        $stationId = (int) $this->postJson('/api/stations/commission', $this->payload('CT-SIM-RETRY-001', 'simulator'))
+            ->assertCreated()
+            ->json('data.id');
+
+        $job = new ProvisionOcppSimulatorStation($stationId);
+        $job->failed(new RuntimeException('private simulator details'));
+        $station = Station::query()->findOrFail($stationId);
+        $this->assertSame('failed', $station->ocpp_provisioning_status);
+        $this->assertStringNotContainsString('private simulator details', $station->ocpp_provisioning_error);
+
+        $this->postJson("/api/stations/{$stationId}/commissioning/retry")
+            ->assertAccepted()
+            ->assertJsonPath('data.commissioning_status', 'provisioning')
+            ->assertJsonPath('commissioning.provisioning_status', 'queued');
+        Queue::assertPushed(ProvisionOcppSimulatorStation::class, fn ($queued): bool => $queued->stationId === $stationId);
     }
 
     public function test_rotating_external_credentials_invalidates_the_previous_secret(): void
@@ -119,12 +201,16 @@ class StationCommissioningTest extends TestCase
     public function test_local_command_registers_station_and_connector_powers_in_simulator_manifest(): void
     {
         [, $organization] = $this->userWithRole('operator');
+        $payload = $this->payload('CT-SIM-CMD-001', 'external');
         $station = Station::query()->create([
-            ...collect($this->payload('CT-SIM-CMD-001', 'simulator'))->except(['commissioning_target', 'connectors'])->all(),
+            ...collect($payload)->except(['commissioning_target', 'connectors'])->all(),
             'organization_id' => $organization->id,
             'status' => 'offline',
+            'ocpp_commissioning_target' => 'simulator',
+            'ocpp_simulator_profile' => 'dc_fast_dual',
+            'ocpp_provisioning_status' => 'not_provisioned',
         ]);
-        foreach ($this->payload('CT-SIM-CMD-001', 'simulator')['connectors'] as $connector) {
+        foreach ($payload['connectors'] as $connector) {
             $station->connectors()->create([...$connector, 'status' => 'offline']);
         }
 
@@ -166,7 +252,7 @@ class StationCommissioningTest extends TestCase
     /** @return array<string, mixed> */
     private function payload(string $reference, string $target): array
     {
-        return [
+        $base = [
             'name' => 'Commissioned Station',
             'reference' => $reference,
             'ocpp_identity' => $reference,
@@ -175,12 +261,20 @@ class StationCommissioningTest extends TestCase
             'address' => 'Rue du Lac',
             'latitude' => 36.832,
             'longitude' => 10.235,
+            'commissioning_target' => $target,
+        ];
+
+        if ($target === 'simulator') {
+            return [...$base, 'simulator_profile' => 'dc_fast_dual'];
+        }
+
+        return [
+            ...$base,
             'max_power_kw' => 120,
             'model' => 'Terra 124',
             'manufacturer' => 'ABB',
             'ocpp_version' => 'OCPP 1.6J',
             'model_image' => '/assets/stations/models/terra-hp-150.webp',
-            'commissioning_target' => $target,
             'connectors' => [
                 [
                     'external_id' => 'A1',
@@ -198,5 +292,23 @@ class StationCommissioningTest extends TestCase
                 ],
             ],
         ];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function simulatorProfiles(): array
+    {
+        return [[
+            'key' => 'dc_fast_dual',
+            'label' => 'Dual fast charger',
+            'description' => 'One shared DC power cabinet with two connector standards.',
+            'manufacturer' => 'ChargeTrackr Labs',
+            'model' => 'Dual DC 150',
+            'max_power_kw' => 150,
+            'model_image' => '/assets/stations/models/evbox-troniq.webp',
+            'connectors' => [
+                ['external_id' => 'A1', 'ocpp_connector_id' => 1, 'type' => 'CCS2', 'current_type' => 'DC', 'max_power_kw' => 150],
+                ['external_id' => 'A2', 'ocpp_connector_id' => 2, 'type' => 'CHAdeMO', 'current_type' => 'DC', 'max_power_kw' => 150],
+            ],
+        ]];
     }
 }

@@ -31,6 +31,28 @@ class StationCommissioningController extends Controller
         ], 201);
     }
 
+    public function profiles(Request $request): JsonResponse
+    {
+        Gate::authorize('create', Station::class);
+
+        return response()->json(['data' => $this->commissioning->simulatorProfiles()]);
+    }
+
+    public function retry(Request $request, Station $station): JsonResponse
+    {
+        Gate::authorize('update', $station);
+        abort_unless($request->user()->can('connectors.manage'), 403);
+
+        /** @var User $actor */
+        $actor = $request->user();
+        $result = $this->commissioning->retrySimulatorProvisioning($actor, $station);
+
+        return response()->json([
+            'data' => new StationResource($result['station']->loadTodayMetrics()),
+            'commissioning' => $result['commissioning'],
+        ], 202);
+    }
+
     public function rotateCredentials(Request $request, Station $station): JsonResponse
     {
         Gate::authorize('update', $station);

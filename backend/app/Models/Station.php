@@ -19,7 +19,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'availability_override', 'maintenance_intervention_id', 'status_before_maintenance',
     'availability_reason', 'availability_source',
     'availability_calculated_at', 'availability_monitoring_started_at',
-    'ocpp_version', 'ocpp_commissioning_target', 'ocpp_auth_secret_hash',
+    'ocpp_version', 'ocpp_commissioning_target', 'ocpp_simulator_profile',
+    'ocpp_provisioning_status', 'ocpp_provisioning_error', 'ocpp_provisioned_at',
+    'ocpp_auth_secret_hash',
     'ocpp_registration_status', 'ocpp_status',
     'ocpp_error_code', 'ocpp_connected_at', 'ocpp_disconnected_at', 'ocpp_last_message_at',
     'ocpp_last_status_at', 'model_image', 'last_heartbeat_at', 'uptime_percent',
@@ -156,6 +158,16 @@ class Station extends Model
 
     public function commissioningStatus(): string
     {
+        if ($this->ocpp_commissioning_target === 'simulator') {
+            if (in_array($this->ocpp_provisioning_status, ['queued', 'provisioning'], true)) {
+                return 'provisioning';
+            }
+
+            if ($this->ocpp_provisioning_status === 'failed') {
+                return 'provisioning_failed';
+            }
+        }
+
         if (! $this->isOcppManaged()) {
             return 'not_provisioned';
         }
@@ -262,6 +274,7 @@ class Station extends Model
             'ocpp_last_status_at' => 'datetime',
             'availability_calculated_at' => 'datetime',
             'availability_monitoring_started_at' => 'datetime',
+            'ocpp_provisioned_at' => 'datetime',
             'uptime_percent' => 'float',
             'utilization_percent' => 'float',
             'open_alerts_count' => 'integer',
