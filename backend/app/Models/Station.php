@@ -49,6 +49,11 @@ class Station extends Model
         return $this->hasMany(OcppCommand::class);
     }
 
+    public function simulatorActions(): HasMany
+    {
+        return $this->hasMany(OcppSimulatorAction::class);
+    }
+
     /** @return HasMany<Alert, $this> */
     public function alerts(): HasMany
     {

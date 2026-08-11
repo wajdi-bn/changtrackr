@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\InterventionController;
 use App\Http\Controllers\Api\InterventionReportController;
 use App\Http\Controllers\Api\MaintenanceController;
 use App\Http\Controllers\Api\NotificationPreferenceController;
+use App\Http\Controllers\Api\OcppSimulatorController;
 use App\Http\Controllers\Api\OcppSupervisionController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OperationalDocumentController;
@@ -141,6 +142,9 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::post('/stations/{station}/commands/reset', [OcppSupervisionController::class, 'reset']);
     Route::post('/stations/{station}/connectors/{connector}/commands/unlock', [OcppSupervisionController::class, 'unlock']);
     Route::put('/stations/{station}/maintenance', [OcppSupervisionController::class, 'maintenance']);
+    Route::get('/stations/{station}/simulator', [OcppSimulatorController::class, 'show']);
+    Route::post('/stations/{station}/simulator/actions', [OcppSimulatorController::class, 'store'])
+        ->middleware('throttle:ocpp-simulator-actions');
 
     Route::apiResource('alerts', AlertController::class)->except('destroy');
     Route::get('/alerts/{alert}/report', [OperationalDocumentController::class, 'alert']);
