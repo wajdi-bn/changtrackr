@@ -35,6 +35,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { IconSurface, type IconSurfaceTone } from '../components/IconSurface'
 import { createConnector, deleteConnector, getStation, getStationCommands, getStationTelemetry, restartStation, rotateStationCredentials, setStationMaintenanceMode, unlockStationConnector, updateConnector, updateStation } from '../features/stations/stationApi'
 import { StationCommissioningResultModal } from '../features/stations/StationCommissioningResultModal'
+import { OcppSimulatorConsole } from '../features/stations/OcppSimulatorConsole'
 import { StationStatusTag } from '../features/stations/StationStatusTag'
 import { availabilityReasonLabel } from '../features/stations/availabilityLabels'
 import { useAuth } from '../features/auth/useAuth'
@@ -156,6 +157,7 @@ export function StationDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['station-telemetry', numericStationId] }),
       queryClient.invalidateQueries({ queryKey: ['stations'] }),
       queryClient.invalidateQueries({ queryKey: ['station-commands', numericStationId] }),
+      queryClient.invalidateQueries({ queryKey: ['station-simulator', numericStationId] }),
       queryClient.invalidateQueries({ queryKey: ['maintenances'] }),
       queryClient.invalidateQueries({ queryKey: ['charging-sessions'] }),
       queryClient.invalidateQueries({ queryKey: ['alerts'] }),
@@ -396,6 +398,23 @@ export function StationDetailPage() {
         </Card>
       ),
     },
+    ...(station.ocpp_commissioning_target === 'simulator' && canViewCommands ? [{
+      key: 'simulator',
+      label: 'Simulator console',
+      children: (
+        <OcppSimulatorConsole
+          station={station}
+          active={activeTab === 'simulator'}
+          canExecute={canExecuteCommands}
+          restartPending={resetMutation.isPending}
+          unlockPendingConnectorId={unlockMutation.isPending ? unlockMutation.variables ?? null : null}
+          maintenancePending={maintenanceMutation.isPending}
+          onRestart={confirmRestart}
+          onUnlock={confirmUnlock}
+          onToggleMaintenance={confirmMaintenance}
+        />
+      ),
+    }] : []),
     ...(canViewCommands ? [{
       key: 'command-history',
       label: 'Command history',

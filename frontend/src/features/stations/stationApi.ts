@@ -5,6 +5,9 @@ import type {
   MaintenanceModeResponse,
   OcppCommand,
   OcppCommandsResponse,
+  OcppSimulatorAction,
+  OcppSimulatorActionName,
+  OcppSimulatorConsoleResponse,
   Station,
   StationCommissioningPayload,
   StationCommissioningResult,
@@ -106,4 +109,21 @@ export async function unlockStationConnector(stationId: number, connectorId: num
 export async function setStationMaintenanceMode(stationId: number, enabled: boolean): Promise<MaintenanceModeResponse> {
   const response = await httpClient.put<MaintenanceModeResponse>(`/stations/${stationId}/maintenance`, { enabled })
   return response.data
+}
+
+export async function getOcppSimulatorConsole(stationId: number): Promise<OcppSimulatorConsoleResponse> {
+  const response = await httpClient.get<OcppSimulatorConsoleResponse>(`/stations/${stationId}/simulator`)
+  return response.data
+}
+
+export async function executeOcppSimulatorAction(
+  stationId: number,
+  action: OcppSimulatorActionName,
+  connectorId?: number,
+): Promise<OcppSimulatorAction> {
+  const response = await httpClient.post<{ data: OcppSimulatorAction }>(`/stations/${stationId}/simulator/actions`, {
+    action,
+    connector_id: connectorId,
+  })
+  return response.data.data
 }

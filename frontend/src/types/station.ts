@@ -253,6 +253,68 @@ export interface MaintenanceModeResponse {
   ocpp_sync: 'queued' | 'not_connected'
 }
 
+export type OcppSimulatorActionName =
+  | 'connect'
+  | 'disconnect'
+  | 'heartbeat'
+  | 'plug'
+  | 'unplug'
+  | 'inject_fault'
+  | 'recover'
+  | 'normal_cycle'
+  | 'fault_recovery'
+
+export type OcppSimulatorActionStatus = 'queued' | 'running' | 'succeeded' | 'failed'
+
+export interface OcppSimulatorConnectorState {
+  connector_id: number
+  status: string
+  error_code: string
+  availability: string
+  transaction_started: boolean
+}
+
+export interface OcppSimulatorState {
+  identity: string
+  started: boolean
+  connected: boolean
+  ws_state: number | null
+  supervision_url: string | null
+  connectors: OcppSimulatorConnectorState[]
+}
+
+export interface OcppSimulatorAction {
+  uuid: string
+  action: OcppSimulatorActionName
+  status: OcppSimulatorActionStatus
+  station_id: number
+  connector: Pick<Connector, 'id' | 'external_id' | 'ocpp_connector_id'> | null
+  requested_by: { id: number; name: string; avatar_url: string | null } | null
+  result: OcppSimulatorState | null
+  failure_code: string | null
+  failure_message: string | null
+  queued_at: string
+  started_at: string | null
+  completed_at: string | null
+}
+
+export interface OcppSimulatorConsoleResponse {
+  state: OcppSimulatorState | null
+  adapter: {
+    available: boolean
+    message: string | null
+  }
+  history: {
+    data: OcppSimulatorAction[]
+    meta: {
+      current_page: number
+      last_page: number
+      per_page: number
+      total: number
+    }
+  }
+}
+
 export type RemoteStartUnavailableReason =
   | 'not_ocpp_managed'
   | 'organization_inactive'

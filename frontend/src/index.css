@@ -5636,6 +5636,245 @@ html {
   font-weight: 600;
 }
 
+.simulator-console {
+  display: grid;
+  gap: 18px;
+}
+
+.simulator-console-loading {
+  min-height: 420px;
+  padding: 28px;
+}
+
+.simulator-console-heading {
+  align-items: center;
+  background: #f5fbf8;
+  border: 1px solid #d9e9e0;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto 1fr auto;
+  padding: 20px;
+}
+
+.simulator-console-heading__icon,
+.simulator-state-icon {
+  align-items: center;
+  background: #119b68;
+  border-radius: 8px;
+  color: #fff;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.simulator-console-heading span,
+.simulator-control-panel > span,
+.simulator-live-panel header span,
+.simulator-history-panel header span {
+  color: #087d55;
+  display: block;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .06em;
+}
+
+.simulator-console-heading h2,
+.simulator-control-panel h3,
+.simulator-live-panel h3,
+.simulator-history-panel h3 {
+  color: #172c24;
+  margin: 3px 0;
+}
+
+.simulator-console-heading p,
+.simulator-control-panel p {
+  color: #6e7f77;
+  margin: 0;
+}
+
+.simulator-status-strip {
+  border-bottom: 1px solid #dfe8e3;
+  border-top: 1px solid #dfe8e3;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.simulator-metric {
+  align-items: center;
+  display: flex;
+  gap: 11px;
+  min-width: 0;
+  padding: 16px 18px;
+}
+
+.simulator-metric + .simulator-metric {
+  border-left: 1px solid #dfe8e3;
+}
+
+.simulator-metric > span {
+  align-items: center;
+  background: #edf3f0;
+  border-radius: 7px;
+  color: #426157;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.simulator-metric--success > span { background: #119b68; color: #fff; }
+.simulator-metric--danger > span { background: #d84242; color: #fff; }
+.simulator-metric div { min-width: 0; }
+.simulator-metric small { color: #7b8d85; display: block; font-size: 12px; }
+.simulator-metric strong { color: #182d25; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.simulator-control-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.simulator-control-panel,
+.simulator-live-panel,
+.simulator-history-panel {
+  background: #fff;
+  border: 1px solid #dfe8e3;
+  border-radius: 8px;
+  padding: 19px;
+}
+
+.simulator-control-panel__body { margin-top: 17px; }
+.simulator-button-row { display: flex; flex-wrap: wrap; gap: 9px; }
+.simulator-connector-select { margin-bottom: 12px; width: 100%; }
+
+.simulator-scenario {
+  align-items: center;
+  background: #f5faf7;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  display: grid;
+  gap: 2px 10px;
+  grid-template-columns: auto 1fr;
+  margin-bottom: 8px;
+  padding: 11px;
+  text-align: left;
+  width: 100%;
+}
+
+.simulator-scenario > span {
+  align-items: center;
+  background: #119b68;
+  border-radius: 7px;
+  color: #fff;
+  display: flex;
+  grid-row: 1 / 3;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.simulator-scenario--warning > span { background: #d49a19; }
+.simulator-scenario strong { color: #1d3129; }
+.simulator-scenario small { color: #7a8a83; }
+.simulator-scenario:disabled { cursor: not-allowed; opacity: .45; }
+.simulator-scenario:not(:disabled):hover { background: #e9f5ef; }
+
+.simulator-live-panel header,
+.simulator-history-panel header {
+  align-items: center;
+  border-bottom: 1px solid #e7eeea;
+  display: flex;
+  justify-content: space-between;
+  margin: -2px 0 15px;
+  padding-bottom: 13px;
+}
+
+.simulator-live-panel header small,
+.simulator-history-panel header small { color: #829189; }
+
+.simulator-connector-state-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.simulator-connector-state-grid article {
+  align-items: center;
+  background: #f7faf8;
+  border-radius: 7px;
+  display: grid;
+  gap: 4px 11px;
+  grid-template-columns: auto 1fr auto;
+  padding: 12px;
+}
+
+.simulator-state-icon { height: 36px; width: 36px; }
+.simulator-state-icon.is-faulted { background: #d84242; }
+.simulator-connector-state-grid article div strong,
+.simulator-connector-state-grid article div small { display: block; }
+.simulator-connector-state-grid article div small { color: #819087; }
+.simulator-connector-state-grid article p { color: #6f7e76; font-size: 12px; grid-column: 2 / 4; margin: 0; }
+
+.simulator-state-pill,
+.simulator-timeline-item__label {
+  background: #e5eee9;
+  border-radius: 999px;
+  color: #53685e;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  text-transform: capitalize;
+}
+
+.simulator-state-pill--available,
+.simulator-state-pill--preparing { background: #dff5e9; color: #087d55; }
+.simulator-state-pill--faulted { background: #fee7e7; color: #b62e2e; }
+
+.simulator-timeline { display: grid; }
+.simulator-timeline-item {
+  align-items: center;
+  border-bottom: 1px solid #e8eeeb;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(190px, 1fr) minmax(130px, auto) auto;
+  padding: 12px 2px;
+}
+.simulator-timeline-item:last-child { border-bottom: 0; }
+.simulator-timeline-item__status { color: #d49a19; display: flex; }
+.simulator-timeline-item.is-succeeded .simulator-timeline-item__status { color: #119b68; }
+.simulator-timeline-item.is-failed .simulator-timeline-item__status { color: #d84242; }
+.simulator-timeline-item__main strong,
+.simulator-timeline-item__main small { display: block; }
+.simulator-timeline-item__main small { color: #7e8e86; font-size: 12px; }
+.simulator-timeline-item__user { align-items: center; display: flex; gap: 7px; }
+.simulator-timeline-item > p { color: #b62e2e; font-size: 12px; grid-column: 2 / 5; margin: -6px 0 0; }
+.simulator-timeline-item.is-succeeded .simulator-timeline-item__label { background: #dff5e9; color: #087d55; }
+.simulator-timeline-item.is-failed .simulator-timeline-item__label { background: #fee7e7; color: #b62e2e; }
+
+.is-spinning { animation: simulator-spin 1s linear infinite; }
+@keyframes simulator-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 900px) {
+  .simulator-status-strip { grid-template-columns: repeat(2, 1fr); }
+  .simulator-metric:nth-child(3) { border-left: 0; border-top: 1px solid #dfe8e3; }
+  .simulator-metric:nth-child(4) { border-top: 1px solid #dfe8e3; }
+  .simulator-control-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .simulator-console-heading { grid-template-columns: auto 1fr; }
+  .simulator-console-heading > .ant-btn { grid-column: 1 / 3; width: 100%; }
+  .simulator-status-strip { grid-template-columns: 1fr; }
+  .simulator-metric + .simulator-metric { border-left: 0; border-top: 1px solid #dfe8e3; }
+  .simulator-connector-state-grid { grid-template-columns: 1fr; }
+  .simulator-timeline-item { grid-template-columns: auto 1fr auto; }
+  .simulator-timeline-item__user { display: none; }
+  .simulator-timeline-item > p { grid-column: 2 / 4; }
+}
+
 @media (max-width: 1180px) {
   .app-header { grid-template-columns: 160px minmax(260px, 1fr) auto; }
   .network-select { display: none; }
