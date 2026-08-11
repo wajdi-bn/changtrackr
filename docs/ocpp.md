@@ -384,6 +384,38 @@ The simulator's authenticated control WebSocket is exposed on `ws://localhost:80
 It is consumed by the provided `ocpp:*` CLI commands and is not a browser page.
 Port `8080` is reserved for Reverb.
 
+## Simulator console
+
+The station detail page exposes a `Simulator console` tab only when the station was commissioned
+with the `Local SAP simulator` target. It provides the same controlled test operations as the local
+CLI without exposing the simulator port, its control token, station credentials or an arbitrary
+command input in the browser.
+
+Access follows the existing station command policies:
+
+- Super Admin can inspect and operate simulator stations across the platform.
+- Admin and Operator can inspect and operate simulator stations in their organization.
+- Technician can inspect simulator state and action history, but cannot execute actions.
+- Client has no access to the console or its API.
+
+The console intentionally separates two responsibilities:
+
+- `Station`, `Physical connector` and `Scenarios` reproduce simulator-side events such as connect,
+  disconnect, heartbeat, plug, unplug, fault, recovery and deterministic test cycles.
+- `Central system` reuses the audited ChargeTrackr OCPP commands for Soft Reset, UnlockConnector and
+  maintenance-mode ChangeAvailability.
+
+Simulator-side requests use `POST /api/stations/{station}/simulator/actions`. They are organization
+scoped, rate limited, queued and serialized per station. Every request keeps its requester, target
+connector, timestamps, outcome and sanitized result in `ocpp_simulator_actions`. The read endpoint
+`GET /api/stations/{station}/simulator` combines that history with the sanitized live state returned
+by the private `ocpp-simulator-control` service. Only the backend network can reach this service.
+
+Use a repeatable scenario such as `Cable cycle` for demonstrations. The action should progress from
+`Queued` to `Succeeded`, the selected connector should return to `Available`, and the audit trail
+should identify the requesting user. A failed adapter or simulator request is recorded with a
+generic user-facing message while technical details remain in server logs.
+
 ## Data model boundary
 
 `ocpp_events` is the audit stream. Station and connector columns prefixed with `ocpp_` are the
