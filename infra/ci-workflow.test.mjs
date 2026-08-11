@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
+import { fileURLToPath } from 'node:url'
 
 const workflow = await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')
+const repositoryRoot = fileURLToPath(new URL('..', import.meta.url))
 
 test('CI uses read-only repository permissions and avoids privileged pull request triggers', () => {
   assert.match(workflow, /permissions:\s*\r?\n\s+contents: read/)
@@ -33,4 +36,20 @@ test('CI covers application, infrastructure, security and Docker validation', ()
   assert.match(workflow, /pnpm audit --audit-level high/)
   assert.match(workflow, /docker compose[\s\S]+config --quiet/)
   assert.match(workflow, /docker\/build-push-action@[a-f0-9]{40}/)
+})
+
+test('tracked secret policy does not flag its own scanner', () => {
+  const secretPattern = [
+    ['GOCSP', 'X-'].join(''),
+    ['sk_', '(live|test)_[A-Za-z0-9]+'].join(''),
+    ['re_', '[A-Za-z0-9]{20,}'].join(''),
+    ['BEGIN ', '[A-Z ]*PRIVATE KEY'].join(''),
+  ].join('|')
+  const result = spawnSync(
+    'git',
+    ['grep', '-nE', secretPattern, '--', ':!pnpm-lock.yaml'],
+    { cwd: repositoryRoot, encoding: 'utf8' },
+  )
+
+  assert.equal(result.status, 1, result.stdout || result.stderr)
 })

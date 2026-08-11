@@ -218,7 +218,12 @@ jobs:
             echo "A real .env file is tracked." >&2
             exit 1
           fi
-          if git grep -nE 'GOCSPX-|sk_(live|test)_[A-Za-z0-9]+|re_[A-Za-z0-9]{20,}|BEGIN [A-Z ]*PRIVATE KEY' -- ':!pnpm-lock.yaml'; then
+          google_oauth_pattern='GOCSP''X-'
+          stripe_pattern='sk_''(live|test)_[A-Za-z0-9]+'
+          resend_pattern='re_''[A-Za-z0-9]{20,}'
+          private_key_pattern='BEGIN ''[A-Z ]*PRIVATE KEY'
+          secret_pattern="${google_oauth_pattern}|${stripe_pattern}|${resend_pattern}|${private_key_pattern}"
+          if git grep -nE "$secret_pattern" -- ':!pnpm-lock.yaml'; then
             echo "A known secret signature is present in tracked files." >&2
             exit 1
           fi
