@@ -15383,6 +15383,45 @@
                 }
             }
         },
+        "/stations/commissioning/profiles": {
+            "get": {
+                "operationId": "stationCommissioning.profiles",
+                "summary": "Profiles station commissioning",
+                "tags": [
+                    "Stations & OCPP"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "additionalProperties": {}
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/stations/commission": {
             "post": {
                 "operationId": "stationCommissioning.store",
@@ -15432,7 +15471,9 @@
                                                         "offline",
                                                         "connected",
                                                         "rejected",
-                                                        "not_provisioned"
+                                                        "not_provisioned",
+                                                        "provisioning_failed",
+                                                        "provisioning"
                                                     ]
                                                 },
                                                 "target": {
@@ -15456,11 +15497,14 @@
                                                 "secret_visible_once": {
                                                     "type": "boolean"
                                                 },
-                                                "simulator_command": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
+                                                "simulator_profile": {
+                                                    "type": "string"
+                                                },
+                                                "provisioning_status": {
+                                                    "type": "string"
+                                                },
+                                                "provisioning_error": {
+                                                    "type": "string"
                                                 }
                                             },
                                             "required": [
@@ -15472,7 +15516,9 @@
                                                 "username",
                                                 "secret",
                                                 "secret_visible_once",
-                                                "simulator_command"
+                                                "simulator_profile",
+                                                "provisioning_status",
+                                                "provisioning_error"
                                             ]
                                         }
                                     },
@@ -15492,6 +15538,127 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/stations/{station}/commissioning/retry": {
+            "post": {
+                "operationId": "stationCommissioning.retry",
+                "summary": "Retry station commissioning",
+                "tags": [
+                    "Stations & OCPP"
+                ],
+                "parameters": [
+                    {
+                        "name": "station",
+                        "in": "path",
+                        "required": true,
+                        "description": "The station ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/StationResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "organization",
+                                                        "connectors"
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "commissioning": {
+                                            "type": "object",
+                                            "properties": {
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "awaiting_connection",
+                                                        "offline",
+                                                        "connected",
+                                                        "rejected",
+                                                        "not_provisioned",
+                                                        "provisioning_failed",
+                                                        "provisioning"
+                                                    ]
+                                                },
+                                                "target": {
+                                                    "type": "string"
+                                                },
+                                                "gateway_url": {
+                                                    "type": "string"
+                                                },
+                                                "connection_url": {
+                                                    "type": "string"
+                                                },
+                                                "identity": {
+                                                    "type": "string"
+                                                },
+                                                "username": {
+                                                    "type": "string"
+                                                },
+                                                "secret": {
+                                                    "type": "null"
+                                                },
+                                                "secret_visible_once": {
+                                                    "type": "boolean"
+                                                },
+                                                "simulator_profile": {
+                                                    "type": "string"
+                                                },
+                                                "provisioning_status": {
+                                                    "type": "string"
+                                                },
+                                                "provisioning_error": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "status",
+                                                "target",
+                                                "gateway_url",
+                                                "connection_url",
+                                                "identity",
+                                                "username",
+                                                "secret",
+                                                "secret_visible_once",
+                                                "simulator_profile",
+                                                "provisioning_status",
+                                                "provisioning_error"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "commissioning"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -15546,7 +15713,9 @@
                                                         "offline",
                                                         "connected",
                                                         "rejected",
-                                                        "not_provisioned"
+                                                        "not_provisioned",
+                                                        "provisioning_failed",
+                                                        "provisioning"
                                                     ]
                                                 },
                                                 "target": {
@@ -15570,11 +15739,14 @@
                                                 "secret_visible_once": {
                                                     "type": "boolean"
                                                 },
-                                                "simulator_command": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
+                                                "simulator_profile": {
+                                                    "type": "string"
+                                                },
+                                                "provisioning_status": {
+                                                    "type": "string"
+                                                },
+                                                "provisioning_error": {
+                                                    "type": "string"
                                                 }
                                             },
                                             "required": [
@@ -15586,7 +15758,9 @@
                                                 "username",
                                                 "secret",
                                                 "secret_visible_once",
-                                                "simulator_command"
+                                                "simulator_profile",
+                                                "provisioning_status",
+                                                "provisioning_error"
                                             ]
                                         }
                                     },
@@ -18684,23 +18858,36 @@
                         "maximum": 180
                     },
                     "max_power_kw": {
-                        "type": "number",
+                        "type": [
+                            "number",
+                            "null"
+                        ],
                         "minimum": 1,
                         "maximum": 1000
                     },
                     "model": {
-                        "type": "string",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 120
                     },
                     "manufacturer": {
-                        "type": "string",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 120
                     },
                     "ocpp_version": {
-                        "type": "string",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "enum": [
                             "OCPP 1.6J",
-                            "OCPP 2.0.1"
+                            "OCPP 2.0.1",
+                            null
                         ]
                     },
                     "model_image": {
@@ -18718,8 +18905,19 @@
                             "inventory"
                         ]
                     },
+                    "simulator_profile": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "pattern": "^[a-z0-9_-]+$",
+                        "maxLength": 80
+                    },
                     "connectors": {
-                        "type": "array",
+                        "type": [
+                            "array",
+                            "null"
+                        ],
                         "items": {
                             "type": "object",
                             "properties": {
@@ -18774,12 +18972,7 @@
                     "address",
                     "latitude",
                     "longitude",
-                    "max_power_kw",
-                    "model",
-                    "manufacturer",
-                    "ocpp_version",
-                    "commissioning_target",
-                    "connectors"
+                    "commissioning_target"
                 ],
                 "title": "CommissionStationRequest"
             },
@@ -21478,6 +21671,21 @@
                     "ocpp_commissioning_target": {
                         "type": "string"
                     },
+                    "ocpp_simulator_profile": {
+                        "type": "string"
+                    },
+                    "ocpp_provisioning_status": {
+                        "type": "string"
+                    },
+                    "ocpp_provisioning_error": {
+                        "type": "string"
+                    },
+                    "ocpp_provisioned_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "commissioning_status": {
                         "type": "string",
                         "enum": [
@@ -21485,7 +21693,9 @@
                             "offline",
                             "connected",
                             "rejected",
-                            "not_provisioned"
+                            "not_provisioned",
+                            "provisioning_failed",
+                            "provisioning"
                         ]
                     },
                     "ocpp_secret_configured": {
@@ -21609,6 +21819,10 @@
                     "manufacturer",
                     "ocpp_version",
                     "ocpp_commissioning_target",
+                    "ocpp_simulator_profile",
+                    "ocpp_provisioning_status",
+                    "ocpp_provisioning_error",
+                    "ocpp_provisioned_at",
                     "commissioning_status",
                     "ocpp_secret_configured",
                     "ocpp_registration_status",

@@ -207,19 +207,14 @@ The local SAP fleet contains independently connected manifest-defined stations. 
 `npm run ocpp:plug -- <station> <connector>`, `ocpp:unplug`, `ocpp:disconnect` and `ocpp:connect`
 to target one station without changing the others.
 
-Administrators and operators can use `Add station` in `/stations` to create the station and its
-connectors together. Select `Local SAP simulator` in the connection step, then run the command
-displayed after creation:
+Administrators and operators can use `Add station` in `/stations` to create a simulated station.
+They choose a verified hardware profile; the application derives its connectors and provisions the
+SAP simulator automatically through the private control service. The result dialog follows the
+provisioning state and never asks the user to run a terminal command.
 
-```bash
-npm run ocpp:add-simulator-station -- <station-reference-or-identity>
-npm run ocpp:down
-npm run ocpp:up
-```
-
-Physical stations instead receive a unique one-time Basic Auth password. Store it in the station
-configuration when it is displayed; Laravel persists only its hash. `Inventory only` creates no
-credential and therefore no live OCPP availability.
+The external-station API path still supports a unique one-time Basic Auth password for later
+integration work. Laravel persists only its hash. It is not exposed in the default simulated-station
+interface.
 
 The scheduler recalculates provisioned OCPP station availability every 30 seconds. Reverb uses
 `localhost:8080`; the SAP simulator control WebSocket uses `localhost:8082`.

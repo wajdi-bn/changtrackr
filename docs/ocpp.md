@@ -30,24 +30,20 @@ The gateway must not calculate availability, access PostgreSQL directly or expos
 
 ## Station commissioning
 
-Administrators and operators create a station through one atomic workflow:
+Administrators and operators create a simulated station through one atomic workflow:
 
 1. Define the station identity and exact map position.
-2. Define the charger hardware and every physical connector.
-3. Select the connection target.
-4. Review and create the station and connectors in one database transaction.
+2. Select a verified simulator hardware profile.
+3. Review and create the station, connectors and OCPP access in one database transaction.
 
-The three targets have separate security behavior:
-
-| Target | Result |
-|---|---|
-| Physical or external station | Generates an independent 48-character Basic Auth secret, displays it once and stores only its hash. |
-| Local SAP simulator | Creates the inventory record without returning a secret. A local-only Artisan command provisions the shared simulator credential and updates the development manifest. |
-| Inventory only | Creates the station and connectors without OCPP credentials. It remains unavailable until later provisioning. |
+The selected profile is the server-side source of truth for the model, maximum power and connector
+layout. The queue worker provisions the SAP simulator through a private authenticated control
+service. The UI then follows `queued`, `provisioning`, `provisioned` or `failed` without displaying a
+shell command or simulator secret.
 
 The OCPP identity is unique and can differ from the internal reference, although keeping both equal
 is recommended. Connector labels such as `A1` are user-facing; `ocpp_connector_id` must match the
-integer sent by the device. The SAP simulator additionally requires contiguous IDs starting at `1`.
+integer sent by the device. The SAP simulator profiles use contiguous IDs starting at `1`.
 
 For an external station, configure the device with the WebSocket URL, username and one-time password
 shown after creation. Credential rotation invalidates the previous password and applies when the
@@ -262,20 +258,12 @@ npm run ocpp:up
 The fleet manifest is `infra/ocpp/simulator/stations.json`. `npm run ocpp:up` builds both runtime images and the shared simulator CLI
 image before starting the gateway and simulator.
 
-To add a station created with the `Local SAP simulator` target, run the command shown by the
-commissioning result:
+Stations created from the application are provisioned automatically while the queue worker and the
+private simulator control service are running. The runtime fleet manifest is stored in a Docker
+volume, so dynamically created stations reconnect after a simulator restart.
 
-```bash
-npm run ocpp:add-simulator-station -- CT-TUN-101
-npm run ocpp:down
-npm run ocpp:up
-npm run ocpp:status -- CT-TUN-101
-```
-
-The command is restricted to local and test environments. It reads the station and connectors from
-PostgreSQL, updates or inserts the corresponding manifest entry and provisions the ignored shared
-simulator secret. It refuses missing connectors, unsupported protocol versions and non-contiguous
-OCPP connector IDs.
+`npm run ocpp:add-simulator-station -- <identity>` remains available only as a developer recovery
+tool for legacy local records. It is not part of the administrator or operator workflow.
 
 Run the queue, scheduler and Reverb server in separate terminals:
 

@@ -24,24 +24,15 @@ du MVP, le parcours privilégié utilise le simulateur SAP local.
     \item Ouvrir \emph{Stations} puis choisir \emph{Add station}.
     \item Renseigner le nom, une référence unique, l'adresse et la position sur
     la carte.
-    \item Décrire le matériel et ajouter chaque connecteur physique avec son
-    libellé, son identifiant OCPP, son type de prise, son courant et sa
-    puissance.
-    \item Sélectionner la cible \emph{Local SAP simulator}. L'identité OCPP doit
-    être unique et correspondre exactement à celle envoyée dans l'URL
-    WebSocket.
+    \item Choisir un profil matériel simulé. Le modèle, la puissance et les
+    connecteurs sont définis par ce profil vérifié.
+    \item Vérifier que l'identité OCPP est unique. Elle correspond exactement à
+    celle utilisée par le simulateur dans l'URL WebSocket.
     \item Vérifier le récapitulatif puis créer la station.
-    \item Exécuter, depuis la racine du dépôt, la commande d'enregistrement
-    affichée par l'interface.
-    \item Redémarrer la pile OCPP et ouvrir le détail de la station.
+    \item Suivre l'état de provisionnement automatique affiché par l'interface.
+    \item Ouvrir le détail lorsque la borne est connectée.
   \end{enumerate}
 \end{procedurebox}
-
-\begin{verbatim}
-npm run ocpp:add-simulator-station -- CT-TUN-010
-npm run ocpp:down
-npm run ocpp:up
-\end{verbatim}
 
 \expected{Après le \emph{BootNotification} et les premiers battements de cœur,
 la connexion devient active et l'état des connecteurs est projeté à partir des
