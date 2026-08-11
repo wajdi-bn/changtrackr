@@ -185,6 +185,7 @@ jobs:
       REVERB_APP_ID: ci
       REVERB_APP_KEY: ci-reverb-public-key
       REVERB_APP_SECRET: ci-reverb-private-secret
+      OCPP_SIMULATOR_CONTROL_TOKEN: ci-only-simulator-control-token
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
