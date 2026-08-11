@@ -4,7 +4,8 @@ export type StationStatus = 'available' | 'charging' | 'faulted' | 'offline' | '
 export type AvailabilityOverride = 'maintenance' | 'disabled'
 export type ConnectorType = 'CCS2' | 'Type 2' | 'CHAdeMO'
 export type CommissioningTarget = 'external' | 'simulator' | 'inventory'
-export type CommissioningStatus = 'not_provisioned' | 'awaiting_connection' | 'connected' | 'offline' | 'rejected'
+export type CommissioningStatus = 'not_provisioned' | 'provisioning' | 'provisioning_failed' | 'awaiting_connection' | 'connected' | 'offline' | 'rejected'
+export type SimulatorProvisioningStatus = 'not_required' | 'not_provisioned' | 'queued' | 'provisioning' | 'provisioned' | 'failed'
 
 export interface Connector {
   id: number
@@ -49,6 +50,10 @@ export interface Station {
   availability_calculated_at: string | null
   ocpp_identity: string | null
   ocpp_commissioning_target: CommissioningTarget
+  ocpp_simulator_profile: string | null
+  ocpp_provisioning_status: SimulatorProvisioningStatus
+  ocpp_provisioning_error: string | null
+  ocpp_provisioned_at: string | null
   commissioning_status: CommissioningStatus
   ocpp_secret_configured: boolean
   ocpp_registration_status: string | null
@@ -130,10 +135,28 @@ export interface StationPayload {
   model_image?: string | null
 }
 
-export interface StationCommissioningPayload extends Omit<StationPayload, 'status' | 'availability_override'> {
+export interface StationCommissioningPayload {
   organization_id?: number
+  name: string
+  reference: string
   ocpp_identity: string
-  commissioning_target: CommissioningTarget
+  location_name: string
+  city: string
+  address: string
+  latitude: number
+  longitude: number
+  commissioning_target: 'simulator'
+  simulator_profile: string
+}
+
+export interface SimulatorHardwareProfile {
+  key: string
+  label: string
+  description: string
+  manufacturer: string
+  model: string
+  max_power_kw: number
+  model_image: string | null
   connectors: Array<Required<Pick<ConnectorPayload, 'external_id' | 'ocpp_connector_id' | 'type' | 'current_type' | 'max_power_kw'>>>
 }
 
@@ -146,7 +169,9 @@ export interface StationCommissioningInstructions {
   username: string
   secret: string | null
   secret_visible_once: boolean
-  simulator_command: string | null
+  simulator_profile: string | null
+  provisioning_status: SimulatorProvisioningStatus
+  provisioning_error: string | null
 }
 
 export interface StationCommissioningResult {

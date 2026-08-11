@@ -1,7 +1,10 @@
-import { App, Button, Modal, Tag } from 'antd'
-import { CheckCircle2, Clipboard, ExternalLink, KeyRound, Server, ShieldCheck } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Alert, App, Button, Modal, Spin, Tag } from 'antd'
+import { AlertTriangle, CheckCircle2, Clipboard, ExternalLink, KeyRound, RadioTower, ShieldCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import type { StationCommissioningResult } from '../../types/station'
+import type { CommissioningStatus, StationCommissioningResult } from '../../types/station'
+import { getApiErrorMessage } from '../../api/apiErrors'
+import { getStation, retrySimulatorProvisioning } from './stationApi'
 
 interface StationCommissioningResultModalProps {
   result: StationCommissioningResult | null
@@ -12,7 +15,30 @@ interface StationCommissioningResultModalProps {
 export function StationCommissioningResultModal({ result, mode = 'created', onClose }: StationCommissioningResultModalProps) {
   const { message } = App.useApp()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const commissioning = result?.commissioning
+  const simulatorMode = commissioning?.target === 'simulator'
+  const stationId = result?.data.id
+  const stationQuery = useQuery({
+    queryKey: ['station', stationId],
+    queryFn: () => getStation(stationId as number),
+    enabled: Boolean(stationId && simulatorMode),
+    initialData: simulatorMode ? result?.data : undefined,
+    refetchInterval: (query) => {
+      const status = query.state.data?.commissioning_status ?? result?.data.commissioning_status
+      return status === 'provisioning' || status === 'awaiting_connection' ? 1500 : false
+    },
+  })
+  const retryMutation = useMutation({
+    mutationFn: () => retrySimulatorProvisioning(stationId as number),
+    onSuccess: async (response) => {
+      queryClient.setQueryData(['station', stationId], response.data)
+      await queryClient.invalidateQueries({ queryKey: ['stations'] })
+      void message.success('Simulator provisioning restarted.')
+    },
+    onError: (error) => void message.error(getApiErrorMessage(error, 'Provisioning could not be restarted.')),
+  })
+  const liveStation = stationQuery.data ?? result?.data
 
   async function copy(value: string, label: string) {
     await navigator.clipboard.writeText(value)
@@ -45,12 +71,14 @@ export function StationCommissioningResultModal({ result, mode = 'created', onCl
           </section>
         )}
 
-        {commissioning.target === 'simulator' && (
-          <section className="commissioning-simulator-panel">
-            <div className="commissioning-result-callout"><Server size={18} /><div><strong>Register the local simulator profile</strong><p>Run this from the repository root, then restart the OCPP stack.</p></div></div>
-            <div className="commissioning-command"><code>{commissioning.simulator_command}</code><Button type="text" icon={<Clipboard size={15} />} onClick={() => void copy(commissioning.simulator_command ?? '', 'Command')}>Copy</Button></div>
-            <ol><li>Run the command above.</li><li>Run <code>npm run ocpp:down</code>, then <code>npm run ocpp:up</code>.</li><li>Open the station detail to watch registration and heartbeat status.</li></ol>
-          </section>
+        {commissioning.target === 'simulator' && liveStation && (
+          <SimulatorProvisioningState
+            status={liveStation.commissioning_status}
+            error={liveStation.ocpp_provisioning_error}
+            profile={liveStation.ocpp_simulator_profile}
+            retrying={retryMutation.isPending}
+            onRetry={() => retryMutation.mutate()}
+          />
         )}
 
         {commissioning.target === 'inventory' && (
@@ -65,6 +93,46 @@ export function StationCommissioningResultModal({ result, mode = 'created', onCl
         </footer>
       </>}
     </Modal>
+  )
+}
+
+function SimulatorProvisioningState({
+  status,
+  error,
+  profile,
+  retrying,
+  onRetry,
+}: {
+  status: CommissioningStatus
+  error: string | null
+  profile: string | null
+  retrying: boolean
+  onRetry: () => void
+}) {
+  const failed = status === 'provisioning_failed'
+  const connected = status === 'connected'
+  const waitingForConnection = status === 'awaiting_connection' || status === 'offline'
+
+  return (
+    <section className={`commissioning-simulator-panel commissioning-simulator-panel--${failed ? 'failed' : connected ? 'connected' : 'pending'}`}>
+      <div className="simulator-provisioning-state">
+        <span>{failed ? <AlertTriangle size={25} /> : connected ? <CheckCircle2 size={25} /> : <Spin size="small" />}</span>
+        <div>
+          <small>{profile ?? 'OCPP simulator profile'}</small>
+          <strong>{failed ? 'Provisioning needs attention' : connected ? 'Simulator connected' : waitingForConnection ? 'Waiting for the first OCPP signal' : 'Creating the simulator station'}</strong>
+          <p>{failed
+            ? 'The station record is safe. Retry when the simulator service is available.'
+            : connected
+              ? 'Registration, heartbeat and connector state are now visible in the station workspace.'
+              : waitingForConnection
+                ? 'The simulator instance has been created and is completing its OCPP registration.'
+                : 'The background worker is adding and starting the station. No terminal command is required.'}</p>
+        </div>
+      </div>
+      {failed && <Alert type="error" showIcon title="Automatic provisioning failed" description={error ?? 'The simulator could not provision this station.'} />}
+      <div className="simulator-provisioning-meta"><RadioTower size={16} /><span>Live status refresh is active while this window is open.</span></div>
+      {failed && <Button type="primary" loading={retrying} onClick={onRetry}>Retry provisioning</Button>}
+    </section>
   )
 }
 

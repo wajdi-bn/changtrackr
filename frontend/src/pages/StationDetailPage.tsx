@@ -874,6 +874,8 @@ function commissioningTargetLabel(target: Station['ocpp_commissioning_target']):
 function commissioningStatusLabel(status: Station['commissioning_status']): string {
   return {
     not_provisioned: 'Not provisioned',
+    provisioning: 'Provisioning simulator',
+    provisioning_failed: 'Provisioning failed',
     awaiting_connection: 'Awaiting connection',
     connected: 'Connected',
     offline: 'Provisioned, offline',

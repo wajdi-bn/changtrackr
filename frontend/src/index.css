@@ -4622,6 +4622,103 @@ html {
   background: #ffffff;
 }
 
+.simulator-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.simulator-profile-option.ant-radio-button-wrapper {
+  height: auto;
+  min-height: 180px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #dce7e1;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: none;
+  color: inherit;
+  white-space: normal;
+}
+
+.simulator-profile-option.ant-radio-button-wrapper::before {
+  display: none;
+}
+
+.simulator-profile-option.ant-radio-button-wrapper-checked {
+  border-color: #169f6b;
+  background: #f2fbf7;
+  box-shadow: 0 0 0 2px rgba(22, 159, 107, 0.12);
+}
+
+.simulator-profile-option article {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  height: 100%;
+}
+
+.simulator-profile-option img {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  object-fit: cover;
+}
+
+.simulator-profile-copy {
+  min-width: 0;
+  padding: 16px;
+}
+
+.simulator-profile-copy header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #158e61;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.simulator-profile-copy h3,
+.simulator-profile-copy p {
+  margin: 0;
+}
+
+.simulator-profile-copy h3 {
+  margin-top: 7px;
+  color: #17271f;
+  font-size: 16px;
+}
+
+.simulator-profile-copy p {
+  min-height: 40px;
+  margin-top: 5px;
+  color: #718078;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.simulator-profile-copy > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.simulator-profile-copy > div > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: #e5f7ef;
+  color: #176f50;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .commissioning-connectors > header {
   display: flex;
   align-items: center;
@@ -4876,6 +4973,66 @@ html {
   color: #58675f;
   font-size: 12px;
   line-height: 1.8;
+}
+
+.simulator-provisioning-state {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #dce7e1;
+  border-radius: 8px;
+  background: #f7fbf9;
+}
+
+.simulator-provisioning-state > span {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  border-radius: 8px;
+  background: #169f6b;
+  color: #ffffff;
+}
+
+.commissioning-simulator-panel--failed .simulator-provisioning-state > span {
+  background: #d34848;
+}
+
+.simulator-provisioning-state small,
+.simulator-provisioning-state strong,
+.simulator-provisioning-state p {
+  display: block;
+  margin: 0;
+}
+
+.simulator-provisioning-state small {
+  color: #718078;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.simulator-provisioning-state strong {
+  margin-top: 3px;
+  color: #17271f;
+  font-size: 16px;
+}
+
+.simulator-provisioning-state p {
+  margin-top: 4px;
+  color: #6f7d75;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.simulator-provisioning-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #66776e;
+  font-size: 12px;
 }
 
 .commissioning-result-modal footer {
@@ -5896,6 +6053,7 @@ html {
   .station-related-metric:nth-child(-n + 2) { border-bottom: 1px solid #e7eeea; }
   .station-related-toolbar--alerts { grid-template-columns: minmax(220px, 1fr) 150px; }
   .station-related-toolbar--alerts > .ant-select:last-child { grid-column: 2; }
+  .simulator-profile-grid { grid-template-columns: 1fr; }
   .commissioning-connector-row { grid-template-columns: 40px repeat(2, minmax(120px, 1fr)); }
   .commissioning-connector-row > .ant-btn { align-self: center; }
 }
@@ -5955,6 +6113,8 @@ html {
   .commissioning-field-wide { grid-column: auto; }
   .commissioning-location > header,
   .commissioning-connectors > header { align-items: flex-start; flex-direction: column; }
+  .simulator-profile-option article { grid-template-columns: 1fr; }
+  .simulator-profile-option img { height: 140px; min-height: 140px; }
   .commissioning-connector-row { grid-template-columns: 36px 1fr; align-items: start; }
   .commissioning-connector-row .ant-form-item { grid-column: 2; }
   .commissioning-connector-row > .ant-btn { grid-column: 2; justify-self: end; }

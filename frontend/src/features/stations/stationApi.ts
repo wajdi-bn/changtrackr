@@ -17,6 +17,7 @@ import type {
   StationStatus,
   StationTelemetry,
   StationsResponse,
+  SimulatorHardwareProfile,
 } from '../../types/station'
 
 export interface ConnectorQrTarget {
@@ -60,6 +61,16 @@ export async function createStation(payload: StationPayload): Promise<Station> {
 
 export async function commissionStation(payload: StationCommissioningPayload): Promise<StationCommissioningResult> {
   const response = await httpClient.post<StationCommissioningResult>('/stations/commission', payload)
+  return response.data
+}
+
+export async function getSimulatorHardwareProfiles(): Promise<SimulatorHardwareProfile[]> {
+  const response = await httpClient.get<{ data: SimulatorHardwareProfile[] }>('/stations/commissioning/profiles')
+  return response.data.data
+}
+
+export async function retrySimulatorProvisioning(stationId: number): Promise<StationCommissioningResult> {
+  const response = await httpClient.post<StationCommissioningResult>(`/stations/${stationId}/commissioning/retry`)
   return response.data
 }
 

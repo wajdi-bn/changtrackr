@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
-import { Alert, Button, Divider, Drawer, Form, Input, InputNumber, Select, Steps } from 'antd'
-import { Building2, Cable, Check, Crosshair, Keyboard, Plus, Trash2, Zap } from 'lucide-react'
+import { Alert, Button, Drawer, Form, Input, InputNumber, Radio, Select, Skeleton, Steps } from 'antd'
+import { Building2, Check, Crosshair, Keyboard, RadioTower, Zap } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { httpClient } from '../../api/httpClient'
-import type { ConnectorPayload, StationCommissioningPayload } from '../../types/station'
+import type { SimulatorHardwareProfile, StationCommissioningPayload } from '../../types/station'
 import { useAuth } from '../auth/useAuth'
 import { LocationPickerMap } from '../maps/LocationPickerMap'
 import { formatCoordinates } from '../maps/mapUtils'
+import { getSimulatorHardwareProfiles } from './stationApi'
 
 interface StationCommissioningDrawerProps {
   open: boolean
@@ -22,10 +24,9 @@ interface OrganizationOption {
   status: string
 }
 
-const connectorTypes: ConnectorPayload['type'][] = ['CCS2', 'Type 2', 'CHAdeMO']
 const steps = [
   { title: 'Station', icon: <Building2 size={16} /> },
-  { title: 'Hardware', icon: <Cable size={16} /> },
+  { title: 'Simulator profile', icon: <RadioTower size={16} /> },
   { title: 'Review', icon: <Check size={16} /> },
 ]
 
@@ -43,6 +44,7 @@ export function StationCommissioningDrawer({
   const isSuperAdmin = primaryRole === 'super_admin'
   const latitude = Form.useWatch('latitude', form) ?? 36.8065
   const longitude = Form.useWatch('longitude', form) ?? 10.1815
+  const selectedProfileKey = Form.useWatch('simulator_profile', form)
   const values = Form.useWatch([], form)
 
   const organizationsQuery = useQuery({
@@ -52,6 +54,13 @@ export function StationCommissioningDrawer({
     ).data.data,
     enabled: open && isSuperAdmin,
   })
+  const profilesQuery = useQuery({
+    queryKey: ['simulator-hardware-profiles'],
+    queryFn: getSimulatorHardwareProfiles,
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  })
+  const selectedProfile = profilesQuery.data?.find((profile) => profile.key === selectedProfileKey)
 
   useEffect(() => {
     if (!open) return
@@ -61,46 +70,38 @@ export function StationCommissioningDrawer({
     form.setFieldsValue({
       latitude: initialCoordinates?.latitude ?? 36.8065,
       longitude: initialCoordinates?.longitude ?? 10.1815,
-      max_power_kw: 120,
-      ocpp_version: 'OCPP 1.6J',
-      model_image: '/assets/stations/models/terra-hp-150.webp',
       commissioning_target: 'simulator',
-      connectors: [{
-        external_id: 'A1',
-        ocpp_connector_id: 1,
-        type: 'CCS2',
-        current_type: 'DC',
-        max_power_kw: 120,
-      }],
     })
   }, [form, initialCoordinates, open])
 
+  useEffect(() => {
+    const firstProfile = profilesQuery.data?.[0]
+    if (open && firstProfile && !form.getFieldValue('simulator_profile')) {
+      form.setFieldValue('simulator_profile', firstProfile.key)
+    }
+  }, [form, open, profilesQuery.data])
+
   async function next() {
-    const fieldGroups: Array<Array<string | ['connectors']>> = [
-      [
-        ...(isSuperAdmin ? ['organization_id'] : []),
-        'name', 'reference', 'location_name', 'city', 'address', 'latitude', 'longitude',
-      ],
-      ['manufacturer', 'model', 'max_power_kw', 'ocpp_version', 'connectors'],
-    ]
-    await form.validateFields(fieldGroups[currentStep] as never)
+    const fields: Array<keyof StationCommissioningPayload> = currentStep === 0
+      ? ['name', 'reference', 'location_name', 'city', 'address', 'latitude', 'longitude', ...(isSuperAdmin ? ['organization_id' as const] : [])]
+      : ['simulator_profile']
+    await form.validateFields(fields)
     setCurrentStep((step) => Math.min(step + 1, steps.length - 1))
   }
 
   function close() {
-    if (submitting) return
+    form.resetFields()
     onClose()
   }
 
   return (
     <Drawer
       className="station-commissioning-drawer"
-      size={820}
-      zIndex={1300}
+      width="min(980px, calc(100vw - 80px))"
       open={open}
       onClose={close}
       destroyOnHidden
-      title={<div className="commissioning-drawer-title"><span>Commission a station</span><small>Create the station, its physical connectors and its local OCPP simulator profile together.</small></div>}
+      title={<div className="commissioning-drawer-title"><span>Commission a simulated station</span><small>Create the operational asset and its OCPP simulator instance in one workflow.</small></div>}
       footer={(
         <div className="commissioning-footer">
           <Button onClick={currentStep === 0 ? close : () => setCurrentStep((step) => step - 1)}>
@@ -124,7 +125,7 @@ export function StationCommissioningDrawer({
         })}
       >
         <div hidden={currentStep !== 0}>
-          <StepHeading eyebrow="01 / Station identity" title="Place the station on the network" description="Use a unique operational reference and set its exact public location." />
+          <StepHeading eyebrow="01 / Station identity" title="Place the station on the network" description="Use a unique operational reference and set the simulated asset's exact public location." />
           <div className="commissioning-form-grid">
             {isSuperAdmin && (
               <Form.Item className="commissioning-field-wide" name="organization_id" label="Owning organization" rules={[{ required: true, message: 'Select the organization that owns this station.' }]}>
@@ -138,7 +139,7 @@ export function StationCommissioningDrawer({
               </Form.Item>
             )}
             <Form.Item name="name" label="Station name" rules={[{ required: true, min: 2, max: 160 }]}><Input placeholder="Lac 1 Fast Hub" /></Form.Item>
-            <Form.Item name="reference" label="Internal reference" rules={[{ required: true, max: 80, pattern: /^[A-Za-z0-9._:-]+$/, message: 'Use letters, numbers, dots, colons, underscores or hyphens.' }]}>
+            <Form.Item name="reference" label="Unique OCPP reference" rules={[{ required: true, max: 80, pattern: /^[A-Za-z0-9._:-]+$/, message: 'Use letters, numbers, dots, colons, underscores or hyphens.' }]}>
               <Input placeholder="CT-TUN-101" />
             </Form.Item>
             <Form.Item name="location_name" label="Location name" rules={[{ required: true, max: 160 }]}><Input placeholder="Les Berges du Lac 1" /></Form.Item>
@@ -167,69 +168,54 @@ export function StationCommissioningDrawer({
         </div>
 
         <div hidden={currentStep !== 1}>
-          <StepHeading eyebrow="02 / Hardware" title="Describe the charger and its connectors" description="Connector identifiers must match the labels and OCPP connector IDs used by the device." />
-          <div className="commissioning-form-grid">
-            <Form.Item name="manufacturer" label="Manufacturer" rules={[{ required: true, max: 120 }]}><Input placeholder="ABB" /></Form.Item>
-            <Form.Item name="model" label="Model" rules={[{ required: true, max: 120 }]}><Input placeholder="Terra 124" /></Form.Item>
-            <Form.Item name="max_power_kw" label="Station maximum power" rules={[{ required: true }]}><InputNumber min={1} max={1000} suffix="kW" style={{ width: '100%' }} /></Form.Item>
-            <Form.Item name="ocpp_version" label="OCPP version" rules={[{ required: true }]}><Select options={[{ value: 'OCPP 1.6J' }, { value: 'OCPP 2.0.1', disabled: true, label: 'OCPP 2.0.1 - planned' }]} /></Form.Item>
-            <Form.Item className="commissioning-field-wide" name="model_image" label="Station visual"><Select options={[
-              { value: '/assets/stations/models/terra-hp-150.webp', label: 'ABB Terra HP 150' },
-              { value: '/assets/stations/models/evbox-troniq.webp', label: 'EVBox Troniq' },
-              { value: '/assets/stations/models/enext-park-dc.webp', label: 'eNext Park DC' },
-              { value: '/assets/stations/models/raption-100.webp', label: 'Raption 100' },
-            ]} /></Form.Item>
-          </div>
-          <Divider />
-          <Form.List name="connectors" rules={[{ validator: async (_, items) => { if (!items?.length) throw new Error('Add at least one connector.') } }]}>
-            {(fields, { add, remove }, { errors }) => (
-              <section className="commissioning-connectors">
-                <header><div><h3>Physical connectors</h3><p>Each connector is created with the station.</p></div><Button icon={<Plus size={15} />} onClick={() => {
-                  const next = fields.length + 1
-                  add({ external_id: `A${next}`, ocpp_connector_id: next, type: 'CCS2', current_type: 'DC', max_power_kw: form.getFieldValue('max_power_kw') ?? 120 })
-                }}>Add connector</Button></header>
-                {fields.map(({ key, ...field }, index) => (
-                  <article className="commissioning-connector-row" key={key}>
-                    <span className="commissioning-connector-index"><Zap size={16} />{index + 1}</span>
-                    <Form.Item {...field} name={[field.name, 'external_id']} label="Label" rules={[{ required: true }]}><Input placeholder="A1" /></Form.Item>
-                    <Form.Item {...field} name={[field.name, 'ocpp_connector_id']} label="OCPP ID" rules={[{ required: true }]}><InputNumber min={1} max={65535} style={{ width: '100%' }} /></Form.Item>
-                    <Form.Item {...field} name={[field.name, 'type']} label="Plug" rules={[{ required: true }]}><Select options={connectorTypes.map((type) => ({ value: type }))} /></Form.Item>
-                    <Form.Item {...field} name={[field.name, 'current_type']} label="Current" rules={[{ required: true }]}><Select options={[{ value: 'AC' }, { value: 'DC' }]} /></Form.Item>
-                    <Form.Item {...field} name={[field.name, 'max_power_kw']} label="Power" rules={[{ required: true }]}><InputNumber min={1} max={1000} suffix="kW" style={{ width: '100%' }} /></Form.Item>
-                    <Button aria-label={`Remove connector ${index + 1}`} type="text" danger icon={<Trash2 size={16} />} disabled={fields.length === 1} onClick={() => remove(field.name)} />
-                  </article>
-                ))}
-                <Form.ErrorList errors={errors} />
-              </section>
-            )}
-          </Form.List>
+          <StepHeading eyebrow="02 / Simulator profile" title="Choose the simulated charger" description="Each verified profile defines the model, station capacity and OCPP connector layout. These values stay consistent across the database and simulator." />
+          {profilesQuery.isLoading && <Skeleton active paragraph={{ rows: 5 }} />}
+          {profilesQuery.isError && <Alert type="error" showIcon title="Simulator profiles unavailable" description="The simulator service is temporarily unavailable. Retry in a moment." action={<Button onClick={() => void profilesQuery.refetch()}>Retry</Button>} />}
+          {!profilesQuery.isLoading && !profilesQuery.isError && (
+            <Form.Item name="simulator_profile" rules={[{ required: true, message: 'Select a simulator profile.' }]}>
+              <Radio.Group className="simulator-profile-grid">
+                {(profilesQuery.data ?? []).map((profile) => <SimulatorProfileOption key={profile.key} profile={profile} />)}
+              </Radio.Group>
+            </Form.Item>
+          )}
         </div>
 
         <div hidden={currentStep !== 2}>
-          <StepHeading eyebrow="03 / Review" title="Confirm the simulator profile" description="The station, its connectors and its OCPP simulator identity will be committed atomically." />
+          <StepHeading eyebrow="03 / Review" title="Confirm the commissioning record" description="Creation, connector setup and simulator provisioning will begin automatically after confirmation." />
           <section className="commissioning-review">
             <ReviewGroup title="Station">
               <ReviewValue label="Name" value={values?.name} />
-              <ReviewValue label="Reference" value={values?.reference} />
+              <ReviewValue label="OCPP identity" value={values?.reference} />
               <ReviewValue label="Location" value={[values?.location_name, values?.city].filter(Boolean).join(', ')} />
               <ReviewValue label="Position" value={formatCoordinates(Number(values?.latitude), Number(values?.longitude))} />
             </ReviewGroup>
-            <ReviewGroup title="Charger">
-              <ReviewValue label="Charger" value={[values?.manufacturer, values?.model].filter(Boolean).join(' ')} />
-              <ReviewValue label="Power" value={`${values?.max_power_kw ?? '-'} kW`} />
-              <ReviewValue label="Protocol" value={values?.ocpp_version} />
-              <ReviewValue label="Connectors" value={`${values?.connectors?.length ?? 0} configured`} />
-            </ReviewGroup>
-            <ReviewGroup title="OCPP simulator">
-              <ReviewValue label="Profile" value="Local SAP simulator" />
-              <ReviewValue label="OCPP identity" value={values?.reference} />
-              <ReviewValue label="Initial state" value="Awaiting local registration" />
+            <ReviewGroup title="Simulator hardware">
+              <ReviewValue label="Profile" value={selectedProfile?.label} />
+              <ReviewValue label="Charger" value={[selectedProfile?.manufacturer, selectedProfile?.model].filter(Boolean).join(' ')} />
+              <ReviewValue label="Maximum power" value={selectedProfile ? `${selectedProfile.max_power_kw} kW` : '-'} />
+              <ReviewValue label="Connectors" value={selectedProfile?.connectors.map((connector) => `${connector.external_id} ${connector.type}`).join(' · ')} />
             </ReviewGroup>
           </section>
-          <Alert type="success" showIcon title="Ready to create" description="After creation, run the generated registration command and restart the OCPP simulator stack." />
+          <Alert type="success" showIcon title="Ready for automatic provisioning" description="The worker will add and start this station in the OCPP simulator. No terminal command or service restart is required." />
         </div>
       </Form>
     </Drawer>
+  )
+}
+
+function SimulatorProfileOption({ profile }: { profile: SimulatorHardwareProfile }) {
+  return (
+    <Radio.Button value={profile.key} className="simulator-profile-option">
+      <article>
+        <img src={profile.model_image ?? '/assets/stations/models/evbox-troniq.webp'} alt="" />
+        <div className="simulator-profile-copy">
+          <header><span>{profile.label}</span><strong>{profile.max_power_kw} kW</strong></header>
+          <h3>{profile.manufacturer} {profile.model}</h3>
+          <p>{profile.description}</p>
+          <div>{profile.connectors.map((connector) => <span key={connector.ocpp_connector_id}><Zap size={13} />{connector.external_id} · {connector.type} · {connector.max_power_kw} kW {connector.current_type}</span>)}</div>
+        </div>
+      </article>
+    </Radio.Button>
   )
 }
 
@@ -237,7 +223,7 @@ function StepHeading({ eyebrow, title, description }: { eyebrow: string; title: 
   return <header className="commissioning-step-heading"><span>{eyebrow}</span><h2>{title}</h2><p>{description}</p></header>
 }
 
-function ReviewGroup({ title, children }: { title: string; children: React.ReactNode }) {
+function ReviewGroup({ title, children }: { title: string; children: ReactNode }) {
   return <article><header>{title}</header><div>{children}</div></article>
 }
 
