@@ -2289,6 +2289,26 @@
                                                 "$ref": "#/components/schemas/ChargingSessionResource"
                                             }
                                         },
+                                        "active_session": {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/ChargingSessionResource"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "latest_session": {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/ChargingSessionResource"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
                                         "summary": {
                                             "type": "object",
                                             "properties": {
@@ -2315,11 +2335,37 @@
                                                 "energy_kwh",
                                                 "revenue_millimes"
                                             ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer"
+                                                },
+                                                "last_page": {
+                                                    "type": "integer"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "last_page",
+                                                "per_page",
+                                                "total"
+                                            ]
                                         }
                                     },
                                     "required": [
                                         "data",
-                                        "summary"
+                                        "active_session",
+                                        "latest_session",
+                                        "summary",
+                                        "meta"
                                     ]
                                 }
                             }
@@ -2988,6 +3034,29 @@
                                 null
                             ]
                         }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 100
+                        }
                     }
                 ],
                 "responses": {
@@ -3056,12 +3125,36 @@
                                                     }
                                                 }
                                             ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer"
+                                                },
+                                                "last_page": {
+                                                    "type": "integer"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "last_page",
+                                                "per_page",
+                                                "total"
+                                            ]
                                         }
                                     },
                                     "required": [
                                         "data",
                                         "summary",
-                                        "technicians"
+                                        "technicians",
+                                        "meta"
                                     ]
                                 }
                             }
@@ -4400,6 +4493,9 @@
                                                 "planned": {
                                                     "type": "string"
                                                 },
+                                                "overdue": {
+                                                    "type": "string"
+                                                },
                                                 "in_progress": {
                                                     "type": "string"
                                                 },
@@ -4413,6 +4509,7 @@
                                             "required": [
                                                 "total",
                                                 "planned",
+                                                "overdue",
                                                 "in_progress",
                                                 "completed",
                                                 "cancelled"
@@ -6315,6 +6412,89 @@
                 }
             }
         },
+        "/public/commercial-plans": {
+            "get": {
+                "operationId": "organizationCommercial.publicPlans",
+                "summary": "Public Plans organization commercial",
+                "tags": [
+                    "Other"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "code": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "monthly_price_millimes": {
+                                                        "type": "integer"
+                                                    },
+                                                    "annual_price_millimes": {
+                                                        "type": "integer"
+                                                    },
+                                                    "max_stations": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "max_employees": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "features": {
+                                                        "type": "array",
+                                                        "items": {}
+                                                    },
+                                                    "is_featured": {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "name",
+                                                    "code",
+                                                    "description",
+                                                    "monthly_price_millimes",
+                                                    "annual_price_millimes",
+                                                    "max_stations",
+                                                    "max_employees",
+                                                    "features",
+                                                    "is_featured"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
         "/payments/export": {
             "get": {
                 "operationId": "payment.export",
@@ -6475,11 +6655,35 @@
                                                 "failed",
                                                 "revenue_millimes"
                                             ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer"
+                                                },
+                                                "last_page": {
+                                                    "type": "integer"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "last_page",
+                                                "per_page",
+                                                "total"
+                                            ]
                                         }
                                     },
                                     "required": [
                                         "data",
-                                        "summary"
+                                        "summary",
+                                        "meta"
                                     ]
                                 }
                             }
@@ -12911,6 +13115,23 @@
                                             "null"
                                         ]
                                     },
+                                    "target_type": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "enum": [
+                                            "energy",
+                                            "duration",
+                                            "amount",
+                                            null
+                                        ]
+                                    },
+                                    "target_value": {
+                                        "type": "number",
+                                        "minimum": 0.1,
+                                        "maximum": 10000
+                                    },
                                     "energy_kwh": {
                                         "type": "number",
                                         "minimum": 0,
@@ -12928,10 +13149,7 @@
                                     }
                                 },
                                 "required": [
-                                    "station_id",
-                                    "energy_kwh",
-                                    "duration_minutes",
-                                    "idle_minutes"
+                                    "station_id"
                                 ]
                             }
                         }
@@ -13004,13 +13222,27 @@
                                                     "type": "object",
                                                     "properties": {
                                                         "energy_kwh": {
-                                                            "type": "number"
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "number"
+                                                                }
+                                                            ]
                                                         },
                                                         "duration_minutes": {
-                                                            "type": "string"
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "integer"
+                                                                }
+                                                            ]
                                                         },
                                                         "idle_minutes": {
-                                                            "type": "string"
+                                                            "type": "integer"
                                                         }
                                                     },
                                                     "required": [
@@ -13035,14 +13267,7 @@
                                                             "type": "integer"
                                                         },
                                                         "session_fee_millimes": {
-                                                            "anyOf": [
-                                                                {
-                                                                    "type": "integer"
-                                                                },
-                                                                {
-                                                                    "type": "string"
-                                                                }
-                                                            ]
+                                                            "type": "integer"
                                                         },
                                                         "idle_fee_millimes": {
                                                             "type": "string"
@@ -13071,13 +13296,94 @@
                                                         "subtotal_millimes",
                                                         "total_millimes"
                                                     ]
+                                                },
+                                                "estimate": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "target_type": {
+                                                            "type": "string"
+                                                        },
+                                                        "target_value": {
+                                                            "type": "number"
+                                                        },
+                                                        "energy_kwh": {
+                                                            "type": [
+                                                                "object",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "duration_minutes": {
+                                                            "type": "integer"
+                                                        },
+                                                        "amount_millimes": {
+                                                            "type": [
+                                                                "object",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "connector_power_kw": {
+                                                            "type": [
+                                                                "object",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "preauthorization_amount_millimes": {
+                                                            "type": [
+                                                                "object",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "within_preauthorization": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "maximums": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "energy_kwh": {
+                                                                    "type": "number"
+                                                                },
+                                                                "duration_minutes": {
+                                                                    "type": [
+                                                                        "object",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "amount_millimes": {
+                                                                    "type": [
+                                                                        "object",
+                                                                        "null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "energy_kwh",
+                                                                "duration_minutes",
+                                                                "amount_millimes"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "target_type",
+                                                        "target_value",
+                                                        "energy_kwh",
+                                                        "duration_minutes",
+                                                        "amount_millimes",
+                                                        "connector_power_kw",
+                                                        "preauthorization_amount_millimes",
+                                                        "within_preauthorization",
+                                                        "maximums"
+                                                    ]
                                                 }
                                             },
                                             "required": [
                                                 "tariff",
                                                 "plan",
                                                 "inputs",
-                                                "breakdown"
+                                                "breakdown",
+                                                "estimate"
                                             ]
                                         }
                                     },
@@ -16574,6 +16880,162 @@
                 }
             }
         },
+        "/stations/{station}/simulator": {
+            "get": {
+                "operationId": "ocppSimulator.show",
+                "summary": "View ocpp simulator",
+                "tags": [
+                    "Stations & OCPP"
+                ],
+                "parameters": [
+                    {
+                        "name": "station",
+                        "in": "path",
+                        "required": true,
+                        "description": "The station ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 30
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "state": {
+                                            "type": "null"
+                                        },
+                                        "adapter": {
+                                            "type": "object",
+                                            "properties": {
+                                                "available": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "The local simulator control service is unavailable."
+                                                }
+                                            },
+                                            "required": [
+                                                "available",
+                                                "message"
+                                            ]
+                                        },
+                                        "history": {}
+                                    },
+                                    "required": [
+                                        "state",
+                                        "adapter",
+                                        "history"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/stations/{station}/simulator/actions": {
+            "post": {
+                "operationId": "ocppSimulator.store",
+                "summary": "Create ocpp simulator",
+                "tags": [
+                    "Stations & OCPP"
+                ],
+                "parameters": [
+                    {
+                        "name": "station",
+                        "in": "path",
+                        "required": true,
+                        "description": "The station ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ExecuteSimulatorActionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "`OcppSimulatorActionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/OcppSimulatorActionResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "connector",
+                                                        "requested_by"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/stations/{station}/pricing": {
             "get": {
                 "operationId": "pricing.effective",
@@ -17935,6 +18397,21 @@
                     "duration_minutes": {
                         "type": "integer"
                     },
+                    "idle_started_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "idle_seconds": {
+                        "type": "integer"
+                    },
+                    "idle_grace_seconds": {
+                        "type": "integer"
+                    },
+                    "idle_minutes": {
+                        "type": "integer"
+                    },
                     "meter_start_kwh": {
                         "type": "number"
                     },
@@ -18077,6 +18554,9 @@
                     "idle_fee_per_minute_millimes": {
                         "type": "integer"
                     },
+                    "idle_fee_millimes": {
+                        "type": "integer"
+                    },
                     "minimum_charge_millimes": {
                         "type": "integer"
                     },
@@ -18131,6 +18611,10 @@
                     "ended_at",
                     "duration_seconds",
                     "duration_minutes",
+                    "idle_started_at",
+                    "idle_seconds",
+                    "idle_grace_seconds",
+                    "idle_minutes",
                     "meter_start_kwh",
                     "meter_stop_kwh",
                     "last_meter_value_at",
@@ -18143,6 +18627,7 @@
                     "price_per_kwh_millimes",
                     "session_fee_millimes",
                     "idle_fee_per_minute_millimes",
+                    "idle_fee_millimes",
                     "minimum_charge_millimes",
                     "energy_gross_millimes",
                     "discount_millimes",
@@ -18687,6 +19172,36 @@
                 ],
                 "title": "EmailRequest"
             },
+            "ExecuteSimulatorActionRequest": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "enum": [
+                            "connect",
+                            "disconnect",
+                            "heartbeat",
+                            "plug",
+                            "unplug",
+                            "inject_fault",
+                            "recover",
+                            "normal_cycle",
+                            "fault_recovery"
+                        ]
+                    },
+                    "connector_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    }
+                },
+                "required": [
+                    "action"
+                ],
+                "title": "ExecuteSimulatorActionRequest"
+            },
             "InspectAccountInvitationRequest": {
                 "type": "object",
                 "properties": {
@@ -18941,6 +19456,12 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "is_overdue": {
+                        "type": "string"
+                    },
+                    "overdue_by_minutes": {
+                        "type": "integer"
                     },
                     "started_at": {
                         "type": [
@@ -19326,6 +19847,8 @@
                     "status",
                     "priority",
                     "scheduled_at",
+                    "is_overdue",
+                    "overdue_by_minutes",
                     "started_at",
                     "ended_at",
                     "estimated_duration_minutes",
@@ -19632,6 +20155,113 @@
                     "updated_at"
                 ],
                 "title": "OcppCommandResource"
+            },
+            "OcppSimulatorActionResource": {
+                "type": "object",
+                "properties": {
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "action": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "station_id": {
+                        "type": "string"
+                    },
+                    "connector": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "external_id": {
+                                "type": "string"
+                            },
+                            "ocpp_connector_id": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "external_id",
+                            "ocpp_connector_id"
+                        ]
+                    },
+                    "requested_by": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "avatar_url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "avatar_url"
+                        ]
+                    },
+                    "result": {
+                        "type": "string"
+                    },
+                    "failure_code": {
+                        "type": "string"
+                    },
+                    "failure_message": {
+                        "type": "string"
+                    },
+                    "queued_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "started_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "completed_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "uuid",
+                    "action",
+                    "status",
+                    "station_id",
+                    "result",
+                    "failure_code",
+                    "failure_message",
+                    "queued_at",
+                    "started_at",
+                    "completed_at"
+                ],
+                "title": "OcppSimulatorActionResource"
             },
             "Organization": {
                 "type": "object",
