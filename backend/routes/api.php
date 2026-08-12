@@ -144,6 +144,7 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::post('/stations/{station}/commands/reset', [OcppSupervisionController::class, 'reset']);
     Route::post('/stations/{station}/connectors/{connector}/commands/unlock', [OcppSupervisionController::class, 'unlock']);
     Route::put('/stations/{station}/maintenance', [OcppSupervisionController::class, 'maintenance']);
+    Route::get('/simulation-lab/stations', [OcppSimulatorController::class, 'index']);
     Route::get('/stations/{station}/simulator', [OcppSimulatorController::class, 'show']);
     Route::post('/stations/{station}/simulator/actions', [OcppSimulatorController::class, 'store'])
         ->middleware('throttle:ocpp-simulator-actions');

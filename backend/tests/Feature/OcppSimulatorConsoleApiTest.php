@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Jobs\ExecuteOcppSimulatorAction;
 use App\Models\Connector;
+use App\Models\OcppEvent;
 use App\Models\OcppSimulatorAction;
 use App\Models\Organization;
 use App\Models\Station;
@@ -55,6 +56,91 @@ class OcppSimulatorConsoleApiTest extends TestCase
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer private-control-token'));
     }
 
+    public function test_lab_lists_only_simulator_stations_in_the_user_scope(): void
+    {
+        [$station, , $operator] = $this->fixture('operator');
+        [$otherStation] = $this->fixture('operator');
+        Station::query()->create([
+            'organization_id' => $operator->organization_id,
+            'name' => 'External station',
+            'reference' => 'EXT-'.uniqid(),
+            'ocpp_identity' => 'EXT-'.uniqid(),
+            'location_name' => 'Tunis',
+            'city' => 'Tunis',
+            'address' => 'External address',
+            'latitude' => 36.8,
+            'longitude' => 10.2,
+            'status' => 'offline',
+            'max_power_kw' => 22,
+            'model' => 'External',
+            'manufacturer' => 'External',
+            'ocpp_version' => 'OCPP 1.6J',
+            'ocpp_commissioning_target' => 'external',
+        ]);
+        Sanctum::actingAs($operator);
+
+        $this->getJson('/api/simulation-lab/stations')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $station->id)
+            ->assertJsonMissing(['id' => $otherStation->id]);
+    }
+
+    public function test_console_returns_only_sanitized_live_signals_and_capabilities(): void
+    {
+        [$station, , $technician] = $this->fixture('technician');
+        OcppEvent::query()->create([
+            'event_id' => (string) str()->uuid(),
+            'organization_id' => $station->organization_id,
+            'station_id' => $station->id,
+            'connection_id' => 'connection-1',
+            'message_id' => 'message-1',
+            'protocol_version' => '1.6J',
+            'action' => 'StatusNotification',
+            'payload' => [
+                'connectorId' => 1,
+                'status' => 'Preparing',
+                'errorCode' => 'NoError',
+                'idTag' => 'PRIVATE-RFID',
+            ],
+            'payload_hash' => hash('sha256', 'signal'),
+            'response_payload' => ['secret' => 'private'],
+            'processing_status' => 'processed',
+            'occurred_at' => now(),
+            'received_at' => now(),
+        ]);
+        Sanctum::actingAs($technician);
+        Http::fake(['*' => Http::response(['data' => [
+            'identity' => $station->ocpp_identity,
+            'started' => true,
+            'connected' => true,
+            'ws_state' => 1,
+            'supervision_url' => 'http://private-control:8080',
+            'secret' => 'private',
+            'connectors' => [[
+                'connector_id' => 1,
+                'status' => 'Preparing',
+                'error_code' => 'NoError',
+                'availability' => 'operative',
+                'transaction_started' => false,
+                'private_state' => 'hidden',
+            ]],
+        ]])]);
+
+        $response = $this->getJson("/api/stations/{$station->id}/simulator")
+            ->assertOk()
+            ->assertJsonPath('capabilities.execute', false)
+            ->assertJsonPath('signals.events.0.connector_id', 1)
+            ->assertJsonPath('signals.events.0.status', 'Preparing')
+            ->assertJsonMissingPath('state.supervision_url')
+            ->assertJsonMissingPath('state.secret')
+            ->assertJsonMissingPath('state.connectors.0.private_state')
+            ->assertJsonMissingPath('signals.events.0.payload');
+
+        $this->assertStringNotContainsString('PRIVATE-RFID', $response->getContent());
+        $this->assertStringNotContainsString('private-control', $response->getContent());
+    }
+
     public function test_operator_can_queue_connector_action_and_worker_records_sanitized_result(): void
     {
         Queue::fake();
@@ -102,6 +188,7 @@ class OcppSimulatorConsoleApiTest extends TestCase
 
         [, , $client] = $this->fixture('client');
         Sanctum::actingAs($client);
+        $this->getJson('/api/simulation-lab/stations')->assertForbidden();
         $this->getJson("/api/stations/{$station->id}/simulator")->assertForbidden();
     }
 
