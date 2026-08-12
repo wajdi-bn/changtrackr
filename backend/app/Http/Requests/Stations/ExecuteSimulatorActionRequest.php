@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Stations;
 
+use App\Services\Ocpp\OcppSimulatorActionCatalog;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,11 +17,7 @@ class ExecuteSimulatorActionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'action' => ['required', 'string', Rule::in([
-                'connect', 'disconnect', 'heartbeat',
-                'plug', 'unplug', 'inject_fault', 'recover',
-                'normal_cycle', 'fault_recovery',
-            ])],
+            'action' => ['required', 'string', Rule::in(OcppSimulatorActionCatalog::all())],
             'connector_id' => [
                 Rule::requiredIf(fn (): bool => in_array((string) $this->input('action'), [
                     'plug', 'unplug', 'inject_fault', 'recover', 'normal_cycle', 'fault_recovery',

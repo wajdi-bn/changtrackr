@@ -51,6 +51,9 @@ class OcppSimulatorConsoleApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('adapter.available', true)
             ->assertJsonPath('state.identity', $station->ocpp_identity)
+            ->assertJsonPath('capabilities.diagnose', true)
+            ->assertJsonPath('capabilities.control', true)
+            ->assertJsonPath('capabilities.central_commands', true)
             ->assertJsonCount(0, 'history.data');
 
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer private-control-token'));
@@ -129,7 +132,12 @@ class OcppSimulatorConsoleApiTest extends TestCase
 
         $response = $this->getJson("/api/stations/{$station->id}/simulator")
             ->assertOk()
-            ->assertJsonPath('capabilities.execute', false)
+            ->assertJsonPath('capabilities.view', true)
+            ->assertJsonPath('capabilities.diagnose', true)
+            ->assertJsonPath('capabilities.control', false)
+            ->assertJsonPath('capabilities.central_commands', false)
+            ->assertJsonPath('capabilities.allowed_actions.0', 'heartbeat')
+            ->assertJsonMissing(['connect', 'disconnect'])
             ->assertJsonPath('signals.events.0.connector_id', 1)
             ->assertJsonPath('signals.events.0.status', 'Preparing')
             ->assertJsonMissingPath('state.supervision_url')
@@ -176,18 +184,32 @@ class OcppSimulatorConsoleApiTest extends TestCase
         $this->assertNull($action->failure_message);
     }
 
-    public function test_technician_has_read_only_access_and_client_has_no_console_access(): void
+    public function test_technician_can_run_diagnostics_but_not_station_or_central_controls(): void
     {
-        [$station, , $technician] = $this->fixture('technician');
+        Queue::fake();
+        [$station, $connector, $technician] = $this->fixture('technician');
         Sanctum::actingAs($technician);
         Http::fake(['*' => Http::response(['data' => ['identity' => $station->ocpp_identity]])]);
 
         $this->getJson("/api/stations/{$station->id}/simulator")->assertOk();
+        $this->postJson("/api/stations/{$station->id}/simulator/actions", [
+            'action' => 'plug',
+            'connector_id' => 1,
+        ])->assertAccepted()
+            ->assertJsonPath('data.connector.id', $connector->id);
+        Queue::assertPushed(ExecuteOcppSimulatorAction::class);
+
         $this->postJson("/api/stations/{$station->id}/simulator/actions", ['action' => 'connect'])
             ->assertForbidden();
+        $this->postJson("/api/stations/{$station->id}/commands/reset", ['type' => 'Soft'])
+            ->assertForbidden();
+    }
 
-        [, , $client] = $this->fixture('client');
+    public function test_client_has_no_simulation_lab_access(): void
+    {
+        [$station, , $client] = $this->fixture('client');
         Sanctum::actingAs($client);
+
         $this->getJson('/api/simulation-lab/stations')->assertForbidden();
         $this->getJson("/api/stations/{$station->id}/simulator")->assertForbidden();
     }

@@ -9,6 +9,7 @@ use App\Http\Resources\StationResource;
 use App\Models\OcppEvent;
 use App\Models\Station;
 use App\Models\User;
+use App\Services\Ocpp\OcppSimulatorActionCatalog;
 use App\Services\Ocpp\OcppSimulatorActionService;
 use App\Services\Ocpp\OcppSimulatorControlClient;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +28,7 @@ class OcppSimulatorController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        abort_unless($user->can('ocpp_commands.view'), 403);
+        abort_unless($user->can('ocpp_simulation.view'), 403);
 
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
@@ -56,7 +57,7 @@ class OcppSimulatorController extends Controller
 
     public function show(Request $request, Station $station): JsonResponse
     {
-        Gate::authorize('viewCommands', $station);
+        Gate::authorize('viewSimulation', $station);
         $this->actions->ensureSimulatorStation($station);
         $station->loadMissing(['organization', 'connectors'])->loadCount('connectors');
 
@@ -75,12 +76,22 @@ class OcppSimulatorController extends Controller
             $adapter = ['available' => false, 'message' => 'The local simulator control service is unavailable.'];
         }
 
+        $canDiagnose = Gate::allows('diagnoseSimulation', $station);
+        $canControl = Gate::allows('controlSimulation', $station);
+
         return response()->json([
             'station' => StationResource::make($station),
             'state' => $state,
             'adapter' => $adapter,
             'capabilities' => [
-                'execute' => Gate::allows('executeCommands', $station),
+                'view' => true,
+                'diagnose' => $canDiagnose,
+                'control' => $canControl,
+                'central_commands' => Gate::allows('executeCommands', $station),
+                'allowed_actions' => [
+                    ...($canControl ? OcppSimulatorActionCatalog::CONTROL_ACTIONS : []),
+                    ...($canDiagnose || $canControl ? OcppSimulatorActionCatalog::DIAGNOSTIC_ACTIONS : []),
+                ],
             ],
             'signals' => $this->signals($station),
             'history' => OcppSimulatorActionResource::collection($history)->response()->getData(true),
@@ -89,12 +100,17 @@ class OcppSimulatorController extends Controller
 
     public function store(ExecuteSimulatorActionRequest $request, Station $station): JsonResponse
     {
-        Gate::authorize('executeCommands', $station);
+        $payload = $request->validated();
+        $ability = OcppSimulatorActionCatalog::requiresControl($payload['action'])
+            ? 'controlSimulation'
+            : 'diagnoseSimulation';
+
+        Gate::authorize($ability, $station);
         $this->actions->ensureSimulatorStation($station);
 
         /** @var User $user */
         $user = $request->user();
-        $action = $this->actions->queue($station, $user, $request->validated());
+        $action = $this->actions->queue($station, $user, $payload);
 
         return (new OcppSimulatorActionResource($action->load(['connector', 'requestedBy'])))
             ->response()
