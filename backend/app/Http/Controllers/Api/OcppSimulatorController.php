@@ -102,7 +102,7 @@ class OcppSimulatorController extends Controller
     }
 
     /** @param array<string, mixed> $state
-     *  @return array<string, mixed>
+     * @return array<string, mixed>
      */
     private function sanitizeState(array $state): array
     {
