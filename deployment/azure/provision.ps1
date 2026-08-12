@@ -9,6 +9,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Azure CLI reports failures through its exit code; do not let native stderr
+# writes raise a terminating error before Invoke-Az can inspect the result.
+$PSNativeCommandUseErrorActionPreference = $false
 $az = (Get-Command az -ErrorAction SilentlyContinue).Source
 if (-not $az) {
     $candidate = 'C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin\az.cmd'
@@ -23,9 +26,41 @@ if ([string]::IsNullOrWhiteSpace($AllowedSshCidr)) {
 }
 
 function Invoke-Az {
-    param([string[]]$Arguments)
-    & $az @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "Azure CLI failed: az $($Arguments -join ' ')" }
+    param(
+        [string[]]$Arguments,
+        [int]$MaxAttempts = 5
+    )
+    # Newer Azure regions occasionally return transient control-plane read
+    # errors (for example ResourceNotFound on a resource that was just
+    # created) because ARM replication is eventually consistent. Retry those
+    # with backoff, but fail fast on permanent capacity/quota/policy errors so
+    # the operator can switch region instead of waiting on doomed retries.
+    $permanent = 'SkuNotAvailable|QuotaExceeded|RequestDisallowedByPolicy|NotAvailableForSubscription|OperationNotAllowed|AuthorizationFailed|InvalidAuthenticationTokenTenant'
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        # Windows PowerShell 5.1 turns redirected native stderr into a
+        # terminating error under 'Stop', which would bypass the retry logic.
+        # Relax the preference only around the CLI call, then restore it.
+        $previousPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            $output = & $az @Arguments 2>&1
+            $exit = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $previousPreference
+        }
+        Write-Host ($output | Out-String)
+        if ($exit -eq 0) { return }
+        $text = $output | Out-String
+        if ($text -match $permanent) {
+            throw "Azure CLI failed (non-retryable): az $($Arguments -join ' ')"
+        }
+        if ($attempt -lt $MaxAttempts) {
+            $delay = [Math]::Min(30, 8 * $attempt)
+            Write-Host "Transient Azure error on attempt $attempt/$MaxAttempts; retrying in $delay s..."
+            Start-Sleep -Seconds $delay
+        }
+    }
+    throw "Azure CLI failed after $MaxAttempts attempts: az $($Arguments -join ' ')"
 }
 
 $account = & $az account show --query '{id:id,state:state}' -o json | ConvertFrom-Json
