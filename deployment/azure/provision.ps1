@@ -113,9 +113,21 @@ if (-not $containerExists) {
 
 $principalId = & $az vm identity show --resource-group $ResourceGroup --name $vm --query principalId -o tsv
 $storageScope = & $az storage account show --resource-group $ResourceGroup --name $storage --query id -o tsv
-$assignment = & $az role assignment list --assignee $principalId --scope $storageScope --role 'Storage Blob Data Contributor' --query 'length(@)' -o tsv
-if ($assignment -eq '0') {
-    Invoke-Az -Arguments @('role','assignment','create','--assignee-object-id',$principalId,'--assignee-principal-type','ServicePrincipal','--role','Storage Blob Data Contributor','--scope',$storageScope,'--only-show-errors')
+# `az role assignment create/list --scope <resource-id>` fails with
+# MissingSubscription on some Azure CLI builds (observed on 2.89.0). The
+# `--all` list form works, so use it for the idempotency check, and create the
+# assignment through the ARM REST API, which is unaffected by the CLI bug.
+$blobRoleId = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' # Storage Blob Data Contributor
+$assignment = & $az role assignment list --assignee $principalId --all --query "[?scope=='$storageScope' && roleDefinitionName=='Storage Blob Data Contributor'] | length(@)" -o tsv
+if ($assignment -ne '1') {
+    $assignmentName = [guid]::NewGuid().ToString()
+    $roleBody = @{ properties = @{
+        roleDefinitionId = "/subscriptions/$($account.id)/providers/Microsoft.Authorization/roleDefinitions/$blobRoleId"
+        principalId      = $principalId
+        principalType    = 'ServicePrincipal'
+    } } | ConvertTo-Json -Compress
+    $roleUrl = "https://management.azure.com$storageScope/providers/Microsoft.Authorization/roleAssignments/$($assignmentName)?api-version=2022-04-01"
+    Invoke-Az -Arguments @('rest','--method','put','--url',$roleUrl,'--body',$roleBody,'--only-show-errors')
 }
 $address = & $az network public-ip show --resource-group $ResourceGroup --name $publicIp --query ipAddress -o tsv
 $result = [ordered]@{
