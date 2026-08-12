@@ -12,6 +12,7 @@ import type {
   SessionPaymentStatus,
 } from '../../types/charging'
 import type { ExportFormat } from '../../components/ExportDropdown'
+import type { OcppSimulatorAction } from '../../types/station'
 
 export interface SessionFilters {
   search?: string
@@ -59,6 +60,26 @@ export async function getChargingAttempt(uuid: string): Promise<ChargingAttempt>
 
 export async function getChargingAttempts(): Promise<ChargingAttempt[]> {
   const response = await httpClient.get<{ data: ChargingAttempt[] }>('/charging-attempts')
+  return response.data.data
+}
+
+export async function executeClientChargingTerminalAction(payload: {
+  stationId: number
+  connectorId: number
+  action: 'plug' | 'unplug'
+  idempotencyKey: string
+}): Promise<OcppSimulatorAction> {
+  const response = await httpClient.post<{ data: OcppSimulatorAction }>(
+    `/stations/${payload.stationId}/connectors/${payload.connectorId}/charging-terminal/actions`,
+    { action: payload.action, idempotency_key: payload.idempotencyKey },
+  )
+  return response.data.data
+}
+
+export async function getClientChargingTerminalAction(stationId: number, connectorId: number, actionUuid: string): Promise<OcppSimulatorAction> {
+  const response = await httpClient.get<{ data: OcppSimulatorAction }>(
+    `/stations/${stationId}/connectors/${connectorId}/charging-terminal/actions/${actionUuid}`,
+  )
   return response.data.data
 }
 

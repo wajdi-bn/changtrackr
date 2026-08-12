@@ -12278,6 +12278,20 @@ body {
 .connector-detection-status > span:last-child { display: grid; gap: 3px; }
 .connector-detection-status strong { color: #26342d; font-size: 13px; }
 .connector-detection-status small { color: #66756d; font-size: 11px; }
+.client-charging-terminal { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-bottom: 14px; padding: 16px; border: 1px solid #d8e6df; border-radius: 8px; background: #fff; box-shadow: 0 9px 24px rgba(28, 76, 55, .07); }
+.client-charging-terminal__icon { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 10px; background: #16a36d; color: #fff; box-shadow: inset 0 1px rgba(255, 255, 255, .32), 0 6px 12px rgba(22, 163, 109, .2); }
+.client-charging-terminal__content { display: grid; min-width: 0; gap: 2px; }
+.client-charging-terminal__content small { color: #17845d; font-size: 10px; font-weight: 750; letter-spacing: .06em; }
+.client-charging-terminal__content strong { overflow: hidden; color: #203129; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.client-charging-terminal__content span { color: #6f7e76; font-size: 11px; }
+.client-charging-terminal > p { grid-column: 2 / -1; margin: 0; color: #718078; font-size: 11px; line-height: 1.5; }
+.client-charging-terminal__waiting,
+.client-charging-terminal__confirmed { display: inline-flex; min-height: 34px; align-items: center; gap: 7px; color: #64736b; font-size: 11px; font-weight: 650; white-space: nowrap; }
+.client-charging-terminal__confirmed { color: #118258; }
+.client-charging-terminal--connected { border-color: #b8ddca; background: #f3fbf7; }
+.client-charging-terminal--unavailable .client-charging-terminal__icon { background: #d49a22; box-shadow: inset 0 1px rgba(255, 255, 255, .32), 0 6px 12px rgba(212, 154, 34, .18); }
+.client-charging-terminal--failed { border-color: #efc9c4; background: #fff8f7; }
+.client-charging-terminal--failed .client-charging-terminal__icon { background: #cf4b3f; box-shadow: inset 0 1px rgba(255, 255, 255, .32), 0 6px 12px rgba(207, 75, 63, .18); }
 .connector-detection-pulse {
   width: 12px;
   height: 12px;
@@ -12494,6 +12508,11 @@ body {
   .connector-choice-grid,
   .connection-guide,
   .payment-method-grid { grid-template-columns: 1fr; }
+  .client-charging-terminal { grid-template-columns: auto minmax(0, 1fr); }
+  .client-charging-terminal .ant-btn,
+  .client-charging-terminal__waiting,
+  .client-charging-terminal__confirmed,
+  .client-charging-terminal > p { grid-column: 1 / -1; }
   .connector-choice-grid .ant-radio-button-wrapper { grid-template-columns: 48px 1fr auto; min-height: 86px; }
   .connector-type-icon svg { width: 44px; height: 50px; }
   .preauthorization-card > span { grid-template-columns: 1fr; }

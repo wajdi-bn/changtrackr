@@ -4,15 +4,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Button, Drawer, Empty, Form, Input, InputNumber, Radio, Result, Select, Slider, Spin, Steps, Tag } from 'antd'
 import type { FormInstance } from 'antd'
 import { motion } from 'framer-motion'
-import { BadgePercent, BatteryCharging, CheckCircle2, CircleDollarSign, Clock3, CreditCard, Gauge, MapPin, PlugZap, ShieldCheck, Zap } from 'lucide-react'
+import { BadgePercent, BatteryCharging, Check, CheckCircle2, CircleDollarSign, Clock3, CreditCard, Gauge, MapPin, PlugZap, RadioTower, ShieldCheck, Zap } from 'lucide-react'
 import { getApiErrorMessage } from '../../api/apiErrors'
 import type { ChargingAttempt, ChargingAttemptPayload, ChargingSession, PaymentSimulationOutcome, SimulatedPaymentMethod } from '../../types/charging'
-import type { Connector, Station } from '../../types/station'
+import type { Connector, OcppSimulatorActionStatus, Station } from '../../types/station'
 import type { ChargingTargetType, PricingSimulation } from '../../types/tariff'
 import { getStation } from '../stations/stationApi'
 import { getEffectivePricing, simulatePricing } from '../tariffs/tariffApi'
-import { getChargingAttempt, startChargingAttempt } from './chargingApi'
+import { executeClientChargingTerminalAction, getChargingAttempt, getClientChargingTerminalAction, startChargingAttempt } from './chargingApi'
 import { buildChargingLimitPayload, linkedTargetValues } from './chargingEstimate'
+import { canInsertVirtualCable, resolveClientTerminalState } from './clientChargingTerminal'
 import { ConnectorTypeIcon } from './ConnectorTypeIcon'
 import { PaymentMethodBrand } from './PaymentMethodBrand'
 import { createIdempotencyKey } from '../../lib/idempotency'
@@ -66,6 +67,7 @@ export function StartSessionDrawer({
   const notifiedSessionId = useRef<number | null>(null)
   const initializedKey = useRef<string | null>(null)
   const idempotencyKey = useRef(createIdempotencyKey())
+  const terminalPlugIdempotencyKey = useRef(createIdempotencyKey())
   const queryClient = useQueryClient()
   const { message } = App.useApp()
   const stationId = Form.useWatch('station_id', { form, preserve: true })
@@ -122,6 +124,24 @@ export function StartSessionDrawer({
     },
     onError: (error) => void message.error(getApiErrorMessage(error, 'Charging could not be started. Check the station and payment details.')),
   })
+  const terminalMutation = useMutation({
+    mutationFn: executeClientChargingTerminalAction,
+    onSuccess: () => {
+      void message.success('Virtual cable signal sent to the station.')
+      void connectorConnectionQuery.refetch()
+    },
+    onError: (error) => {
+      terminalPlugIdempotencyKey.current = createIdempotencyKey()
+      void message.error(getApiErrorMessage(error, 'The virtual cable could not be inserted. Check the station status and try again.'))
+    },
+  })
+  const terminalActionQuery = useQuery({
+    queryKey: ['client-charging-terminal-action', effectiveStationId, effectiveConnectorId, terminalMutation.data?.uuid],
+    queryFn: () => getClientChargingTerminalAction(effectiveStationId!, effectiveConnectorId!, terminalMutation.data!.uuid),
+    enabled: open && current === 2 && effectiveStationId != null && effectiveConnectorId != null && terminalMutation.data != null,
+    refetchInterval: (query) => ['queued', 'running'].includes(query.state.data?.status ?? '') ? 700 : false,
+  })
+  const terminalAction = terminalActionQuery.data ?? terminalMutation.data
 
   useEffect(() => {
     if (!open) {
@@ -139,6 +159,7 @@ export function StartSessionDrawer({
     }
     setAttemptUuid(null)
     idempotencyKey.current = createIdempotencyKey()
+    terminalPlugIdempotencyKey.current = createIdempotencyKey()
     setTargetType('amount')
     setTargetValue(15)
     const initialStation = initialStationId != null
@@ -236,7 +257,27 @@ export function StartSessionDrawer({
         <motion.div key={current} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>
           {current === 0 && <StationStep stations={availableStations} selectedStation={selectedStation} form={form} />}
           {current === 1 && <ConnectorStep connectors={availableConnectors} selectedConnector={selectedConnector} form={form} />}
-          {current === 2 && <ConnectionStep connector={selectedConnector} liveConnector={liveConnector} loading={connectorConnectionQuery.isLoading} error={connectorConnectionQuery.isError} />}
+          {current === 2 && <ConnectionStep
+            station={selectedStation}
+            connector={selectedConnector}
+            liveConnector={liveConnector}
+            loading={connectorConnectionQuery.isLoading}
+            error={connectorConnectionQuery.isError}
+            terminalActionStatus={terminalAction?.status}
+            terminalActionCompletedAt={terminalAction?.completed_at}
+            terminalFailureMessage={terminalAction?.failure_message}
+            terminalPending={terminalMutation.isPending}
+            onInsertCable={(retry) => {
+              if (!effectiveStationId || !effectiveConnectorId) return
+              if (retry) terminalPlugIdempotencyKey.current = createIdempotencyKey()
+              terminalMutation.mutate({
+                stationId: effectiveStationId,
+                connectorId: effectiveConnectorId,
+                action: 'plug',
+                idempotencyKey: terminalPlugIdempotencyKey.current,
+              })
+            }}
+          />}
           {current === 3 && <ChargingTargetStep targetType={targetType} targetValue={targetValue} quote={estimateQuery.data} loading={estimatePending || estimateQuery.isFetching} error={estimateQuery.isError} onChange={(type, value) => { setTargetType(type); setTargetValue(value) }} />}
           {current === 4 && <PaymentStep quote={estimateQuery.data} method={paymentMethod} />}
           {current === 5 && <PaymentReviewStep pricing={pricingQuery.data} quote={estimateQuery.data} method={paymentMethod} />}
@@ -282,17 +323,60 @@ function ConnectorStep({ connectors, selectedConnector, form }: { connectors: Co
   </section>
 }
 
-function ConnectionStep({ connector, liveConnector, loading, error }: { connector?: Connector; liveConnector?: Connector; loading: boolean; error: boolean }) {
+function ConnectionStep({
+  station,
+  connector,
+  liveConnector,
+  loading,
+  error,
+  terminalActionStatus,
+  terminalActionCompletedAt,
+  terminalFailureMessage,
+  terminalPending,
+  onInsertCable,
+}: {
+  station?: ChargeableStation
+  connector?: Connector
+  liveConnector?: Connector
+  loading: boolean
+  error: boolean
+  terminalActionStatus?: OcppSimulatorActionStatus
+  terminalActionCompletedAt?: string | null
+  terminalFailureMessage?: string | null
+  terminalPending: boolean
+  onInsertCable: (retry: boolean) => void
+}) {
   const rawStatus = liveConnector?.ocpp_status ?? connector?.ocpp_status ?? 'Waiting'
+  const terminalState = terminalPending ? 'requesting' : resolveClientTerminalState(rawStatus, terminalActionStatus, terminalActionCompletedAt)
 
-  return <section className="charging-workflow-step"><header><BatteryCharging size={20} /><span><h2>Connect your vehicle</h2><p>Complete the physical connection before authorizing the remote start.</p></span></header>
+  return <section className="charging-workflow-step"><header><BatteryCharging size={20} /><span><h2>Connect your vehicle</h2><p>Use the virtual station terminal to reproduce inserting the physical cable.</p></span></header>
     <div className="connection-guide">
       <div className="connection-guide-visual">{connector && <ConnectorTypeIcon type={connector.type} subtitled />}<span>Instructional video slot</span><small>A WebM or MP4 guide can be added here later.</small></div>
       <ol><li><b>1</b><span>Park safely and switch off the vehicle.</span></li><li><b>2</b><span>Take the <strong>{connector?.type ?? 'selected'}</strong> cable from connector {connector?.external_id}.</span></li><li><b>3</b><span>Insert it fully into the vehicle until it locks.</span></li></ol>
     </div>
+    <div className={`client-charging-terminal client-charging-terminal--${terminalState}`}>
+      <div className="client-charging-terminal__icon">{terminalState === 'connected' ? <Check size={23} /> : <RadioTower size={23} />}</div>
+      <div className="client-charging-terminal__content">
+        <small>VIRTUAL STATION TERMINAL</small>
+        <strong>{station?.name ?? 'Selected station'}</strong>
+        <span>Connector {connector?.external_id ?? '-'} - {connector?.type ?? 'plug'} - OCPP {rawStatus}</span>
+      </div>
+      {canInsertVirtualCable(terminalState)
+        ? <Button type="primary" icon={<PlugZap size={17} />} loading={terminalPending} onClick={() => onInsertCable(terminalState === 'failed')}>{terminalState === 'failed' ? 'Try again' : 'Insert virtual cable'}</Button>
+        : terminalState === 'connected'
+          ? <span className="client-charging-terminal__confirmed"><Check size={16} /> Cable detected</span>
+          : <span className="client-charging-terminal__waiting"><Spin size="small" /> {terminalState === 'unavailable' ? 'Connector unavailable' : 'Waiting for OCPP'}</span>}
+      <p>{terminalState === 'ready'
+        ? 'In this simulated environment, this button represents inserting the physical cable into the vehicle.'
+        : terminalState === 'failed'
+          ? terminalFailureMessage ?? 'The station did not process the cable action. You can try again safely.'
+        : terminalState === 'connected'
+          ? 'The station reported StatusNotification(Preparing). The next step opens automatically.'
+          : 'The simulator is processing the physical action. This workflow advances only after the station confirms it through OCPP.'}</p>
+    </div>
     <div className="connector-detection-status">
-      <Spin spinning={loading || rawStatus === 'Available' || rawStatus === 'Waiting'} size="small" />
-      <span><strong>Waiting for the station to detect the cable</strong><small>OCPP connector status: {rawStatus}</small></span>
+      <Spin spinning={loading || terminalState === 'requesting' || terminalState === 'waiting_ocpp'} size="small" />
+      <span><strong>{terminalState === 'connected' ? 'Cable connection detected by the station' : terminalState === 'failed' ? 'Cable action was not completed' : 'Waiting for the station to detect the cable'}</strong><small>Verified OCPP connector status: {rawStatus}</small></span>
     </div>
     {error && <Alert type="error" showIcon title="The connector status could not be refreshed" description="The platform will retry automatically while this step remains open." />}
   </section>
