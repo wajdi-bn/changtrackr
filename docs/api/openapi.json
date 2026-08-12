@@ -6495,6 +6495,102 @@
                 "security": []
             }
         },
+        "/simulation-lab/stations": {
+            "get": {
+                "operationId": "ocppSimulator.index",
+                "summary": "List ocpp simulators",
+                "tags": [
+                    "Other"
+                ],
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 50
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `StationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "allOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/StationResource"
+                                                    },
+                                                    {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "organization",
+                                                            "connectors"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/payments/export": {
             "get": {
                 "operationId": "payment.export",
@@ -15498,13 +15594,19 @@
                                                     "type": "boolean"
                                                 },
                                                 "simulator_profile": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "provisioning_status": {
                                                     "type": "string"
                                                 },
                                                 "provisioning_error": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
                                             },
                                             "required": [
@@ -15619,13 +15721,19 @@
                                                     "type": "boolean"
                                                 },
                                                 "simulator_profile": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "provisioning_status": {
                                                     "type": "string"
                                                 },
                                                 "provisioning_error": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
                                             },
                                             "required": [
@@ -15740,13 +15848,19 @@
                                                     "type": "boolean"
                                                 },
                                                 "simulator_profile": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "provisioning_status": {
                                                     "type": "string"
                                                 },
                                                 "provisioning_error": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
                                             },
                                             "required": [
@@ -17092,6 +17206,20 @@
                                 "schema": {
                                     "type": "object",
                                     "properties": {
+                                        "station": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/StationResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "organization",
+                                                        "connectors"
+                                                    ]
+                                                }
+                                            ]
+                                        },
                                         "state": {
                                             "type": "null"
                                         },
@@ -17111,11 +17239,220 @@
                                                 "message"
                                             ]
                                         },
+                                        "capabilities": {
+                                            "type": "object",
+                                            "properties": {
+                                                "view": {
+                                                    "type": "boolean"
+                                                },
+                                                "diagnose": {
+                                                    "type": "boolean"
+                                                },
+                                                "control": {
+                                                    "type": "boolean"
+                                                },
+                                                "central_commands": {
+                                                    "type": "boolean"
+                                                },
+                                                "allowed_actions": {
+                                                    "type": "array",
+                                                    "prefixItems": [
+                                                        {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "array",
+                                                                    "prefixItems": [
+                                                                        {
+                                                                            "type": "string",
+                                                                            "const": "connect"
+                                                                        },
+                                                                        {
+                                                                            "type": "string",
+                                                                            "const": "disconnect"
+                                                                        }
+                                                                    ],
+                                                                    "minItems": 2,
+                                                                    "maxItems": 2,
+                                                                    "additionalItems": false
+                                                                },
+                                                                {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "minItems": 0,
+                                                                    "maxItems": 0,
+                                                                    "additionalItems": false
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "array",
+                                                                    "prefixItems": [
+                                                                        {
+                                                                            "type": "string",
+                                                                            "const": "heartbeat"
+                                                                        },
+                                                                        {
+                                                                            "type": "string",
+                                                                            "const": "plug"
+                                                                        },
+                                                                        {
+                                                                            "type": "string",
+                                                                            "const": "unplug"
+                                                                        },
+                                                                        {
+                                                                            "type": "string",
+                                                                            "const": "inject_fault"
+                                                                        },
+                                                                        {
+                                                                            "type": "string",
+                                                                            "const": "recover"
+                                                                        },
+                                                                        {
+                                                                            "type": "string",
+                                                                            "const": "normal_cycle"
+                                                                        },
+                                                                        {
+                                                                            "type": "string",
+                                                                            "const": "fault_recovery"
+                                                                        }
+                                                                    ],
+                                                                    "minItems": 7,
+                                                                    "maxItems": 7,
+                                                                    "additionalItems": false
+                                                                },
+                                                                {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "minItems": 0,
+                                                                    "maxItems": 0,
+                                                                    "additionalItems": false
+                                                                }
+                                                            ]
+                                                        }
+                                                    ],
+                                                    "minItems": 2,
+                                                    "maxItems": 2,
+                                                    "additionalItems": false
+                                                }
+                                            },
+                                            "required": [
+                                                "view",
+                                                "diagnose",
+                                                "control",
+                                                "central_commands",
+                                                "allowed_actions"
+                                            ]
+                                        },
+                                        "signals": {
+                                            "type": "object",
+                                            "properties": {
+                                                "last_event_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last_heartbeat_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "recent_count": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                },
+                                                "events": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "action": {
+                                                                "type": "string"
+                                                            },
+                                                            "category": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "connection",
+                                                                    "heartbeat",
+                                                                    "status",
+                                                                    "transaction",
+                                                                    "meter",
+                                                                    "protocol"
+                                                                ]
+                                                            },
+                                                            "connector_id": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "status": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "error_code": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "processing_status": {
+                                                                "type": "string"
+                                                            },
+                                                            "occurred_at": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "received_at": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "action",
+                                                            "category",
+                                                            "connector_id",
+                                                            "status",
+                                                            "error_code",
+                                                            "processing_status",
+                                                            "occurred_at",
+                                                            "received_at"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "last_event_at",
+                                                "last_heartbeat_at",
+                                                "recent_count",
+                                                "events"
+                                            ]
+                                        },
                                         "history": {}
                                     },
                                     "required": [
+                                        "station",
                                         "state",
                                         "adapter",
+                                        "capabilities",
+                                        "signals",
                                         "history"
                                     ]
                                 }
@@ -17206,6 +17543,165 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/stations/{station}/connectors/{connector}/charging-terminal/actions": {
+            "post": {
+                "operationId": "clientChargingTerminal.store",
+                "summary": "Create client charging terminal",
+                "tags": [
+                    "Stations & OCPP"
+                ],
+                "parameters": [
+                    {
+                        "name": "station",
+                        "in": "path",
+                        "required": true,
+                        "description": "The station ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "description": "The connector ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ExecuteClientChargingTerminalActionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "`OcppSimulatorActionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/OcppSimulatorActionResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "connector",
+                                                        "requested_by"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/stations/{station}/connectors/{connector}/charging-terminal/actions/{action}": {
+            "get": {
+                "operationId": "clientChargingTerminal.show",
+                "summary": "View client charging terminal",
+                "tags": [
+                    "Stations & OCPP"
+                ],
+                "parameters": [
+                    {
+                        "name": "station",
+                        "in": "path",
+                        "required": true,
+                        "description": "The station ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "description": "The connector ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "action",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`OcppSimulatorActionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/OcppSimulatorActionResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "connector",
+                                                        "requested_by"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -19365,6 +19861,27 @@
                 ],
                 "title": "EmailRequest"
             },
+            "ExecuteClientChargingTerminalActionRequest": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "enum": [
+                            "plug",
+                            "unplug"
+                        ]
+                    },
+                    "idempotency_key": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "action",
+                    "idempotency_key"
+                ],
+                "title": "ExecuteClientChargingTerminalActionRequest"
+            },
             "ExecuteSimulatorActionRequest": {
                 "type": "object",
                 "properties": {
@@ -20362,7 +20879,7 @@
                         "type": "string"
                     },
                     "station_id": {
-                        "type": "string"
+                        "type": "integer"
                     },
                     "connector": {
                         "type": [
@@ -20415,13 +20932,23 @@
                         ]
                     },
                     "result": {
-                        "type": "string"
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {}
                     },
                     "failure_code": {
-                        "type": "string"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "failure_message": {
-                        "type": "string"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "queued_at": {
                         "type": [
@@ -21672,13 +22199,19 @@
                         "type": "string"
                     },
                     "ocpp_simulator_profile": {
-                        "type": "string"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "ocpp_provisioning_status": {
                         "type": "string"
                     },
                     "ocpp_provisioning_error": {
-                        "type": "string"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "ocpp_provisioned_at": {
                         "type": [

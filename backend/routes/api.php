@@ -178,8 +178,10 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::get('/charging-attempts', [ChargingAttemptController::class, 'index']);
     Route::post('/charging-attempts', [ChargingAttemptController::class, 'store']);
     Route::get('/charging-attempts/{chargingAttempt}', [ChargingAttemptController::class, 'show']);
-    Route::post('/stations/{station}/connectors/{connector}/charging-terminal/actions', ClientChargingTerminalController::class)
+    Route::post('/stations/{station}/connectors/{connector}/charging-terminal/actions', [ClientChargingTerminalController::class, 'store'])
         ->middleware('throttle:client-charging-terminal');
+    Route::get('/stations/{station}/connectors/{connector}/charging-terminal/actions/{action}', [ClientChargingTerminalController::class, 'show'])
+        ->middleware('throttle:client-charging-terminal-status');
     Route::post('/charging-sessions/{chargingSession}/payments', [PaymentController::class, 'store']);
     Route::get('/payments/export', [PaymentController::class, 'export']);
     Route::get('/payments', [PaymentController::class, 'index']);

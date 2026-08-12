@@ -57,6 +57,11 @@ class ClientChargingTerminalApiTest extends TestCase
         ]);
         $this->assertDatabaseCount('ocpp_simulator_actions', 1);
         Queue::assertPushed(ExecuteOcppSimulatorAction::class, 1);
+
+        $this->getJson($this->statusEndpoint($station, $connector, $first->json('data.uuid')))
+            ->assertOk()
+            ->assertJsonPath('data.uuid', $first->json('data.uuid'))
+            ->assertJsonPath('data.status', 'queued');
     }
 
     public function test_client_can_only_unplug_a_recent_virtual_connection_they_started(): void
@@ -138,6 +143,24 @@ class ClientChargingTerminalApiTest extends TestCase
             ->assertJsonValidationErrors('connector');
     }
 
+    public function test_client_cannot_read_another_clients_terminal_action(): void
+    {
+        [$station, $connector, $client] = $this->fixture();
+        Sanctum::actingAs($client);
+
+        $response = $this->postJson($this->endpoint($station, $connector), [
+            'action' => 'plug',
+            'idempotency_key' => (string) Str::uuid(),
+        ])->assertAccepted();
+
+        $otherClient = User::factory()->create(['organization_id' => null, 'status' => 'active']);
+        $otherClient->assignRole('client');
+        Sanctum::actingAs($otherClient);
+
+        $this->getJson($this->statusEndpoint($station, $connector, $response->json('data.uuid')))
+            ->assertNotFound();
+    }
+
     /** @return array{Station, Connector, User} */
     private function fixture(): array
     {
@@ -189,6 +212,11 @@ class ClientChargingTerminalApiTest extends TestCase
     private function endpoint(Station $station, Connector $connector): string
     {
         return "/api/stations/{$station->id}/connectors/{$connector->id}/charging-terminal/actions";
+    }
+
+    private function statusEndpoint(Station $station, Connector $connector, string $actionUuid): string
+    {
+        return $this->endpoint($station, $connector).'/'.$actionUuid;
     }
 
     private function firstSimulatorAction(): OcppSimulatorAction
