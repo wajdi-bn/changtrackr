@@ -5,6 +5,7 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const workflow = await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')
+const deploymentWorkflow = await readFile(new URL('../.github/workflows/deploy-production.yml', import.meta.url), 'utf8')
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url))
 
 test('CI uses read-only repository permissions and avoids privileged pull request triggers', () => {
@@ -13,7 +14,7 @@ test('CI uses read-only repository permissions and avoids privileged pull reques
 })
 
 test('all CI actions are pinned to immutable commit hashes', () => {
-  const actions = [...workflow.matchAll(/uses:\s+([^\s#]+)/g)].map((match) => match[1])
+  const actions = [...`${workflow}\n${deploymentWorkflow}`.matchAll(/uses:\s+([^\s#]+)/g)].map((match) => match[1])
 
   assert.ok(actions.length >= 10)
   for (const action of actions) {

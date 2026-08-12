@@ -9,6 +9,7 @@ const backendDockerfile = await readFile(new URL('../backend/Dockerfile', import
 const frontendDockerfile = await readFile(new URL('../frontend/Dockerfile', import.meta.url), 'utf8')
 const frontendNginx = await readFile(new URL('../frontend/docker/nginx.conf', import.meta.url), 'utf8')
 const pdfPreview = await readFile(new URL('../frontend/src/features/documents/PdfCanvasPreview.tsx', import.meta.url), 'utf8')
+const backendNginx = await readFile(new URL('../backend/docker/nginx.conf', import.meta.url), 'utf8')
 
 test('managed third-party services are pinned to immutable image digests', () => {
   for (const image of ['postgres:18', 'redis:7-alpine', 'axllent/mailpit:latest', 'wiremock/wiremock:3.13.1']) {
@@ -97,4 +98,10 @@ test('PDF previews use a bundled worker served with a JavaScript MIME type', () 
   assert.doesNotMatch(pdfPreview, /pdf\.worker\.min\.mjs\?url/)
   assert.match(frontendNginx, /location ~\* \\.mjs\$/)
   assert.match(frontendNginx, /application\/javascript mjs/)
+})
+
+test('Laravel receives the original HTTPS scheme through the edge proxy', () => {
+  assert.match(backendNginx, /map \$http_x_forwarded_proto \$original_scheme/)
+  assert.match(backendNginx, /fastcgi_param HTTP_X_FORWARDED_PROTO \$original_scheme;/)
+  assert.doesNotMatch(backendNginx, /fastcgi_param HTTP_X_FORWARDED_PROTO \$scheme;/)
 })

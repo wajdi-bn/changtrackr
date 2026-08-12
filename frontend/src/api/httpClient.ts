@@ -6,13 +6,15 @@ const browserLocation = typeof window === 'undefined'
   ? { protocol: 'http:', hostname: 'localhost' }
   : window.location
 const localBackendUrl = `${browserLocation.protocol}//${browserLocation.hostname}:8000`
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
+const configuredBackendUrl = import.meta.env.VITE_BACKEND_URL?.trim()
 const baseURL = import.meta.env.DEV
   ? `${localBackendUrl}/api`
-  : (import.meta.env.VITE_API_URL ?? `${localBackendUrl}/api`)
+  : (configuredApiUrl || `${localBackendUrl}/api`)
 export const backendUrl = (
   import.meta.env.DEV
     ? localBackendUrl
-    : (import.meta.env.VITE_BACKEND_URL ?? baseURL.replace(/\/api\/?$/, ''))
+    : (configuredBackendUrl || baseURL.replace(/\/api\/?$/, ''))
 ).replace(/\/$/, '')
 
 export const httpClient = axios.create({

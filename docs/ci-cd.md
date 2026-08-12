@@ -64,9 +64,14 @@ require these checks before merging:
 Direct pushes can remain available during the internship, but pull requests with required checks
 provide the clearest audit trail for final delivery.
 
-## Delivery boundary
+## Continuous delivery
 
-This workflow implements continuous integration only. Continuous delivery will be added after a
-hosting target, domain, TLS termination strategy and secret store are selected. Production
-deployment credentials must be stored as protected GitHub environment secrets and must never be
-committed to the repository.
+`.github/workflows/deploy-production.yml` publishes immutable application,
+simulator and deployment images to GHCR. It then authenticates to Azure with an
+OIDC federated identity and invokes the VM deployment command through Azure Run
+Command. No long-lived Azure client secret is stored in GitHub.
+
+The deployment requires the protected GitHub `production` environment and the
+one-time Azure setup documented in `docs/deployment-azure.md`. Application
+secrets stay exclusively in `/opt/chargetrackr/deployment/.env` on the VM and
+are never copied into GitHub Actions or container images.

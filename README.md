@@ -57,6 +57,9 @@ profiles, persistent volumes, LAN access and troubleshooting.
 See [docs/ci-cd.md](docs/ci-cd.md) for the GitHub Actions quality gates, local equivalents and the
 boundary between continuous integration and future production delivery.
 
+See [docs/deployment-azure.md](docs/deployment-azure.md) for the production
+deployment kit targeting Azure for Students and `chargetrackr.me`.
+
 ### Native development
 
 ```bash

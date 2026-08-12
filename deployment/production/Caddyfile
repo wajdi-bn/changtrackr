@@ -1,0 +1,42 @@
+{
+	email {$ACME_EMAIL}
+	servers {
+		protocols h1 h2
+	}
+}
+
+(security_headers) {
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "SAMEORIGIN"
+	}
+}
+
+{$APP_DOMAIN} {
+	import security_headers
+	encode zstd gzip
+	reverse_proxy frontend:80
+}
+
+www.{$APP_DOMAIN} {
+	redir https://{$APP_DOMAIN}{uri} permanent
+}
+
+{$API_DOMAIN} {
+	import security_headers
+	encode zstd gzip
+	reverse_proxy backend:80
+}
+
+{$REALTIME_DOMAIN} {
+	import security_headers
+	reverse_proxy reverb:8080
+}
+
+{$OCPP_DOMAIN} {
+	import security_headers
+	reverse_proxy ocpp-gateway:9000
+}

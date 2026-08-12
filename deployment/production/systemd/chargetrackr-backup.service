@@ -1,0 +1,9 @@
+[Unit]
+Description=ChargeTrackr PostgreSQL backup to Azure Blob
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/chargetrackr-backup
+User=root

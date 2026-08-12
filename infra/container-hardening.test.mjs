@@ -31,3 +31,19 @@ test('frontend image requires the public Reverb application key without embeddin
   assert.match(frontendDockerfile, /test -n "\$VITE_REVERB_APP_KEY"/)
   assert.doesNotMatch(frontendDockerfile, /REVERB_APP_SECRET/)
 })
+
+test('frontend image accepts every production public endpoint at build time', async () => {
+  const frontendDockerfile = await readFile(new URL('../frontend/Dockerfile', import.meta.url), 'utf8')
+
+  for (const variable of [
+    'VITE_API_URL',
+    'VITE_BACKEND_URL',
+    'VITE_REVERB_HOST',
+    'VITE_REVERB_PORT',
+    'VITE_REVERB_SCHEME',
+    'VITE_QR_APP_URL',
+  ]) {
+    assert.match(frontendDockerfile, new RegExp(`ARG ${variable}`))
+    assert.match(frontendDockerfile, new RegExp(`${variable}=\\$${variable}`))
+  }
+})

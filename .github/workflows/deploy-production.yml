@@ -1,0 +1,165 @@
+name: Deploy production
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_only:
+        description: Build and publish images without deploying to Azure
+        required: false
+        default: false
+        type: boolean
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/wajdi-bn/chargetrackr
+  RELEASE_TAG: ${{ github.sha }}
+
+jobs:
+  publish:
+    name: Build and publish production images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Authenticate to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build and publish Laravel runtime
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          target: runtime
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-backend:${{ env.RELEASE_TAG }}
+          cache-from: type=gha,scope=production-backend
+          cache-to: type=gha,mode=max,scope=production-backend
+
+      - name: Build and publish Laravel web
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          target: web
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-backend-web:${{ env.RELEASE_TAG }}
+          cache-from: type=gha,scope=production-backend-web
+          cache-to: type=gha,mode=max,scope=production-backend-web
+
+      - name: Build and publish frontend
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: frontend/Dockerfile
+          target: runtime
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-frontend:${{ env.RELEASE_TAG }}
+          build-args: |
+            VITE_API_URL=https://api.chargetrackr.me/api
+            VITE_BACKEND_URL=https://api.chargetrackr.me
+            VITE_QR_APP_URL=https://chargetrackr.me
+            VITE_REVERB_APP_KEY=chargetrackr-production
+            VITE_REVERB_HOST=realtime.chargetrackr.me
+            VITE_REVERB_PORT=443
+            VITE_REVERB_SCHEME=https
+          cache-from: type=gha,scope=production-frontend
+          cache-to: type=gha,mode=max,scope=production-frontend
+
+      - name: Build and publish OCPP gateway
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ocpp-gateway
+          file: ocpp-gateway/Dockerfile
+          target: runtime
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-ocpp-gateway:${{ env.RELEASE_TAG }}
+          cache-from: type=gha,scope=production-ocpp-gateway
+          cache-to: type=gha,mode=max,scope=production-ocpp-gateway
+
+      - name: Build and publish OCPP simulator
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: infra/ocpp/simulator/Dockerfile
+          target: simulator
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-ocpp-simulator:${{ env.RELEASE_TAG }}
+          build-args: SAP_SIMULATOR_REF=6119452049739c05506351a9589d753e84c59e9f
+          cache-from: type=gha,scope=production-ocpp-simulator
+          cache-to: type=gha,mode=max,scope=production-ocpp-simulator
+
+      - name: Build and publish simulator control
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: infra/ocpp/simulator/Dockerfile
+          target: control
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-ocpp-simulator-control:${{ env.RELEASE_TAG }}
+          build-args: SAP_SIMULATOR_REF=6119452049739c05506351a9589d753e84c59e9f
+          cache-from: type=gha,scope=production-ocpp-simulator
+
+      - name: Build and publish payment simulator
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: deployment/production/payment-simulator/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-payment-simulator:${{ env.RELEASE_TAG }}
+          cache-from: type=gha,scope=production-payment-simulator
+          cache-to: type=gha,mode=max,scope=production-payment-simulator
+
+      - name: Build and publish deployment bundle
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: deployment/production/bundle.Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-deployment:${{ env.RELEASE_TAG }}
+          cache-from: type=gha,scope=production-deployment
+          cache-to: type=gha,mode=max,scope=production-deployment
+
+  deploy:
+    name: Deploy immutable release to Azure VM
+    needs: publish
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_only != true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Authenticate to Azure with OIDC
+        uses: azure/login@8216e11d8cd9b42fe925c852af8e76311ff067ac # v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy release through Azure Run Command
+        run: >-
+          az vm run-command invoke
+          --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}"
+          --name "${{ secrets.AZURE_VM_NAME }}"
+          --command-id RunShellScript
+          --scripts "sudo /usr/local/sbin/chargetrackr-deploy '${{ env.RELEASE_TAG }}'"
+          --only-show-errors

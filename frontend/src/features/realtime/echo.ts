@@ -8,8 +8,8 @@ let realtimeClient: ReverbEcho | null = null
 export function createRealtimeClient(): ReverbEcho {
   if (realtimeClient) return realtimeClient
 
-  const scheme = import.meta.env.VITE_REVERB_SCHEME ?? 'http'
-  const host = import.meta.env.DEV ? window.location.hostname : (import.meta.env.VITE_REVERB_HOST ?? window.location.hostname)
+  const scheme = import.meta.env.VITE_REVERB_SCHEME?.trim() || 'http'
+  const host = import.meta.env.DEV ? window.location.hostname : (import.meta.env.VITE_REVERB_HOST?.trim() || window.location.hostname)
   const port = Number(import.meta.env.VITE_REVERB_PORT ?? 8080)
   const forceTLS = scheme === 'https' && window.location.protocol === 'https:'
 

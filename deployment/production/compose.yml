@@ -1,0 +1,213 @@
+name: chargetrackr-production
+
+x-backend-runtime: &backend-runtime
+  image: ghcr.io/${GHCR_OWNER}/chargetrackr-backend:${IMAGE_TAG}
+  env_file: .env
+  volumes:
+    - backend_storage:/app/storage
+  restart: unless-stopped
+  logging: &default-logging
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  edge:
+    image: caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      reverb:
+        condition: service_healthy
+      ocpp-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    networks:
+      default:
+        aliases:
+          - ${API_DOMAIN}
+
+  postgres:
+    image: postgres:18@sha256:a02db8cac496f15b094798a38254f14d6e00741f709360e5e00bb6668ea31636
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *default-logging
+
+  redis:
+    image: redis:7-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
+    env_file: .env
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *default-logging
+
+  migrate:
+    <<: *backend-runtime
+    command: ["php", "artisan", "migrate", "--force"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: "no"
+
+  backend-php:
+    <<: *backend-runtime
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  backend:
+    image: ghcr.io/${GHCR_OWNER}/chargetrackr-backend-web:${IMAGE_TAG}
+    volumes:
+      - backend_storage:/var/www/storage:ro
+    depends_on:
+      backend-php:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/up"]
+      interval: 15s
+      timeout: 3s
+      start_period: 20s
+      retries: 5
+    restart: unless-stopped
+    logging: *default-logging
+
+  queue-worker:
+    <<: *backend-runtime
+    command: ["php", "artisan", "queue:work", "redis", "--queue=payments,broadcasts,emails,maintenance,default", "--sleep=1", "--tries=3", "--timeout=90"]
+    user: www-data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  scheduler:
+    <<: *backend-runtime
+    command: ["php", "artisan", "schedule:work"]
+    user: www-data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  reverb:
+    <<: *backend-runtime
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    user: www-data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "php", "-r", "$${s}=@fsockopen('127.0.0.1',8080); exit($${s}?0:1);"]
+      interval: 15s
+      timeout: 3s
+      start_period: 15s
+      retries: 5
+
+  frontend:
+    image: ghcr.io/${GHCR_OWNER}/chargetrackr-frontend:${IMAGE_TAG}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 3s
+      start_period: 10s
+      retries: 5
+    restart: unless-stopped
+    logging: *default-logging
+
+  payment-simulator:
+    image: ghcr.io/${GHCR_OWNER}/chargetrackr-payment-simulator:${IMAGE_TAG}
+    env_file: .env
+    command: ["--global-response-templating", "--verbose"]
+    restart: unless-stopped
+    logging: *default-logging
+
+  ocpp-gateway:
+    image: ghcr.io/${GHCR_OWNER}/chargetrackr-ocpp-gateway:${IMAGE_TAG}
+    env_file: .env
+    environment:
+      OCPP_ENVIRONMENT: production
+      OCPP_GATEWAY_HOST: 0.0.0.0
+      OCPP_GATEWAY_PORT: 9000
+      OCPP_GATEWAY_PATH_PREFIX: /ocpp
+      OCPP_GATEWAY_TLS_MODE: proxy
+      OCPP_GATEWAY_PUBLIC_URL: wss://${OCPP_DOMAIN}/ocpp
+      OCPP_LARAVEL_BASE_URL: https://${API_DOMAIN}/api/internal/ocpp
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-m", "chargetrackr_ocpp.healthcheck"]
+      interval: 20s
+      timeout: 3s
+      start_period: 15s
+      retries: 5
+    restart: unless-stopped
+    logging: *default-logging
+
+  ocpp-simulator:
+    image: ghcr.io/${GHCR_OWNER}/chargetrackr-ocpp-simulator:${IMAGE_TAG}
+    env_file: .env
+    environment:
+      OCPP_GATEWAY_PUBLIC_URL: ws://ocpp-gateway:9000/ocpp
+      OCPP_SIMULATOR_STATIONS_FILE: /runtime/stations.json
+    volumes:
+      - ocpp_simulator_runtime:/runtime
+    depends_on:
+      ocpp-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+
+  ocpp-simulator-control:
+    image: ghcr.io/${GHCR_OWNER}/chargetrackr-ocpp-simulator-control:${IMAGE_TAG}
+    env_file: .env
+    environment:
+      OCPP_SIMULATOR_STATIONS_FILE: /runtime/stations.json
+      OCPP_SIMULATOR_PROFILES_FILE: /usr/app/profiles.json
+      OCPP_SIMULATOR_SUPERVISION_URL: ws://ocpp-gateway:9000/ocpp
+    volumes:
+      - ocpp_simulator_runtime:/runtime
+    depends_on:
+      ocpp-simulator:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/health"]
+      interval: 10s
+      timeout: 3s
+      start_period: 20s
+      retries: 5
+    restart: unless-stopped
+    logging: *default-logging
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_storage:
+  ocpp_simulator_runtime:
+  caddy_data:
+  caddy_config:

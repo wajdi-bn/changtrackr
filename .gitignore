@@ -42,3 +42,4 @@ infra/payment-simulator/generated/
 **/.venv/
 **/*.pyc
 **/*.egg-info/
+deployment/azure/output.json
