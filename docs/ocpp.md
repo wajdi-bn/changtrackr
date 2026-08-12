@@ -243,12 +243,17 @@ of sanitized OCPP events.
 
 Access is intentionally split by responsibility:
 
-| Role | View station and connector pulses | Run closed simulator actions |
-|---|---:|---:|
-| Organization administrator | Yes | Yes |
-| Operator | Yes | Yes |
-| Technician | Yes | No |
-| Client | No | No |
+| Role | Pulses and history | Physical diagnostics | Connection lifecycle | Central commands |
+|---|---:|---:|---:|---:|
+| Organization administrator | Yes | Yes | Yes | Yes |
+| Operator | Yes | Yes | Yes | Yes |
+| Technician | Yes | Yes | No | No |
+| Client | No | No | No | No |
+
+Physical diagnostics include heartbeat, plug, unplug, fault injection, recovery and the two bounded
+test scenarios. Connecting or disconnecting the whole simulated charge point remains an operational
+responsibility. Soft reset, connector unlock and maintenance mode remain central OCPP commands and
+are not granted through simulation permissions.
 
 The lab exposes only reviewed actions: connect, disconnect, heartbeat, plug, unplug, fault,
 recovery and deterministic test scenarios. Central-system commands such as soft reset and unlock
@@ -383,7 +388,7 @@ cd backend && C:\php\php.exe artisan test --compact tests/Feature/OcppSupervisio
 cd ocpp-gateway && python -m pytest -q
 ```
 
-These tests cover organization isolation, Admin/Operator execution, Technician read-only history,
+These tests cover organization isolation, Admin/Operator control, Technician diagnostic actions,
 encrypted payloads, duplicate prevention, the 60-second pending timeout, terminal accepted commands,
 Soft Reset enforcement and OCPP response normalization.
 
@@ -407,11 +412,15 @@ with the `Local SAP simulator` target. It provides the same controlled test oper
 CLI without exposing the simulator port, its control token, station credentials or an arbitrary
 command input in the browser.
 
-Access follows the existing station command policies:
+Access uses dedicated simulation permissions so physical test actions cannot accidentally grant
+central-system OCPP commands:
 
 - Super Admin can inspect and operate simulator stations across the platform.
 - Admin and Operator can inspect and operate simulator stations in their organization.
-- Technician can inspect simulator state and action history, but cannot execute actions.
+- Technician can inspect simulator state and history, send a heartbeat, simulate plug/unplug,
+  inject and recover a connector fault, and run the bounded diagnostic scenarios.
+- Technician cannot connect or disconnect a whole station, issue Soft Reset or UnlockConnector, or
+  change maintenance mode.
 - Client has no access to the console or its API.
 
 The console intentionally separates two responsibilities:
