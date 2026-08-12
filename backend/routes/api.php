@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AssetDocumentController;
 use App\Http\Controllers\Api\ChargingAttemptController;
 use App\Http\Controllers\Api\ChargingPlanController;
 use App\Http\Controllers\Api\ChargingSessionController;
+use App\Http\Controllers\Api\ClientChargingTerminalController;
 use App\Http\Controllers\Api\ConnectorController;
 use App\Http\Controllers\Api\ConnectorQrController;
 use App\Http\Controllers\Api\CustomerController;
@@ -177,6 +178,8 @@ Route::middleware(['auth:sanctum', EnsureUserOrganizationScope::class, EnsureOrg
     Route::get('/charging-attempts', [ChargingAttemptController::class, 'index']);
     Route::post('/charging-attempts', [ChargingAttemptController::class, 'store']);
     Route::get('/charging-attempts/{chargingAttempt}', [ChargingAttemptController::class, 'show']);
+    Route::post('/stations/{station}/connectors/{connector}/charging-terminal/actions', ClientChargingTerminalController::class)
+        ->middleware('throttle:client-charging-terminal');
     Route::post('/charging-sessions/{chargingSession}/payments', [PaymentController::class, 'store']);
     Route::get('/payments/export', [PaymentController::class, 'export']);
     Route::get('/payments', [PaymentController::class, 'index']);

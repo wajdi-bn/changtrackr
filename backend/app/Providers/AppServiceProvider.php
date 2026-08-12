@@ -79,6 +79,8 @@ class AppServiceProvider extends ServiceProvider
         )->by($this->ocppRateLimitKey($request, 'command-result')));
         RateLimiter::for('ocpp-simulator-actions', fn (Request $request) => Limit::perMinute(12)
             ->by('ocpp-simulator-actions:'.$request->user()?->id));
+        RateLimiter::for('client-charging-terminal', fn (Request $request) => Limit::perMinute(8)
+            ->by('client-charging-terminal:'.$request->user()?->id));
         RateLimiter::for('payment-webhook', fn (Request $request) => Limit::perMinute(120)
             ->by('payment-webhook:'.$request->ip()));
 

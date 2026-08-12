@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'uuid', 'organization_id', 'station_id', 'connector_id', 'requested_by_id',
-    'action', 'status', 'request_payload', 'result_payload', 'failure_code',
+    'action', 'origin', 'idempotency_key', 'status', 'request_payload', 'result_payload', 'failure_code',
     'failure_message', 'queued_at', 'started_at', 'completed_at',
 ])]
 class OcppSimulatorAction extends Model

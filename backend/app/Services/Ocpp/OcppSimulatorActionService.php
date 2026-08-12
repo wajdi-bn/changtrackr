@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class OcppSimulatorActionService
 {
-    /** @param array{action: string, connector_id?: int|null} $payload */
+    /** @param array{action: string, connector_id?: int|null, origin?: string, idempotency_key?: string|null} $payload */
     public function queue(Station $station, User $user, array $payload): OcppSimulatorAction
     {
         $action = DB::transaction(function () use ($station, $user, $payload): OcppSimulatorAction {
@@ -30,6 +30,25 @@ class OcppSimulatorActionService
                     throw ValidationException::withMessages([
                         'connector_id' => ['This OCPP connector does not belong to the selected station.'],
                     ]);
+                }
+            }
+
+            if (isset($payload['idempotency_key'])) {
+                $existing = OcppSimulatorAction::query()
+                    ->where('idempotency_key', $payload['idempotency_key'])
+                    ->first();
+                if ($existing !== null) {
+                    if ($existing->requested_by_id !== $user->id
+                        || $existing->station_id !== $station->id
+                        || $existing->connector_id !== $connector?->id
+                        || $existing->action !== $payload['action']
+                        || $existing->origin !== ($payload['origin'] ?? 'simulation_lab')) {
+                        throw ValidationException::withMessages([
+                            'idempotency_key' => ['This idempotency key was already used for another simulator action.'],
+                        ]);
+                    }
+
+                    return $existing;
                 }
             }
 
@@ -51,6 +70,8 @@ class OcppSimulatorActionService
                 'connector_id' => $connector?->id,
                 'requested_by_id' => $user->id,
                 'action' => $payload['action'],
+                'origin' => $payload['origin'] ?? 'simulation_lab',
+                'idempotency_key' => $payload['idempotency_key'] ?? null,
                 'status' => 'queued',
                 'request_payload' => $connector === null
                     ? []
