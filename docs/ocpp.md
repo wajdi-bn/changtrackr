@@ -235,6 +235,15 @@ vehicle cable connected before authorization.
 Connector artwork comes from `react-charging-station-connector-icons`. The physical connection step
 contains a reserved media area for a future reviewed WebM or MP4 guide.
 
+Simulator-backed stations expose a restricted virtual station terminal directly in that physical
+connection step. The client can request cable insertion only for the station and connector already
+selected in the active workflow. Laravel verifies the client role, station visibility, connector
+ownership, fresh OCPP connection and absence of another active workflow before queuing the action.
+The request is idempotent and its status endpoint is scoped to the initiating client. The interface
+continues polling the connector projection and advances only when the simulator emits
+`StatusNotification(Preparing)` through the normal gateway. A successful control-service response
+alone is never treated as proof that the cable is connected.
+
 ## Simulation Lab
 
 `/simulation-lab` is an authenticated workspace outside the role dashboards. It presents every
@@ -267,6 +276,9 @@ control tokens are never returned. The event stream is limited to the 40 most re
 
 The station detail page links to the lab for simulator-backed stations. It no longer embeds the
 command console, which keeps simulation tooling separate from normal asset administration.
+Clients never receive Simulation Lab access. Their only simulator interaction is the bounded virtual
+station terminal embedded in the charging workflow; it exposes no fleet list, raw payload, fault
+injection, connection lifecycle or central-system command.
 
 ## Local workflow
 
@@ -327,15 +339,11 @@ npm run ocpp:transaction-scenario -- CT-HAM-031
 It executes `Authorize -> StartTransaction -> MeterValues -> StopTransaction`, then returns the
 connector to `Available`. Laravel calculates energy and price from the real simulator meter values.
 
-To test the client-initiated flow, keep the gateway and simulator running, sign in as a verified
-client, open `/find-station`, then choose `Start charging` on `CT-TUN-001`. Select connector `A1`,
-continue to the physical connection step and simulate plugging in from another terminal:
-
-```bash
-npm run ocpp:plug -- CT-TUN-001 1
-```
-
-The interface detects `Preparing` and advances to payment without manual confirmation. Complete the remaining steps
+To test the client-initiated flow, keep the gateway, queue worker, simulator and simulator control
+service running, sign in as a verified client, open `/find-station`, then choose `Start charging` on
+`CT-TUN-001`. Select connector `A1`, continue to the physical connection step and select
+`Insert virtual cable`. The interface follows the scoped action, detects the resulting OCPP
+`Preparing` projection and advances to payment without manual confirmation. Complete the remaining steps
 and keep the drawer open while the gateway claims the command. The session appears only after the
 simulator answers with `StartTransaction`. Use `Stop charging` from `/my-sessions`; the final
 `StopTransaction` completes the session and captures the simulated payment. The development-only
