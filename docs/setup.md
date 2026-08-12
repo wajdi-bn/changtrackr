@@ -212,6 +212,12 @@ They choose a verified hardware profile; the application derives its connectors 
 SAP simulator automatically through the private control service. The result dialog follows the
 provisioning state and never asks the user to run a terminal command.
 
+Administrators and operators can then open `/simulation-lab` from a simulated station detail to
+control that station and inspect its live OCPP pulses. Technicians use the same page in read-only
+mode. Client accounts cannot access the laboratory. The page is deliberately outside the dashboard
+layout so it behaves like a dedicated test instrument while preserving the authenticated session
+and authorization checks.
+
 The external-station API path still supports a unique one-time Basic Auth password for later
 integration work. Laravel persists only its hash. It is not exposed in the default simulated-station
 interface.

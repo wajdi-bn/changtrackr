@@ -235,6 +235,34 @@ vehicle cable connected before authorization.
 Connector artwork comes from `react-charging-station-connector-icons`. The physical connection step
 contains a reserved media area for a future reviewed WebM or MP4 guide.
 
+## Simulation Lab
+
+`/simulation-lab` is an authenticated workspace outside the role dashboards. It presents every
+simulator-backed station in the user's organization, its connector projections and a bounded stream
+of sanitized OCPP events.
+
+Access is intentionally split by responsibility:
+
+| Role | View station and connector pulses | Run closed simulator actions |
+|---|---:|---:|
+| Organization administrator | Yes | Yes |
+| Operator | Yes | Yes |
+| Technician | Yes | No |
+| Client | No | No |
+
+The lab exposes only reviewed actions: connect, disconnect, heartbeat, plug, unplug, fault,
+recovery and deterministic test scenarios. Central-system commands such as soft reset and unlock
+remain distinct from physical simulator actions and retain their existing authorization, audit and
+OCPP command lifecycle.
+
+Each pulse is derived from a persisted OCPP event. The public response contains only the event
+category, action, connector reference, projected status, processing outcome and occurrence time.
+Raw payloads, response payloads, RFID identifiers, station passwords, simulator control URLs and
+control tokens are never returned. The event stream is limited to the 40 most recent entries.
+
+The station detail page links to the lab for simulator-backed stations. It no longer embeds the
+command console, which keeps simulation tooling separate from normal asset administration.
+
 ## Local workflow
 
 Prerequisites are Docker Desktop with the WSL2 engine, the local PostgreSQL database and Laravel.
