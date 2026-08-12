@@ -304,8 +304,21 @@ export interface OcppSimulatorState {
   started: boolean
   connected: boolean
   ws_state: number | null
-  supervision_url: string | null
   connectors: OcppSimulatorConnectorState[]
+}
+
+export type OcppSimulatorSignalCategory = 'connection' | 'heartbeat' | 'status' | 'transaction' | 'meter' | 'protocol'
+
+export interface OcppSimulatorSignalEvent {
+  id: string
+  action: string
+  category: OcppSimulatorSignalCategory
+  connector_id: number | null
+  status: string | null
+  error_code: string | null
+  processing_status: string
+  occurred_at: string | null
+  received_at: string | null
 }
 
 export interface OcppSimulatorAction {
@@ -324,10 +337,20 @@ export interface OcppSimulatorAction {
 }
 
 export interface OcppSimulatorConsoleResponse {
+  station: Station
   state: OcppSimulatorState | null
   adapter: {
     available: boolean
     message: string | null
+  }
+  capabilities: {
+    execute: boolean
+  }
+  signals: {
+    last_event_at: string | null
+    last_heartbeat_at: string | null
+    recent_count: number
+    events: OcppSimulatorSignalEvent[]
   }
   history: {
     data: OcppSimulatorAction[]
@@ -337,6 +360,16 @@ export interface OcppSimulatorConsoleResponse {
       per_page: number
       total: number
     }
+  }
+}
+
+export interface SimulationLabStationsResponse {
+  data: Station[]
+  meta: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
   }
 }
 

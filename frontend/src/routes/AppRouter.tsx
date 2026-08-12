@@ -49,6 +49,7 @@ const TechnicianReportsPage = lazy(() => import('../pages/TechnicianReportsPage'
 const CommercialManagementPage = lazy(() => import('../pages/CommercialManagementPage').then((module) => ({ default: module.CommercialManagementPage })))
 const OrganizationBillingPage = lazy(() => import('../pages/OrganizationBillingPage').then((module) => ({ default: module.OrganizationBillingPage })))
 const HelpPage = lazy(() => import('../pages/HelpPage').then((module) => ({ default: module.HelpPage })))
+const SimulationLabPage = lazy(() => import('../pages/SimulationLabPage').then((module) => ({ default: module.SimulationLabPage })))
 
 function DefaultRedirect() {
   const { user } = useAuth()
@@ -73,6 +74,9 @@ export function AppRouter() {
       <Route element={<ProtectedRoute />}>
         <Route path="/welcome" element={<WelcomePage />} />
         <Route element={<OnboardingRoute />}>
+          <Route element={<PermissionProtectedRoute permission="ocpp_commands.view" />}>
+            <Route path="/simulation-lab" element={<SimulationLabPage />} />
+          </Route>
           <Route element={<AppLayout />}>
           <Route path="/app" element={<DefaultRedirect />} />
           <Route path="/overview" element={<HomePage />} />

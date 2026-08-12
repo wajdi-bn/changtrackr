@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Avatar, Button, Empty, Popconfirm, Select, Skeleton, Tooltip } from 'antd'
 import dayjs from 'dayjs'
 import {
@@ -22,8 +22,8 @@ import {
   Zap,
 } from 'lucide-react'
 import { getApiErrorMessage } from '../../api/apiErrors'
-import type { Connector, OcppSimulatorAction, OcppSimulatorActionName, Station } from '../../types/station'
-import { executeOcppSimulatorAction, getOcppSimulatorConsole } from './stationApi'
+import type { Connector, OcppSimulatorAction, OcppSimulatorActionName, OcppSimulatorConsoleResponse, Station } from '../../types/station'
+import { executeOcppSimulatorAction } from './stationApi'
 
 const actionLabels: Record<OcppSimulatorActionName, string> = {
   connect: 'Connect station',
@@ -39,7 +39,11 @@ const actionLabels: Record<OcppSimulatorActionName, string> = {
 
 export function OcppSimulatorConsole({
   station,
-  active,
+  snapshot,
+  snapshotLoading,
+  snapshotFetching,
+  snapshotError,
+  onRefresh,
   canExecute,
   restartPending,
   unlockPendingConnectorId,
@@ -49,7 +53,11 @@ export function OcppSimulatorConsole({
   onToggleMaintenance,
 }: {
   station: Station
-  active: boolean
+  snapshot?: OcppSimulatorConsoleResponse
+  snapshotLoading: boolean
+  snapshotFetching: boolean
+  snapshotError: boolean
+  onRefresh: () => void
   canExecute: boolean
   restartPending: boolean
   unlockPendingConnectorId: number | null
@@ -74,15 +82,6 @@ export function OcppSimulatorConsole({
     }
   }, [connectorId, connectorOptions])
 
-  const consoleQuery = useQuery({
-    queryKey: ['station-simulator', station.id],
-    queryFn: () => getOcppSimulatorConsole(station.id),
-    enabled: active,
-    refetchInterval: (query) => query.state.data?.history.data.some((item) => ['queued', 'running'].includes(item.status))
-      ? 1_200
-      : 4_000,
-  })
-
   const actionMutation = useMutation({
     mutationFn: ({ action, selectedConnectorId }: { action: OcppSimulatorActionName; selectedConnectorId?: number }) =>
       executeOcppSimulatorAction(station.id, action, selectedConnectorId),
@@ -97,14 +96,15 @@ export function OcppSimulatorConsole({
     onError: (error) => void message.error(getApiErrorMessage(error, 'The simulator action could not be queued.')),
   })
 
-  const data = consoleQuery.data
-  const controlsDisabled = !canExecute || !data?.adapter.available || actionMutation.isPending
+  const data = snapshot
+  const effectiveCanExecute = canExecute && (data?.capabilities.execute ?? false)
+  const controlsDisabled = !effectiveCanExecute || !data?.adapter.available || actionMutation.isPending
   const selectedConnector = station.connectors.find((connector) => connector.ocpp_connector_id === connectorId) ?? null
   const execute = (action: OcppSimulatorActionName, needsConnector = false) => {
     actionMutation.mutate({ action, selectedConnectorId: needsConnector ? connectorId : undefined })
   }
 
-  if (consoleQuery.isLoading) {
+  if (snapshotLoading) {
     return <div className="simulator-console-loading"><Skeleton active paragraph={{ rows: 8 }} /></div>
   }
 
@@ -117,10 +117,10 @@ export function OcppSimulatorConsole({
           <h2>Simulator console</h2>
           <p>Reproduce physical station events and observe their verified effect across OCPP, availability and operations.</p>
         </div>
-        <Button icon={<RefreshCw size={16} />} loading={consoleQuery.isFetching} onClick={() => void consoleQuery.refetch()}>Refresh state</Button>
+        <Button icon={<RefreshCw size={16} />} loading={snapshotFetching} onClick={onRefresh}>Refresh state</Button>
       </section>
 
-      {consoleQuery.isError && <Alert type="error" showIcon title="Simulator state could not be loaded" action={<Button size="small" onClick={() => void consoleQuery.refetch()}>Retry</Button>} />}
+      {snapshotError && !data && <Alert type="error" showIcon title="Simulator state could not be loaded" action={<Button size="small" onClick={onRefresh}>Retry</Button>} />}
       {data && !data.adapter.available && <Alert type="warning" showIcon title="Simulator control unavailable" description={data.adapter.message} />}
 
       <section className="simulator-status-strip">
@@ -165,12 +165,12 @@ export function OcppSimulatorConsole({
         <SimulatorPanel eyebrow="CENTRAL SYSTEM" title="OCPP supervision" description="Commands sent by ChargeTrackr to the station, kept separate from physical simulation.">
           <div className="simulator-button-row">
             <Tooltip title={!station.ocpp_is_connected ? 'The station must be online.' : undefined}>
-              <span><Button icon={<Power size={16} />} loading={restartPending} disabled={!canExecute || !station.ocpp_is_connected} onClick={onRestart}>Soft restart</Button></span>
+              <span><Button icon={<Power size={16} />} loading={restartPending} disabled={!effectiveCanExecute || !station.ocpp_is_connected} onClick={onRestart}>Soft restart</Button></span>
             </Tooltip>
             <Tooltip title={!selectedConnector || !station.ocpp_is_connected ? 'Select an online OCPP connector.' : undefined}>
-              <span><Button icon={<LockOpen size={16} />} loading={selectedConnector ? unlockPendingConnectorId === selectedConnector.id : false} disabled={!canExecute || !selectedConnector || !station.ocpp_is_connected} onClick={() => selectedConnector && onUnlock(selectedConnector)}>Unlock</Button></span>
+              <span><Button icon={<LockOpen size={16} />} loading={selectedConnector ? unlockPendingConnectorId === selectedConnector.id : false} disabled={!effectiveCanExecute || !selectedConnector || !station.ocpp_is_connected} onClick={() => selectedConnector && onUnlock(selectedConnector)}>Unlock</Button></span>
             </Tooltip>
-            <Button icon={<Wrench size={16} />} loading={maintenancePending} disabled={!canExecute || station.maintenance_intervention_id !== null} onClick={onToggleMaintenance}>
+            <Button icon={<Wrench size={16} />} loading={maintenancePending} disabled={!effectiveCanExecute || station.maintenance_intervention_id !== null} onClick={onToggleMaintenance}>
               {station.availability_override === 'maintenance' ? 'Leave maintenance' : 'Maintenance mode'}
             </Button>
           </div>
@@ -220,7 +220,7 @@ function SimulatorTimelineItem({ item }: { item: OcppSimulatorAction }) {
   return (
     <article className={`simulator-timeline-item is-${item.status}`}>
       <span className="simulator-timeline-item__status">{statusIcon}</span>
-      <div className="simulator-timeline-item__main"><strong>{actionLabels[item.action]}</strong><small>{item.connector ? `Connector ${item.connector.external_id}` : 'Whole station'} · {dayjs(item.queued_at).format('DD MMM, HH:mm:ss')}</small></div>
+      <div className="simulator-timeline-item__main"><strong>{actionLabels[item.action]}</strong><small>{item.connector ? `Connector ${item.connector.external_id}` : 'Whole station'} - {dayjs(item.queued_at).format('DD MMM, HH:mm:ss')}</small></div>
       <div className="simulator-timeline-item__user">{item.requested_by ? <><Avatar size={25} src={item.requested_by.avatar_url}>{item.requested_by.name.charAt(0)}</Avatar><span>{item.requested_by.name}</span></> : <span>System</span>}</div>
       <span className="simulator-timeline-item__label">{item.status.replace('_', ' ')}</span>
       {item.failure_message && <p>{item.failure_message}</p>}

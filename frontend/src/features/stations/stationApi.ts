@@ -8,6 +8,7 @@ import type {
   OcppSimulatorAction,
   OcppSimulatorActionName,
   OcppSimulatorConsoleResponse,
+  SimulationLabStationsResponse,
   Station,
   StationCommissioningPayload,
   StationCommissioningResult,
@@ -124,6 +125,13 @@ export async function setStationMaintenanceMode(stationId: number, enabled: bool
 
 export async function getOcppSimulatorConsole(stationId: number): Promise<OcppSimulatorConsoleResponse> {
   const response = await httpClient.get<OcppSimulatorConsoleResponse>(`/stations/${stationId}/simulator`)
+  return response.data
+}
+
+export async function getSimulationLabStations(search?: string): Promise<SimulationLabStationsResponse> {
+  const response = await httpClient.get<SimulationLabStationsResponse>('/simulation-lab/stations', {
+    params: { search: search || undefined, per_page: 50 },
+  })
   return response.data
 }
 

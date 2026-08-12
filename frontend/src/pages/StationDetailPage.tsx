@@ -24,6 +24,7 @@ import {
   Plus,
   Power,
   QrCode,
+  Radio,
   RefreshCw,
   Search,
   Settings,
@@ -35,7 +36,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { IconSurface, type IconSurfaceTone } from '../components/IconSurface'
 import { createConnector, deleteConnector, getStation, getStationCommands, getStationTelemetry, restartStation, rotateStationCredentials, setStationMaintenanceMode, unlockStationConnector, updateConnector, updateStation } from '../features/stations/stationApi'
 import { StationCommissioningResultModal } from '../features/stations/StationCommissioningResultModal'
-import { OcppSimulatorConsole } from '../features/stations/OcppSimulatorConsole'
 import { StationStatusTag } from '../features/stations/StationStatusTag'
 import { availabilityReasonLabel } from '../features/stations/availabilityLabels'
 import { useAuth } from '../features/auth/useAuth'
@@ -398,23 +398,6 @@ export function StationDetailPage() {
         </Card>
       ),
     },
-    ...(station.ocpp_commissioning_target === 'simulator' && canViewCommands ? [{
-      key: 'simulator',
-      label: 'Simulator console',
-      children: (
-        <OcppSimulatorConsole
-          station={station}
-          active={activeTab === 'simulator'}
-          canExecute={canExecuteCommands}
-          restartPending={resetMutation.isPending}
-          unlockPendingConnectorId={unlockMutation.isPending ? unlockMutation.variables ?? null : null}
-          maintenancePending={maintenanceMutation.isPending}
-          onRestart={confirmRestart}
-          onUnlock={confirmUnlock}
-          onToggleMaintenance={confirmMaintenance}
-        />
-      ),
-    }] : []),
     ...(canViewCommands ? [{
       key: 'command-history',
       label: 'Command history',
@@ -514,8 +497,10 @@ export function StationDetailPage() {
           <h1>{station.name}</h1>
           <p><MapPin size={15} />{station.address}</p>
         </div>
-        {canExecuteCommands ? (
+        {(canExecuteCommands || isTechnician || (canViewCommands && station.ocpp_commissioning_target === 'simulator')) && (
           <div className="station-command-buttons">
+            {canViewCommands && station.ocpp_commissioning_target === 'simulator' && <Button type="primary" icon={<Radio size={15} />} onClick={() => navigate(`/simulation-lab?station=${station.id}`)}>Open Simulation Lab</Button>}
+            {canExecuteCommands && <>
             {station.ocpp_managed && (
               <Tooltip title={!station.ocpp_is_connected ? 'The station must be online to receive a restart command.' : undefined}>
                 <span>
@@ -537,8 +522,10 @@ export function StationDetailPage() {
                 </Button>
               </span>
             </Tooltip>
+            </>}
+            {!canExecuteCommands && isTechnician && <Button icon={<Wrench size={15} />} onClick={() => navigate('/assigned-alerts')}>View assigned alerts</Button>}
           </div>
-        ) : isTechnician ? <Button icon={<Wrench size={15} />} onClick={() => navigate('/assigned-alerts')}>View assigned alerts</Button> : null}
+        )}
       </section>
 
       <div className="station-info-grid">
