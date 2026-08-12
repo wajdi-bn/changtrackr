@@ -1,4 +1,4 @@
-import type { OcppSimulatorSignalCategory, OcppSimulatorSignalEvent } from '../../types/station'
+import type { OcppSimulatorActionName, OcppSimulatorConsoleResponse, OcppSimulatorSignalCategory, OcppSimulatorSignalEvent } from '../../types/station'
 
 export type SignalTone = 'success' | 'warning' | 'danger' | 'neutral'
 
@@ -29,4 +29,17 @@ export function signalTone(category: OcppSimulatorSignalCategory, status?: strin
 
 export function connectorEvents(events: readonly OcppSimulatorSignalEvent[], connectorId: number): OcppSimulatorSignalEvent[] {
   return events.filter((event) => event.connector_id === connectorId)
+}
+
+export function canRunSimulatorAction(
+  capabilities: OcppSimulatorConsoleResponse['capabilities'] | undefined,
+  action: OcppSimulatorActionName,
+): boolean {
+  return capabilities?.allowed_actions.includes(action) ?? false
+}
+
+export function simulationAccessLabel(capabilities: OcppSimulatorConsoleResponse['capabilities'] | undefined): string {
+  if (capabilities?.control) return 'Full simulation control'
+  if (capabilities?.diagnose) return 'Diagnostic access'
+  return 'Read-only access'
 }

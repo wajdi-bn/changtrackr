@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class OcppSimulatorConsoleApiTest extends TestCase
@@ -182,6 +183,20 @@ class OcppSimulatorConsoleApiTest extends TestCase
         $this->assertSame('succeeded', $action->status);
         $this->assertSame('Preparing', $action->result_payload['connectors'][0]['status']);
         $this->assertNull($action->failure_message);
+    }
+
+    public function test_simulation_control_permission_also_allows_diagnostic_actions(): void
+    {
+        Queue::fake();
+        [$station, , $admin] = $this->fixture('admin');
+        Role::findByName('admin', 'web')->revokePermissionTo('ocpp_simulation.diagnose');
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/stations/{$station->id}/simulator/actions", [
+            'action' => 'heartbeat',
+        ])->assertAccepted();
+
+        Queue::assertPushed(ExecuteOcppSimulatorAction::class);
     }
 
     public function test_technician_can_run_diagnostics_but_not_station_or_central_controls(): void

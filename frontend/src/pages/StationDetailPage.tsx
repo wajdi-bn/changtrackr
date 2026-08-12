@@ -76,6 +76,7 @@ export function StationDetailPage() {
   const canManageConnectors = canUpdate && (user?.permissions.includes('connectors.manage') ?? false)
   const canViewCommands = user?.permissions.includes('ocpp_commands.view') ?? false
   const canExecuteCommands = user?.permissions.includes('ocpp_commands.execute') ?? false
+  const canViewSimulation = user?.permissions.includes('ocpp_simulation.view') ?? false
   const canViewMaintenance = user?.permissions.includes('maintenances.view') ?? false
   const canViewSessions = user?.permissions.includes('sessions.view') ?? false
   const canViewAlerts = user?.permissions.includes('alerts.view') ?? false
@@ -497,9 +498,9 @@ export function StationDetailPage() {
           <h1>{station.name}</h1>
           <p><MapPin size={15} />{station.address}</p>
         </div>
-        {(canExecuteCommands || isTechnician || (canViewCommands && station.ocpp_commissioning_target === 'simulator')) && (
+        {(canExecuteCommands || isTechnician || (canViewSimulation && station.ocpp_commissioning_target === 'simulator')) && (
           <div className="station-command-buttons">
-            {canViewCommands && station.ocpp_commissioning_target === 'simulator' && <Button type="primary" icon={<Radio size={15} />} onClick={() => navigate(`/simulation-lab?station=${station.id}`)}>Open Simulation Lab</Button>}
+            {canViewSimulation && station.ocpp_commissioning_target === 'simulator' && <Button type="primary" icon={<Radio size={15} />} onClick={() => navigate(`/simulation-lab?station=${station.id}`)}>Open Simulation Lab</Button>}
             {canExecuteCommands && <>
             {station.ocpp_managed && (
               <Tooltip title={!station.ocpp_is_connected ? 'The station must be online to receive a restart command.' : undefined}>

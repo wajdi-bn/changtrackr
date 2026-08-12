@@ -74,7 +74,7 @@ export function AppRouter() {
       <Route element={<ProtectedRoute />}>
         <Route path="/welcome" element={<WelcomePage />} />
         <Route element={<OnboardingRoute />}>
-          <Route element={<PermissionProtectedRoute permission="ocpp_commands.view" />}>
+          <Route element={<PermissionProtectedRoute permission="ocpp_simulation.view" />}>
             <Route path="/simulation-lab" element={<SimulationLabPage />} />
           </Route>
           <Route element={<AppLayout />}>

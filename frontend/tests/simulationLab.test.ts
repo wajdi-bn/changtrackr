@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { connectorEvents, signalLabel, signalTone } from '../src/features/stations/simulationLab.ts'
-import type { OcppSimulatorSignalEvent } from '../src/types/station.ts'
+import { canRunSimulatorAction, connectorEvents, signalLabel, signalTone, simulationAccessLabel } from '../src/features/stations/simulationLab.ts'
+import type { OcppSimulatorConsoleResponse, OcppSimulatorSignalEvent } from '../src/types/station.ts'
 
 const event = (connectorId: number | null, action = 'StatusNotification', status: string | null = 'Available'): OcppSimulatorSignalEvent => ({
   id: `${connectorId}-${action}`,
@@ -24,4 +24,18 @@ test('maps protocol events to concise labels and operational tones', () => {
   assert.equal(signalLabel(event(1)), 'Connector status: Available')
   assert.equal(signalTone('status', 'Faulted', 'ConnectorLockFailure'), 'danger')
   assert.equal(signalTone('heartbeat'), 'success')
+})
+
+test('keeps technician diagnostics separate from station lifecycle control', () => {
+  const capabilities: OcppSimulatorConsoleResponse['capabilities'] = {
+    view: true,
+    diagnose: true,
+    control: false,
+    central_commands: false,
+    allowed_actions: ['heartbeat', 'plug', 'unplug', 'inject_fault', 'recover', 'normal_cycle', 'fault_recovery'],
+  }
+
+  assert.equal(simulationAccessLabel(capabilities), 'Diagnostic access')
+  assert.equal(canRunSimulatorAction(capabilities, 'plug'), true)
+  assert.equal(canRunSimulatorAction(capabilities, 'disconnect'), false)
 })

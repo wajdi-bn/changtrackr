@@ -5953,7 +5953,10 @@ html {
 .simulation-lab-hero h1 { font-size: 25px; margin: 4px 0; }
 .simulation-lab-hero p { color: #71837a; margin: 0; }
 .simulation-lab-hero__actions { align-items: center; display: flex; gap: 10px; }
-.lab-readonly-badge { align-items: center; background: #fff3d8; border-radius: 6px; color: #936811 !important; display: inline-flex; gap: 6px; letter-spacing: 0 !important; padding: 8px 10px; }
+.lab-access-badge { align-items: center; border-radius: 6px; display: inline-flex; gap: 6px; letter-spacing: 0 !important; padding: 8px 10px; }
+.lab-access-badge.is-control { background: #e1f7ed; color: #087d55 !important; }
+.lab-access-badge.is-diagnostic { background: #fff3d8; color: #936811 !important; }
+.lab-access-badge.is-readonly { background: #edf2ef; color: #5f7067 !important; }
 
 .lab-pulse-panel {
   background: #fff;
@@ -6223,6 +6226,7 @@ html {
 
 .simulator-control-panel__body { margin-top: 17px; }
 .simulator-button-row { display: flex; flex-wrap: wrap; gap: 9px; }
+.simulator-permission-note { color: #71837a; display: block; line-height: 1.45; margin-top: 12px; }
 .simulator-connector-select { margin-bottom: 12px; width: 100%; }
 
 .simulator-scenario {

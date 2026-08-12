@@ -344,7 +344,11 @@ export interface OcppSimulatorConsoleResponse {
     message: string | null
   }
   capabilities: {
-    execute: boolean
+    view: boolean
+    diagnose: boolean
+    control: boolean
+    central_commands: boolean
+    allowed_actions: OcppSimulatorActionName[]
   }
   signals: {
     last_event_at: string | null

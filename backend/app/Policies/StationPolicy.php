@@ -49,7 +49,8 @@ class StationPolicy
 
     public function diagnoseSimulation(User $user, Station $station): bool
     {
-        return $user->can('ocpp_simulation.diagnose') && $this->belongsToUserScope($user, $station);
+        return ($user->can('ocpp_simulation.diagnose') || $user->can('ocpp_simulation.control'))
+            && $this->belongsToUserScope($user, $station);
     }
 
     public function controlSimulation(User $user, Station $station): bool

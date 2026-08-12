@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { getApiErrorMessage } from '../../api/apiErrors'
 import type { Connector, OcppSimulatorAction, OcppSimulatorActionName, OcppSimulatorConsoleResponse, Station } from '../../types/station'
+import { canRunSimulatorAction } from './simulationLab'
 import { executeOcppSimulatorAction } from './stationApi'
 
 const actionLabels: Record<OcppSimulatorActionName, string> = {
@@ -44,7 +45,6 @@ export function OcppSimulatorConsole({
   snapshotFetching,
   snapshotError,
   onRefresh,
-  canExecute,
   restartPending,
   unlockPendingConnectorId,
   maintenancePending,
@@ -58,7 +58,6 @@ export function OcppSimulatorConsole({
   snapshotFetching: boolean
   snapshotError: boolean
   onRefresh: () => void
-  canExecute: boolean
   restartPending: boolean
   unlockPendingConnectorId: number | null
   maintenancePending: boolean
@@ -97,8 +96,10 @@ export function OcppSimulatorConsole({
   })
 
   const data = snapshot
-  const effectiveCanExecute = canExecute && (data?.capabilities.execute ?? false)
-  const controlsDisabled = !effectiveCanExecute || !data?.adapter.available || actionMutation.isPending
+  const adapterUnavailable = !data?.adapter.available || actionMutation.isPending
+  const actionDisabled = (action: OcppSimulatorActionName, unavailable = false) =>
+    adapterUnavailable || unavailable || !canRunSimulatorAction(data?.capabilities, action)
+  const canRunCentralCommands = data?.capabilities.central_commands ?? false
   const selectedConnector = station.connectors.find((connector) => connector.ocpp_connector_id === connectorId) ?? null
   const execute = (action: OcppSimulatorActionName, needsConnector = false) => {
     actionMutation.mutate({ action, selectedConnectorId: needsConnector ? connectorId : undefined })
@@ -133,47 +134,49 @@ export function OcppSimulatorConsole({
       <div className="simulator-control-grid">
         <SimulatorPanel eyebrow="STATION" title="Connection controls" description="Control the simulated device process and its OCPP link.">
           <div className="simulator-button-row">
-            <Button type="primary" icon={<Wifi size={16} />} disabled={controlsDisabled || data?.state?.connected === true} onClick={() => execute('connect')}>Connect</Button>
+            <Button type="primary" icon={<Wifi size={16} />} disabled={actionDisabled('connect', data?.state?.connected === true)} onClick={() => execute('connect')}>Connect</Button>
             <Popconfirm title="Disconnect this simulated station?" description="The availability timeout and offline alerts can then be observed." onConfirm={() => execute('disconnect')}>
-              <Button danger icon={<WifiOff size={16} />} disabled={controlsDisabled || data?.state?.connected !== true}>Disconnect</Button>
+              <Button danger icon={<WifiOff size={16} />} disabled={actionDisabled('disconnect', data?.state?.connected !== true)}>Disconnect</Button>
             </Popconfirm>
-            <Button icon={<HeartPulse size={16} />} disabled={controlsDisabled || data?.state?.connected !== true} onClick={() => execute('heartbeat')}>Heartbeat</Button>
+            <Button icon={<HeartPulse size={16} />} disabled={actionDisabled('heartbeat', data?.state?.connected !== true)} onClick={() => execute('heartbeat')}>Heartbeat</Button>
           </div>
+          {!data?.capabilities.control && <small className="simulator-permission-note">Connection lifecycle is reserved for operators and administrators. Heartbeat remains available for diagnosis.</small>}
         </SimulatorPanel>
 
         <SimulatorPanel eyebrow="PHYSICAL CONNECTOR" title="Cable and fault controls" description="Simulate actions that normally happen at the vehicle and connector.">
           <Select className="simulator-connector-select" value={connectorId} options={connectorOptions} onChange={setConnectorId} placeholder="Select a connector" />
           <div className="simulator-button-row">
-            <Button type="primary" icon={<Cable size={16} />} disabled={controlsDisabled || connectorId === undefined} onClick={() => execute('plug', true)}>Plug</Button>
-            <Button icon={<Unplug size={16} />} disabled={controlsDisabled || connectorId === undefined} onClick={() => execute('unplug', true)}>Unplug</Button>
+            <Button type="primary" icon={<Cable size={16} />} disabled={actionDisabled('plug', connectorId === undefined)} onClick={() => execute('plug', true)}>Plug</Button>
+            <Button icon={<Unplug size={16} />} disabled={actionDisabled('unplug', connectorId === undefined)} onClick={() => execute('unplug', true)}>Unplug</Button>
             <Popconfirm title="Inject a ConnectorLockFailure?" description="This will create a real OCPP Faulted status for the selected simulated connector." onConfirm={() => execute('inject_fault', true)}>
-              <Button danger icon={<CircleAlert size={16} />} disabled={controlsDisabled || connectorId === undefined}>Inject fault</Button>
+              <Button danger icon={<CircleAlert size={16} />} disabled={actionDisabled('inject_fault', connectorId === undefined)}>Inject fault</Button>
             </Popconfirm>
-            <Button icon={<RefreshCw size={16} />} disabled={controlsDisabled || connectorId === undefined} onClick={() => execute('recover', true)}>Recover</Button>
+            <Button icon={<RefreshCw size={16} />} disabled={actionDisabled('recover', connectorId === undefined)} onClick={() => execute('recover', true)}>Recover</Button>
           </div>
         </SimulatorPanel>
 
         <SimulatorPanel eyebrow="SCENARIOS" title="Repeatable test presets" description="Run short, deterministic sequences without exposing arbitrary simulator commands.">
-          <button className="simulator-scenario" disabled={controlsDisabled || connectorId === undefined} onClick={() => execute('normal_cycle', true)}>
+          <button className="simulator-scenario" disabled={actionDisabled('normal_cycle', connectorId === undefined)} onClick={() => execute('normal_cycle', true)}>
             <span><Play size={17} /></span><strong>Cable cycle</strong><small>Preparing to Available</small>
           </button>
-          <button className="simulator-scenario simulator-scenario--warning" disabled={controlsDisabled || connectorId === undefined} onClick={() => execute('fault_recovery', true)}>
+          <button className="simulator-scenario simulator-scenario--warning" disabled={actionDisabled('fault_recovery', connectorId === undefined)} onClick={() => execute('fault_recovery', true)}>
             <span><RotateCw size={17} /></span><strong>Fault and recovery</strong><small>Faulted to Available</small>
           </button>
         </SimulatorPanel>
 
         <SimulatorPanel eyebrow="CENTRAL SYSTEM" title="OCPP supervision" description="Commands sent by ChargeTrackr to the station, kept separate from physical simulation.">
           <div className="simulator-button-row">
-            <Tooltip title={!station.ocpp_is_connected ? 'The station must be online.' : undefined}>
-              <span><Button icon={<Power size={16} />} loading={restartPending} disabled={!effectiveCanExecute || !station.ocpp_is_connected} onClick={onRestart}>Soft restart</Button></span>
+            <Tooltip title={!canRunCentralCommands ? 'Reserved for operators and administrators.' : !station.ocpp_is_connected ? 'The station must be online.' : undefined}>
+              <span><Button icon={<Power size={16} />} loading={restartPending} disabled={!canRunCentralCommands || !station.ocpp_is_connected} onClick={onRestart}>Soft restart</Button></span>
             </Tooltip>
-            <Tooltip title={!selectedConnector || !station.ocpp_is_connected ? 'Select an online OCPP connector.' : undefined}>
-              <span><Button icon={<LockOpen size={16} />} loading={selectedConnector ? unlockPendingConnectorId === selectedConnector.id : false} disabled={!effectiveCanExecute || !selectedConnector || !station.ocpp_is_connected} onClick={() => selectedConnector && onUnlock(selectedConnector)}>Unlock</Button></span>
+            <Tooltip title={!canRunCentralCommands ? 'Reserved for operators and administrators.' : !selectedConnector || !station.ocpp_is_connected ? 'Select an online OCPP connector.' : undefined}>
+              <span><Button icon={<LockOpen size={16} />} loading={selectedConnector ? unlockPendingConnectorId === selectedConnector.id : false} disabled={!canRunCentralCommands || !selectedConnector || !station.ocpp_is_connected} onClick={() => selectedConnector && onUnlock(selectedConnector)}>Unlock</Button></span>
             </Tooltip>
-            <Button icon={<Wrench size={16} />} loading={maintenancePending} disabled={!effectiveCanExecute || station.maintenance_intervention_id !== null} onClick={onToggleMaintenance}>
+            <Button icon={<Wrench size={16} />} loading={maintenancePending} disabled={!canRunCentralCommands || station.maintenance_intervention_id !== null} onClick={onToggleMaintenance}>
               {station.availability_override === 'maintenance' ? 'Leave maintenance' : 'Maintenance mode'}
             </Button>
           </div>
+          {!canRunCentralCommands && <small className="simulator-permission-note">Central supervision commands are reserved for operators and administrators.</small>}
         </SimulatorPanel>
       </div>
 

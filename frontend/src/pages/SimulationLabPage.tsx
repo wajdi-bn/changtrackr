@@ -8,6 +8,7 @@ import { getRoleConfig } from '../features/auth/roleConfig'
 import { useAuth } from '../features/auth/useAuth'
 import { OcppPulseVisualizer } from '../features/stations/OcppPulseVisualizer'
 import { OcppSimulatorConsole } from '../features/stations/OcppSimulatorConsole'
+import { simulationAccessLabel } from '../features/stations/simulationLab'
 import {
   getOcppSimulatorConsole,
   getSimulationLabStations,
@@ -51,7 +52,7 @@ export function SimulationLabPage() {
     refetchIntervalInBackground: false,
   })
   const station = snapshotQuery.data?.station ?? stations.find((item) => item.id === selectedStationId)
-  const canExecute = snapshotQuery.data?.capabilities.execute ?? false
+  const capabilities = snapshotQuery.data?.capabilities
 
   const refresh = async () => {
     if (!selectedStationId) return
@@ -137,7 +138,7 @@ export function SimulationLabPage() {
             <header className="simulation-lab-hero">
               <div><span>SELECTED CHARGE POINT</span><h1>{station.name}</h1><p>{station.reference} - {station.location} - {station.ocpp_simulator_profile ?? 'Simulator profile'}</p></div>
               <div className="simulation-lab-hero__actions">
-                {!canExecute && <span className="lab-readonly-badge"><ShieldCheck size={15} />Read-only access</span>}
+                {capabilities && <span className={`lab-access-badge ${capabilities.control ? 'is-control' : capabilities.diagnose ? 'is-diagnostic' : 'is-readonly'}`}><ShieldCheck size={15} />{simulationAccessLabel(capabilities)}</span>}
                 <Button icon={<RefreshCw size={16} />} loading={snapshotQuery.isFetching} onClick={() => void snapshotQuery.refetch()}>Refresh signals</Button>
               </div>
             </header>
@@ -150,7 +151,6 @@ export function SimulationLabPage() {
                 snapshotFetching={snapshotQuery.isFetching}
                 snapshotError={snapshotQuery.isError}
                 onRefresh={() => void snapshotQuery.refetch()}
-                canExecute={canExecute}
                 restartPending={resetMutation.isPending}
                 unlockPendingConnectorId={unlockMutation.isPending ? unlockMutation.variables?.id ?? null : null}
                 maintenancePending={maintenanceMutation.isPending}
