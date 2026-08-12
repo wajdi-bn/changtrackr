@@ -1,7 +1,7 @@
 # Deploy ChargeTrackr to Azure for Students
 
 This runbook deploys the complete educational platform to one Ubuntu VM in
-France Central. It is designed for the current Azure for Students subscription,
+Poland Central. It is designed for the current Azure for Students subscription,
 the `chargetrackr.me` Namecheap domain and the private GitHub repository.
 
 ## Target architecture
@@ -62,7 +62,7 @@ database, Redis, Reverb, payment and OCPP secrets must be left unchanged.
 
 The provisioning script registers required resource providers and creates:
 
-- one resource group in France Central;
+- one resource group in Poland Central;
 - one VNet and subnet;
 - one NSG allowing HTTPS/HTTP publicly and SSH only from the detected public IP;
 - one static public IP;
@@ -86,11 +86,13 @@ The non-secret result is written to the ignored
 `deployment/azure/output.json`. Copy `backupStorageAccount` into
 `AZURE_BACKUP_STORAGE_ACCOUNT` in the private production `.env`.
 
-If `Standard_B2als_v2` is temporarily unavailable, inspect available sizes and
-choose another 4 GB Linux size before rerunning:
+Poland Central is used because `Standard_B2als_v2` is not offered to the Azure
+for Students subscription in France Central or Italy North (`SkuNotAvailable`).
+If the size is unavailable in the chosen region too, inspect available sizes and
+pick another 4 GB Linux size, or switch region, before rerunning:
 
 ```powershell
-az vm list-skus --location francecentral --resource-type virtualMachines `
+az vm list-skus --location polandcentral --resource-type virtualMachines `
   --query "[?restrictions==null && contains(name, 'B2')].name" -o table
 ```
 

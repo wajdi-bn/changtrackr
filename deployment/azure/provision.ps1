@@ -1,6 +1,8 @@
 param(
     [string]$ResourceGroup = 'chargetrackr-prod-rg',
-    [string]$Location = 'francecentral',
+    # Azure for Students has no Standard_B2als_v2 capacity in France Central or
+    # Italy North (SkuNotAvailable); Poland Central offers it. Override if needed.
+    [string]$Location = 'polandcentral',
     [string]$Prefix = 'chargetrackr-prod',
     [string]$VmSize = 'Standard_B2als_v2',
     [string]$AdminUsername = 'azureuser',
