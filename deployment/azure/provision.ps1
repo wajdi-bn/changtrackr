@@ -127,7 +127,7 @@ if ($assignment -ne '1') {
         principalType    = 'ServicePrincipal'
     } } | ConvertTo-Json -Compress
     $roleUrl = "https://management.azure.com$storageScope/providers/Microsoft.Authorization/roleAssignments/$($assignmentName)?api-version=2022-04-01"
-    Invoke-Az -Arguments @('rest','--method','put','--url',$roleUrl,'--body',$roleBody,'--only-show-errors')
+    Invoke-Az -Arguments @('rest','--method','put','--url',$roleUrl,'--headers','Content-Type=application/json','--body',$roleBody,'--only-show-errors')
 }
 $address = & $az network public-ip show --resource-group $ResourceGroup --name $publicIp --query ipAddress -o tsv
 $result = [ordered]@{
