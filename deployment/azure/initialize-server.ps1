@@ -44,14 +44,19 @@ sudo install -m 0644 /opt/chargetrackr/deployment/systemd/chargetrackr-backup.ti
 sudo systemctl daemon-reload
 sudo systemctl enable --now chargetrackr-backup.timer
 '@
-$install | & ssh $target 'bash -s'
+# Windows PowerShell pipes strings to native commands with CRLF, appending a
+# stray carriage return to the final heredoc line (which broke, for example,
+# `systemctl enable <unit>` as `<unit>\r`). Strip CR remotely before bash parses.
+$install | & ssh $target "tr -d '\r' | bash -s"
 if ($LASTEXITCODE -ne 0) { throw 'Could not initialize the ChargeTrackr deployment directory.' }
 
 $secureToken = Read-Host 'GitHub classic PAT with read:packages only' -AsSecureString
 $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureToken)
 try {
     $plainToken = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer)
-    $plainToken | & ssh $target "sudo docker login ghcr.io --username '$GhcrUsername' --password-stdin"
+    # Strip the CR that Windows PowerShell appends when piping, so the token
+    # reaches docker login intact (a trailing \r would corrupt the credential).
+    $plainToken | & ssh $target "tr -d '\r' | sudo docker login ghcr.io --username '$GhcrUsername' --password-stdin"
     if ($LASTEXITCODE -ne 0) { throw 'GHCR authentication failed.' }
 }
 finally {
