@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Skeleton } from 'antd'
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react'
 import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy } from 'pdfjs-dist'
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker'
 
-GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+GlobalWorkerOptions.workerPort ??= new PdfWorker()
 
 export function PdfCanvasPreview({ blob }: { blob: Blob }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)

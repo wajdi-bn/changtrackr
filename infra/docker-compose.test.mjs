@@ -7,6 +7,8 @@ const example = await readFile(new URL('./.env.example', import.meta.url), 'utf8
 const backendDockerignore = await readFile(new URL('../backend/.dockerignore', import.meta.url), 'utf8')
 const backendDockerfile = await readFile(new URL('../backend/Dockerfile', import.meta.url), 'utf8')
 const frontendDockerfile = await readFile(new URL('../frontend/Dockerfile', import.meta.url), 'utf8')
+const frontendNginx = await readFile(new URL('../frontend/docker/nginx.conf', import.meta.url), 'utf8')
+const pdfPreview = await readFile(new URL('../frontend/src/features/documents/PdfCanvasPreview.tsx', import.meta.url), 'utf8')
 
 test('managed third-party services are pinned to immutable image digests', () => {
   for (const image of ['postgres:18', 'redis:7-alpine', 'axllent/mailpit:latest', 'wiremock/wiremock:3.13.1']) {
@@ -87,4 +89,12 @@ test('application images provide production-style web servers and healthchecks',
   assert.match(frontendDockerfile, /pnpm --dir frontend build/)
   assert.match(frontendDockerfile, /FROM nginx:1\.28-alpine@sha256:[a-f0-9]{64} AS runtime/)
   assert.match(compose, /^\s+healthcheck:/m)
+})
+
+test('PDF previews use a bundled worker served with a JavaScript MIME type', () => {
+  assert.match(pdfPreview, /pdf\.worker\.min\.mjs\?worker/)
+  assert.match(pdfPreview, /GlobalWorkerOptions\.workerPort/)
+  assert.doesNotMatch(pdfPreview, /pdf\.worker\.min\.mjs\?url/)
+  assert.match(frontendNginx, /location ~\* \\.mjs\$/)
+  assert.match(frontendNginx, /application\/javascript mjs/)
 })
