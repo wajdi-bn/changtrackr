@@ -13,6 +13,10 @@ class UserPolicy
 
     public function view(User $user, User $managedUser): bool
     {
+        if ($user->hasRole('super_admin')) {
+            return $user->can('users.view') && $managedUser->hasAnyRole(User::PLATFORM_ROLES);
+        }
+
         return $user->can('users.view')
             && $this->isEmployee($managedUser)
             && $this->sameScope($user, $managedUser);

@@ -1,9 +1,14 @@
 import { httpClient } from '../../api/httpClient'
 import type { ExportFormat } from '../../components/ExportDropdown'
-import type { ManagedUser, ManagedUserFilters, ManagedUserPayload, ManagedUsersResponse } from '../../types/user'
+import type { ManagedUser, ManagedUserFilters, ManagedUserPayload, ManagedUsersResponse, PlatformUsersResponse } from '../../types/user'
 
 export async function getManagedUsers(filters: ManagedUserFilters): Promise<ManagedUsersResponse> {
   const response = await httpClient.get<ManagedUsersResponse>('/users', { params: filters })
+  return response.data
+}
+
+export async function getPlatformUsers(filters: ManagedUserFilters): Promise<PlatformUsersResponse> {
+  const response = await httpClient.get<PlatformUsersResponse>('/users', { params: filters })
   return response.data
 }
 

@@ -13,6 +13,7 @@ export interface EmployeeInvitation {
   can_renew: boolean
 }
 export type ManagedUser = Omit<AuthUser, 'roles'> & { roles: EmployeeRole[]; invitation: EmployeeInvitation | null }
+export type PlatformUser = Omit<AuthUser, 'roles'> & { roles: UserRole[]; invitation: EmployeeInvitation | null }
 export type ManagedUserStatus = 'active' | 'inactive' | 'pending'
 export type ManagedUserFilterStatus = ManagedUserStatus | 'expired' | 'revoked'
 export type LastLoginFilter = 'today' | 'week' | 'month'
@@ -32,7 +33,7 @@ export interface ManagedUserPayload {
 export interface ManagedUserFilters {
   organization_id?: number
   search?: string
-  role?: EmployeeRole
+  role?: UserRole
   status?: ManagedUserFilterStatus
   team?: string
   last_login?: LastLoginFilter
@@ -47,7 +48,7 @@ export interface ManagedUsersResponse {
     active: number
     inactive: number
     pending: number
-    by_role: Record<EmployeeRole, number>
+    by_role: Record<UserRole, number>
   }
   meta: {
     current_page: number
@@ -55,4 +56,8 @@ export interface ManagedUsersResponse {
     per_page: number
     total: number
   }
+}
+
+export interface PlatformUsersResponse extends Omit<ManagedUsersResponse, 'data'> {
+  data: PlatformUser[]
 }

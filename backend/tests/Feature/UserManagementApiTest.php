@@ -272,6 +272,42 @@ class UserManagementApiTest extends TestCase
         ]);
     }
 
+    public function test_super_administrator_lists_employees_and_clients_in_one_directory(): void
+    {
+        $organization = $this->organization('unified-directory-network');
+        $superAdministrator = $this->user(null, 'super_admin', ['name' => 'Platform Owner']);
+        $this->user($organization, 'operator', ['name' => 'Network Operator']);
+        $client = $this->user(null, 'client', ['name' => 'Independent Driver']);
+        Sanctum::actingAs($superAdministrator);
+
+        $this->getJson('/api/users')
+            ->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->assertJsonPath('summary.total', 3)
+            ->assertJsonPath('summary.by_role.super_admin', 1)
+            ->assertJsonPath('summary.by_role.operator', 1)
+            ->assertJsonPath('summary.by_role.client', 1);
+
+        $this->getJson('/api/users?role=client')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $client->id)
+            ->assertJsonPath('data.0.organization', null);
+
+        $this->getJson("/api/users/{$client->id}")
+            ->assertOk()
+            ->assertJsonPath('data.roles.0', 'client');
+
+        $this->getJson('/api/users/export?format=json&role=client')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Independent Driver')
+            ->assertJsonPath('data.0.role', 'client');
+
+        $this->patchJson("/api/users/{$client->id}", ['name' => 'Forbidden Client Edit'])
+            ->assertForbidden();
+    }
+
     public function test_administrator_can_export_only_its_filtered_organization_users(): void
     {
         $organization = $this->organization('export-network');

@@ -28,9 +28,9 @@ class UserController extends Controller
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', User::class);
-        $filters = $this->validateFilters($request);
         /** @var User $actor */
         $actor = $request->user();
+        $filters = $this->validateFilters($request, $actor);
         $scope = $this->scopedQuery($actor);
         $summary = clone $scope;
         $users = $this->applyFilters($scope, $filters)
@@ -47,7 +47,7 @@ class UserController extends Controller
                 'active' => (clone $summary)->where('status', 'active')->count(),
                 'inactive' => (clone $summary)->where('status', 'inactive')->count(),
                 'pending' => (clone $summary)->where('status', 'pending')->count(),
-                'by_role' => $this->roleSummary(clone $summary),
+                'by_role' => $this->roleSummary(clone $summary, $actor),
             ],
             'meta' => [
                 'current_page' => $users->currentPage(),
@@ -223,10 +223,10 @@ class UserController extends Controller
     public function export(Request $request, ReportExportService $exports): Response
     {
         Gate::authorize('viewAny', User::class);
-        $filters = $this->validateFilters($request);
-        $format = $request->validate(['format' => ['nullable', Rule::in(['csv', 'json', 'pdf'])]])['format'] ?? 'csv';
         /** @var User $actor */
         $actor = $request->user();
+        $filters = $this->validateFilters($request, $actor);
+        $format = $request->validate(['format' => ['nullable', Rule::in(['csv', 'json', 'pdf'])]])['format'] ?? 'csv';
         $users = $this->applyFilters($this->scopedQuery($actor), $filters)
             ->with(['roles', 'organization'])
             ->orderBy('name')
@@ -249,11 +249,11 @@ class UserController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function validateFilters(Request $request): array
+    private function validateFilters(Request $request, User $actor): array
     {
         return $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
-            'role' => ['nullable', Rule::in(User::EMPLOYEE_ROLES)],
+            'role' => ['nullable', Rule::in($actor->hasRole('super_admin') ? User::PLATFORM_ROLES : User::EMPLOYEE_ROLES)],
             'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
             'status' => ['nullable', Rule::in(['active', 'inactive', 'pending', 'expired', 'revoked'])],
             'team' => ['nullable', 'string', 'max:120'],
@@ -264,8 +264,10 @@ class UserController extends Controller
 
     private function scopedQuery(User $actor): Builder
     {
+        $roles = $actor->hasRole('super_admin') ? User::PLATFORM_ROLES : User::EMPLOYEE_ROLES;
+
         return User::query()
-            ->whereHas('roles', fn (Builder $query) => $query->whereIn('name', User::EMPLOYEE_ROLES))
+            ->whereHas('roles', fn (Builder $query) => $query->whereIn('name', $roles))
             ->when(
                 ! $actor->hasRole('super_admin'),
                 fn (Builder $query) => $query->where('organization_id', $actor->organization_id),
@@ -314,9 +316,11 @@ class UserController extends Controller
     }
 
     /** @return array<string, int> */
-    private function roleSummary(Builder $query): array
+    private function roleSummary(Builder $query, User $actor): array
     {
-        return collect(User::EMPLOYEE_ROLES)
+        $roles = $actor->hasRole('super_admin') ? User::PLATFORM_ROLES : User::EMPLOYEE_ROLES;
+
+        return collect($roles)
             ->mapWithKeys(fn (string $role) => [$role => (clone $query)->whereHas('roles', fn (Builder $query) => $query->where('name', $role))->count()])
             ->all();
     }

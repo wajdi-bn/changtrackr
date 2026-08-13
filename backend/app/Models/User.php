@@ -29,6 +29,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public const EMPLOYEE_ROLES = ['super_admin', ...self::ORGANIZATION_ROLES];
 
+    public const PLATFORM_ROLES = [...self::EMPLOYEE_ROLES, 'client'];
+
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
