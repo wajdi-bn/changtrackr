@@ -683,6 +683,10 @@ export function LandingPage() {
             </div>
           </div>
         </div>
+        <div className="landing-section landing-footer-signature">
+          <span>Designed and developed by Wajdi Ben Abdeljelil</span>
+          <a href="https://github.com/wajdi-bn/changtrackr" target="_blank" rel="noreferrer">View source on GitHub <ArrowUpRight size={15} /></a>
+        </div>
       </footer>
     </div>
   )
