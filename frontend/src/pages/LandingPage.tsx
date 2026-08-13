@@ -398,7 +398,7 @@ export function LandingPage() {
             <div className="landing-hero-content">
               <div className="landing-hero-copy">
                 <p className="landing-eyebrow"><BatteryCharging size={15} /> Real-time EV station supervision</p>
-                <h1>Make.<br />Every Day.<br />Better.</h1>
+                <h1>EV Charging.<br />Managed.<br />Better.</h1>
                 <p className="landing-hero-description">
                   ChargeTrackr gives operators one calm place to watch station availability, connector health, sessions, payments, and field response across Tunisia.
                 </p>

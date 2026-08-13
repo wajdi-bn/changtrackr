@@ -5,6 +5,7 @@ import { AppRouter } from './routes/AppRouter'
 import { queryClient } from './app/queryClient'
 import { antdTheme } from './app/theme'
 import { AuthProvider } from './features/auth/AuthProvider'
+import { SeoRouteController } from './seo/SeoRouteController'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <BrowserRouter>
+              <SeoRouteController />
               <AppRouter />
             </BrowserRouter>
           </AuthProvider>

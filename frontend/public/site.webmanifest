@@ -1,0 +1,24 @@
+{
+  "name": "ChargeTrackr",
+  "short_name": "ChargeTrackr",
+  "description": "EV charging station supervision and operations platform.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#149b68",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/branding/charge-trackr-logo.webp",
+      "sizes": "384x384",
+      "type": "image/webp",
+      "purpose": "any"
+    }
+  ]
+}
