@@ -107,18 +107,18 @@
   };
 
   \draw[environment, fill=purple!3] (-2.15,-1.9) rectangle (2.15,3.95);
-  \node[environment-title] at (-1.8,3.6) {Base de données};
+  \node[environment-title] at (-1.8,3.6) {Données et traitements};
   \node[data-service] (postgres) at (0,2.15) {
     \includegraphics[height=5mm]{assets/brand/technologies/postgresql.png}\\
-    \textbf{PostgreSQL 16}
+    \textbf{PostgreSQL 18}
   };
   \node[data-service] (businessdata) at (0,0.65) {
     \textbf{Données métier}\\
     comptes, actifs, opérations
   };
-  \node[data-service] (supportdata) at (0,-0.85) {
-    \textbf{Données de support}\\
-    jobs, cache, audit, événements
+  \node[data-service] (redis) at (0,-0.85) {
+    \textbf{Redis 7}\\
+    cache, sessions et files
   };
 
   \draw[environment, dashed, fill=blue!2] (2.5,-1.9) rectangle (7.0,3.95);
@@ -145,6 +145,8 @@
     node[flow-label, near start, right]{WebSocket applicatif} (runtime.north);
 
   \draw[bidir] (0,5.0) -- node[flow-label, right]{SQL transactionnel} (postgres.north);
+  \draw[bidir] (runtime.south) -- ++(0,-0.35) -|
+    node[flow-label, near start, below]{cache, sessions, queue} (redis.east);
   \draw[bidir] (-7.0,7.7) -- ++(-0.45,0) |- node[flow-label, left]
     {OAuth, email, cartographie} (oauth.west);
   \draw[bidir] (ocppdomain.south east) to[out=-45,in=90]

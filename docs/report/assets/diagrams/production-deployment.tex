@@ -1,0 +1,48 @@
+\begin{tikzpicture}[
+  font=\sffamily\scriptsize,
+  box/.style={draw=ctline,rounded corners=1.5mm,thick,fill=white,
+    minimum height=10mm,align=center,inner sep=2mm},
+  public/.style={box,draw=ctgreen,fill=ctmint,text width=26mm},
+  app/.style={box,draw=ctblue,fill=blue!4,text width=27mm},
+  state/.style={box,draw=ctamber,fill=yellow!6,text width=25mm},
+  external/.style={box,dashed,draw=ctgray,fill=ctpaper,text width=27mm},
+  group/.style={draw=ctline,rounded corners=2.5mm,thick},
+  flow/.style={-{Latex[length=2mm]},thick,draw=ctgray},
+  bidir/.style={{Latex[length=2mm]}-{Latex[length=2mm]},thick,draw=ctgray},
+  label/.style={fill=white,inner sep=1pt,font=\sffamily\tiny,text=ctgray}
+]
+  \node[external] (browser) at (-6.2,4.6) {Navigateurs\\\texttt{chargetrackr.me}};
+  \node[external] (github) at (-6.2,1.6) {GitHub Actions\\tests, images, déploiement};
+  \node[external] (services) at (-6.2,-1.4) {Google OAuth\\Resend et DNS};
+
+  \draw[group,fill=blue!2] (-3.9,-3.4) rectangle (6.7,6.1);
+  \node[anchor=west,font=\sffamily\bfseries\small,text=ctdark]
+    at (-3.55,5.75) {Microsoft Azure -- Poland Central};
+  \node[anchor=west,font=\sffamily\bfseries\scriptsize,text=ctgray]
+    at (-3.55,5.3) {VM Ubuntu 24.04 -- Docker Compose};
+
+  \node[public] (caddy) at (-1.9,4.45) {\textbf{Caddy}\\HTTPS et WSS publics};
+  \node[app] (frontend) at (2.0,4.45) {\textbf{Frontend}\\React statique};
+  \node[app] (api) at (-1.9,2.45) {\textbf{API Laravel}\\PHP-FPM et Nginx};
+  \node[app] (workers) at (2.0,2.45) {\textbf{Processus Laravel}\\queue, scheduler, Reverb};
+  \node[app] (gateway) at (-1.9,0.45) {\textbf{Gateway OCPP}\\WebSocket 1.6J};
+  \node[app] (simulators) at (2.0,0.45) {\textbf{Simulation Lab}\\SAP et WireMock};
+  \node[state] (postgres) at (-1.9,-1.75) {\textbf{PostgreSQL 18}\\volume privé};
+  \node[state] (redis) at (2.0,-1.75) {\textbf{Redis 7}\\cache, sessions, files};
+  \node[external] (blob) at (5.05,-1.75) {Azure Blob privé\\sauvegardes chiffrées};
+
+  \draw[flow] (browser) -- node[label,above]{HTTPS / WSS} (caddy);
+  \draw[flow] (github) -- node[label,above]{OIDC + GHCR} (-3.9,1.6);
+  \draw[bidir] (services.east) -- ++(0.45,0) |-
+    node[label,near end,below]{OAuth / email} (api.west);
+  \draw[flow] (caddy) -- (frontend);
+  \draw[flow] (caddy) -- (api);
+  \draw[flow] (caddy) -- (workers);
+  \draw[flow] (caddy) -- (gateway);
+  \draw[bidir] (api) -- (workers);
+  \draw[bidir] (api) -- (postgres);
+  \draw[bidir] (workers) -- (redis);
+  \draw[bidir] (gateway) -- (simulators);
+  \draw[flow] (postgres.south) -- ++(0,-0.55) -|
+    node[label,pos=.62,below]{backup planifié} (blob.south);
+\end{tikzpicture}

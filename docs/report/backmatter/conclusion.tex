@@ -27,12 +27,13 @@ les rapports. Les espaces Super Administrateur, Administrateur, Opérateur,
 Technicien et Client présentent des indicateurs et des actions adaptés à leurs
 responsabilités, au lieu de réutiliser un tableau de bord générique.
 
-La validation locale confirme la cohérence du socle réalisé : 203 tests backend
-et 1\,980 assertions réussissent, la passerelle et les outils OCPP disposent de
-leurs propres tests, le lint frontend est valide et la compilation de production
-aboutit.
-Ces résultats ne remplacent pas une recette sur infrastructure réelle, mais ils
-fournissent une base mesurable et reproductible pour le MVP.
+La validation automatisée confirme la cohérence du socle réalisé : 265 tests
+backend et 2\,761 assertions réussissent, 20 tests complémentaires vérifient
+PostgreSQL, 23 tests couvrent la passerelle OCPP et 39 tests couvrent le frontend.
+Les politiques d'infrastructure, la compilation de production et la construction
+des images sont également contrôlées par GitHub Actions. Ces résultats ne
+remplacent pas une recette sur matériel réel, mais ils fournissent une base
+mesurable et reproductible pour le MVP.
 
 \section*{Apports du stage}
 
@@ -42,7 +43,8 @@ Product Backlog, modélisation UML, choix d'une architecture, développement
 organisé en Sprints, intégration de services externes, tests et documentation. Il a
 également renforcé des compétences techniques en React et TypeScript, Laravel,
 PostgreSQL, WebSocket, OCPP, Docker, sécurité multi-tenant et génération de
-documents.
+documents. Le stage a aussi permis de mettre en pratique Redis, GitHub Actions,
+la publication d'images, TLS, DNS et le déploiement sur Microsoft Azure.
 
 L'apport principal ne se limite pas au volume fonctionnel. Le projet met en place
 des frontières explicites entre l'interface, le domaine et l'infrastructure :
@@ -73,22 +75,23 @@ planifiés et tests de non-régression ont été utilisés pour traiter ces risq
 
 \section*{Limites de la version actuelle}
 
-La version présentée reste un MVP exécuté dans un environnement local. La borne
-est simulée, le paiement est externe mais fictif et le déploiement de production
-n'est pas réalisé. Les mesures de performance actuelles ne constituent pas une
-campagne de charge représentative d'un grand réseau. La couverture fonctionnelle
-est importante, mais une recette finale avec l'encadrant, des tests E2E plus
-larges et l'observabilité de production restent nécessaires avant une
-exploitation commerciale. La spécification OpenAPI, les manuels et le cahier de
-tests sont désormais versionnés avec le code.
+La version présentée reste un MVP pédagogique : la borne est simulée et le
+paiement externe demeure fictif. Elle est néanmoins conteneurisée et déployée
+publiquement sur une machine virtuelle Azure sous le domaine
+\url{https://chargetrackr.me}. Cette cible à serveur unique convient à la
+démonstration, mais ne prouve ni une haute disponibilité ni la capacité d'un
+grand réseau. Une recette finale avec l'encadrant, des tests E2E et de charge plus
+larges, une supervision centralisée et des exercices de restauration restent
+nécessaires avant une exploitation commerciale. La spécification OpenAPI, les
+manuels et le cahier de tests sont versionnés avec le code.
 
 \section*{Perspectives}
 
 Les évolutions doivent être introduites selon leur dépendance et leur niveau de
-risque. La première priorité est l'industrialisation : CI/CD, TLS, gestion
-centralisée des secrets, sauvegardes, métriques, journaux corrélés, alertes
-techniques et tests de charge OCPP. Une recette formelle pourra ensuite figer les
-critères d'acceptation du MVP.
+risque. La première priorité est de consolider l'industrialisation déjà engagée :
+métriques, journaux corrélés, alertes techniques, rotation des secrets, tests de
+restauration et tests de charge OCPP. Une recette formelle pourra ensuite figer
+les critères d'acceptation du MVP.
 
 La deuxième priorité consiste à confronter les adaptateurs à des systèmes réels :
 connecter une borne physique OCPP~1.6J et intégrer, dans un environnement de test,

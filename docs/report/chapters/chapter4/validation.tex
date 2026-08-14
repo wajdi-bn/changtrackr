@@ -3,10 +3,13 @@
 \subsection{Stratégie de tests}
 
 La stratégie accorde la priorité aux invariants backend, car le frontend ne doit
-pas être la seule barrière contre une action interdite. Les tests utilisent une
-base SQLite en mémoire, une queue synchrone, un mailer en mémoire et un diffuseur
-nul. Ils restent ainsi reproductibles et n'envoient ni email réel ni événement
-WebSocket pendant la campagne.
+pas être la seule barrière contre une action interdite. La campagne principale
+utilise SQLite en mémoire, une queue synchrone, un mailer en mémoire et un
+diffuseur nul afin de rester rapide et reproductible. Un second ensemble est
+exécuté avec PostgreSQL et Redis dans GitHub Actions afin de vérifier les
+migrations, les requêtes spécifiques au moteur et l'infrastructure réellement
+utilisée en production. Aucun email réel ni événement WebSocket public n'est
+émis pendant ces campagnes.
 
 \begin{longtable}{|p{2.8cm}|p{3.9cm}|p{3.9cm}|p{2.8cm}|}
   \caption{Niveaux de validation appliqués}
@@ -47,7 +50,8 @@ WebSocket pendant la campagne.
 
 \subsection{Résultats mesurés}
 
-La campagne exécutée le 29 juillet 2026 produit les résultats suivants :
+La campagne d'intégration continue exécutée le 13 août 2026 produit les résultats
+suivants :
 
 \begin{table}[H]
   \centering
@@ -58,20 +62,23 @@ La campagne exécutée le 29 juillet 2026 produit les résultats suivants :
     \rowcolor{ctmint}
     \textbf{Contrôle} & \textbf{Résultat} & \textbf{Portée}\\\hline
 
-    \texttt{php artisan test --compact} &
-    203 tests, 1\,980 assertions & Tests Feature et unitaires chargés par
-    PHPUnit.\\\hline
+    Tests backend complets &
+    265 tests, 2\,761 assertions & Tests Feature et unitaires chargés par
+    PHPUnit avec SQLite.\\\hline
+    Compatibilité PostgreSQL &
+    20 tests, 153 assertions & Migrations, requêtes et contraintes exécutées
+    avec PostgreSQL~18.\\\hline
     \texttt{python -m pytest} dans \texttt{ocpp-gateway} &
-    12 tests, 0 échec & Messages entrants, commandes distantes, signatures et
+    23 tests, 0 échec & Messages entrants, commandes distantes, signatures et
     identifiants d'événements.\\\hline
-    \texttt{pnpm test:ocpp-tools} &
-    2 tests, 0 échec & Lecture et contrôle des états du simulateur.\\\hline
-    \texttt{pnpm lint:frontend} &
-    Succès & Analyse Oxlint du code TypeScript/React.\\\hline
-    \texttt{pnpm build:frontend} &
-    Succès & Type-check TypeScript et bundle Vite de production.\\\hline
-    Inventaire des routes &
-    186 routes, dont 177 API & 75 GET, 67 POST, 23 PATCH/PUT et 12 DELETE.\\\hline
+    Tests frontend &
+    39 tests, 0 échec & Composants, contrats, utilitaires et comportements
+    critiques, complétés par Oxlint et la compilation Vite.\\\hline
+    Tests infrastructure et outils &
+    39 tests, 0 échec & Compose, CI/CD, sauvegarde, politiques de secrets,
+    Simulation Lab et outils OCPP.\\\hline
+    Construction Docker &
+    Succès & Images de l'API, du frontend, de la passerelle et des simulateurs.\\\hline
 
   \end{tabularx}
 \end{table}
@@ -189,8 +196,9 @@ de la projection PostgreSQL, de l'événement reçu par la passerelle et du mess
   bancaire ni exigence PCI DSS.
   \item Les tests automatisés n'ont pas encore été complétés par une campagne de
   charge OCPP multi-borne ni par des tests de performance formels.
-  \item Le déploiement de production, TLS, sauvegardes, supervision et CI/CD ne
-  sont pas encore qualifiés.
+  \item Le déploiement public, TLS, CI/CD et les sauvegardes sont opérationnels,
+  mais ils n'ont pas encore fait l'objet d'une mesure de disponibilité de longue
+  durée, d'un test de charge représentatif ni d'un exercice complet de reprise.
   \item La recette fonctionnelle formelle et son procès-verbal restent à réaliser
   avec le représentant habilité de l'entreprise.
   \item OCPP 2.0.1, Microsoft OAuth, le paiement réel et le firmware restent hors
@@ -225,9 +233,8 @@ le document d'origine.
   Sanctum protège la SPA par session et CSRF, sans jeton JWT stocké dans le
   navigateur.\\\hline
   Traitements internes & Redis pour cache et files &
-  Cache, sessions et queue sur PostgreSQL pour limiter les services du MVP.
-  Redis reste une option de montée en charge, mais n'est pas requis par
-  l'environnement livré.\\\hline
+  Redis~7 est utilisé pour le cache, les sessions et les files d'attente, tandis
+  que PostgreSQL reste réservé aux données métier persistantes.\\\hline
   Interface analytique & React, Ant Design, TypeScript et ECharts &
   React, Ant Design et TypeScript sont conservés ; Recharts remplace ECharts
   dans les tableaux de bord, sans changer les besoins métier.\\\hline
@@ -298,7 +305,10 @@ sept sont partiels et deux sont reportés. Cette lecture distingue ainsi un
   Dashboard, rapports, gouvernance, recherche.\\\hline
   S09 & Stabilisation et livrables &
   Exports, documentation, cahier de tests et préparation de la recette &
-  Compilation, contrôles transversaux et validation des documents.\\
+  Compilation, contrôles transversaux et validation des documents.\\\hline
+  S10 & Industrialisation et démonstration publique &
+  Docker unifié, Simulation Lab, Redis, CI/CD, Azure, domaine et sauvegardes &
+  Tests de politique, construction des images, déploiement et contrôles de santé.\\
   \hline
 \end{longtable}
 
@@ -315,16 +325,17 @@ l'événement à Laravel. Le recalcul de disponibilité est idempotent et proté
 contre le chevauchement. Les événements et mesures restent horodatés, ce qui
 permet d'appliquer un délai de non-réponse sans dépendre de l'heure du navigateur.
 
-La compilation frontend signale plusieurs bundles supérieurs à 500~kio ; le
-principal fichier JavaScript atteint environ 767~kio. Ce constat conduit à
-planifier le découpage par route, le chargement différé de PDF.js et du scanner
-QR, la séparation des bibliothèques d'icônes et de graphiques, puis une mesure
-Lighthouse sur réseau mobile.
+Le frontend applique un découpage par route et charge à la demande les fonctions
+coûteuses, notamment la visualisation PDF et le scanner QR. La compilation de
+production est contrôlée par la CI. Une campagne Lighthouse sur réseau mobile,
+des budgets de bundle et un test de charge multi-stations restent cependant à
+formaliser avant de fixer des objectifs de performance contractuels.
 
 \section{Documentation technique}
 
 Le dépôt contient les scripts d'installation, les configurations d'exemple, les
-commandes d'exploitation des simulateurs et le présent rapport. Scramble génère
+procédures de déploiement et de sauvegarde, les commandes d'exploitation des
+simulateurs et le présent rapport. Scramble génère
 une spécification OpenAPI 3.1 versionnée dans
 \path{docs/api/openapi.json} et une interface d'exploration protégée sous
 \path{/docs/api}. Les routes internes OCPP et paiement restent volontairement

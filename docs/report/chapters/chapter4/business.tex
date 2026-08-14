@@ -19,6 +19,11 @@ Le passage de l'étape de branchement n'est pas manuel. Le frontend interroge la
 tentative de recharge et reçoit la mise à jour du connecteur ; il avance uniquement
 lorsque le backend confirme une preuve OCPP compatible. Les pictogrammes de prises
 aident le client à reconnaître CCS2, Type~2, CHAdeMO ou un autre standard.
+Dans l'environnement de démonstration, un terminal de borne virtuel permet au
+client de simuler le geste physique de branchement sans ouvrir une session
+d'administration ni accéder au Simulation Lab. Cette action produit le même
+événement OCPP que celui attendu après l'insertion d'un câble sur une borne
+réelle ; l'assistant passe alors automatiquement à l'étape suivante.
 
 \subsubsection{Cycle de session}
 

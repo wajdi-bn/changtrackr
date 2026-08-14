@@ -47,9 +47,10 @@ de l'affichage.
 
 La figure~\ref{fig:technical-architecture} situe les environnements techniques et
 leurs échanges. Les cadres extérieurs représentent les équipements et services
-indépendants. La base PostgreSQL constitue la source de vérité ; ni l'interface,
-ni la passerelle OCPP, ni les simulateurs ne modifient directement les données
-métier.
+indépendants. PostgreSQL constitue la source de vérité durable, tandis que Redis
+porte les données temporaires de cache, de session et de file d'attente. Ni
+l'interface, ni la passerelle OCPP, ni les simulateurs ne modifient directement
+les données métier.
 
 \clearpage
 \begin{scopebox}[Principes structurants]

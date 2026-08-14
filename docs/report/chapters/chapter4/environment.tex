@@ -211,11 +211,12 @@ resend,scramble,wiremock}.
 
 \subsubsection*{Environnement et outils de travail}
 
-Le développement est réalisé sous Windows. PHP et les outils du frontend
-s'exécutent localement pour conserver une boucle de développement rapide.
-Docker Desktop, appuyé sur WSL2, isole la passerelle OCPP, le simulateur SAP et
-WireMock \cite{dockerWsl}. Le tableau~\ref{tab:development-tools} précise la
-fonction de chaque outil effectivement retenu.
+Le développement est réalisé sous Windows. Les commandes peuvent être exécutées
+directement pour conserver une boucle rapide, tandis que Docker Desktop, appuyé
+sur WSL2, fournit une pile complète et reproductible : frontend, backend,
+PostgreSQL, Redis, Reverb, passerelle OCPP et simulateurs \cite{dockerWsl}. Le
+tableau~\ref{tab:development-tools} précise la fonction de chaque outil
+effectivement retenu.
 
 \begin{longtable}{|p{3.0cm}|p{4.5cm}|p{6.5cm}|}
   \caption{Environnement et outils de développement}
@@ -230,8 +231,8 @@ fonction de chaque outil effectivement retenu.
   \endhead
   Docker Desktop et WSL2 &
   Environnement de conteneurisation Linux intégré à Windows. &
-  Isolation et démarrage reproductible de la pile OCPP et du simulateur de
-  paiement.\\\hline
+  Isolation et démarrage reproductible de l'application, de ses données, de la
+  pile OCPP et du simulateur de paiement.\\\hline
   Composer et pnpm &
   Gestionnaires de dépendances pour PHP et l'écosystème Node.js. &
   Installation reproductible des paquets backend et frontend, ainsi que
@@ -263,7 +264,7 @@ fonction de chaque outil effectivement retenu.
     \rowcolor{ctmint}
     \textbf{Ensemble} & \textbf{Versions de référence}\\\hline
     Backend et données &
-    PHP 8.5.8, Laravel 13, PostgreSQL 16 et PHPUnit 12.\\\hline
+    PHP 8.5.8, Laravel 13, PostgreSQL 18, Redis 7 et PHPUnit 12.\\\hline
     Frontend &
     React 19, TypeScript 6, Vite 8 et Ant Design 6.\\\hline
     Intégrations &
@@ -311,8 +312,12 @@ communes à sa racine :
   \item[\texttt{frontend/}] application React et ressources visuelles ;
   \item[\texttt{backend/}] API Laravel, services, migrations, policies et tests ;
   \item[\texttt{ocpp-gateway/}] passerelle Python entre les bornes et Laravel ;
-  \item[\texttt{infra/ocpp/}] composition Docker et profils du simulateur SAP ;
-  \item[\texttt{infra/payment-simulator/}] serveur WireMock et contrats simulés ;
+  \item[\texttt{infra/}] composition Docker unifiée, tests de politique et
+  configuration des simulateurs ;
+  \item[\texttt{deployment/}] images, configuration Caddy, scripts Azure,
+  sauvegarde et restauration de production ;
+  \item[\texttt{.github/workflows/}] intégration continue et déploiement
+  automatisé ;
   \item[\texttt{scripts/}] commandes d'orchestration et de pilotage ;
   \item[\texttt{docs/}] rapport, API, manuels et cahier de tests.
 \end{description}
@@ -324,10 +329,34 @@ communes à sa racine :
   \label{fig:deployment-architecture}
 \end{figure}
 
-En production, les fichiers frontend doivent être servis derrière HTTPS,
-l'application PHP doit être supervisée et les connexions OCPP doivent utiliser
-\texttt{wss://}. Les workers, le scheduler, Reverb et la passerelle OCPP
-constituent des processus distincts à superviser.
+L'environnement public est déployé dans la région Azure Poland Central sur une
+machine virtuelle Ubuntu~24.04. La figure~\ref{fig:production-deployment}
+présente cette cible. Caddy est le seul point d'entrée public et termine TLS pour
+\url{https://chargetrackr.me}, l'API, Reverb et la passerelle OCPP. PostgreSQL,
+Redis et les simulateurs restent sur des réseaux Docker privés. Les sauvegardes
+PostgreSQL sont déposées dans un conteneur Azure Blob privé par un timer système.
+Cette organisation s'appuie sur les services de machine virtuelle Azure et sur
+la terminaison HTTPS automatique de Caddy \cite{azureLinuxVm,caddy}.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{0.96\textwidth}{!}{\input{assets/diagrams/production-deployment}}
+  \caption{Architecture du déploiement public sur Microsoft Azure}
+  \label{fig:production-deployment}
+\end{figure}
+
+\subsection{Intégration et déploiement continus}
+
+Chaque envoi sur la branche principale déclenche GitHub Actions
+\cite{githubActions}. Le workflow exécute les tests backend avec PostgreSQL et
+Redis, le lint, les tests et la compilation frontend, les tests Python de la
+passerelle, les politiques d'infrastructure, puis la construction des images
+Docker. Le workflow de production publie des images immuables dans GitHub
+Container Registry et s'authentifie à Azure par OIDC, sans stocker de mot de
+passe de machine virtuelle dans GitHub. Le serveur télécharge ensuite la version
+identifiée par le commit, applique les migrations et redémarre les services.
+Cette chaîne rend le résultat reproductible et évite les modifications manuelles
+non tracées sur le serveur.
 
 \subsection{Processus de développement}
 
@@ -342,15 +371,13 @@ différents environnements :
     \hline
     \rowcolor{ctmint}
     \textbf{Commande} & \textbf{Responsabilité}\\\hline
-    \texttt{pnpm dev:frontend} & Lance Vite sur le port 5173.\\\hline
-    \texttt{pnpm dev:backend} & Lance l'API Laravel sur le port 8000.\\\hline
-    \texttt{pnpm dev:queue} & Traite les emails et travaux asynchrones.\\\hline
-    \texttt{pnpm dev:scheduler} & Exécute les règles périodiques.\\\hline
-    \texttt{pnpm dev:reverb} & Lance le serveur WebSocket applicatif.\\\hline
-    \texttt{pnpm ocpp:up} & Démarre la passerelle et le simulateur OCPP.\\\hline
-    \texttt{pnpm ocpp:plug} / \texttt{ocpp:unplug} &
-    Simule la connexion ou le retrait physique d'un câble.\\\hline
-    \texttt{pnpm payment:up} & Démarre le fournisseur WireMock.\\\hline
+    \texttt{pnpm stack:up} & Construit et démarre toute la pile locale avec les
+    simulateurs.\\\hline
+    \texttt{pnpm stack:status} & Affiche l'état des conteneurs et des services.\\\hline
+    \texttt{pnpm stack:logs} & Agrège les journaux de la pile pour le diagnostic.\\\hline
+    \texttt{pnpm stack:down} & Arrête proprement la pile locale.\\\hline
+    \texttt{pnpm dev:frontend} / \texttt{dev:backend} & Lance uniquement le
+    composant concerné pendant le développement.\\\hline
     \texttt{pnpm build:frontend} & Vérifie les types et compile le frontend.\\\hline
     \texttt{pnpm test:backend} & Exécute la campagne PHPUnit.\\\hline
   \end{tabularx}

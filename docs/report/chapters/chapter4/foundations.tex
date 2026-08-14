@@ -93,8 +93,10 @@ l'itinéraire dans un service cartographique externe.
 La simple création d'une ligne en base ne suffit pas à rendre une borne
 exploitable. Un assistant de commissioning regroupe l'identité de la station, son
 matériel, ses connecteurs et son profil de simulateur. La référence interne et
-l'identité OCPP sont contrôlées avant la transaction. Pour une cible locale, le
-backend prépare un profil que le simulateur SAP peut enregistrer.
+l'identité OCPP sont contrôlées avant la transaction. Pour une cible simulée, le
+backend provisionne automatiquement le profil auprès du service de contrôle ;
+l'administrateur ou l'opérateur n'a donc pas à exécuter une commande sur le
+serveur.
 
 \begin{figure}[H]
   \centering
@@ -107,7 +109,9 @@ backend prépare un profil que le simulateur SAP peut enregistrer.
 connecteurs et des accès OCPP dans une transaction. Si une référence, une
 identité ou un connecteur est invalide, aucune création partielle ne subsiste. Le
 secret éventuel d'une borne physique n'est affiché qu'une fois et seul son
-condensat est conservé.
+condensat est conservé. La cible de simulation déclenche ensuite un appel interne
+authentifié vers le contrôleur de flotte, qui génère la configuration et démarre
+le profil correspondant.
 
 Les QR codes sont dérivés d'un jeton de connecteur destiné au parcours client. Le
 code affiché dans l'espace d'exploitation sert à imprimer l'étiquette physique ;
@@ -207,6 +211,24 @@ sessions. Lorsqu'aucun \texttt{MeterValues} n'a été reçu, elle affiche
   \caption{Télémétrie vérifiée sans génération de mesures fictives}
   \label{fig:implementation-station-telemetry}
 \end{figure}
+
+\subsubsection{Laboratoire de simulation}
+
+Le \emph{Simulation Lab} transforme les fonctions du simulateur en opérations
+accessibles depuis le navigateur. Pour chaque station, il affiche la connexion,
+les heartbeats, les changements de statut et les impulsions de mesure de chaque
+connecteur. Les actions d'alimentation, de connexion, de branchement, de
+débranchement, de défaut et de transaction sont envoyées au backend, qui vérifie
+le rôle et le périmètre avant de les transmettre au service de contrôle. Le jeton
+technique de ce service n'est jamais exposé au frontend.
+
+L'administrateur et l'opérateur peuvent préparer des scénarios de démonstration.
+Le technicien accède aux signaux et aux actions utiles au diagnostic, sans
+obtenir les privilèges de gouvernance. Le client ne voit pas cette console
+d'exploitation : dans l'assistant de recharge, un terminal virtuel représente
+uniquement les gestes qu'il effectuerait devant une borne réelle. Cette
+séparation conserve un parcours crédible tout en rendant la démonstration
+entièrement pilotable sans matériel physique.
 
 Les tests \path{OcppGatewayApiTest},
 \path{OcppSimulatorFleetTest}, \path{OcppSupervisionApiTest},

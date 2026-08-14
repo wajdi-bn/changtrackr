@@ -10,7 +10,7 @@
 \section{Objet et méthode}
 
 Cette annexe confronte le cahier des charges fonctionnel version 1.0 transmis par
-\CompanyName{} au produit disponible le 29 juillet 2026. Elle ne remplace pas ce
+\CompanyName{} au produit disponible le 14 août 2026. Elle ne remplace pas ce
 document initial et ne transforme pas une simulation en validation de
 production. Les constats s'appuient sur le code source, le Product Backlog, la
 spécification OpenAPI, le cahier de tests et les résultats automatisés.
@@ -34,8 +34,8 @@ spécification OpenAPI, le cahier de tests et les résultats automatisés.
   explicitement demandée n'est pas livrée.\\\hline
   \covdeferred & La fonctionnalité est volontairement sortie du MVP et conservée
   comme évolution.\\\hline
-  \covvalidate & L'implémentation locale ne permet pas de prouver une cible de
-  production ou un comportement matériel réel.\\
+  \covvalidate & La preuve disponible reste insuffisante pour garantir un seuil
+  contractuel, une charge cible ou un comportement matériel réel.\\
   \hline
 \end{longtable}
 
@@ -159,9 +159,9 @@ spécification OpenAPI, le cahier de tests et les résultats automatisés.
   L'API REST est réalisée et documentée en OpenAPI 3.1. La SPA utilise Sanctum,
   les cookies de session et CSRF plutôt qu'un JWT persistant.\\\hline
   T03 & Redis, queue et scheduler & \covadapt &
-  Queue, cache et sessions utilisent PostgreSQL dans le MVP. Le scheduler et le
-  worker sont configurés et exécutables ; Redis reste une option de déploiement,
-  non une dépendance.\\\hline
+  Redis~7 porte la queue, le cache et les sessions. Le scheduler et les workers
+  sont isolés en processus dédiés ; PostgreSQL conserve uniquement les données
+  métier durables.\\\hline
   T04 & React, Ant Design, TypeScript, Axios et React Query & \covreal &
   Ces technologies structurent l'interface. React Hook Form, Zod et Zustand
   complètent les formulaires et états locaux.\\\hline
@@ -252,11 +252,12 @@ spécification OpenAPI, le cahier de tests et les résultats automatisés.
   Pagination, agrégats backend et tâches asynchrones sont en place, mais aucune
   campagne de performance représentative n'a encore validé ce seuil.\\\hline
   N02 & Disponibilité de 99,9\,\% & \covvalidate &
-  La plateforme calcule la disponibilité des bornes ; la disponibilité du
-  service lui-même devra être mesurée après déploiement et supervision.\\\hline
-  N03 & HTTPS et chiffrement & \covvalidate &
+  La plateforme est déployée publiquement, mais la disponibilité du service n'a
+  pas encore été mesurée sur une durée suffisante pour garantir ce seuil.\\\hline
+  N03 & HTTPS et chiffrement & \covpartial &
   Les secrets sont exclus du dépôt, condensés ou chiffrés selon leur usage.
-  TLS/WSS et la rotation de clés relèvent de l'environnement de production.\\\hline
+  HTTPS et WSS sont terminés par Caddy. La rotation périodique des clés et un
+  audit externe restent à formaliser.\\\hline
   N04 & OAuth2, RBAC et audit & \covreal &
   Google OAuth, rôles, permissions, policies, isolation multi-tenant et journal
   d'audit sont appliqués côté serveur.\\\hline
@@ -321,7 +322,8 @@ spécification OpenAPI, le cahier de tests et les résultats automatisés.
   API REST & \covreal &
   \path{docs/api/openapi.json} et interface protégée \path{/docs/api}.\\\hline
   Code source & \covreal &
-  Dépôt Git versionné avec frontend, backend, gateway et infrastructure locale.\\\hline
+  Dépôt Git versionné avec frontend, backend, gateway, infrastructure locale et
+  cible de production Azure.\\\hline
   Documentation & \covreal &
   Rapport, backlog, procédures OCPP, paiement et installation dans
   \path{docs/}.\\\hline
@@ -344,8 +346,7 @@ La couverture montre que le MVP respecte le coeur du besoin : administration
 multi-organisation, supervision OCPP, disponibilité calculée, cartographie,
 recharge, paiement simulé, exploitation et reporting. Les écarts majeurs ne sont
 pas masqués : ils concernent les fonctions nécessitant du matériel, un contrat
-externe, une infrastructure de production ou une extension fonctionnelle
-distincte.
+externe, une qualification de charge ou une extension fonctionnelle distincte.
 
 Cette matrice doit être mise à jour si une borne physique, un prestataire
 financier, OCPP 2.0.1, les badges RFID ou le firmware entrent ultérieurement dans

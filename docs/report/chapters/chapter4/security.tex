@@ -196,9 +196,11 @@ applique la politique de rétention.
 \subsection{Limites de sécurité du prototype}
 
 Le socle protège les parcours implémentés, mais ne remplace pas un audit de
-production. Il reste notamment à automatiser un scan des dépendances, renforcer les
-en-têtes HTTP, exécuter des tests de charge OCPP, définir la rotation des secrets,
-déployer une terminaison TLS, superviser les processus et tester les sauvegardes.
+production. TLS public, les contrôles de secrets en CI, les en-têtes de sécurité
+et les sauvegardes planifiées sont désormais intégrés. Il reste notamment à
+automatiser un scan continu des dépendances, formaliser la rotation des secrets,
+centraliser les métriques et journaux, exécuter des tests de charge OCPP et
+réaliser périodiquement un exercice de restauration.
 Une borne physique et un fournisseur de paiement réel devront être homologués
 séparément. Ces limites sont documentées afin de ne pas confondre un MVP sécurisé
 par conception avec une certification d'exploitation.
