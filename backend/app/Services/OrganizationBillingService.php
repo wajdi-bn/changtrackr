@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Contracts\PaymentGateway;
+use App\Data\PaymentCharge;
 use App\Models\Organization;
 use App\Models\OrganizationInvoice;
 use App\Models\OrganizationSubscription;
@@ -13,7 +15,10 @@ use Illuminate\Validation\ValidationException;
 
 class OrganizationBillingService
 {
-    public function __construct(private readonly PlatformSettingService $settings) {}
+    public function __construct(
+        private readonly PlatformSettingService $settings,
+        private readonly PaymentGateway $gateway,
+    ) {}
 
     public function createTrial(Organization $organization, ?User $actor = null, ?int $trialDays = null): OrganizationSubscription
     {
@@ -43,24 +48,40 @@ class OrganizationBillingService
         });
     }
 
-    public function requestPlan(Organization $organization, User $actor, SaasPlan $plan, string $billingCycle): OrganizationInvoice
-    {
+    public function requestPlan(
+        Organization $organization,
+        User $actor,
+        SaasPlan $plan,
+        string $billingCycle,
+        string $paymentMethod = 'simulated_card',
+        ?string $idempotencyKey = null,
+        string $simulationOutcome = 'success',
+    ): OrganizationInvoice {
         if ($plan->status !== 'active') {
             throw ValidationException::withMessages(['saas_plan_id' => ['This plan is not available.']]);
         }
 
-        return DB::transaction(function () use ($organization, $actor, $plan, $billingCycle): OrganizationInvoice {
+        $idempotencyKey ??= (string) Str::uuid();
+        $existing = OrganizationInvoice::query()
+            ->where('organization_id', $organization->id)
+            ->where('idempotency_key', $idempotencyKey)
+            ->first();
+        if ($existing !== null) {
+            return $existing->load(['organization', 'subscription.plan', 'plan', 'requestedBy', 'settledBy']);
+        }
+
+        $invoice = DB::transaction(function () use ($organization, $actor, $plan, $billingCycle, $paymentMethod, $idempotencyKey, $simulationOutcome): OrganizationInvoice {
             $subscription = OrganizationSubscription::query()
                 ->where('organization_id', $organization->id)
                 ->lockForUpdate()
                 ->firstOrFail();
-            $existing = OrganizationInvoice::query()
+            $openInvoice = OrganizationInvoice::query()
                 ->where('organization_id', $organization->id)
                 ->whereIn('status', ['open', 'overdue'])
                 ->lockForUpdate()
                 ->first();
-            if ($existing) {
-                throw ValidationException::withMessages(['invoice' => ['Resolve the existing open invoice before requesting another plan.']]);
+            if ($openInvoice) {
+                throw ValidationException::withMessages(['invoice' => ['Resolve the existing open invoice before starting another checkout.']]);
             }
 
             $periodStartsAt = now();
@@ -81,18 +102,77 @@ class OrganizationBillingService
                 'currency' => 'TND',
                 'period_starts_at' => $periodStartsAt,
                 'period_ends_at' => $periodEndsAt,
-                'due_at' => now()->addDays(7),
+                'due_at' => now(),
+                'payment_provider' => $this->gateway->name(),
+                'payment_method' => $paymentMethod,
+                'idempotency_key' => $idempotencyKey,
                 'snapshot' => [
                     'plan_name' => $plan->name,
                     'plan_code' => $plan->code,
                     'max_stations' => $plan->max_stations,
                     'max_employees' => $plan->max_employees,
                     'features' => $plan->features,
+                    'simulation_outcome' => $simulationOutcome,
                 ],
             ]);
-            $this->event($subscription, $actor, 'plan_requested', $subscription->status, $subscription->status, "Requested {$plan->name} ({$billingCycle}).", ['invoice_id' => $invoice->id]);
+            $this->event($subscription, $actor, 'checkout_started', $subscription->status, $subscription->status, "Started {$plan->name} checkout ({$billingCycle}).", ['invoice_id' => $invoice->id]);
 
-            return $invoice->load(['organization', 'subscription.plan', 'plan', 'requestedBy']);
+            return $invoice;
+        });
+
+        $result = $this->gateway->charge(new PaymentCharge(
+            paymentReference: $invoice->number,
+            amountMillimes: $invoice->amount_millimes,
+            currency: $invoice->currency,
+            method: $paymentMethod,
+            idempotencyKey: $idempotencyKey,
+            simulationOutcome: $simulationOutcome,
+        ));
+
+        return DB::transaction(function () use ($invoice, $actor, $result): OrganizationInvoice {
+            $invoice = OrganizationInvoice::query()->lockForUpdate()->findOrFail($invoice->id);
+            if ($invoice->status !== 'open') {
+                return $invoice->load(['organization', 'subscription.plan', 'plan', 'requestedBy', 'settledBy']);
+            }
+            $subscription = OrganizationSubscription::query()->lockForUpdate()->findOrFail($invoice->organization_subscription_id);
+            if (! $result->successful) {
+                $invoice->update([
+                    'status' => 'failed',
+                    'failed_at' => now(),
+                    'failure_reason' => $result->failureReason ?: 'The simulated payment provider rejected the transaction.',
+                    'provider_reference' => $result->transactionId,
+                    'provider_metadata' => $result->metadata,
+                ]);
+                $this->event($subscription, $actor, 'invoice_payment_failed', $subscription->status, $subscription->status, "Payment failed for invoice {$invoice->number}.", ['invoice_id' => $invoice->id]);
+
+                return $invoice->fresh(['organization', 'subscription.plan', 'plan', 'requestedBy', 'settledBy']);
+            }
+
+            $previousStatus = $subscription->status;
+            $invoice->update([
+                'status' => 'paid',
+                'paid_at' => now(),
+                'failed_at' => null,
+                'failure_reason' => null,
+                'settled_by_id' => $actor->id,
+                'provider_reference' => $result->transactionId,
+                'provider_metadata' => $result->metadata,
+            ]);
+            $subscription->update([
+                'saas_plan_id' => $invoice->saas_plan_id,
+                'status' => 'active',
+                'billing_cycle' => $invoice->billing_cycle,
+                'source' => 'simulated_payment',
+                'auto_renew' => true,
+                'current_period_starts_at' => $invoice->period_starts_at,
+                'current_period_ends_at' => $invoice->period_ends_at,
+                'grace_ends_at' => null,
+                'suspended_at' => null,
+                'cancelled_at' => null,
+            ]);
+            $this->event($subscription, $actor, 'invoice_paid', $previousStatus, 'active', "Invoice {$invoice->number} paid through the payment simulator.", ['invoice_id' => $invoice->id, 'provider_reference' => $result->transactionId]);
+
+            return $invoice->fresh(['organization', 'subscription.plan', 'plan', 'requestedBy', 'settledBy']);
         });
     }
 
@@ -100,8 +180,8 @@ class OrganizationBillingService
     {
         return DB::transaction(function () use ($invoice, $actor): OrganizationInvoice {
             $invoice = OrganizationInvoice::query()->lockForUpdate()->findOrFail($invoice->id);
-            if (! in_array($invoice->status, ['open', 'overdue'], true)) {
-                throw ValidationException::withMessages(['invoice' => ['Only an open or overdue invoice can be settled.']]);
+            if (! in_array($invoice->status, ['open', 'overdue', 'failed'], true)) {
+                throw ValidationException::withMessages(['invoice' => ['Only an open, overdue or failed invoice can be corrected as settled.']]);
             }
             $subscription = OrganizationSubscription::query()->lockForUpdate()->findOrFail($invoice->organization_subscription_id);
             $previousStatus = $subscription->status;
@@ -109,6 +189,8 @@ class OrganizationBillingService
             $invoice->update([
                 'status' => 'paid',
                 'paid_at' => now(),
+                'failed_at' => null,
+                'failure_reason' => null,
                 'settled_by_id' => $actor->id,
                 'payment_provider' => 'simulated',
                 'provider_reference' => $providerReference,
@@ -118,6 +200,7 @@ class OrganizationBillingService
                 'status' => 'active',
                 'billing_cycle' => $invoice->billing_cycle,
                 'source' => 'simulated_payment',
+                'auto_renew' => true,
                 'current_period_starts_at' => $invoice->period_starts_at,
                 'current_period_ends_at' => $invoice->period_ends_at,
                 'grace_ends_at' => null,
@@ -134,8 +217,8 @@ class OrganizationBillingService
     {
         return DB::transaction(function () use ($invoice, $actor): OrganizationInvoice {
             $invoice = OrganizationInvoice::query()->lockForUpdate()->findOrFail($invoice->id);
-            if (! in_array($invoice->status, ['open', 'overdue'], true)) {
-                throw ValidationException::withMessages(['invoice' => ['Only an open or overdue invoice can be voided.']]);
+            if (! in_array($invoice->status, ['open', 'overdue', 'failed'], true)) {
+                throw ValidationException::withMessages(['invoice' => ['Only an open, overdue or failed invoice can be voided.']]);
             }
             $subscription = OrganizationSubscription::query()->lockForUpdate()->findOrFail($invoice->organization_subscription_id);
             $invoice->update(['status' => 'void', 'settled_by_id' => $actor->id]);

@@ -137,12 +137,18 @@ class OrganizationCommercialController extends Controller
         $attributes = $request->validate([
             'saas_plan_id' => ['required', 'integer', Rule::exists('saas_plans', 'id')->where('status', 'active')],
             'billing_cycle' => ['required', Rule::in(['monthly', 'annual'])],
+            'payment_method' => ['required', Rule::in(['simulated_card', 'simulated_edinar', 'simulated_d17'])],
+            'idempotency_key' => ['required', 'uuid'],
+            'simulation_outcome' => ['sometimes', Rule::in(['success', 'declined', 'timeout', 'provider_error'])],
         ]);
         $invoice = $this->billing->requestPlan(
             $actor->organization,
             $actor,
             SaasPlan::query()->findOrFail($attributes['saas_plan_id']),
             $attributes['billing_cycle'],
+            $attributes['payment_method'],
+            $attributes['idempotency_key'],
+            app()->environment(['local', 'testing']) ? ($attributes['simulation_outcome'] ?? 'success') : 'success',
         );
 
         return response()->json(['data' => $this->invoicePayload($invoice)], 201);
@@ -297,7 +303,9 @@ class OrganizationCommercialController extends Controller
             'billing_cycle' => $invoice->billing_cycle, 'amount_millimes' => $invoice->amount_millimes, 'currency' => $invoice->currency,
             'period_starts_at' => $invoice->period_starts_at?->toISOString(), 'period_ends_at' => $invoice->period_ends_at?->toISOString(),
             'due_at' => $invoice->due_at?->toISOString(), 'paid_at' => $invoice->paid_at?->toISOString(),
-            'payment_provider' => $invoice->payment_provider, 'provider_reference' => $invoice->provider_reference,
+            'payment_provider' => $invoice->payment_provider, 'payment_method' => $invoice->payment_method,
+            'provider_reference' => $invoice->provider_reference, 'failed_at' => $invoice->failed_at?->toISOString(),
+            'failure_reason' => $invoice->failure_reason,
             'requested_by' => $invoice->requestedBy?->name, 'settled_by' => $invoice->settledBy?->name,
             'created_at' => $invoice->created_at?->toISOString(),
         ];

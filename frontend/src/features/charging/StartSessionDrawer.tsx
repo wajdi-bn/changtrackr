@@ -1,12 +1,12 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Button, Drawer, Empty, Form, Input, InputNumber, Radio, Result, Select, Slider, Spin, Steps, Tag } from 'antd'
+import { Alert, App, Button, Drawer, Empty, Form, InputNumber, Radio, Result, Select, Slider, Spin, Steps, Tag } from 'antd'
 import type { FormInstance } from 'antd'
 import { motion } from 'framer-motion'
 import { BadgePercent, BatteryCharging, Check, CheckCircle2, CircleDollarSign, Clock3, CreditCard, Gauge, MapPin, PlugZap, RadioTower, ShieldCheck, Zap } from 'lucide-react'
 import { getApiErrorMessage } from '../../api/apiErrors'
-import type { ChargingAttempt, ChargingAttemptPayload, ChargingSession, PaymentSimulationOutcome, SimulatedPaymentMethod } from '../../types/charging'
+import type { ChargingAttempt, ChargingAttemptPayload, ChargingSession, SimulatedPaymentMethod } from '../../types/charging'
 import type { Connector, OcppSimulatorActionStatus, Station } from '../../types/station'
 import type { ChargingTargetType, PricingSimulation } from '../../types/tariff'
 import { getStation } from '../stations/stationApi'
@@ -17,25 +17,16 @@ import { canInsertVirtualCable, resolveClientTerminalState } from './clientCharg
 import { ConnectorTypeIcon } from './ConnectorTypeIcon'
 import { PaymentMethodBrand } from './PaymentMethodBrand'
 import { createIdempotencyKey } from '../../lib/idempotency'
+import { SimulatedPaymentFields, type SimulatedPaymentFormValues } from '../payments/SimulatedPaymentFields'
+import { paymentMethodLabel, simulatedPaymentFieldNames, toSimulatedPaymentSelection } from '../payments/simulatedPaymentModel'
 
 type ChargeableStation = Pick<Station, 'id' | 'name' | 'city' | 'location' | 'model_image' | 'available_connectors_count' | 'remote_start_available'> & {
   connectors: Connector[]
 }
 
-type FormValues = {
+type FormValues = SimulatedPaymentFormValues & {
   station_id: number
   connector_id: number
-  method: SimulatedPaymentMethod
-  simulation_outcome: PaymentSimulationOutcome
-  cardholder_name?: string
-  card_number?: string
-  card_expiry?: string
-  card_cvc?: string
-  edinar_card_number?: string
-  edinar_expiry?: string
-  edinar_code?: string
-  d17_phone?: string
-  d17_code?: string
 }
 
 interface StartSessionDrawerProps {
@@ -213,7 +204,7 @@ export function StartSessionDrawer({
       return
     }
     if (current === 4) {
-      await form.validateFields(['method', 'simulation_outcome', ...paymentFields(paymentMethod)])
+      await form.validateFields(['method', 'simulation_outcome', ...simulatedPaymentFieldNames(paymentMethod)])
       setCurrent(5)
       return
     }
@@ -224,13 +215,13 @@ export function StartSessionDrawer({
 
   async function submit() {
     if (startMutation.isPending) return
-    await form.validateFields(['station_id', 'connector_id', 'method', 'simulation_outcome', ...paymentFields(paymentMethod)])
+    await form.validateFields(['station_id', 'connector_id', 'method', 'simulation_outcome', ...simulatedPaymentFieldNames(paymentMethod)])
     const values = form.getFieldsValue(true) as FormValues
+    const payment = toSimulatedPaymentSelection(values)
     const payload: ChargingAttemptPayload = {
       station_id: values.station_id,
       connector_id: values.connector_id,
-      method: values.method,
-      simulation_outcome: values.simulation_outcome,
+      ...payment,
       idempotency_key: idempotencyKey.current,
       ...buildChargingLimitPayload(targetType, targetValue),
     }
@@ -483,38 +474,7 @@ function PaymentStep({
       <div><small>Estimated session</small><strong>{estimate.energy_kwh.toFixed(2)} kWh · {estimate.duration_minutes} min</strong></div>
       <div><small>Estimated total</small><strong>{formatTnd(estimate.amount_millimes)}</strong></div>
     </div>}
-    <Form.Item label="Payment method" name="method" rules={[{ required: true }]}>
-      <Radio.Group className="payment-method-grid">
-        <Radio.Button value="simulated_card"><PaymentMethodBrand method="simulated_card" /><span><strong>Bank card</strong><small>Visa or Mastercard sandbox</small></span></Radio.Button>
-        <Radio.Button value="simulated_edinar"><PaymentMethodBrand method="simulated_edinar" /><span><strong>e-DINAR</strong><small>Postal card sandbox</small></span></Radio.Button>
-        <Radio.Button value="simulated_d17"><PaymentMethodBrand method="simulated_d17" /><span><strong>D17</strong><small>Mobile wallet sandbox</small></span></Radio.Button>
-      </Radio.Group>
-    </Form.Item>
-    <div className="payment-details-panel">
-      <header><span><ShieldCheck size={18} /></span><div><strong>{paymentMethodTitle(selectedMethod)}</strong><small>Sandbox fields are validated locally and never included in the API request.</small></div></header>
-      {selectedMethod === 'simulated_card' && <div className="payment-details-grid">
-        <Form.Item className="is-wide" label="Sandbox cardholder" name="cardholder_name" preserve={false} rules={[{ required: true, message: 'Enter the sandbox cardholder name' }]}><Input autoComplete="off" placeholder="Demo customer" /></Form.Item>
-        <Form.Item className="is-wide" label="Sandbox card number" name="card_number" preserve={false} rules={[{ required: true }, { pattern: /^\d{16}$/, message: 'Enter 16 sandbox digits' }]}><Input inputMode="numeric" autoComplete="off" maxLength={16} placeholder="4242424242424242" /></Form.Item>
-        <Form.Item label="Expiry" name="card_expiry" preserve={false} rules={[{ required: true }, { pattern: /^(0[1-9]|1[0-2])\/\d{2}$/, message: 'Use MM/YY' }]}><Input inputMode="numeric" autoComplete="off" maxLength={5} placeholder="12/30" /></Form.Item>
-        <Form.Item label="Demo CVC" name="card_cvc" preserve={false} rules={[{ required: true }, { pattern: /^\d{3}$/, message: 'Enter 3 sandbox digits' }]}><Input.Password inputMode="numeric" autoComplete="off" maxLength={3} placeholder="123" /></Form.Item>
-      </div>}
-      {selectedMethod === 'simulated_edinar' && <div className="payment-details-grid">
-        <Form.Item className="is-wide" label="e-DINAR sandbox card number" name="edinar_card_number" preserve={false} rules={[{ required: true }, { pattern: /^\d{16}$/, message: 'Enter 16 sandbox digits' }]}><Input inputMode="numeric" autoComplete="off" maxLength={16} placeholder="5359400000000000" /></Form.Item>
-        <Form.Item label="Expiry" name="edinar_expiry" preserve={false} rules={[{ required: true }, { pattern: /^(0[1-9]|1[0-2])\/\d{2}$/, message: 'Use MM/YY' }]}><Input inputMode="numeric" autoComplete="off" maxLength={5} placeholder="12/30" /></Form.Item>
-        <Form.Item label="Demo verification code" name="edinar_code" preserve={false} rules={[{ required: true }, { pattern: /^\d{4}$/, message: 'Enter 4 sandbox digits' }]}><Input.Password inputMode="numeric" autoComplete="off" maxLength={4} placeholder="0000" /></Form.Item>
-      </div>}
-      {selectedMethod === 'simulated_d17' && <div className="payment-details-grid">
-        <Form.Item className="is-wide" label="D17 sandbox mobile number" name="d17_phone" preserve={false} rules={[{ required: true }, { pattern: /^\+216\d{8}$/, message: 'Use +216 followed by 8 digits' }]}><Input inputMode="tel" autoComplete="off" placeholder="+21620123456" /></Form.Item>
-        <Form.Item className="is-wide" label="Demo confirmation code" name="d17_code" preserve={false} rules={[{ required: true }, { pattern: /^\d{6}$/, message: 'Enter 6 sandbox digits' }]}><Input.Password inputMode="numeric" autoComplete="off" maxLength={6} placeholder="000000" /></Form.Item>
-      </div>}
-    </div>
-    {import.meta.env.DEV && <Form.Item label="External sandbox result" name="simulation_outcome"><Select options={[
-      { value: 'success', label: 'Authorize successfully' },
-      { value: 'declined', label: 'Provider decline' },
-      { value: 'timeout', label: 'Provider timeout' },
-      { value: 'provider_error', label: 'Provider unavailable' },
-    ]} /></Form.Item>}
-    <Alert type="info" showIcon title="Simulation only" description="Use only demo values. ChargeTrackr does not send these fields to the backend or to a real payment provider." />
+    <SimulatedPaymentFields method={selectedMethod} />
   </section>
 }
 
@@ -568,24 +528,6 @@ function AttemptStep({ attempt, loading }: { attempt?: ChargingAttempt; loading:
 
 function pricingSourceLabel(source: string) {
   return ({ connector: 'Connector-specific', station: 'Station-specific', organization_default: 'Organization default', configuration_fallback: 'Configuration fallback' } as Record<string, string>)[source] ?? source
-}
-
-function paymentFields(method?: SimulatedPaymentMethod): Array<keyof FormValues> {
-  if (method === 'simulated_edinar') return ['edinar_card_number', 'edinar_expiry', 'edinar_code']
-  if (method === 'simulated_d17') return ['d17_phone', 'd17_code']
-  return ['cardholder_name', 'card_number', 'card_expiry', 'card_cvc']
-}
-
-function paymentMethodTitle(method: SimulatedPaymentMethod): string {
-  if (method === 'simulated_edinar') return 'e-DINAR sandbox details'
-  if (method === 'simulated_d17') return 'D17 sandbox confirmation'
-  return 'Bank card sandbox details'
-}
-
-function paymentMethodLabel(method: SimulatedPaymentMethod): string {
-  if (method === 'simulated_edinar') return 'e-DINAR Smart'
-  if (method === 'simulated_d17') return 'D17 mobile wallet'
-  return 'Visa / Mastercard'
 }
 
 function targetSummary(estimate: NonNullable<PricingSimulation['estimate']>): string {

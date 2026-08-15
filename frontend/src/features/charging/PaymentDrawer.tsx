@@ -1,7 +1,9 @@
-import { Alert, Button, Drawer, Form, Radio, Select } from 'antd'
-import { CreditCard, FlaskConical, LockKeyhole, ShieldCheck, Smartphone, WalletCards } from 'lucide-react'
-import type { ChargingSession, PaymentPayload, PaymentSimulationOutcome, SimulatedPaymentMethod } from '../../types/charging'
+import { Button, Drawer, Form } from 'antd'
+import { CreditCard, LockKeyhole, ShieldCheck } from 'lucide-react'
+import type { ChargingSession, PaymentPayload } from '../../types/charging'
 import { createIdempotencyKey } from '../../lib/idempotency'
+import { SimulatedPaymentFields, type SimulatedPaymentFormValues } from '../payments/SimulatedPaymentFields'
+import { toSimulatedPaymentSelection } from '../payments/simulatedPaymentModel'
 
 interface PaymentDrawerProps {
   open: boolean
@@ -12,7 +14,8 @@ interface PaymentDrawerProps {
 }
 
 export function PaymentDrawer({ open, session, submitting, onClose, onSubmit }: PaymentDrawerProps) {
-  const [form] = Form.useForm<{ method: SimulatedPaymentMethod; simulation_outcome: PaymentSimulationOutcome }>()
+  const [form] = Form.useForm<SimulatedPaymentFormValues>()
+  const paymentMethod = Form.useWatch('method', { form, preserve: true })
 
   return (
     <Drawer
@@ -20,7 +23,11 @@ export function PaymentDrawer({ open, session, submitting, onClose, onSubmit }: 
       title="Complete payment"
       size={520}
       onClose={onClose}
-      afterOpenChange={(visible) => visible && form.setFieldsValue({ method: 'simulated_card', simulation_outcome: 'success' })}
+      afterOpenChange={(visible) => {
+        if (!visible) return
+        form.resetFields()
+        form.setFieldsValue({ method: 'simulated_card', simulation_outcome: 'success' })
+      }}
     >
       {session && <>
         <div className="payment-checkout-heading">
@@ -45,30 +52,9 @@ export function PaymentDrawer({ open, session, submitting, onClose, onSubmit }: 
           form={form}
           layout="vertical"
           requiredMark="optional"
-          onFinish={(values) => onSubmit({ ...values, simulation_outcome: values.simulation_outcome ?? 'success', idempotency_key: createIdempotencyKey() })}
+          onFinish={(values) => onSubmit({ ...toSimulatedPaymentSelection(values), idempotency_key: createIdempotencyKey() })}
         >
-          <Form.Item label="Payment method" name="method" rules={[{ required: true }]}>
-            <Radio.Group className="payment-checkout-methods">
-              <Radio.Button value="simulated_card"><CreditCard size={18} /><span><strong>Bank card</strong><small>Visa or Mastercard adapter</small></span></Radio.Button>
-              <Radio.Button value="simulated_edinar"><WalletCards size={18} /><span><strong>e-DINAR</strong><small>Postal payment adapter</small></span></Radio.Button>
-              <Radio.Button value="simulated_d17"><Smartphone size={18} /><span><strong>D17 wallet</strong><small>Mobile wallet adapter</small></span></Radio.Button>
-            </Radio.Group>
-          </Form.Item>
-          {import.meta.env.DEV && <Form.Item label="Sandbox scenario" name="simulation_outcome" rules={[{ required: true }]}>
-            <Select options={[
-              { value: 'success', label: 'Successful payment' },
-              { value: 'declined', label: 'Provider decline' },
-              { value: 'timeout', label: 'Provider timeout' },
-              { value: 'provider_error', label: 'Provider unavailable' },
-            ]} />
-          </Form.Item>}
-          <Alert
-            type="info"
-            showIcon
-            icon={<FlaskConical size={16} />}
-            title="Payment simulator"
-            description="This checkout follows the future provider flow, but WireMock processes the transaction locally. No credential or real money is transmitted."
-          />
+          <SimulatedPaymentFields method={paymentMethod} scenarioLabel="Sandbox scenario" compact />
           <Button className="payment-submit" type="primary" htmlType="submit" icon={<CreditCard size={16} />} loading={submitting} block>
             Pay {session.total_amount} {session.currency}
           </Button>

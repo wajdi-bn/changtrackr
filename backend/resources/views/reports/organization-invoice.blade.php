@@ -5,11 +5,13 @@
 <h1>{{ $invoice->plan->name }} plan</h1><span class="status {{ $invoice->status }}">{{ $invoice->status }}</span>
 <table class="parties"><tr><td><small>Billed to</small><strong>{{ $invoice->organization->name }}</strong><br>{{ $invoice->organization->contact_email }}<br>{{ $invoice->organization->contact_phone }}</td><td><small>Invoice details</small><strong>{{ $invoice->number }}</strong><br>Issued {{ $invoice->created_at?->format('d M Y') }}<br>Due {{ $invoice->due_at?->format('d M Y') }}</td></tr></table>
 <table class="line"><thead><tr><th>Description</th><th>Service period</th><th class="right">Amount</th></tr></thead><tbody><tr><td><strong>{{ $invoice->plan->name }}</strong><br>{{ ucfirst($invoice->billing_cycle) }} ChargeTrackr organization subscription</td><td>{{ $invoice->period_starts_at?->format('d M Y') }} - {{ $invoice->period_ends_at?->format('d M Y') }}</td><td class="right">{{ number_format($invoice->amount_millimes / 1000, 3) }} {{ $invoice->currency }}</td></tr><tr class="total"><td colspan="2">Total</td><td class="right">{{ number_format($invoice->amount_millimes / 1000, 3) }} {{ $invoice->currency }}</td></tr></tbody></table>
-<div class="payment"><strong>{{ $invoice->status === 'paid' ? 'Payment recorded' : 'Payment pending' }}</strong><p>
+<div class="payment"><strong>{{ $invoice->status === 'paid' ? 'Payment recorded' : ($invoice->status === 'failed' ? 'Payment failed' : 'Payment pending') }}</strong><p>
 @if($invoice->status === 'paid')
-Processed by {{ $invoice->payment_provider }} with reference {{ $invoice->provider_reference }} on {{ $invoice->paid_at?->format('d M Y, H:i') }}.
+Processed by {{ $invoice->payment_provider }} using {{ str_replace('_', ' ', $invoice->payment_method ?? 'simulated payment') }} with reference {{ $invoice->provider_reference }} on {{ $invoice->paid_at?->format('d M Y, H:i') }}.
+@elseif($invoice->status === 'failed')
+The {{ str_replace('_', ' ', $invoice->payment_method ?? 'simulated payment') }} attempt failed on {{ $invoice->failed_at?->format('d M Y, H:i') }}. {{ $invoice->failure_reason }} The previous organization access state was preserved.
 @else
-This MVP invoice awaits validation through the simulated organization-payment workflow.
+This invoice remains open for an exceptional platform review.
 @endif
 </p></div>
 <footer>Generated {{ $issuedAt }} - ChargeTrackr commercial management</footer></body></html>

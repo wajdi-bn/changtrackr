@@ -53,7 +53,7 @@ export function CommercialManagementPage() {
   })
   const downloadMutation = useMutation({ mutationFn: downloadOrganizationInvoice, onSuccess: (blob, id) => downloadBlob(blob, `organization-invoice-${id}.pdf`), onError: () => void message.error('The invoice PDF could not be generated.') })
   const portfolio = portfolioQuery.data
-  const openInvoices = useMemo(() => (portfolio?.invoices ?? []).filter((invoice) => ['open', 'overdue'].includes(invoice.status)), [portfolio])
+  const openInvoices = useMemo(() => (portfolio?.invoices ?? []).filter((invoice) => ['open', 'overdue', 'failed'].includes(invoice.status)), [portfolio])
 
   const subscriptionColumns: ColumnsType<OrganizationCommercialSubscription> = [
     { title: 'Organization', key: 'organization', render: (_, item) => <div className="commercial-organization"><span><Building2 size={17} /></span><div><strong>{item.organization.name}</strong><small>{item.organization.contact_email ?? 'No contact email'}</small></div></div> },
@@ -69,7 +69,7 @@ export function CommercialManagementPage() {
     { title: 'Amount', dataIndex: 'amount_millimes', render: (value: number) => <strong>{formatMoney(value)}</strong> },
     { title: 'Due', dataIndex: 'due_at', render: formatDate },
     { title: 'Status', dataIndex: 'status', render: (status: string) => <AdminStatus status={status} /> },
-    { title: '', width: 210, align: 'right', render: (_, invoice) => <Space size={4}><Button type="text" icon={<Download size={15} />} onClick={() => downloadMutation.mutate(invoice.id)}>PDF</Button><Popconfirm title="Record the simulated payment?" description="This activates the selected plan and paid period." okText="Record payment" onConfirm={() => invoiceMutation.mutate({ invoice, action: 'settle' })}><Button type="primary" size="small" icon={<Check size={14} />}>Settle</Button></Popconfirm><Popconfirm title="Void this invoice?" okText="Void" okButtonProps={{ danger: true }} onConfirm={() => invoiceMutation.mutate({ invoice, action: 'void' })}><Button danger size="small">Void</Button></Popconfirm></Space> },
+    { title: '', width: 230, align: 'right', render: (_, invoice) => <Space size={4}><Button type="text" icon={<Download size={15} />} onClick={() => downloadMutation.mutate(invoice.id)}>PDF</Button><Popconfirm title="Correct this invoice as paid?" description="Exceptional platform correction: this activates the selected plan and paid period." okText="Confirm correction" onConfirm={() => invoiceMutation.mutate({ invoice, action: 'settle' })}><Button type="primary" size="small" icon={<Check size={14} />}>Correct as paid</Button></Popconfirm><Popconfirm title="Void this invoice?" okText="Void" okButtonProps={{ danger: true }} onConfirm={() => invoiceMutation.mutate({ invoice, action: 'void' })}><Button danger size="small">Void</Button></Popconfirm></Space> },
   ]
 
   return <div className="super-admin-page commercial-page">

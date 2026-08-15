@@ -93,28 +93,35 @@ class OrganizationCommercialManagementTest extends TestCase
         $this->assertSame(5, User::query()->where('organization_id', $organization->id)->count());
     }
 
-    public function test_administrator_requests_a_plan_and_super_admin_settles_the_simulated_invoice(): void
+    public function test_administrator_checkout_pays_invoice_and_activates_plan_automatically(): void
     {
         $organization = $this->organization('billing-network');
         $subscription = app(OrganizationBillingService::class)->createTrial($organization);
         $administrator = $this->user($organization, 'admin');
-        $superAdministrator = $this->user(null, 'super_admin');
         $starter = SaasPlan::query()->where('code', 'STARTER')->firstOrFail();
         Sanctum::actingAs($administrator);
 
+        $idempotencyKey = (string) str()->uuid();
         $invoiceId = $this->postJson('/api/organization-billing/requests', [
             'saas_plan_id' => $starter->id,
             'billing_cycle' => 'annual',
+            'payment_method' => 'simulated_card',
+            'simulation_outcome' => 'success',
+            'idempotency_key' => $idempotencyKey,
         ])->assertCreated()
-            ->assertJsonPath('data.status', 'open')
+            ->assertJsonPath('data.status', 'paid')
             ->assertJsonPath('data.plan.code', 'STARTER')
+            ->assertJsonPath('data.payment_method', 'simulated_card')
             ->json('data.id');
 
-        Sanctum::actingAs($superAdministrator);
-        $this->postJson("/api/commercial/invoices/{$invoiceId}/settle")
-            ->assertOk()
-            ->assertJsonPath('data.status', 'paid')
-            ->assertJsonPath('data.payment_provider', 'simulated');
+        $this->postJson('/api/organization-billing/requests', [
+            'saas_plan_id' => $starter->id,
+            'billing_cycle' => 'annual',
+            'payment_method' => 'simulated_card',
+            'simulation_outcome' => 'success',
+            'idempotency_key' => $idempotencyKey,
+        ])->assertCreated()->assertJsonPath('data.id', $invoiceId);
+        $this->assertSame(1, OrganizationInvoice::query()->where('idempotency_key', $idempotencyKey)->count());
 
         $this->assertDatabaseHas('organization_subscriptions', [
             'id' => $subscription->id,
@@ -128,6 +135,36 @@ class OrganizationCommercialManagementTest extends TestCase
         $this->get("/api/commercial/invoices/{$invoiceId}/document")
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_failed_organization_checkout_preserves_trial_and_can_be_corrected_by_super_admin(): void
+    {
+        $organization = $this->organization('declined-billing-network');
+        $subscription = app(OrganizationBillingService::class)->createTrial($organization);
+        $administrator = $this->user($organization, 'admin');
+        $superAdministrator = $this->user(null, 'super_admin');
+        $starter = SaasPlan::query()->where('code', 'STARTER')->firstOrFail();
+        Sanctum::actingAs($administrator);
+
+        $invoiceId = $this->postJson('/api/organization-billing/requests', [
+            'saas_plan_id' => $starter->id,
+            'billing_cycle' => 'monthly',
+            'payment_method' => 'simulated_d17',
+            'simulation_outcome' => 'declined',
+            'idempotency_key' => (string) str()->uuid(),
+        ])->assertCreated()
+            ->assertJsonPath('data.status', 'failed')
+            ->assertJsonPath('data.payment_method', 'simulated_d17')
+            ->json('data.id');
+
+        $this->assertSame('trialing', $subscription->fresh()->status);
+        $this->assertSame('Simulated provider decline', OrganizationInvoice::query()->findOrFail($invoiceId)->failure_reason);
+
+        Sanctum::actingAs($superAdministrator);
+        $this->postJson("/api/commercial/invoices/{$invoiceId}/settle")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'paid');
+        $this->assertSame('active', $subscription->fresh()->status);
     }
 
     public function test_a_manually_suspended_valid_trial_is_restored_as_a_trial(): void

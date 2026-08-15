@@ -1,6 +1,6 @@
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Avatar, Button, Empty, Input, Modal, Popconfirm, Radio, Segmented, Select, Skeleton, Switch, Table, Tag } from 'antd'
+import { Alert, App, Avatar, Button, Empty, Form, Input, Modal, Popconfirm, Segmented, Select, Skeleton, Steps, Switch, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { getApiErrorMessage } from '../api/apiErrors'
 import dayjs from 'dayjs'
@@ -10,13 +10,11 @@ import {
   CalendarClock,
   CreditCard,
   FileText,
-  Landmark,
   ListFilter,
   ReceiptText,
   RotateCcw,
   Search,
   ShieldCheck,
-  Smartphone,
   TriangleAlert,
   X,
   Zap,
@@ -36,6 +34,8 @@ import {
   updateSubscription,
 } from '../features/subscriptions/subscriptionApi'
 import { createIdempotencyKey } from '../lib/idempotency'
+import { SimulatedPaymentFields, type SimulatedPaymentFormValues } from '../features/payments/SimulatedPaymentFields'
+import { paymentMethodLabel as checkoutPaymentMethodLabel, simulatedPaymentFieldNames, toSimulatedPaymentSelection } from '../features/payments/simulatedPaymentModel'
 import type {
   PlanSubscription,
   PlanSubscriptionInvoice,
@@ -54,8 +54,6 @@ export function SubscriptionsPage() {
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null)
   const [retrySubscription, setRetrySubscription] = useState<PlanSubscription | null>(null)
   const [autoRenew, setAutoRenew] = useState(true)
-  const [paymentMethod, setPaymentMethod] = useState<SubscriptionPaymentMethod>('simulated_card')
-  const [simulationOutcome, setSimulationOutcome] = useState<'success' | 'declined'>('success')
   const [invoicePreview, setInvoicePreview] = useState<PdfPreviewTarget | null>(null)
   const deferredSearch = useDeferredValue(search)
   const queryClient = useQueryClient()
@@ -96,13 +94,16 @@ export function SubscriptionsPage() {
     ])
   }
   const subscribeMutation = useMutation({
-    mutationFn: (plan: SubscriptionPlan) => subscribeToPlan({
-      charging_plan_id: plan.id,
-      auto_renew: autoRenew,
-      payment_method: paymentMethod,
-      idempotency_key: createIdempotencyKey(),
-      simulation_outcome: simulationOutcome,
-    }),
+    mutationFn: ({ plan, payment }: { plan: SubscriptionPlan; payment: SimulatedPaymentFormValues }) => {
+      const selection = toSimulatedPaymentSelection(payment)
+      return subscribeToPlan({
+        charging_plan_id: plan.id,
+        auto_renew: autoRenew,
+        payment_method: selection.method,
+        idempotency_key: createIdempotencyKey(),
+        simulation_outcome: selection.simulation_outcome,
+      })
+    },
     onSuccess: async (subscription) => {
       await refreshSubscriptions()
       setSelectedPlan(null)
@@ -130,11 +131,14 @@ export function SubscriptionsPage() {
     onError: (error) => void message.error(getApiErrorMessage(error, 'The subscription could not be resumed.')),
   })
   const retryMutation = useMutation({
-    mutationFn: (subscription: PlanSubscription) => retrySubscriptionPayment(subscription.id, {
-      payment_method: paymentMethod,
-      idempotency_key: createIdempotencyKey(),
-      simulation_outcome: simulationOutcome,
-    }),
+    mutationFn: ({ subscription, payment }: { subscription: PlanSubscription; payment: SimulatedPaymentFormValues }) => {
+      const selection = toSimulatedPaymentSelection(payment)
+      return retrySubscriptionPayment(subscription.id, {
+        payment_method: selection.method,
+        idempotency_key: createIdempotencyKey(),
+        simulation_outcome: selection.simulation_outcome,
+      })
+    },
     onSuccess: async () => {
       await refreshSubscriptions()
       setRetrySubscription(null)
@@ -150,8 +154,6 @@ export function SubscriptionsPage() {
     setSelectedPlan(plan)
     setRetrySubscription(null)
     setAutoRenew(true)
-    setPaymentMethod('simulated_card')
-    setSimulationOutcome('success')
   }
   const openInvoice = (invoice: PlanSubscriptionInvoice) => setInvoicePreview({
     title: `${invoice.plan.name} - ${invoice.reference}`,
@@ -225,7 +227,7 @@ export function SubscriptionsPage() {
           onRenew={(renew) => renewalMutation.mutate({ subscriptionId: subscription.id, renew })}
           onCancel={() => cancelMutation.mutate(subscription.id)}
           onResume={() => resumeMutation.mutate(subscription.id)}
-          onRetry={() => { setRetrySubscription(subscription); setSelectedPlan(null); setPaymentMethod(subscription.payment_method); setSimulationOutcome('success') }}
+          onRetry={() => { setRetrySubscription(subscription); setSelectedPlan(null) }}
           onInvoice={() => subscription.latest_invoice && openInvoice(subscription.latest_invoice)}
         />)}
       </div>}
@@ -251,24 +253,16 @@ export function SubscriptionsPage() {
       plan={selectedPlan}
       currentSubscription={selectedPlan ? activeByOrganization.get(selectedPlan.organization.id) : undefined}
       autoRenew={autoRenew}
-      paymentMethod={paymentMethod}
-      simulationOutcome={simulationOutcome}
       submitting={subscribeMutation.isPending}
       onRenewChange={setAutoRenew}
-      onPaymentMethodChange={setPaymentMethod}
-      onSimulationOutcomeChange={setSimulationOutcome}
       onClose={() => setSelectedPlan(null)}
-      onConfirm={() => selectedPlan && subscribeMutation.mutate(selectedPlan)}
+      onConfirm={(payment) => selectedPlan && subscribeMutation.mutate({ plan: selectedPlan, payment })}
     />
     <RetryPaymentModal
       subscription={retrySubscription}
-      method={paymentMethod}
-      simulationOutcome={simulationOutcome}
       submitting={retryMutation.isPending}
-      onMethodChange={setPaymentMethod}
-      onSimulationOutcomeChange={setSimulationOutcome}
       onClose={() => setRetrySubscription(null)}
-      onConfirm={() => retrySubscription && retryMutation.mutate(retrySubscription)}
+      onConfirm={(payment) => retrySubscription && retryMutation.mutate({ subscription: retrySubscription, payment })}
     />
     <PdfDocumentPreviewModal target={invoicePreview} onClose={() => setInvoicePreview(null)} />
   </div>
@@ -323,65 +317,73 @@ function PlanCard({ plan, activeSubscription, onChoose }: { plan: SubscriptionPl
   </article>
 }
 
-function SubscriptionCheckoutModal({ plan, currentSubscription, autoRenew, paymentMethod, simulationOutcome, submitting, onRenewChange, onPaymentMethodChange, onSimulationOutcomeChange, onClose, onConfirm }: {
+function SubscriptionCheckoutModal({ plan, currentSubscription, autoRenew, submitting, onRenewChange, onClose, onConfirm }: {
   plan: SubscriptionPlan | null
   currentSubscription?: PlanSubscription
   autoRenew: boolean
-  paymentMethod: SubscriptionPaymentMethod
-  simulationOutcome: 'success' | 'declined'
   submitting: boolean
   onRenewChange: (value: boolean) => void
-  onPaymentMethodChange: (value: SubscriptionPaymentMethod) => void
-  onSimulationOutcomeChange: (value: 'success' | 'declined') => void
   onClose: () => void
-  onConfirm: () => void
+  onConfirm: (payment: SimulatedPaymentFormValues) => void
 }) {
+  const [form] = Form.useForm<SimulatedPaymentFormValues>()
+  const [step, setStep] = useState(0)
+  const method = Form.useWatch('method', { form, preserve: true })
   const switching = Boolean(currentSubscription && currentSubscription.plan.id !== plan?.id)
-  return <Modal className="subscription-checkout-modal" width={760} open={Boolean(plan)} footer={null} onCancel={onClose} title={switching ? 'Switch charging plan' : 'Complete membership checkout'}>
-    {plan && <div className="subscription-checkout-layout">
-      <section>
+  useEffect(() => {
+    if (!plan) return
+    setStep(0)
+    form.resetFields()
+    form.setFieldsValue({ method: 'simulated_card', simulation_outcome: 'success' })
+  }, [form, plan])
+
+  const next = async () => {
+    if (step === 1) await form.validateFields(['method', 'simulation_outcome', ...simulatedPaymentFieldNames(method)])
+    setStep((value) => Math.min(2, value + 1))
+  }
+
+  return <Modal className="subscription-checkout-modal" width={820} open={Boolean(plan)} footer={null} onCancel={onClose} title={switching ? 'Switch charging plan' : 'Complete membership checkout'}>
+    {plan && <Form form={form} layout="vertical" initialValues={{ method: 'simulated_card', simulation_outcome: 'success' }} onFinish={onConfirm}>
+      <Steps current={step} size="small" items={[{ title: 'Plan' }, { title: 'Payment' }, { title: 'Review' }]} />
+      <div className="subscription-checkout-layout">
+        <section>
         <OrganizationIdentity organization={plan.organization} />
         <div className="checkout-plan-summary"><small>SELECTED PLAN</small><h3>{plan.name}</h3><p>{plan.description}</p><strong>{formatMoney(plan.monthly_fee_millimes)}<span>/month</span></strong><div><BadgePercent size={15} />{formatDiscount(plan.discount_basis_points)} charging discount</div></div>
         {switching && <Alert type="warning" showIcon title={`Replaces ${currentSubscription?.plan.name}`} description="The former plan ends only after this simulated payment succeeds. Other network memberships are unchanged." />}
-      </section>
-      <section>
-        <h3>Payment method</h3><p className="checkout-helper">Choose the sandbox channel used for this recurring membership.</p>
-        <PaymentMethods value={paymentMethod} onChange={onPaymentMethodChange} />
-        {import.meta.env.DEV && <label className="subscription-sandbox-control"><span><strong>Simulator outcome</strong><small>Development testing only</small></span><Select value={simulationOutcome} options={[{ value: 'success', label: 'Approve payment' }, { value: 'declined', label: 'Decline payment' }]} onChange={onSimulationOutcomeChange} /></label>}
         <label className="subscription-renew-option"><span><CalendarClock size={16} /><span><strong>Automatic renewal</strong><small>Use this channel at each monthly renewal</small></span></span><Switch checked={autoRenew} onChange={onRenewChange} /></label>
-        <div className="checkout-total"><span><small>Due today</small><strong>{formatMoney(plan.monthly_fee_millimes)}</strong></span><small>No real financial transaction occurs in this MVP.</small></div>
-        <div className="subscription-modal-actions"><Button onClick={onClose}>Back</Button><Button type="primary" icon={<ShieldCheck size={15} />} loading={submitting} onClick={onConfirm}>Pay and activate</Button></div>
-      </section>
-    </div>}
+        </section>
+        <section>
+          {step === 0 && <div className="checkout-stage-copy"><small>MEMBERSHIP CHECKOUT</small><h3>Confirm this network benefit</h3><p>Your membership applies only to {plan.organization.name}. Other organization memberships remain independent.</p><div className="checkout-total"><span><small>Due today</small><strong>{formatMoney(plan.monthly_fee_millimes)}</strong></span><small>Recurring monthly membership in the payment sandbox.</small></div></div>}
+          {step === 1 && <><h3>Payment details</h3><p className="checkout-helper">Choose and complete the sandbox channel used for this membership.</p><SimulatedPaymentFields method={method} scenarioLabel="Simulator outcome" compact /></>}
+          {step === 2 && <div className="checkout-review"><small>REVIEW</small><h3>Ready to activate</h3><dl><div><dt>Network</dt><dd>{plan.organization.name}</dd></div><div><dt>Plan</dt><dd>{plan.name}</dd></div><div><dt>Payment</dt><dd>{checkoutPaymentMethodLabel(method ?? 'simulated_card')}</dd></div><div><dt>Renewal</dt><dd>{autoRenew ? 'Automatic' : 'Manual'}</dd></div><div><dt>Total</dt><dd>{formatMoney(plan.monthly_fee_millimes)}</dd></div></dl><Alert type="success" showIcon title="Activation follows successful payment" description="The current membership changes only after the simulator confirms this transaction." /></div>}
+        </section>
+      </div>
+      <div className="subscription-modal-actions"><Button onClick={step === 0 ? onClose : () => setStep((value) => Math.max(0, value - 1))}>{step === 0 ? 'Cancel' : 'Back'}</Button>{step < 2 ? <Button type="primary" onClick={() => void next()}>Continue</Button> : <Button type="primary" htmlType="submit" icon={<ShieldCheck size={15} />} loading={submitting}>Pay and activate</Button>}</div>
+    </Form>}
   </Modal>
 }
 
-function RetryPaymentModal({ subscription, method, simulationOutcome, submitting, onMethodChange, onSimulationOutcomeChange, onClose, onConfirm }: {
+function RetryPaymentModal({ subscription, submitting, onClose, onConfirm }: {
   subscription: PlanSubscription | null
-  method: SubscriptionPaymentMethod
-  simulationOutcome: 'success' | 'declined'
   submitting: boolean
-  onMethodChange: (value: SubscriptionPaymentMethod) => void
-  onSimulationOutcomeChange: (value: 'success' | 'declined') => void
   onClose: () => void
-  onConfirm: () => void
+  onConfirm: (payment: SimulatedPaymentFormValues) => void
 }) {
-  return <Modal className="subscription-retry-modal" width={560} open={Boolean(subscription)} footer={null} onCancel={onClose} title="Retry membership payment">
-    {subscription && <div className="subscription-retry-content">
-      <Alert type="warning" showIcon icon={<TriangleAlert size={17} />} title={`${subscription.plan.name} is past due`} description={`Complete ${formatMoney(subscription.monthly_fee_millimes)} before ${dayjs(subscription.grace_ends_at).format('DD MMM YYYY')}.`} />
-      <PaymentMethods value={method} onChange={onMethodChange} />
-      {import.meta.env.DEV && <Select value={simulationOutcome} options={[{ value: 'success', label: 'Approve payment' }, { value: 'declined', label: 'Decline payment' }]} onChange={onSimulationOutcomeChange} />}
-      <div className="subscription-modal-actions"><Button onClick={onClose}>Cancel</Button><Button type="primary" loading={submitting} onClick={onConfirm}>Retry {formatMoney(subscription.monthly_fee_millimes)}</Button></div>
-    </div>}
-  </Modal>
-}
+  const [form] = Form.useForm<SimulatedPaymentFormValues>()
+  const method = Form.useWatch('method', { form, preserve: true })
+  useEffect(() => {
+    if (!subscription) return
+    form.resetFields()
+    form.setFieldsValue({ method: subscription.payment_method, simulation_outcome: 'success' })
+  }, [form, subscription])
 
-function PaymentMethods({ value, onChange }: { value: SubscriptionPaymentMethod; onChange: (value: SubscriptionPaymentMethod) => void }) {
-  return <Radio.Group className="subscription-payment-methods" value={value} onChange={(event) => onChange(event.target.value)}>
-    <Radio value="simulated_card"><span><CreditCard size={18} /><span><strong>Bank card</strong><small>Visa or Mastercard simulation</small></span></span></Radio>
-    <Radio value="simulated_edinar"><span><Landmark size={18} /><span><strong>e-DINAR</strong><small>Postal wallet simulation</small></span></span></Radio>
-    <Radio value="simulated_d17"><span><Smartphone size={18} /><span><strong>D17 wallet</strong><small>Mobile payment simulation</small></span></span></Radio>
-  </Radio.Group>
+  return <Modal className="subscription-retry-modal" width={700} open={Boolean(subscription)} footer={null} onCancel={onClose} title="Retry membership payment">
+    {subscription && <Form form={form} layout="vertical" initialValues={{ method: subscription.payment_method, simulation_outcome: 'success' }} onFinish={onConfirm}><div className="subscription-retry-content">
+      <Alert type="warning" showIcon icon={<TriangleAlert size={17} />} title={`${subscription.plan.name} is past due`} description={`Complete ${formatMoney(subscription.monthly_fee_millimes)} before ${dayjs(subscription.grace_ends_at).format('DD MMM YYYY')}.`} />
+      <SimulatedPaymentFields method={method} scenarioLabel="Simulator outcome" compact />
+      <div className="subscription-modal-actions"><Button onClick={onClose}>Cancel</Button><Button type="primary" htmlType="submit" loading={submitting}>Retry {formatMoney(subscription.monthly_fee_millimes)}</Button></div>
+    </div></Form>}
+  </Modal>
 }
 
 function OrganizationIdentity({ organization }: { organization: SubscriptionPlan['organization'] }) {

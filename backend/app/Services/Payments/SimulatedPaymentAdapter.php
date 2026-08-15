@@ -16,8 +16,8 @@ class SimulatedPaymentAdapter implements PaymentGateway
 
     public function charge(PaymentCharge $charge): PaymentResult
     {
-        if ($declined = $this->declined($charge)) {
-            return $declined;
+        if ($failure = $this->failure($charge)) {
+            return $failure;
         }
 
         return new PaymentResult(
@@ -29,8 +29,8 @@ class SimulatedPaymentAdapter implements PaymentGateway
 
     public function authorize(PaymentCharge $charge): PaymentResult
     {
-        if ($declined = $this->declined($charge)) {
-            return $declined;
+        if ($failure = $this->failure($charge)) {
+            return $failure;
         }
 
         return new PaymentResult(
@@ -42,8 +42,8 @@ class SimulatedPaymentAdapter implements PaymentGateway
 
     public function capture(PaymentCharge $charge, string $authorizationId): PaymentResult
     {
-        if ($declined = $this->declined($charge)) {
-            return $declined;
+        if ($failure = $this->failure($charge)) {
+            return $failure;
         }
 
         return new PaymentResult(
@@ -67,13 +67,24 @@ class SimulatedPaymentAdapter implements PaymentGateway
         );
     }
 
-    private function declined(PaymentCharge $charge): ?PaymentResult
+    private function failure(PaymentCharge $charge): ?PaymentResult
     {
-        return $charge->simulationOutcome === 'declined'
+        $failure = match ($charge->simulationOutcome) {
+            'declined' => ['Simulated provider decline', 'payment_declined', false],
+            'timeout' => ['Simulated provider timeout', 'provider_timeout', true],
+            'provider_error' => ['Simulated provider unavailable', 'provider_error', true],
+            default => null,
+        };
+
+        return $failure !== null
             ? new PaymentResult(
                 successful: false,
-                failureReason: 'Simulated provider decline',
-                metadata: $this->metadata($charge, 'declined'),
+                failureReason: $failure[0],
+                metadata: [
+                    ...$this->metadata($charge, $charge->simulationOutcome),
+                    'error_code' => $failure[1],
+                    'retryable' => $failure[2],
+                ],
             )
             : null;
     }

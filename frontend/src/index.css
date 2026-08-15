@@ -9936,6 +9936,65 @@ html {
 .subscription-renew-option strong { color: #35423b; font-size: 10px; }
 .subscription-renew-option small { color: #919b96; font-size: 8px; }
 .subscription-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.subscription-checkout-modal .ant-steps,
+.organization-checkout-modal .ant-steps { margin: 8px 0 20px; }
+.checkout-stage-copy,
+.checkout-review { display: grid; align-content: center; gap: 12px; min-height: 320px; }
+.checkout-stage-copy > small,
+.checkout-review > small { color: #0b8a59; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+.checkout-stage-copy h3,
+.checkout-review h3 { margin: 0; color: #1c3127; font-size: 22px; }
+.checkout-stage-copy > p { margin: 0; color: #728079; font-size: 13px; line-height: 1.6; }
+.checkout-review dl,
+.organization-checkout-billing dl,
+.organization-checkout-review dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; overflow: hidden; margin: 4px 0; border: 1px solid #dfe8e3; border-radius: 8px; background: #dfe8e3; }
+.checkout-review dl > div,
+.organization-checkout-billing dl > div,
+.organization-checkout-review dl > div { display: grid; gap: 3px; padding: 12px 14px; background: #f9fbfa; }
+.checkout-review dt,
+.organization-checkout-billing dt,
+.organization-checkout-review dt { color: #7a8981; font-size: 10px; }
+.checkout-review dd,
+.organization-checkout-billing dd,
+.organization-checkout-review dd { margin: 0; color: #22362c; font-size: 13px; font-weight: 700; }
+
+.organization-checkout-stage { min-height: 430px; padding: 22px 2px 8px; }
+.organization-checkout-stage > section { width: min(100%, 680px); margin: 0 auto; }
+.organization-checkout-stage h2 { margin: 2px 0 7px; color: #1b3026; font-size: 24px; }
+.organization-checkout-stage p { color: #728079; line-height: 1.55; }
+.checkout-stage-icon { display: grid; width: 44px; height: 44px; place-items: center; margin-bottom: 12px; border-radius: 9px; color: #fff; background: #159a63; box-shadow: 0 6px 14px rgb(21 154 99 / 18%); }
+.organization-checkout-plan { display: flex; min-height: 390px; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.organization-checkout-plan > small,
+.organization-checkout-stage header small { color: #0d8758; font-size: 10px; font-weight: 800; letter-spacing: .05em; }
+.organization-checkout-plan > p { max-width: 520px; margin: 0 0 18px; }
+.organization-checkout-plan > strong { margin: 18px 0 10px; color: #152a20; font-size: 28px; }
+.organization-checkout-plan > strong small { margin-left: 4px; color: #74827b; font-size: 12px; font-weight: 500; }
+.organization-checkout-plan > div { display: flex; gap: 8px; }
+.organization-checkout-plan > div span { padding: 7px 10px; border-radius: 6px; background: #eef7f2; color: #33745a; font-size: 11px; font-weight: 700; }
+.organization-checkout-billing > header,
+.organization-checkout-payment > header,
+.organization-checkout-review > header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.organization-checkout-billing > header .checkout-stage-icon,
+.organization-checkout-payment > header .checkout-stage-icon,
+.organization-checkout-review > header .checkout-stage-icon { flex: 0 0 auto; margin: 0; }
+.organization-checkout-billing > p { margin: -7px 0 16px 56px; }
+.organization-checkout-payment .simulated-payment-fields { margin-top: 4px; }
+.organization-checkout-actions { display: flex; justify-content: space-between; gap: 10px; padding-top: 16px; border-top: 1px solid #e5ebe8; }
+.organization-checkout-actions .ant-btn-primary,
+.organization-checkout-modal .ant-result-extra .ant-btn-primary { color: #fff; background: #159a63; }
+.organization-checkout-modal .ant-result { padding: 48px 24px 24px; }
+.organization-checkout-modal .ant-result-icon svg { width: 66px; height: 66px; color: #159a63; }
+.organization-checkout-modal .ant-result-error .ant-result-icon svg { color: #d14343; }
+
+.simulated-payment-fields.is-compact .payment-details-panel { margin-bottom: 12px; }
+.simulated-payment-fields.is-compact .ant-alert { margin-bottom: 4px; }
+
+@media (max-width: 720px) {
+  .checkout-review dl,
+  .organization-checkout-billing dl,
+  .organization-checkout-review dl { grid-template-columns: 1fr; }
+  .organization-checkout-stage { min-height: 0; }
+}
 
 .start-plan-benefit { display: flex; align-items: center; gap: 8px; margin: 0 0 13px; padding: 9px 10px; border: 1px solid #ccebdc; border-radius: 7px; background: #f2fbf7; color: #11835a; }
 .start-plan-benefit > span { display: flex; flex-direction: column; gap: 2px; }

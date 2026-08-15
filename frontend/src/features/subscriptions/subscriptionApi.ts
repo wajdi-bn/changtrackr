@@ -5,6 +5,7 @@ import type {
   SubscriptionPaymentMethod,
   SubscriptionPlan,
 } from '../../types/subscription'
+import type { PaymentSimulationOutcome } from '../../types/charging'
 
 export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
   return (await httpClient.get<{ data: SubscriptionPlan[] }>('/subscription-plans')).data.data
@@ -23,7 +24,7 @@ export async function subscribeToPlan(payload: {
   auto_renew: boolean
   payment_method: SubscriptionPaymentMethod
   idempotency_key: string
-  simulation_outcome?: 'success' | 'declined'
+  simulation_outcome?: PaymentSimulationOutcome
 }): Promise<PlanSubscription> {
   return (await httpClient.post<{ data: PlanSubscription }>('/subscriptions', payload)).data.data
 }
@@ -43,7 +44,7 @@ export async function resumeSubscription(subscriptionId: number): Promise<PlanSu
 export async function retrySubscriptionPayment(subscriptionId: number, payload: {
   payment_method: SubscriptionPaymentMethod
   idempotency_key: string
-  simulation_outcome?: 'success' | 'declined'
+  simulation_outcome?: PaymentSimulationOutcome
 }): Promise<PlanSubscription> {
   return (await httpClient.post<{ data: PlanSubscription }>(`/subscriptions/${subscriptionId}/retry-payment`, payload)).data.data
 }

@@ -9,8 +9,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'organization_id', 'organization_subscription_id', 'saas_plan_id', 'requested_by_id',
     'settled_by_id', 'number', 'status', 'billing_cycle', 'amount_millimes', 'currency',
-    'period_starts_at', 'period_ends_at', 'due_at', 'paid_at', 'payment_provider',
-    'provider_reference', 'snapshot',
+    'period_starts_at', 'period_ends_at', 'due_at', 'paid_at', 'failed_at', 'failure_reason',
+    'payment_provider', 'payment_method', 'provider_reference', 'idempotency_key', 'snapshot',
+    'provider_metadata',
 ])]
 class OrganizationInvoice extends Model
 {
@@ -49,7 +50,9 @@ class OrganizationInvoice extends Model
             'period_ends_at' => 'datetime',
             'due_at' => 'datetime',
             'paid_at' => 'datetime',
+            'failed_at' => 'datetime',
             'snapshot' => 'array',
+            'provider_metadata' => 'array',
         ];
     }
 }

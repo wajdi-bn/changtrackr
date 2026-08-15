@@ -86,7 +86,7 @@ class PlanSubscriptionController extends Controller
             'auto_renew' => ['required', 'boolean'],
             'payment_method' => ['required', Rule::in(['simulated_card', 'simulated_edinar', 'simulated_d17'])],
             'idempotency_key' => ['required', 'uuid'],
-            'simulation_outcome' => ['sometimes', Rule::in(['success', 'declined'])],
+            'simulation_outcome' => ['sometimes', Rule::in(['success', 'declined', 'timeout', 'provider_error'])],
         ]);
         /** @var User $client */
         $client = $request->user();
@@ -139,7 +139,7 @@ class PlanSubscriptionController extends Controller
         $attributes = $request->validate([
             'payment_method' => ['required', Rule::in(['simulated_card', 'simulated_edinar', 'simulated_d17'])],
             'idempotency_key' => ['required', 'uuid'],
-            'simulation_outcome' => ['sometimes', Rule::in(['success', 'declined'])],
+            'simulation_outcome' => ['sometimes', Rule::in(['success', 'declined', 'timeout', 'provider_error'])],
         ]);
 
         return new PlanSubscriptionResource($service->retry(

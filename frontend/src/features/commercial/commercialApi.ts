@@ -1,5 +1,6 @@
 import { httpClient } from '../../api/httpClient'
 import type { BillingCycle, CommercialPortfolio, OrganizationBillingWorkspace, OrganizationCommercialSubscription, OrganizationInvoice, SaasPlan } from '../../types/commercial'
+import type { PaymentSimulationOutcome, SimulatedPaymentMethod } from '../../types/charging'
 
 export type SaasPlanPayload = Omit<SaasPlan, 'id'>
 
@@ -23,8 +24,14 @@ export async function getOrganizationBilling(): Promise<OrganizationBillingWorks
   return (await httpClient.get<OrganizationBillingWorkspace>('/organization-billing')).data
 }
 
-export async function requestOrganizationPlan(saasPlanId: number, billingCycle: BillingCycle): Promise<OrganizationInvoice> {
-  return (await httpClient.post<{ data: OrganizationInvoice }>('/organization-billing/requests', { saas_plan_id: saasPlanId, billing_cycle: billingCycle })).data.data
+export async function requestOrganizationPlan(payload: {
+  saas_plan_id: number
+  billing_cycle: BillingCycle
+  payment_method: SimulatedPaymentMethod
+  idempotency_key: string
+  simulation_outcome: PaymentSimulationOutcome
+}): Promise<OrganizationInvoice> {
+  return (await httpClient.post<{ data: OrganizationInvoice }>('/organization-billing/requests', payload)).data.data
 }
 
 export async function extendOrganizationTrial(subscriptionId: number, days: number, note?: string): Promise<OrganizationCommercialSubscription> {

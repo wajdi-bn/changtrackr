@@ -59,7 +59,10 @@ export interface OrganizationInvoice {
   due_at: string
   paid_at: string | null
   payment_provider: string | null
+  payment_method: string | null
   provider_reference: string | null
+  failed_at: string | null
+  failure_reason: string | null
   requested_by: string | null
   settled_by: string | null
   created_at: string
