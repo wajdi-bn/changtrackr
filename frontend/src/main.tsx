@@ -4,6 +4,9 @@ import { MotionConfig } from 'framer-motion'
 import 'leaflet/dist/leaflet.css'
 import './index.css'
 import App from './App'
+import { installChunkLoadRecovery } from './app/chunkLoadRecovery'
+
+installChunkLoadRecovery()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
