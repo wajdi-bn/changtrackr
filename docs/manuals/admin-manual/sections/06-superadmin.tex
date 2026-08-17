@@ -119,6 +119,14 @@ transactionnel, de la passerelle OCPP et de l'adaptateur de paiement. Les
 secrets restent dans l'environnement de déploiement et ne sont jamais renvoyés
 au navigateur.
 
+La capture ci-dessous provient de l'environnement local et affiche le relais
+SMTP de développement. Le déploiement de référence utilise Resend avec le
+domaine d'envoi vérifié \texttt{chargetrackr.me}.
+
+\manualscreenshotcompact{superadmin-integrations.png}
+  {État opérationnel local des intégrations de la plateforme}
+  {fig:superadmin-integrations}
+
 \begin{table}[H]
   \centering
   \caption{Intégrations de la version de référence}
@@ -137,12 +145,28 @@ au navigateur.
   \end{tabularx}
 \end{table}
 
+\clearpage
 \section{Audit}
 
 Le journal d'audit permet de rechercher l'auteur, l'action, l'entité, la date et
 le contexte d'une opération sensible. Il sert au diagnostic et à la
 responsabilisation, mais ne remplace ni une sauvegarde ni les journaux
 techniques du serveur.
+
+\begin{procedurebox}{Analyser une trace d'audit}
+  \begin{enumerate}[leftmargin=*]
+    \item Définir une période courte, puis filtrer par action, auteur ou
+    organisation.
+    \item Ouvrir l'événement et vérifier son horodatage, son entité et sa
+    référence métier.
+    \item Corréler la trace avec l'écran concerné et, si nécessaire, avec les
+    journaux techniques du serveur.
+    \item Documenter la conclusion sans recopier de secret ni de donnée
+    personnelle inutile.
+    \item Exporter uniquement le sous-ensemble indispensable à l'analyse et le
+    conserver selon la politique de rétention.
+  \end{enumerate}
+\end{procedurebox}
 
 \securitynote{Un Super Admin ne doit jamais saisir un secret dans une note, un
 rapport ou un champ audité. Les secrets Google, Resend, OCPP et paiement restent

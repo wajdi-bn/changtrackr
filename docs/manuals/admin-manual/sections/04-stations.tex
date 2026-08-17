@@ -42,6 +42,63 @@ la connexion devient active et l'état des connecteurs est projeté à partir de
 de démonstration. Choisir une nouvelle référence, par exemple
 \texttt{CT-TUN-010}. La référence et l'identité OCPP doivent rester uniques.}
 
+\section{Utiliser le laboratoire de simulation OCPP}
+
+Le \emph{Simulation Lab} est un espace de test indépendant des tableaux de
+bord métier. Il permet de piloter les stations simulées sans ouvrir un terminal
+et de visualiser les signaux qui traversent la passerelle OCPP. La carte des
+signaux représente des événements assainis : elle n'expose ni secret de borne,
+ni jeton de contrôle, ni charge utile technique confidentielle.
+
+\manualscreenshot{admin-simulation-lab.png}
+  {Laboratoire de simulation OCPP et signaux d'une station}
+  {fig:admin-simulation-lab}
+
+\begin{table}[H]
+  \centering
+  \caption{Familles d'actions disponibles dans le laboratoire}
+  \label{tab:simulation-lab-actions}
+  \begin{tabularx}{\textwidth}{|L{4cm}|Y|Y|}
+    \hline
+    \rowcolor{ctmint}
+    \textbf{Famille} & \textbf{Exemples} & \textbf{Résultat à observer} \\ \hline
+    Connexion de la station & Connexion, déconnexion et battement de cœur &
+    État OCPP, dernier signal et règle de disponibilité. \\ \hline
+    État physique du connecteur & Branchement, débranchement, défaut et
+    récupération & Projection du connecteur et disponibilité de la station.
+    \\ \hline
+    Scénarios reproductibles & Cycle de câble et récupération après défaut &
+    Suite ordonnée d'événements dans le flux de protocole. \\ \hline
+    Commandes centrales & Redémarrage logiciel, déverrouillage et maintenance &
+    Accusé de réception, effet simulé et trace de commande. \\ \hline
+  \end{tabularx}
+\end{table}
+
+\begin{procedurebox}{Tester un changement d'état simulé}
+  \begin{enumerate}[leftmargin=*]
+    \item Ouvrir \emph{Simulation Lab} et sélectionner une station de
+    l'organisation.
+    \item Vérifier que l'adaptateur et le lien OCPP sont opérationnels.
+    \item Sélectionner le connecteur physique à tester.
+    \item Lancer une action unique ou un scénario reproductible.
+    \item Suivre les impulsions, le flux du protocole et l'état projeté.
+    \item Revenir au détail de la station pour contrôler la disponibilité, les
+    alertes et l'historique de commande.
+  \end{enumerate}
+\end{procedurebox}
+
+L'administrateur dispose du contrôle des stations simulées de son
+organisation. L'opérateur utilise les actions d'exploitation qui lui sont
+autorisées ; le technicien limite ses essais aux diagnostics liés à son
+intervention. Le client n'accède pas à cette console administrative : lors du
+parcours de recharge, l'étape de branchement observe automatiquement l'état
+OCPP du connecteur sélectionné.
+
+\attention{Le laboratoire reproduit le comportement attendu d'une borne, mais
+ne constitue pas une preuve de compatibilité avec un équipement physique. Un
+essai doit porter sur une station simulée identifiée et ne doit pas perturber
+une session en cours.}
+
 \section{Connecteurs}
 
 Le connecteur présenté dans l'interface correspond à un connecteur physique de
