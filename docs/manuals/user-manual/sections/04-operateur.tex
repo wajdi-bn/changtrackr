@@ -25,6 +25,29 @@ La fiche station sépare :
   \item les maintenances, sessions, alertes et documents.
 \end{itemize}
 
+\subsection{Mettre en service une station simulée}
+
+L'action \textbf{Commission station} crée ensemble la station, ses connecteurs
+physiques et son identité OCPP. Pour la cible \textbf{Local SAP simulator},
+l'enregistrement du profil est automatisé par la plateforme : l'opérateur ne
+copie pas de commande dans un terminal.
+
+\begin{procedurebox}{Créer une station de simulation}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item ouvrir \textbf{Stations}, puis \textbf{Commission station} ;
+    \item saisir l'identité, l'adresse et choisir la position sur la carte ;
+    \item définir le matériel et les connecteurs OCPP ;
+    \item sélectionner la cible de simulation ;
+    \item vérifier le récapitulatif et créer la station ;
+    \item ouvrir sa fiche ou le \textbf{Simulation Lab} pour suivre connexion,
+    démarrage et heartbeats.
+  \end{enumerate}
+\end{procedurebox}
+
+\expected{La station apparaît avec un profil de simulateur traçable. Sa
+disponibilité reste calculée à partir des événements reçus ; la création en base
+ne suffit pas à la déclarer en ligne.}
+
 \section{Commandes distantes}
 
 \begin{longtable}{|L{3.4cm}|L{5.1cm}|L{7cm}|}
@@ -48,6 +71,27 @@ La fiche station sépare :
 \expected{Chaque demande génère une trace avec son état : en attente, envoyée,
 acceptée, rejetée, expirée ou échouée. Une commande acceptée ne garantit pas à
 elle seule le résultat physique ; les événements suivants doivent le confirmer.}
+
+\section{Piloter le laboratoire OCPP}
+
+Depuis une station simulée, \textbf{Open Simulation Lab} ouvre un espace dédié.
+L'opérateur choisit une station et observe le lien OCPP, les connecteurs, les
+impulsions en direct et l'historique des actions.
+
+\begin{itemize}[leftmargin=1.6em]
+  \item \textbf{Connect / Disconnect} teste la présence ou la perte du lien ;
+  \item \textbf{Heartbeat} vérifie l'actualisation du dernier signal ;
+  \item \textbf{Plug / Unplug} reproduit le branchement du câble ;
+  \item \textbf{Inject fault / Recover} teste le défaut et son rétablissement ;
+  \item \textbf{Cable cycle} et \textbf{Fault and recovery} exécutent des
+  scénarios déterministes ;
+  \item \textbf{Soft restart}, \textbf{Unlock} et \textbf{Maintenance mode}
+  restent des commandes centrales, séparées de la simulation physique.
+\end{itemize}
+
+\attention{Déconnecter une station ou injecter un défaut peut créer une alerte
+et modifier sa disponibilité. Utiliser ces actions sur l'environnement simulé
+prévu, puis vérifier le retour à un état cohérent.}
 
 \section{Traiter une alerte}
 
@@ -98,6 +142,10 @@ sert à préparer une relève, documenter les incidents et transmettre un rappor
 
 \manualscreenshot{operator-reports.png}{Rapports et relève de l'opérateur}{fig:user-operator-reports}
 
-Un rapport peut être conservé en brouillon, envoyé, reçu ou archivé. Les pièces
-jointes doivent apporter une preuve utile et ne jamais contenir de secrets,
-identifiants de paiement ou mots de passe OCPP.
+Un rapport peut être conservé en brouillon, envoyé, reçu ou archivé. La
+composition propose des modèles adaptés au rôle, un destinataire, une catégorie,
+une priorité, une période et jusqu'à cinq pièces jointes de 10 Mo chacune (PDF,
+image, Word ou Excel). Si une pièce jointe échoue, le rapport reste enregistré
+en brouillon afin de permettre une nouvelle tentative. Les pièces jointes ne
+doivent jamais contenir de secrets, identifiants de paiement ou mots de passe
+OCPP.

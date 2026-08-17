@@ -52,6 +52,30 @@ La fiche station permet de vérifier :
 collectés. Une absence de mesure n'est pas une valeur nulle : elle doit être
 interprétée avec la connectivité et les événements OCPP.}
 
+\section{Diagnostiquer avec le Simulation Lab}
+
+Le technicien peut ouvrir le laboratoire pour une station simulée de son
+organisation. Son niveau \textbf{Diagnostic} permet d'observer les impulsions,
+envoyer un heartbeat, reproduire un branchement ou un débranchement, injecter un
+défaut de connecteur, rétablir le connecteur et lancer les scénarios de test.
+
+La connexion ou déconnexion globale de la station, le redémarrage, le
+déverrouillage et le mode maintenance restent désactivés : ces actions relèvent
+de l'opérateur ou de l'administrateur.
+
+\begin{procedurebox}{Vérifier un défaut et son rétablissement}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item choisir la station et le connecteur concernés ;
+    \item noter l'état et l'heure du dernier signal ;
+    \item utiliser \textbf{Inject fault} dans le contexte de test autorisé ;
+    \item vérifier l'impulsion \textbf{StatusNotification}, l'état
+    \textbf{Faulted} et l'alerte éventuelle ;
+    \item utiliser \textbf{Recover} ;
+    \item confirmer le retour à \textbf{Available} et consigner le résultat dans
+    l'intervention.
+  \end{enumerate}
+\end{procedurebox}
+
 \section{Rapport de terrain}
 
 \manualscreenshotcompact{technician-reports.png}{Bureau de rapports de maintenance}{fig:user-technician-reports}
@@ -66,6 +90,12 @@ Le rapport doit rester factuel et vérifiable :
   \item photos ou documents joints ;
   \item risque résiduel et recommandation.
 \end{itemize}
+
+Le bureau de rapports permet aussi d'envoyer une synthèse à un opérateur ou à
+l'administrateur. Les pièces jointes complémentaires sont privées et soumises à
+une nouvelle vérification d'autorisation lors de chaque téléchargement. Les
+photos \textbf{avant} et \textbf{après} restent, elles, liées au parcours guidé
+de l'intervention.
 
 \securitynote{Masquer les visages, plaques d'immatriculation et informations de
 paiement non nécessaires. Ne jamais photographier un secret OCPP ou une clé

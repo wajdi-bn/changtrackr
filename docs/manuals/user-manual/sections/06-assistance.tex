@@ -17,12 +17,22 @@
   Aucune station à proximité & Géolocalisation, rayon et filtres & Autoriser la
   position, élargir le rayon dans \textbf{Settings}, réinitialiser les filtres. \\ \hline
   Le câble n'est pas détecté & Libellé, verrouillage et état OCPP & Rebrancher
-  complètement, vérifier le bon connecteur et attendre le changement automatique. \\ \hline
+  complètement, vérifier le bon connecteur ; dans le MVP, utiliser le terminal
+  virtuel \textbf{Plug}, puis attendre l'état \textbf{Preparing}. \\ \hline
   Mesures de charge absentes & Dernier signal et connectivité & Ne pas conclure à
   zéro énergie ; signaler l'absence de télémétrie à l'exploitation. \\ \hline
   Commande distante sans effet & État de la commande et événements suivants &
   Attendre la confirmation OCPP ; ne pas répéter immédiatement une commande
   risquée. \\ \hline
+  Station simulée hors ligne & Adaptateur, lien OCPP et dernier heartbeat &
+  Ouvrir le \textbf{Simulation Lab}, vérifier l'état de l'adaptateur et demander
+  à l'opérateur de reconnecter la station si le rôle courant ne le permet pas. \\ \hline
+  Paiement en attente & État de préautorisation, capture et référence & Ne pas
+  répéter le paiement immédiatement ; actualiser la session et signaler la
+  référence si l'état ne progresse plus. \\ \hline
+  Pièce jointe refusée & Type, taille et nombre de fichiers & Utiliser PDF,
+  image, Word ou Excel, 10 Mo maximum par fichier et cinq fichiers au total ; le
+  brouillon reste disponible après un échec. \\ \hline
   Export introuvable & Téléchargements du navigateur et format & Autoriser les
   téléchargements et relancer avec CSV, JSON ou PDF. \\ \hline
 \end{longtable}
@@ -84,3 +94,8 @@ La version documentée est le MVP du stage. Elle utilise un simulateur de bornes
 OCPP et un adaptateur de paiement externe simulé pour les essais. Une borne
 physique, un prestataire bancaire réel, OCPP 2.0.1, la gestion distante du
 firmware et les fonctions prédictives restent des évolutions distinctes.
+
+Les scénarios OCPP et les paiements du MVP ont une valeur de test fonctionnel :
+ils produisent de vrais événements, états, sessions, alertes, traces et documents
+dans ChargeTrackr, mais ne commandent aucun équipement physique et ne déplacent
+aucun fonds bancaire.

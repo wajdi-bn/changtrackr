@@ -29,7 +29,8 @@ opérateur, même lorsqu'ils consultent la même station.
 
 \section{Prérequis}
 
-Pour utiliser l'application, il faut :
+La version en ligne est accessible à l'adresse
+\url{https://chargetrackr.me}. Pour utiliser l'application, il faut :
 
 \begin{itemize}[leftmargin=1.6em]
   \item un navigateur récent avec JavaScript et les cookies activés ;
@@ -43,6 +44,26 @@ Pour utiliser l'application, il faut :
 
 \attention{La position du client n'est demandée qu'au moment d'une recherche de
 proximité. Le rayon utilisé est réglable dans la page \textbf{Settings}.}
+
+\section{Créer un compte client}
+
+Le client peut créer lui-même un compte depuis le lien
+\textbf{Create a client account} de la page de connexion. Cette inscription
+publique ne crée ni organisation, ni compte opérateur ou technicien.
+
+\begin{procedurebox}{Inscription avec une adresse électronique}
+  \begin{enumerate}[leftmargin=1.6em]
+    \item ouvrir \textbf{Create a client account} ;
+    \item saisir les informations demandées et choisir un mot de passe robuste ;
+    \item valider le formulaire ;
+    \item ouvrir le courriel de vérification envoyé par ChargeTrackr ;
+    \item suivre le lien, puis se connecter.
+  \end{enumerate}
+\end{procedurebox}
+
+Le client peut aussi utiliser Google. ChargeTrackr associe alors le compte à
+l'identité Google sans enregistrer le mot de passe Google. Un compte créé
+uniquement avec Google ne propose pas de changement de mot de passe local.
 
 \section{Se connecter}
 
@@ -58,10 +79,9 @@ proximité. Le rayon utilisé est réglable dans la page \textbf{Settings}.}
 
 \manualscreenshot{login.png}{Page de connexion à ChargeTrackr}{fig:user-login}
 
-Un client peut également choisir \textbf{Continue with Google}. Dans ce cas,
-ChargeTrackr utilise l'identité Google et ne stocke pas le mot de passe Google.
-Un compte créé uniquement par Google n'affiche pas l'action de changement de mot
-de passe local.
+Si le mot de passe local est oublié, l'action \textbf{I forgot my password}
+envoie un lien temporaire à l'adresse vérifiée. Le nouveau mot de passe n'est
+enregistré qu'après validation de ce lien.
 
 \expected{L'utilisateur arrive sur son tableau de bord. Le libellé situé près de
 son avatar confirme le rôle actif.}
@@ -99,6 +119,10 @@ contexte du compte, puis renvoie vers le véritable espace de travail.
 \end{itemize}
 
 Le parcours peut être quitté et repris ultérieurement depuis le menu du compte.
+
+\expected{À la fin de l'accueil personnalisé, l'utilisateur entre dans son
+espace réel. Les conseils contextuels peuvent ensuite apparaître au moment où
+une action est exécutée, sans bloquer la navigation.}
 
 \section{Se déconnecter}
 

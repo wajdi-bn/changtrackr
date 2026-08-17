@@ -14,6 +14,21 @@ L'espace authentifié est construit autour de quatre zones :
 La barre latérale peut être réduite. Un badge rouge sur une entrée signale le
 nombre d'éléments non lus ou nécessitant une attention dans ce module.
 
+\begin{longtable}{|L{2.8cm}|L{12.7cm}|}
+  \hline
+  \rowcolor{ctmint}\textbf{Profil} & \textbf{Principales entrées de navigation} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}\textbf{Profil} & \textbf{Principales entrées de navigation} \\ \hline
+  \endhead
+  Client & Overview, Find Station, Plans \& Subscriptions, My Sessions,
+  Payments \& Invoices. \\ \hline
+  Opérateur & Overview, Stations, Alerts, Maintenance, Sessions, Payments,
+  Reports. \\ \hline
+  Technicien & Overview, My Alerts, My Interventions, Stations, Maintenance
+  Reports. \\ \hline
+\end{longtable}
+
 \section{Recherche globale}
 
 La recherche supérieure permet de retrouver les objets autorisés pour le rôle :
@@ -67,17 +82,52 @@ action globale existe réellement.
 Le menu de l'avatar donne accès à :
 
 \begin{itemize}[leftmargin=1.6em]
-  \item \textbf{Profile} : informations personnelles, professionnelles et
-  coordonnées ;
-  \item \textbf{Settings} : préférences d'affichage, fuseau horaire, rayon de
-  recherche et protection de l'accès ;
+  \item \textbf{Profile} : identité, contact, adresse, fonction, biographie,
+  photo et liens professionnels facultatifs ;
+  \item \textbf{Settings} : courriels de notification, fuseau horaire,
+  protection de l'accès et, pour le client, rayon de proximité ;
   \item \textbf{Help} : procédures adaptées au rôle et contact du support ;
   \item \textbf{Logout} : fermeture de la session.
 \end{itemize}
 
-Le fuseau horaire est une préférence du compte. Les dates affichées privilégient
-ce fuseau local, alors que les événements techniques restent conservés de façon
+Les informations de rôle, d'organisation, d'équipe et de statut sont en lecture
+seule dans le profil. Elles sont gérées par les responsables autorisés. Le
+fuseau horaire utilise par défaut celui de l'appareil ; un autre fuseau peut être
+choisi dans \textbf{Settings}. Les événements restent horodatés de façon
 cohérente côté serveur.
+
+Les préférences de notification règlent uniquement les courriels. Les
+notifications intégrées à l'application restent disponibles. Le bouton de
+changement de mot de passe n'est affiché que pour un compte disposant d'un mot
+de passe local.
+
+\section{Laboratoire de simulation OCPP}
+
+Le \textbf{Simulation Lab} est un espace de test séparé des tableaux de bord.
+Il ne remplace pas la fiche station : il reproduit les actions physiques d'une
+borne simulée et affiche leurs effets vérifiés dans OCPP, la disponibilité et
+l'historique.
+
+\begin{longtable}{|L{3cm}|L{4.3cm}|L{8.2cm}|}
+  \hline
+  \rowcolor{ctmint}\textbf{Profil} & \textbf{Niveau} & \textbf{Actions disponibles} \\ \hline
+  \endfirsthead
+  \hline
+  \rowcolor{ctmint}\textbf{Profil} & \textbf{Niveau} & \textbf{Actions disponibles} \\ \hline
+  \endhead
+  Opérateur & Contrôle complet & Connecter ou déconnecter la station simulée,
+  envoyer un heartbeat, brancher ou débrancher, injecter ou rétablir un défaut,
+  lancer les scénarios, puis utiliser les commandes centrales autorisées. \\ \hline
+  Technicien & Diagnostic & Observer les impulsions et états, envoyer un
+  heartbeat, simuler câble et défaut, puis vérifier le rétablissement. La
+  connexion globale et les commandes centrales restent réservées. \\ \hline
+  Client & Terminal guidé & Dans le parcours de recharge uniquement, simuler le
+  branchement du connecteur sélectionné. Aucun accès à la console d'exploitation. \\ \hline
+\end{longtable}
+
+\securitynote{Le laboratoire n'expose ni secret de borne, ni commande arbitraire,
+ni message OCPP brut. Chaque action est autorisée côté serveur, limitée à
+l'organisation et enregistrée dans l'historique.}
 
 \section{Comprendre les principaux états}
 
@@ -92,8 +142,8 @@ statuts des connecteurs, sessions, erreurs et maintenances.}
   \hline
   \rowcolor{ctmint}\textbf{Objet} & \textbf{État} & \textbf{Interprétation} \\ \hline
   Station & Disponible & Connecteur exploitable et communication valide. \\ \hline
-  Station & En charge & Session active projetée depuis OCPP. \\ \hline
-  Station & Non disponible & Réponse trop ancienne, défaut ou aucun connecteur
+  Station & Occupée / En charge & Session active projetée depuis OCPP. \\ \hline
+  Station & Hors ligne / Non disponible & Réponse trop ancienne, défaut ou aucun connecteur
   exploitable. \\ \hline
   Station & Maintenance & Indisponibilité planifiée ou intervention en cours.
   \\ \hline

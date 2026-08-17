@@ -6,6 +6,13 @@ Le tableau de bord client synthétise les sessions actives et terminées, l'éne
 reçue, les montants réglés, les abonnements et les identifiants de recharge. Il
 permet d'accéder rapidement à la recherche d'une station ou à une session active.
 
+Lorsqu'une recharge démarre, le bloc de session courante cesse immédiatement
+d'afficher l'état vide. Il présente les mesures en cours et permet de rouvrir la
+vue en direct. Après la fin, il affiche un état de réussite, l'énergie, la durée,
+le montant final et l'accès au reçu lorsqu'il est disponible.
+
+\manualscreenshotcompact{client-overview.png}{Tableau de bord du client}{fig:user-client-overview}
+
 \section{Trouver une station}
 
 La page \textbf{Find a station} propose une recherche par nom, ville ou adresse,
@@ -33,6 +40,8 @@ Depuis une station, le client peut copier les coordonnées, ouvrir l'emplacement
 dans Google Maps et demander un itinéraire. Le bouton \textbf{Charge} ouvre
 directement l'étape de sélection du connecteur lorsque la station est déjà
 connue.
+
+\manualscreenshot{client-find-station.png}{Recherche multivue d'une station}{fig:user-client-find-station}
 
 \section{Scanner un QR code}
 
@@ -67,19 +76,29 @@ L'adhésion à un plan est un acte distinct, volontaire et révocable.
     \item ouvrir \textbf{Plans \& subscriptions} ;
     \item comparer les réseaux, tarifs, réductions et conditions ;
     \item ouvrir le plan souhaité ;
-    \item vérifier l'organisation et son logo ;
-    \item confirmer le paiement simulé de l'abonnement ;
-    \item contrôler l'apparition du plan dans \textbf{My memberships}.
+    \item à l'étape \textbf{Plan}, vérifier l'organisation, son logo et les
+    avantages ;
+    \item à l'étape \textbf{Payment}, choisir la méthode et saisir les données
+    du simulateur ;
+    \item à l'étape \textbf{Review}, confirmer le récapitulatif ;
+    \item contrôler l'apparition du plan dans \textbf{My memberships} et de la
+    facture dans \textbf{Invoices}.
   \end{enumerate}
 \end{procedurebox}
 
 \expected{Le plan devient actif pour l'organisation choisie. Ses avantages sont
 appliqués aux futures recharges éligibles, sans modifier les autres adhésions.}
 
+Le client peut activer ou désactiver le renouvellement automatique, annuler une
+adhésion à la fin de sa période, reprendre une adhésion encore récupérable et
+réessayer le règlement d'une échéance en retard. Les factures d'abonnement sont
+distinctes des reçus de recharge et peuvent être prévisualisées en PDF.
+
 \section{Démarrer une recharge}
 
-Le parcours est guidé en cinq étapes. Lorsqu'une station a déjà été choisie,
-l'application passe directement à l'étape \textbf{Connector}.
+Le parcours est guidé en sept étapes. Lorsqu'une station ou un connecteur est
+déjà connu depuis la carte, une fiche ou un QR code, l'application ne redemande
+pas ce choix et ouvre l'étape suivante utile.
 
 \begin{longtable}{|C{1cm}|L{3.1cm}|L{5.2cm}|L{5.8cm}|}
   \hline
@@ -92,33 +111,53 @@ l'application passe directement à l'étape \textbf{Connector}.
   \endhead
   1 & Station & Rechercher ou confirmer la station. & Se placer devant la borne
   identifiée et vérifier sa référence. \\ \hline
-  2 & Connector & Choisir un connecteur disponible et compatible. & Repérer le
+  2 & Plug & Choisir un connecteur disponible et compatible. & Repérer le
   libellé physique, par exemple A1, et le type de prise. \\ \hline
-  3 & Connect & Attendre la détection OCPP automatique. & Stationner, couper le
-  véhicule et brancher complètement le câble. \\ \hline
-  4 & Payment & Autoriser le moyen de paiement et consulter le tarif. & Aucune
+  3 & Connect & Utiliser le terminal virtuel, puis attendre la détection OCPP
+  automatique. & Stationner, couper le véhicule et brancher complètement le
+  câble ; dans le MVP, l'action \textbf{Plug} simule ce geste. \\ \hline
+  4 & Target & Choisir une cible d'énergie, de durée ou de budget. & Définir une
+  limite adaptée au besoin de déplacement. \\ \hline
+  5 & Pay & Autoriser le moyen de paiement simulé et consulter le tarif. & Aucune
   action sur la borne ; l'autorisation est traitée dans l'application. \\ \hline
-  5 & Start & Confirmer le démarrage distant. & Attendre le verrouillage du câble
+  6 & Review & Vérifier station, connecteur, cible, tarif et montant autorisé. &
+  Contrôler une dernière fois la borne et le câble. \\ \hline
+  7 & Start & Confirmer le démarrage distant. & Attendre le verrouillage du câble
   et l'indication de charge sur le véhicule ou la borne. \\ \hline
 \end{longtable}
+
+À l'étape \textbf{Connect}, le bouton d'avancement reste désactivé. Le terminal
+virtuel envoie l'action de branchement au simulateur ; l'application interroge
+ensuite l'état du connecteur et passe automatiquement à \textbf{Target} lorsque
+OCPP retourne \textbf{Preparing}. Le client n'a donc pas besoin d'un compte
+opérateur ni d'une autre fenêtre.
+
+À l'étape \textbf{Target}, énergie, durée et budget sont liés au tarif et à la
+puissance maximale du connecteur. Modifier la valeur choisie recalcule les deux
+estimations associées. Une seule valeur sert de condition d'arrêt ; les autres
+restent indicatives, car la puissance réelle peut varier pendant la charge.
 
 \expected{Le connecteur passe à l'état occupé, une session active est créée et les
 mesures reçues par OCPP actualisent durée, énergie, puissance et estimation.}
 
 \section{Paiement de la recharge}
 
-Dans le MVP du stage, le paiement utilise un adaptateur externe simulé. Le
-parcours reproduit les étapes attendues d'un prestataire réel :
+Dans le MVP du stage, le paiement utilise un adaptateur externe simulé. Les
+coordonnées sont saisies dans une zone réservée au paiement, séparée des données
+de station, de cible et de tarification. Le parcours reproduit les étapes
+attendues d'un prestataire réel :
 
 \begin{enumerate}[leftmargin=1.6em]
-  \item autorisation avant le démarrage ;
+  \item préautorisation du plafond affiché avant le démarrage ;
   \item référence fournisseur et réponse de webhook ;
   \item calcul du montant avec le tarif et l'abonnement ;
   \item règlement final à l'arrêt ;
   \item génération d'un reçu consultable et téléchargeable.
 \end{enumerate}
 
-Le simulateur n'effectue aucun débit bancaire réel. L'architecture permet de
+Le montant préautorisé n'est pas le montant final. À l'arrêt, ChargeTrackr
+capture le montant réellement calculé et libère le solde non utilisé. Le
+simulateur n'effectue aucun débit bancaire réel. L'architecture permet de
 remplacer ultérieurement l'adaptateur par un fournisseur tel que ClicToPay,
 e-DINAR/D17, GPGCheckout, Konnect ou Flouci.
 
@@ -134,7 +173,7 @@ Une vue en direct présente les mesures et propose :
 \end{itemize}
 
 Une session peut également s'arrêter lorsque le véhicule ou la borne atteint sa
-condition de fin, en cas d'erreur de sécurité, de perte de communication
+cible configurée, en cas d'erreur de sécurité, de perte de communication
 confirmée ou d'arrêt distant autorisé par l'exploitation.
 
 \begin{procedurebox}{Arrêter volontairement une recharge}
@@ -150,5 +189,10 @@ confirmée ou d'arrêt distant autorisé par l'exploitation.
 
 \attention{Ne jamais forcer le retrait d'un câble verrouillé. Attendre la
 confirmation d'arrêt de la borne et du véhicule.}
+
+Lorsque l'arrêt OCPP est confirmé, la fenêtre en direct présente un état terminé
+avec le bilan final. Le reçu peut être prévisualisé avant téléchargement. Si la
+capture du paiement nécessite encore un traitement, la session reste visible
+avec son état réel au lieu d'afficher prématurément un règlement réussi.
 
 \manualscreenshot{client-sessions.png}{Suivi des sessions de recharge du client}{fig:user-client-sessions}
