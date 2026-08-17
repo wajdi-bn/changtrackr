@@ -2,9 +2,11 @@
 
 \section{Résultat de la campagne}
 
-La campagne du 29/07/2026 a été exécutée sur la révision
-\texttt{2963652}. Le daemon Docker était arrêté ; les tests du gateway ont donc
-été exécutés dans un environnement Python isolé équivalent au conteneur de test.
+La campagne du 17/08/2026 a été exécutée sur la révision
+\texttt{8e30530}. Les tests Laravel ont été exécutés localement avec SQLite en
+mémoire ; le gateway OCPP a été reconstruit et testé dans son image Docker. La
+CI complète répète en plus les migrations et les tests critiques avec
+PostgreSQL et Redis.
 
 \begin{table}[H]
 \centering
@@ -12,12 +14,14 @@ La campagne du 29/07/2026 a été exécutée sur la révision
 \begin{tabularx}{\textwidth}{|L{4.3cm}|C{2.1cm}|C{2.3cm}|Y|}
 \hline
 \rowcolor{ctmint}\textbf{Contrôle} & \textbf{Nombre} & \textbf{Résultat} & \textbf{Preuve} \\ \hline
-Tests backend Laravel & 203 tests, 1\,980 assertions & \statuspass & \texttt{php artisan test} \\ \hline
-Tests gateway OCPP Python & 12 tests & \statuspass & \texttt{pytest -q} \\ \hline
-Tests des outils simulateur & 2 tests & \statuspass & \texttt{node --test ...} \\ \hline
+Tests backend Laravel & 270 tests, 2\,784 assertions & \statuspass & \texttt{php artisan test} \\ \hline
+Tests frontend & 46 tests & \statuspass & \texttt{pnpm --dir frontend test} \\ \hline
+Tests d'infrastructure & 30 tests & \statuspass & \texttt{pnpm test:infra-config} \\ \hline
+Tests gateway OCPP Python & 23 tests & \statuspass & \texttt{pnpm test:ocpp-gateway} \\ \hline
+Tests des outils simulateur OCPP & 9 tests & \statuspass & \texttt{pnpm test:ocpp-tools} \\ \hline
 Lint frontend & 1 commande & \statuspass & \texttt{pnpm --dir frontend lint} \\ \hline
-Build frontend & 6\,280 modules & \statuspass & \texttt{pnpm --dir frontend build} \\ \hline
-Validation OpenAPI & 172 opérations & \statuspass & Tests API et export Scramble \\ \hline
+Build frontend & 6\,304 modules & \statuspass & \texttt{pnpm --dir frontend build} \\ \hline
+Validation OpenAPI & 180 opérations & \statuspass & Tests API et export Scramble \\ \hline
 Audit Composer & 0 avis connu & \statuspass & \texttt{composer audit} \\ \hline
 \end{tabularx}
 \end{table}
@@ -30,15 +34,15 @@ Audit Composer & 0 avis connu & \statuspass & \texttt{composer audit} \\ \hline
 \begin{tabularx}{\textwidth}{|Y|C{2.2cm}|L{5.2cm}|}
 \hline
 \rowcolor{ctmint}\textbf{Domaine} & \textbf{Tests} & \textbf{Exemples de risques couverts} \\ \hline
-Identité, profil, onboarding et demandes de démo & 39 & Session, email, OAuth Google, invitations, activation et documentation. \\ \hline
-Organisations, utilisateurs et gouvernance & 28 & Rôles, quotas, audit, données clients et isolation. \\ \hline
-Bornes, commissioning, télémétrie et documents & 26 & CRUD, carte, secrets, connecteurs, documents privés. \\ \hline
-OCPP, disponibilité et temps réel & 32 & HMAC, replay, Heartbeat, projection, commandes, transaction. \\ \hline
-Recharge, tarification, paiement et abonnements & 35 & Préautorisation, capture, reçu, remises, webhooks, erreurs. \\ \hline
-Alertes, interventions, maintenance et notifications & 28 & SLA, assignation, preuves, rapport, récurrence. \\ \hline
-Dashboards, recherche et rapports & 13 & Périmètre par rôle, agrégats, échange et exports. \\ \hline
-Tests exemples du squelette & 2 & Vérification minimale du bootstrap. \\ \hline
-\textbf{Total} & \textbf{203} & \textbf{Tous réussis lors de la campagne.} \\ \hline
+Identité, profil, onboarding et demandes de démo & 39 & Session, email, OAuth Google, invitations et activation. \\ \hline
+Organisations, utilisateurs et gouvernance & 31 & Rôles, quotas, audit, données clients et isolation. \\ \hline
+Bornes, commissioning, télémétrie et documents & 30 & CRUD, carte, secrets, connecteurs et documents privés. \\ \hline
+OCPP, disponibilité, simulation et temps réel & 55 & HMAC, replay, Heartbeat, projection, console, commandes et transactions. \\ \hline
+Recharge, tarification, paiement et abonnements & 57 & Préautorisation, capture, réconciliation, reçu, remises, webhooks et erreurs. \\ \hline
+Alertes, interventions, maintenance et notifications & 32 & SLA, assignation, preuves, rapport et récurrence. \\ \hline
+Dashboards, recherche et rapports & 16 & Périmètre par rôle, agrégats, échange et exports. \\ \hline
+Infrastructure, compatibilité et bootstrap & 10 & Index, Redis, documentation API et démarrage minimal. \\ \hline
+\textbf{Total} & \textbf{270} & \textbf{Tous réussis lors de la campagne.} \\ \hline
 \end{tabularx}
 \end{table}
 
@@ -53,42 +57,50 @@ Tests exemples du squelette & 2 & Vérification minimale du bootstrap. \\ \hline
 \hline
 \rowcolor{ctmint}\textbf{Suite} & \textbf{Nb.} & \textbf{Objectif principal} \\ \hline
 \endhead
-AlertInterventionApiTest & 9 & Périmètres, assignation, transitions, résolution et SLA. \\ \hline
+AlertInterventionApiTest & 10 & Périmètres, pagination, assignation, transitions, résolution et SLA. \\ \hline
 ApiDocumentationTest & 2 & Accès Super Admin, schéma OpenAPI et exclusion des routes internes. \\ \hline
 AssetDocumentApiTest & 5 & Documents privés/publics, pièces jointes et isolation. \\ \hline
 AuthApiTest & 8 & Session Sanctum, états de compte, organisation et déconnexion. \\ \hline
 AvailabilityProjectionTest & 8 & Matrice de disponibilité, timeouts, reprise et historique. \\ \hline
-ChargingPlanApiTest & 3 & Plans, permissions et simulation de remise. \\ \hline
-ChargingSessionPaymentApiTest & 9 & Session, arrêt, paiement, visibilité et export. \\ \hline
-ClientAuthenticationTest & 7 & Inscription, vérification email et mot de passe oublié. \\ \hline
+AvailabilityMetricsTest & 3 & Bornage, cache et isolation des métriques historiques. \\ \hline
+CaptureAuthorizedSession\allowbreak PaymentJobTest & 3 & Retry, refus définitif et réconciliation tardive. \\ \hline
+ChargingPlanApiTest & 7 & Plans, permissions et estimations liées énergie--durée--montant. \\ \hline
+ChargingSessionPaymentApiTest & 16 & Session, pagination, concurrence, idempotence, paiement et export. \\ \hline
+ClientAuthenticationTest & 9 & Inscription, vérification email, énumération et mot de passe oublié. \\ \hline
+ClientChargingTerminalApiTest & 5 & Branchement virtuel client, idempotence et restrictions de périmètre. \\ \hline
 CustomerManagementApiTest & 4 & Clients d'une organisation, filtres et export. \\ \hline
 DashboardApiTest & 6 & Contrats et agrégats propres à chaque rôle. \\ \hline
 DemoRequestWorkflowTest & 8 & Soumission, revue, provisionnement et invitation. \\ \hline
 GlobalSearchApiTest & 3 & Recherche limitée par rôle et organisation. \\ \hline
 GoogleOAuthTest & 6 & Liaison Google, identité vérifiée et protection contre la prise de compte. \\ \hline
-InternalReportApiTest & 2 & Échange, lecture, archivage et confidentialité des rapports. \\ \hline
+InternalReportApiTest & 3 & Pièce jointe, échange, lecture, archivage et confidentialité. \\ \hline
 InterventionReportApiTest & 6 & Photos avant/après, rapport final et suivi. \\ \hline
-MaintenancePlanningApiTest & 6 & Planification, récurrence, exécution et synchronisation OCPP. \\ \hline
-OcppGatewayApiTest & 6 & Signature, authentification, événements et idempotence. \\ \hline
+MaintenancePlanningApiTest & 9 & Planification, récurrence, périmètres, exécution et synchronisation OCPP. \\ \hline
+OcppGatewayApiTest & 9 & Signature, authentification, événements, idempotence et limitation de débit. \\ \hline
+OcppSimulatorConsoleApiTest & 9 & Console, signaux, permissions par rôle, commandes fermées et audit. \\ \hline
 OcppSimulatorFleetTest & 1 & Cohérence de la flotte simulée. \\ \hline
 OcppSupervisionApiTest & 8 & Reset, unlock, maintenance, historique et timeout. \\ \hline
-OcppTransactionProjectionTest & 5 & Autorisation, mesures, transaction et réconciliation. \\ \hline
+OcppTransactionProjectionTest & 8 & Autorisation, mesures, inactivité, interruption et réconciliation. \\ \hline
 OnboardingApiTest & 3 & Progression et configuration initiale par rôle. \\ \hline
 OperationalNotificationApiTest & 7 & Destinataires, préférences, SLA et email en file. \\ \hline
-OrganizationCommercial\allowbreak ManagementTest & 5 & Essai, quotas, facture, suspension et restauration. \\ \hline
+OrganizationCommercial\allowbreak ManagementTest & 7 & Catalogue, essai, quotas, paiement, facture, suspension et restauration. \\ \hline
 OrganizationManagementApiTest & 4 & CRUD global, métriques et opérations groupées. \\ \hline
 PaymentProviderWebhookApiTest & 3 & Signature, idempotence et rapprochement fournisseur. \\ \hline
+OrphanedAuthorization\allowbreak ReconciliationTest & 4 & Capture ou libération des préautorisations orphelines. \\ \hline
 PlanSubscriptionApiTest & 8 & Catalogue, multi-réseaux, remise, cycle et facture. \\ \hline
 PlatformGovernanceApiTest & 7 & Permissions, audit, intégrations et paramètres globaux. \\ \hline
 ProfileApiTest & 5 & Profil, fuseau, mot de passe et avatar. \\ \hline
 RealtimeAuthorizationTest & 4 & CORS et autorisation des canaux Reverb. \\ \hline
 RemoteChargingWorkflowTest & 4 & Préautorisation, démarrage distant, limite et rejet. \\ \hline
 ReportAnalyticsApiTest & 2 & Contrat par rôle et exports. \\ \hline
-StationApiTest & 13 & Bornes, connecteurs, carte, QR et permissions. \\ \hline
-StationCommissioningTest & 5 & Création atomique, secret unique et profil simulateur. \\ \hline
+RedisQueueConfigurationTest & 5 & Connexions Redis isolées, files dédiées et routage des tâches. \\ \hline
+ReportingSnapshotFormatterTest & 2 & Mise en forme lisible des rapports plateforme et terrain. \\ \hline
+SimulatedPaymentAdapterTest & 4 & Succès et scénarios d'échec du contrat de paiement simulé. \\ \hline
+StationApiTest & 14 & Bornes, métriques du jour, connecteurs, carte, QR et permissions. \\ \hline
+StationCommissioningTest & 8 & Création atomique, secret, provisionnement automatique et reprise. \\ \hline
 StationTelemetryApiTest & 3 & Séries réelles et masquage des données financières. \\ \hline
 TariffApiTest & 5 & Priorité des tarifs, snapshot et isolation. \\ \hline
-UserManagementApiTest & 8 & Employés, invitation, rôles et export. \\ \hline
+UserManagementApiTest & 9 & Employés et clients, invitation, transfert, rôles et export. \\ \hline
 WireMockPaymentAdapterTest & 3 & Contrat HTTP, refus et indisponibilité fournisseur. \\ \hline
 ExampleTest et test unitaire exemple & 2 & Bootstrap minimal de l'application et de PHPUnit. \\ \hline
 \end{longtable}
@@ -102,19 +114,33 @@ ExampleTest et test unitaire exemple & 2 & Bootstrap minimal de l'application et
 \begin{tabularx}{\textwidth}{|L{4.5cm}|C{1.5cm}|Y|}
 \hline
 \rowcolor{ctmint}\textbf{Suite} & \textbf{Nb.} & \textbf{Couverture} \\ \hline
-\path{test_auth_and_routing.py} & 3 & Basic Auth et validation stricte de l'identité de borne. \\ \hline
+\path{test_auth_and_routing.py} & 4 & Basic Auth, identité de borne et endpoint de santé. \\ \hline
 \path{test_charge_point.py} & 6 & Boot, Heartbeat, statuts, transactions et commandes distantes. \\ \hline
+\path{test_server_connections.py} & 3 & Rattachement utilisateur--borne, fermeture et reconnexion. \\ \hline
 \path{test_signing_and_events.py} & 3 & Signature Laravel, identifiant déterministe et payload brut. \\ \hline
-\path{read-station-state.test.mjs} & 2 & Sélection de la bonne borne et lecture de transaction. \\ \hline
+\path{test_transport_security.py} & 7 & WSS/TLS, certificats, proxy et validation des transports. \\ \hline
+Outils Node du simulateur & 9 & Catalogue fermé, profils, provisionnement, télémétrie et configuration sûre. \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Frontend et infrastructure}
+
+\begin{table}[H]
+\centering
+\caption{Contrôles complémentaires hors Laravel}
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{1.5cm}|Y|}
+\hline
+\rowcolor{ctmint}\textbf{Domaine} & \textbf{Nb.} & \textbf{Couverture} \\ \hline
+Frontend & 46 & Erreurs API, CSRF, idempotence, estimation de recharge, paiement, cycle de session, SEO, assets, rôles et Simulation Lab. \\ \hline
+Infrastructure & 30 & CI, images immuables, secrets, réseaux privés, Redis, TLS, Compose, Azure et sauvegardes. \\ \hline
 \end{tabularx}
 \end{table}
 
 \section{Observations automatiques}
 
 \begin{testbox}{Avertissement non bloquant}
-Le build Vite réussit, mais signale plusieurs chunks minifiés supérieurs à
-500~kB, notamment les bibliothèques PDF, QR et le bundle principal. Cette
-observation est classée S3 performance : elle nécessite du découpage
-supplémentaire avant une mise en production à grande échelle, sans bloquer la
-recette fonctionnelle du MVP.
+Le build Vite réussit. Le worker PDF généré dépasse 1~MB et plusieurs modules
+fonctionnels restent volumineux, notamment les aperçus PDF et le scanner QR.
+Le découpage dynamique limite le bundle initial, mais une campagne de mesure
+réseau reste nécessaire avant une montée en charge importante.
 \end{testbox}

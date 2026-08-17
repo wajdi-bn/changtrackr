@@ -119,6 +119,20 @@ test configuré.
 \end{tabularx}
 \end{testbox}
 
+\begin{testbox}{CT-SIM-01 -- Simulation Lab et séparation des rôles}
+\textbf{US :} US-14 à US-16, US-24 \quad \textbf{Priorité :} Critique \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Ouvrir le Simulation Lab comme administrateur puis opérateur. & Seules les bornes simulées de l'organisation et leurs signaux assainis sont visibles. \\ \hline
+2 & Exécuter Plug, Unplug et un scénario de défaut sur un connecteur. & Action validée, mise en file, reflétée par OCPP et conservée dans l'historique. \\ \hline
+3 & Observer les impulsions de deux connecteurs. & Flux visuels isolés ; aucun signal d'un autre connecteur ou tenant. \\ \hline
+4 & Ouvrir le laboratoire comme technicien. & Diagnostic et signaux autorisés ; contrôle du cycle de vie de la borne refusé. \\ \hline
+5 & Tenter l'accès comme client. & Simulation Lab absent ; le branchement virtuel reste disponible uniquement dans l'assistant de recharge. \\ \hline
+\end{tabularx}
+\end{testbox}
+
 \begin{testbox}{CT-MAP-01 -- Recherche, filtres et itinéraire}
 \textbf{US :} US-10 à US-13 \quad \textbf{Priorité :} Haute \quad \textbf{Statut :} \statusmanual
 
@@ -141,7 +155,7 @@ test configuré.
 \hline
 \rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
 1 & Depuis une borne, cliquer Charge. & L'assistant s'ouvre à l'étape Connecteur avec la borne conservée. \\ \hline
-2 & Choisir un connecteur et brancher physiquement/simuler Plug. & L'étape Connect passe automatiquement après le signal OCPP. \\ \hline
+2 & Choisir un connecteur puis utiliser le terminal client pour simuler Plug. & L'action virtuelle est liée au client ; l'étape Connect passe automatiquement après la preuve OCPP. \\ \hline
 3 & Autoriser le paiement puis démarrer. & Session créée seulement après confirmation StartTransaction. \\ \hline
 4 & Observer la vue live et les MeterValues. & Temps, énergie, puissance et estimation progressent. \\ \hline
 5 & Arrêter la recharge. & RemoteStop, capture, résumé et reçu disponibles. \\ \hline
@@ -305,6 +319,20 @@ test configuré.
 2 & Tester navigation et formulaires à 1440, 1024 et 390 px. & Aucun chevauchement, carte ou modal hors écran. \\ \hline
 3 & Utiliser la recherche de la topbar. & Résultats limités au rôle et navigation correcte. \\ \hline
 4 & Vérifier chargement, vide, erreur et succès. & États explicites sans données fictives. \\ \hline
+\end{tabularx}
+\end{testbox}
+
+\begin{testbox}{CT-DEP-01 -- Conteneurisation, CI/CD et production}
+\textbf{US :} Exigences non fonctionnelles \quad \textbf{Priorité :} Haute \quad \textbf{Statut :} \statusmanual
+
+\begin{tabularx}{\textwidth}{|C{1cm}|Y|Y|}
+\hline
+\rowcolor{ctmint}\textbf{\#} & \textbf{Action} & \textbf{Résultat attendu} \\ \hline
+1 & Lancer \texttt{pnpm stack:up} sur un environnement propre. & Services isolés, healthchecks valides et aucune donnée secrète dans les images. \\ \hline
+2 & Pousser une révision de test ou déclencher la CI. & Backend, frontend, infrastructure, gateway et images Docker réussissent avant livraison. \\ \hline
+3 & Ouvrir \url{https://chargetrackr.me}. & Certificat TLS valide, redirection HTTPS et ressources dynamiques chargées sans 404. \\ \hline
+4 & Vérifier API, Reverb et gateway à travers les points d'entrée publics. & Seuls les ports prévus sont exposés ; les services d'état restent privés. \\ \hline
+5 & Restaurer une sauvegarde dans un environnement isolé. & Schéma, comptes de test et relations métier sont cohérents. \\ \hline
 \end{tabularx}
 \end{testbox}
 

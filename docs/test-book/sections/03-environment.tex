@@ -13,10 +13,11 @@ PHP & 8.5.8 & Exécution Laravel et PHPUnit \\ \hline
 Laravel & 13.19.0 & API REST et logique métier \\ \hline
 PostgreSQL & 18.0, 64 bits & Base locale de développement \\ \hline
 Node.js & 22.19.0 & Frontend et outils simulateur \\ \hline
-pnpm & 11.9.0 & Gestion des dépendances frontend \\ \hline
-React / Vite & React 19, Vite 8.1.3 & Interface web et build \\ \hline
-Python & 3.12 dans l'environnement de contrôle & Gateway OCPP et pytest \\ \hline
+pnpm & 11.16.0 & Gestion des dépendances frontend \\ \hline
+React / Vite & React 19.2.7, Vite 8.2.1 & Interface web et build \\ \hline
+Python & 3.13 dans l'image de test & Gateway OCPP et pytest \\ \hline
 Docker & 29.6.1 & Simulateurs OCPP et paiement \\ \hline
+Redis & 7 Alpine & Cache, sessions, files et diffusion \\ \hline
 \end{tabularx}
 \end{table}
 
@@ -28,14 +29,16 @@ Docker & 29.6.1 & Simulateurs OCPP et paiement \\ \hline
 \begin{tabularx}{\textwidth}{|L{3.2cm}|L{4.3cm}|Y|}
 \hline
 \rowcolor{ctmint}\textbf{Service} & \textbf{Adresse locale} & \textbf{Commande} \\ \hline
-Frontend & \texttt{http://localhost:5173} & \texttt{npm run dev:frontend} \\ \hline
-Backend REST & \texttt{http://localhost:8000} & \texttt{npm run dev:backend} \\ \hline
-Worker & Processus sans port & \texttt{npm run dev:queue} \\ \hline
-Scheduler & Processus sans port & \texttt{npm run dev:scheduler} \\ \hline
-Reverb & \texttt{ws://localhost:8080} & \texttt{npm run dev:reverb} \\ \hline
-Gateway OCPP & \texttt{ws://localhost:9000} & \texttt{npm run ocpp:up} \\ \hline
-Paiement simulé & \texttt{http://localhost:9090} & \texttt{npm run payment:up} \\ \hline
+Pile Docker complète & Ports configurés dans \path{infra/.env} & \texttt{pnpm stack:up} \\ \hline
+Frontend & \texttt{http://localhost:5173} & \texttt{pnpm dev:frontend} \\ \hline
+Backend REST & \texttt{http://localhost:8000} & \texttt{pnpm dev:backend} \\ \hline
+Worker & Processus sans port & \texttt{pnpm dev:queue} \\ \hline
+Scheduler & Processus sans port & \texttt{pnpm dev:scheduler} \\ \hline
+Reverb & \texttt{ws://localhost:8080} & \texttt{pnpm dev:reverb} \\ \hline
+Gateway OCPP & \texttt{ws://localhost:9000} & \texttt{pnpm ocpp:up} \\ \hline
+Paiement simulé & \texttt{http://localhost:9090} & \texttt{pnpm payment:up} \\ \hline
 Documentation API & \url{http://localhost:8000/docs/api} & Incluse dans le backend \\ \hline
+Production & \url{https://chargetrackr.me} & Déploiement Azure, TLS géré par Caddy \\ \hline
 \end{tabularx}
 \end{table}
 

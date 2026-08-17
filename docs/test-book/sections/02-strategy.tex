@@ -9,12 +9,13 @@
 \hline
 \rowcolor{ctmint}\textbf{Niveau} & \textbf{Objectif} & \textbf{Outils principaux} \\ \hline
 Unitaire & Vérifier une règle isolée sans infrastructure réelle. & PHPUnit, pytest, Node Test Runner \\ \hline
-Intégration API & Vérifier validation, persistance, autorisation, événements et isolation multi-tenant. & Laravel Test, SQLite en mémoire \\ \hline
+Intégration API & Vérifier validation, persistance, autorisation, événements et isolation multi-tenant. & Laravel Test, SQLite en mémoire et PostgreSQL en CI \\ \hline
 Contrat externe & Vérifier les échanges OCPP, HMAC, paiement HTTP, webhooks et erreurs fournisseur. & pytest, WireMock, tests Laravel \\ \hline
-Qualité frontend & Détecter les erreurs TypeScript, imports invalides et défauts statiques. & Oxlint, TypeScript, Vite \\ \hline
+Qualité frontend & Détecter les erreurs TypeScript, les régressions de contrats UI et les imports invalides. & Node Test Runner, Oxlint, TypeScript, Vite \\ \hline
 Système simulé & Vérifier un parcours vertical borne--OCPP--session--paiement. & Simulateur SAP, gateway Python, Laravel, WireMock \\ \hline
 Recette manuelle & Valider l'ergonomie, les transitions visibles et les workflows par rôle. & Navigateur desktop/mobile \\ \hline
-Non fonctionnel & Mesurer performance, sécurité, résilience et compatibilité. & À compléter avant production \\ \hline
+Infrastructure et livraison & Vérifier les images, secrets, réseaux privés, TLS, configuration Docker et politique CI/CD. & Node Test Runner, Docker Compose, GitHub Actions \\ \hline
+Non fonctionnel & Mesurer performance, sécurité, résilience et compatibilité. & Campagne manuelle et outils de charge à compléter \\ \hline
 \end{tabularx}
 \end{table}
 
