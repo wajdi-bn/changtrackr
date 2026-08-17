@@ -7,6 +7,7 @@ use App\Models\AvailabilityTransition;
 use App\Models\OcppCommand;
 use App\Models\User;
 use App\Observers\AvailabilityTransitionObserver;
+use App\OpenApi\ConfigureOpenApiDocument;
 use App\OpenApi\NormalizeOperationMetadata;
 use App\Services\PlatformSettingService;
 use Dedoc\Scramble\Scramble;
@@ -52,7 +53,8 @@ class AppServiceProvider extends ServiceProvider
         AvailabilityTransition::observe(AvailabilityTransitionObserver::class);
 
         Scramble::configure()
-            ->withOperationTransformers(NormalizeOperationMetadata::class);
+            ->withOperationTransformers(NormalizeOperationMetadata::class)
+            ->withDocumentTransformers(ConfigureOpenApiDocument::class);
 
         Gate::define('viewApiDocs', fn (?User $user = null): bool => app()->environment('local')
             || ($user?->hasRole('super_admin') ?? false));

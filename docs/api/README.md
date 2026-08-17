@@ -2,84 +2,154 @@
 
 Ce dossier contient le contrat OpenAPI 3.1 de l'API REST ChargeTrackr. La
 spécification est générée depuis les routes, contrôleurs, Form Requests et
-Resources Laravel afin de rester synchronisée avec le code source.
+Resources Laravel : le code backend reste ainsi la source de vérité.
 
-## Accès local
+L'export versionné couvre actuellement 143 chemins, 180 opérations et 69 schémas.
+Ces nombres sont indicatifs ; les tests vérifient surtout qu'aucune route publique
+Laravel n'est absente du contrat.
 
-Lancer le backend depuis la racine du dépôt :
+## Accès à la documentation
 
-```powershell
-npm run dev:backend
-```
+| Environnement | Interface Swagger | Document JSON |
+|---|---|---|
+| Local | `http://localhost:8000/docs/api` | `http://localhost:8000/docs/api.json` |
+| Production | `https://api.chargetrackr.me/docs/api` | `https://api.chargetrackr.me/docs/api.json` |
+| Export versionné | - | `docs/api/openapi.json` |
 
-Puis ouvrir :
+Lancer localement le backend depuis la racine du dépôt avec
+`npm run dev:backend`. La documentation est libre en environnement local. Dans
+les autres environnements, elle est réservée à un utilisateur authentifié ayant
+le rôle `super_admin`.
 
-- interface interactive : `http://localhost:8000/docs/api`
-- document JSON dynamique : `http://localhost:8000/docs/api.json`
-- export versionné : `docs/api/openapi.json`
+## Frontières de l'API
 
-L'interface est accessible librement en environnement local. Hors environnement
-local, son accès est réservé au rôle `super_admin`.
+Le contrat public regroupe les opérations selon douze domaines fonctionnels :
+
+- accès, authentification, invitations et onboarding ;
+- compte, profil et préférences personnelles ;
+- espace de travail, recherche et notifications ;
+- organisations, employés et clients ;
+- stations, connecteurs, OCPP et laboratoire de simulation ;
+- sessions et tentatives de recharge ;
+- paiements, reçus et règlements ;
+- tarifs, plans, abonnements et facturation des organisations ;
+- alertes, interventions et maintenance ;
+- rapports, analyses, pièces jointes et exports ;
+- documents protégés ;
+- gouvernance globale du Super Administrateur.
+
+Les routes `/api/internal/ocpp/*` et
+`/api/internal/payments/webhooks` sont volontairement exclues. Elles servent aux
+échanges machine-à-machine, avec leurs propres contrôles HMAC, anti-rejeu et
+idempotence ; elles ne constituent pas l'API destinée aux applications clientes.
 
 ## Authentification Sanctum
 
-ChargeTrackr utilise l'authentification SPA stateful de Laravel Sanctum. Il ne
-faut pas inventer ou coller un Bearer token.
+ChargeTrackr utilise l'authentification SPA stateful de Laravel Sanctum. Les
+clients web utilisent une session et un jeton CSRF, pas un Bearer token.
 
-1. Appeler `GET /sanctum/csrf-cookie` avec les cookies activés.
+1. Appeler `GET /sanctum/csrf-cookie` en conservant les cookies.
 2. Appeler `POST /api/auth/login` avec `email` et `password`.
-3. Conserver le cookie de session `laravel_session`.
-4. Pour `POST`, `PUT`, `PATCH` et `DELETE`, envoyer aussi la valeur du cookie
+3. Conserver les cookies `laravel_session` et `XSRF-TOKEN`.
+4. Pour `POST`, `PUT`, `PATCH` et `DELETE`, transmettre la valeur décodée de
    `XSRF-TOKEN` dans l'en-tête `X-XSRF-TOKEN`.
 5. Fermer la session avec `POST /api/auth/logout`.
 
-Le bouton **Try it** de l'interface conserve les cookies du navigateur. Le flux
-CSRF et la connexion doivent néanmoins être effectués avant de tester une route
-protégée.
+Exemple PowerShell local :
 
-## Périmètre documenté
+```powershell
+$backend = "http://localhost:8000"
+$cookies = Join-Path $env:TEMP "chargetrackr-cookies.txt"
 
-Le contrat couvre notamment :
+curl.exe -sS -c $cookies -b $cookies "$backend/sanctum/csrf-cookie" | Out-Null
+$csrfLine = Get-Content $cookies |
+    Where-Object { $_ -match "`tXSRF-TOKEN`t" } |
+    Select-Object -Last 1
+$csrf = [uri]::UnescapeDataString(($csrfLine -split "`t")[-1])
 
-- authentification, inscription client, vérification email et mot de passe ;
-- demandes de démonstration et invitations de comptes ;
-- profil, préférences, notifications et recherche globale ;
-- organisations, utilisateurs, clients et gestion commerciale ;
-- stations, connecteurs, supervision et commandes OCPP ;
-- alertes, interventions, maintenance et documents ;
-- sessions de recharge, tentatives, tarification et paiements ;
-- abonnements, factures, reçus, rapports et exports ;
-- administration globale, intégrations, audit et paramètres système.
+$body = @{ email = "operator@chargetrackr.local"; password = "your-password" } |
+    ConvertTo-Json -Compress
 
-Les routes `/api/internal/ocpp/*` et
-`/api/internal/payments/webhooks` sont volontairement exclues : elles sont
-réservées aux échanges machine-à-machine et possèdent leur propre frontière de
-sécurité.
+curl.exe -sS -c $cookies -b $cookies `
+    -H "Accept: application/json" `
+    -H "Content-Type: application/json" `
+    -H "X-XSRF-TOKEN: $csrf" `
+    --data-raw $body `
+    "$backend/api/auth/login"
 
-## Conventions
+curl.exe -sS -c $cookies -b $cookies `
+    -H "Accept: application/json" `
+    "$backend/api/stations?per_page=10"
+```
+
+Dans Swagger UI, le navigateur conserve les cookies. Il faut néanmoins appeler
+le cookie CSRF puis la connexion avant d'exécuter une opération protégée.
+
+Une route publique peut être testée directement :
+
+```powershell
+curl.exe -sS -H "Accept: application/json" `
+    "http://localhost:8000/api/public/commercial-plans"
+```
+
+## Autorisation et isolation
+
+L'authentification ne suffit pas à autoriser une action. Les contrôleurs,
+Policies et requêtes vérifient le rôle, l'organisation et la propriété de la
+ressource. Un identifiant valide appartenant à une autre organisation ne doit
+donc jamais permettre de lire ou modifier cette ressource.
+
+Les comptes `admin`, `operator` et `technician` sont rattachés à une seule
+organisation. Le `super_admin` gère la plateforme, tandis que le client conserve
+un compte indépendant et peut interagir avec plusieurs réseaux de recharge.
+
+## Conventions d'échange
 
 - Base locale : `http://localhost:8000/api`
-- Représentation : JSON UTF-8
-- Dates : ISO 8601
-- Pagination : métadonnées Laravel lorsque la collection est paginée
+- Base de production : `https://api.chargetrackr.me/api`
+- Représentation principale : JSON UTF-8
+- Dates : ISO 8601 avec fuseau horaire
+- Pagination : `page` et `per_page`, avec une taille bornée par le serveur
 - Validation : HTTP `422` avec `message` et `errors`
 - Non authentifié : HTTP `401`
 - Non autorisé : HTTP `403`
+- Session ou jeton CSRF expiré : HTTP `419`
 - Ressource absente : HTTP `404`
+- Conflit métier : HTTP `409`
 - Limite dépassée : HTTP `429`
-- Conflit métier : HTTP `409` lorsque le workflow l'exige
 
-L'isolation multi-organisation est appliquée côté serveur. Un identifiant valide
-appartenant à une autre organisation ne donne pas accès à la ressource.
+Les montants sont exprimés en TND dans les réponses métier ; certaines valeurs
+internes de paiement sont conservées en millimes pour éviter les erreurs
+d'arrondi. Les opérations sensibles de paiement et de simulation utilisent une
+clé `idempotency_key` UUID dans leur corps lorsque le schéma OpenAPI l'indique.
 
-## Régénération
+Les téléchargements de reçus, factures, rapports et documents peuvent retourner
+un flux PDF ou un autre contenu binaire. Les exports tabulaires utilisent CSV ou
+JSON selon le paramètre de format documenté.
 
-Après toute modification de route, validation, ressource ou contrôleur :
+## Régénération et contrôle
+
+Après toute modification de route, validation, Resource ou contrôleur :
 
 ```powershell
 cd backend
-php artisan scramble:export
+C:\php\php.exe -d memory_limit=512M artisan scramble:export
+C:\php\php.exe -d memory_limit=512M artisan scramble:analyze
+C:\php\php.exe artisan test --filter=ApiDocumentationTest
 ```
 
-Le fichier `docs/api/openapi.json` doit être relu dans la documentation
-interactive et inclus dans le même commit que le changement d'API.
+Avec la pile Docker :
+
+```powershell
+pnpm stack:artisan -- scramble:export
+pnpm stack:artisan -- scramble:analyze
+```
+
+Avant de committer une évolution d'API, vérifier que :
+
+1. le résumé, le groupe fonctionnel et l'`operationId` sont explicites ;
+2. les entrées, réponses et erreurs correspondent au code exécuté ;
+3. la route ne contourne ni Policy ni périmètre d'organisation ;
+4. une opération publique possède explicitement `security: []` ;
+5. `docs/api/openapi.json` est régénéré dans le même commit ;
+6. les tests de documentation et la suite backend passent.

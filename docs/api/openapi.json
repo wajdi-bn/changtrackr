@@ -7,7 +7,62 @@
     },
     "servers": [
         {
-            "url": "http://localhost:8000/api"
+            "url": "https://api.chargetrackr.me/api",
+            "description": "Production"
+        },
+        {
+            "url": "http://localhost:8000/api",
+            "description": "Local development"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Access & onboarding",
+            "description": "Public access, authentication, account activation, invitations and onboarding."
+        },
+        {
+            "name": "Account & profile",
+            "description": "Authenticated profile, preferences and account security."
+        },
+        {
+            "name": "Workspace",
+            "description": "Role-scoped dashboards, search and operational notifications."
+        },
+        {
+            "name": "Organizations & users",
+            "description": "Organizations, employees, customers, roles and tenant-scoped user management."
+        },
+        {
+            "name": "Stations & OCPP",
+            "description": "Charging stations, connectors, commissioning, telemetry, supervision and simulation."
+        },
+        {
+            "name": "Charging sessions",
+            "description": "Charging attempts, sessions, live lifecycle and remote stop operations."
+        },
+        {
+            "name": "Payments",
+            "description": "Session payment authorization, settlement records, exports and receipts."
+        },
+        {
+            "name": "Pricing & subscriptions",
+            "description": "Tariffs, charging plans, SaaS plans, subscriptions and organization billing."
+        },
+        {
+            "name": "Operations & maintenance",
+            "description": "Alerts, interventions, maintenance plans, evidence and operational reports."
+        },
+        {
+            "name": "Reports & analytics",
+            "description": "Role-specific analytics, internal report exchange, attachments and exports."
+        },
+        {
+            "name": "Documents",
+            "description": "Protected document download and deletion operations."
+        },
+        {
+            "name": "Platform administration",
+            "description": "Super Admin governance, integrations, permissions, audit and global settings."
         }
     ],
     "security": [
@@ -35,7 +90,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "",
+                        "description": "Resource created.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -155,7 +210,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -258,7 +313,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -347,7 +402,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -429,7 +484,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -468,7 +523,7 @@
         "/onboarding/organization": {
             "put": {
                 "operationId": "onboarding.updateOrganization",
-                "summary": "Update Organization onboarding",
+                "summary": "Update onboarding organization",
                 "tags": [
                     "Access & onboarding"
                 ],
@@ -508,7 +563,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -572,7 +627,7 @@
         "/onboarding/organization-logo": {
             "post": {
                 "operationId": "onboarding.storeOrganizationLogo",
-                "summary": "Store Organization Logo onboarding",
+                "summary": "Upload onboarding organization logo",
                 "tags": [
                     "Access & onboarding"
                 ],
@@ -599,7 +654,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -783,7 +838,7 @@
         "/demo-requests/{demoRequest}/start-review": {
             "post": {
                 "operationId": "demoRequest.startReview",
-                "summary": "Start Review demo request",
+                "summary": "Start demo request review",
                 "tags": [
                     "Access & onboarding"
                 ],
@@ -1087,7 +1142,7 @@
         "/demo-requests/{demoRequest}/invitation/revoke": {
             "post": {
                 "operationId": "demoRequest.revokeInvitation",
-                "summary": "Revoke Invitation demo request",
+                "summary": "Revoke administrator invitation",
                 "tags": [
                     "Access & onboarding"
                 ],
@@ -1152,7 +1207,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1180,7 +1235,7 @@
                         }
                     },
                     "403": {
-                        "description": "",
+                        "description": "Operation forbidden.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1257,7 +1312,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "",
+                        "description": "Resource created.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1332,7 +1387,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1376,7 +1431,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1420,7 +1475,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1454,7 +1509,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1549,7 +1604,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1671,7 +1726,7 @@
         "/profile/avatar": {
             "post": {
                 "operationId": "profile.storeAvatar",
-                "summary": "Store Avatar profile",
+                "summary": "Upload profile photo",
                 "tags": [
                     "Account & profile"
                 ],
@@ -1724,13 +1779,13 @@
             },
             "delete": {
                 "operationId": "profile.destroyAvatar",
-                "summary": "Destroy Avatar profile",
+                "summary": "Remove profile photo",
                 "tags": [
                     "Account & profile"
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1772,7 +1827,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1844,7 +1899,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1912,7 +1967,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1966,7 +2021,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2016,7 +2071,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2079,7 +2134,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2130,7 +2185,10 @@
         },
         "/user": {
             "get": {
-                "summary": " resource",
+                "operationId": "legacyUser.show",
+                "description": "Legacy alias kept for compatibility. New integrations should use `GET /auth/me`.",
+                "summary": "Get authenticated user (legacy)",
+                "deprecated": true,
                 "tags": [
                     "Account & profile"
                 ],
@@ -2178,7 +2236,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "text/csv; charset=UTF-8": {
                                 "schema": {
@@ -2277,7 +2335,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2636,7 +2694,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2812,60 +2870,6 @@
                 }
             }
         },
-        "/charging-sessions/{chargingSession}/payments": {
-            "post": {
-                "operationId": "payment.store",
-                "summary": "Create payment",
-                "tags": [
-                    "Charging sessions"
-                ],
-                "parameters": [
-                    {
-                        "name": "chargingSession",
-                        "in": "path",
-                        "required": true,
-                        "description": "The charging session ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ProcessPaymentRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
         "/asset-documents/{assetDocument}/content": {
             "get": {
                 "operationId": "assetDocument.content",
@@ -2886,7 +2890,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2946,7 +2950,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3061,7 +3065,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3374,7 +3378,7 @@
         "/alerts/{alert}/report": {
             "get": {
                 "operationId": "operationalDocument.alert",
-                "summary": "Alert operational document",
+                "summary": "Download alert report",
                 "tags": [
                     "Operations & maintenance"
                 ],
@@ -3391,7 +3395,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3532,7 +3536,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3771,7 +3775,7 @@
         "/interventions/{intervention}/notes": {
             "post": {
                 "operationId": "intervention.addNote",
-                "summary": "Add Note intervention",
+                "summary": "Add intervention note",
                 "tags": [
                     "Operations & maintenance"
                 ],
@@ -3929,7 +3933,7 @@
         "/interventions/{intervention}/documents": {
             "get": {
                 "operationId": "assetDocument.interventionIndex",
-                "summary": "Intervention Index asset document",
+                "summary": "List intervention documents",
                 "tags": [
                     "Operations & maintenance"
                 ],
@@ -3946,7 +3950,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4046,7 +4050,7 @@
             },
             "post": {
                 "operationId": "assetDocument.interventionStore",
-                "summary": "Intervention Store asset document",
+                "summary": "Upload intervention document",
                 "tags": [
                     "Operations & maintenance"
                 ],
@@ -4105,7 +4109,7 @@
         "/interventions/{intervention}/document": {
             "get": {
                 "operationId": "operationalDocument.intervention",
-                "summary": "Intervention operational document",
+                "summary": "Download intervention report",
                 "tags": [
                     "Operations & maintenance"
                 ],
@@ -4122,7 +4126,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4146,7 +4150,7 @@
         "/interventions/{intervention}/photos": {
             "post": {
                 "operationId": "interventionReport.storePhoto",
-                "summary": "Store Photo intervention report",
+                "summary": "Upload intervention photo",
                 "tags": [
                     "Operations & maintenance"
                 ],
@@ -4173,7 +4177,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "",
+                        "description": "Resource created.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4273,7 +4277,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4295,7 +4299,7 @@
             },
             "delete": {
                 "operationId": "interventionReport.destroyPhoto",
-                "summary": "Destroy Photo intervention report",
+                "summary": "Delete intervention photo",
                 "tags": [
                     "Operations & maintenance"
                 ],
@@ -4321,7 +4325,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4455,7 +4459,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4616,7 +4620,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "",
+                        "description": "Resource created.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4759,7 +4763,7 @@
         "/maintenances/{maintenance}/report": {
             "get": {
                 "operationId": "operationalDocument.maintenance",
-                "summary": "Maintenance operational document",
+                "summary": "Download maintenance report",
                 "tags": [
                     "Operations & maintenance"
                 ],
@@ -4776,7 +4780,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4832,7 +4836,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "text/csv; charset=UTF-8": {
                                 "schema": {
@@ -4922,7 +4926,7 @@
         "/organizations/bulk-status": {
             "post": {
                 "operationId": "organization.bulkStatus",
-                "summary": "Bulk Status organization",
+                "summary": "Update organization statuses in bulk",
                 "tags": [
                     "Organizations & users"
                 ],
@@ -4959,7 +4963,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -5041,7 +5045,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -5157,7 +5161,7 @@
                 ],
                 "responses": {
                     "201": {
-                        "description": "",
+                        "description": "Resource created.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -5257,7 +5261,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -5424,7 +5428,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -5534,7 +5538,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "text/csv; charset=UTF-8": {
                                 "schema": {
@@ -5816,7 +5820,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -6105,7 +6109,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -6172,7 +6176,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "text/csv; charset=UTF-8": {
                                 "schema": {
@@ -6271,7 +6275,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -6412,181 +6416,56 @@
                 }
             }
         },
-        "/public/commercial-plans": {
-            "get": {
-                "operationId": "organizationCommercial.publicPlans",
-                "summary": "Public Plans organization commercial",
+        "/charging-sessions/{chargingSession}/payments": {
+            "post": {
+                "operationId": "payment.store",
+                "summary": "Authorize charging session payment",
                 "tags": [
-                    "Other"
+                    "Payments"
                 ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "name": {
-                                                        "type": "string"
-                                                    },
-                                                    "code": {
-                                                        "type": "string"
-                                                    },
-                                                    "description": {
-                                                        "type": [
-                                                            "string",
-                                                            "null"
-                                                        ]
-                                                    },
-                                                    "monthly_price_millimes": {
-                                                        "type": "integer"
-                                                    },
-                                                    "annual_price_millimes": {
-                                                        "type": "integer"
-                                                    },
-                                                    "max_stations": {
-                                                        "type": [
-                                                            "integer",
-                                                            "null"
-                                                        ]
-                                                    },
-                                                    "max_employees": {
-                                                        "type": [
-                                                            "integer",
-                                                            "null"
-                                                        ]
-                                                    },
-                                                    "features": {
-                                                        "type": "array",
-                                                        "items": {}
-                                                    },
-                                                    "is_featured": {
-                                                        "type": "boolean"
-                                                    }
-                                                },
-                                                "required": [
-                                                    "name",
-                                                    "code",
-                                                    "description",
-                                                    "monthly_price_millimes",
-                                                    "annual_price_millimes",
-                                                    "max_stations",
-                                                    "max_employees",
-                                                    "features",
-                                                    "is_featured"
-                                                ]
-                                            }
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
+                "parameters": [
+                    {
+                        "name": "chargingSession",
+                        "in": "path",
+                        "required": true,
+                        "description": "The charging session ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProcessPaymentRequest"
                             }
                         }
                     }
                 },
-                "security": []
-            }
-        },
-        "/simulation-lab/stations": {
-            "get": {
-                "operationId": "ocppSimulator.index",
-                "summary": "List ocpp simulators",
-                "tags": [
-                    "Other"
-                ],
-                "parameters": [
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "maxLength": 100
-                        }
-                    },
-                    {
-                        "name": "per_page",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "integer",
-                                "null"
-                            ],
-                            "minimum": 1,
-                            "maximum": 50
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
-                        "description": "Array of `StationResource`",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "allOf": [
-                                                    {
-                                                        "$ref": "#/components/schemas/StationResource"
-                                                    },
-                                                    {
-                                                        "type": "object",
-                                                        "required": [
-                                                            "organization",
-                                                            "connectors"
-                                                        ]
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
+                                    "type": "string"
                                 }
                             }
                         }
                     },
                     "403": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "description": "Error overview.",
-                                            "examples": [
-                                                ""
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "message"
-                                    ]
-                                }
-                            }
-                        }
+                        "$ref": "#/components/responses/AuthorizationException"
                     },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     }
                 }
             }
@@ -6618,7 +6497,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "text/csv; charset=UTF-8": {
                                 "schema": {
@@ -6717,7 +6596,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -6814,7 +6693,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -6844,7 +6723,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -7002,7 +6881,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -7091,7 +6970,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "text/csv; charset=UTF-8": {
                                 "schema": {
@@ -7187,7 +7066,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -7474,13 +7353,13 @@
         "/platform/integrations": {
             "get": {
                 "operationId": "platformIntegration",
-                "summary": "View platform integration",
+                "summary": "List platform integrations",
                 "tags": [
                     "Platform administration"
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -8186,7 +8065,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -8587,7 +8466,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -8962,16 +8841,99 @@
                 }
             }
         },
-        "/commercial/plans": {
+        "/public/commercial-plans": {
             "get": {
-                "operationId": "organizationCommercial.plans",
-                "summary": "Plans organization commercial",
+                "operationId": "organizationCommercial.publicPlans",
+                "summary": "List public commercial plans",
                 "tags": [
                     "Pricing & subscriptions"
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "code": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "monthly_price_millimes": {
+                                                        "type": "integer"
+                                                    },
+                                                    "annual_price_millimes": {
+                                                        "type": "integer"
+                                                    },
+                                                    "max_stations": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "max_employees": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "features": {
+                                                        "type": "array",
+                                                        "items": {}
+                                                    },
+                                                    "is_featured": {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "name",
+                                                    "code",
+                                                    "description",
+                                                    "monthly_price_millimes",
+                                                    "annual_price_millimes",
+                                                    "max_stations",
+                                                    "max_employees",
+                                                    "features",
+                                                    "is_featured"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "/commercial/plans": {
+            "get": {
+                "operationId": "organizationCommercial.plans",
+                "summary": "List SaaS plans",
+                "tags": [
+                    "Pricing & subscriptions"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -9060,13 +9022,13 @@
             },
             "post": {
                 "operationId": "organizationCommercial.storePlan",
-                "summary": "Store Plan organization commercial",
+                "summary": "Create SaaS plan",
                 "tags": [
                     "Pricing & subscriptions"
                 ],
                 "responses": {
                     "201": {
-                        "description": "",
+                        "description": "Resource created.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -9154,7 +9116,7 @@
         "/commercial/plans/{saasPlan}": {
             "patch": {
                 "operationId": "organizationCommercial.updatePlan",
-                "summary": "Update Plan organization commercial",
+                "summary": "Update SaaS plan",
                 "tags": [
                     "Pricing & subscriptions"
                 ],
@@ -9171,7 +9133,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -9268,7 +9230,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -9617,7 +9579,25 @@
                                                             "null"
                                                         ]
                                                     },
+                                                    "payment_method": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
                                                     "provider_reference": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "failed_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "failure_reason": {
                                                         "type": [
                                                             "string",
                                                             "null"
@@ -9656,7 +9636,10 @@
                                                     "due_at",
                                                     "paid_at",
                                                     "payment_provider",
+                                                    "payment_method",
                                                     "provider_reference",
+                                                    "failed_at",
+                                                    "failure_reason",
                                                     "requested_by",
                                                     "settled_by",
                                                     "created_at"
@@ -9682,7 +9665,7 @@
         "/commercial/subscriptions/{subscription}/extend-trial": {
             "post": {
                 "operationId": "organizationCommercial.extendTrial",
-                "summary": "Extend Trial organization commercial",
+                "summary": "Extend organization trial",
                 "tags": [
                     "Pricing & subscriptions"
                 ],
@@ -9726,7 +9709,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -10003,7 +9986,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -10245,7 +10228,7 @@
         "/commercial/subscriptions/{subscription}/restore": {
             "post": {
                 "operationId": "organizationCommercial.restore",
-                "summary": "Restore organization commercial",
+                "summary": "Restore commercial subscription",
                 "tags": [
                     "Pricing & subscriptions"
                 ],
@@ -10280,7 +10263,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -10539,7 +10522,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -10630,7 +10613,25 @@
                                                         "null"
                                                     ]
                                                 },
+                                                "payment_method": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
                                                 "provider_reference": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "failed_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "failure_reason": {
                                                     "type": [
                                                         "string",
                                                         "null"
@@ -10669,7 +10670,10 @@
                                                 "due_at",
                                                 "paid_at",
                                                 "payment_provider",
+                                                "payment_method",
                                                 "provider_reference",
+                                                "failed_at",
+                                                "failure_reason",
                                                 "requested_by",
                                                 "settled_by",
                                                 "created_at"
@@ -10712,7 +10716,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -10803,7 +10807,25 @@
                                                         "null"
                                                     ]
                                                 },
+                                                "payment_method": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
                                                 "provider_reference": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "failed_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "failure_reason": {
                                                     "type": [
                                                         "string",
                                                         "null"
@@ -10842,7 +10864,10 @@
                                                 "due_at",
                                                 "paid_at",
                                                 "payment_provider",
+                                                "payment_method",
                                                 "provider_reference",
+                                                "failed_at",
+                                                "failure_reason",
                                                 "requested_by",
                                                 "settled_by",
                                                 "created_at"
@@ -10885,7 +10910,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -10928,13 +10953,13 @@
         "/organization-billing": {
             "get": {
                 "operationId": "organizationCommercial.organizationBilling",
-                "summary": "Organization Billing organization commercial",
+                "summary": "Get organization subscription and billing",
                 "tags": [
                     "Pricing & subscriptions"
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -11404,7 +11429,25 @@
                                                             "null"
                                                         ]
                                                     },
+                                                    "payment_method": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
                                                     "provider_reference": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "failed_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "failure_reason": {
                                                         "type": [
                                                             "string",
                                                             "null"
@@ -11443,7 +11486,10 @@
                                                     "due_at",
                                                     "paid_at",
                                                     "payment_provider",
+                                                    "payment_method",
                                                     "provider_reference",
+                                                    "failed_at",
+                                                    "failure_reason",
                                                     "requested_by",
                                                     "settled_by",
                                                     "created_at"
@@ -11493,7 +11539,7 @@
         "/organization-billing/requests": {
             "post": {
                 "operationId": "organizationCommercial.requestPlan",
-                "summary": "Request Plan organization commercial",
+                "summary": "Request an organization plan change",
                 "tags": [
                     "Pricing & subscriptions"
                 ],
@@ -11513,11 +11559,34 @@
                                             "monthly",
                                             "annual"
                                         ]
+                                    },
+                                    "payment_method": {
+                                        "type": "string",
+                                        "enum": [
+                                            "simulated_card",
+                                            "simulated_edinar",
+                                            "simulated_d17"
+                                        ]
+                                    },
+                                    "idempotency_key": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "simulation_outcome": {
+                                        "type": "string",
+                                        "enum": [
+                                            "success",
+                                            "declined",
+                                            "timeout",
+                                            "provider_error"
+                                        ]
                                     }
                                 },
                                 "required": [
                                     "saas_plan_id",
-                                    "billing_cycle"
+                                    "billing_cycle",
+                                    "payment_method",
+                                    "idempotency_key"
                                 ]
                             }
                         }
@@ -11525,7 +11594,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "",
+                        "description": "Resource created.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -11616,7 +11685,25 @@
                                                         "null"
                                                     ]
                                                 },
+                                                "payment_method": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
                                                 "provider_reference": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "failed_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "failure_reason": {
                                                     "type": [
                                                         "string",
                                                         "null"
@@ -11655,7 +11742,10 @@
                                                 "due_at",
                                                 "paid_at",
                                                 "payment_provider",
+                                                "payment_method",
                                                 "provider_reference",
+                                                "failed_at",
+                                                "failure_reason",
                                                 "requested_by",
                                                 "settled_by",
                                                 "created_at"
@@ -11712,7 +11802,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -11760,7 +11850,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -11835,7 +11925,9 @@
                                         "type": "string",
                                         "enum": [
                                             "success",
-                                            "declined"
+                                            "declined",
+                                            "timeout",
+                                            "provider_error"
                                         ]
                                     }
                                 },
@@ -11895,7 +11987,7 @@
         "/subscription-invoices": {
             "get": {
                 "operationId": "planSubscription.invoices",
-                "summary": "Invoices plan subscription",
+                "summary": "List subscription invoices",
                 "tags": [
                     "Pricing & subscriptions"
                 ],
@@ -11971,7 +12063,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -12216,7 +12308,7 @@
         "/subscriptions/{subscription}/retry-payment": {
             "post": {
                 "operationId": "planSubscription.retry",
-                "summary": "Retry plan subscription",
+                "summary": "Retry subscription payment",
                 "tags": [
                     "Pricing & subscriptions"
                 ],
@@ -12254,7 +12346,9 @@
                                         "type": "string",
                                         "enum": [
                                             "success",
-                                            "declined"
+                                            "declined",
+                                            "timeout",
+                                            "provider_error"
                                         ]
                                     }
                                 },
@@ -12350,7 +12444,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -12683,7 +12777,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -12823,7 +12917,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -13253,7 +13347,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -13508,13 +13602,13 @@
         "/internal-reports/recipients": {
             "get": {
                 "operationId": "internalReport.recipients",
-                "summary": "Recipients internal report",
+                "summary": "List report recipients",
                 "tags": [
                     "Reports & analytics"
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -13625,7 +13719,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -13994,7 +14088,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14046,7 +14140,7 @@
         "/internal-reports/{internalReport}/document": {
             "get": {
                 "operationId": "internalReport.document",
-                "summary": "Document internal report",
+                "summary": "Download internal report",
                 "tags": [
                     "Reports & analytics"
                 ],
@@ -14063,7 +14157,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14106,7 +14200,7 @@
         "/internal-reports/{internalReport}/attachments": {
             "get": {
                 "operationId": "assetDocument.reportIndex",
-                "summary": "Report Index asset document",
+                "summary": "List report attachments",
                 "tags": [
                     "Reports & analytics"
                 ],
@@ -14123,7 +14217,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14223,7 +14317,7 @@
             },
             "post": {
                 "operationId": "assetDocument.reportStore",
-                "summary": "Report Store asset document",
+                "summary": "Upload report attachment",
                 "tags": [
                     "Reports & analytics"
                 ],
@@ -14288,7 +14382,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14531,7 +14625,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14744,7 +14838,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14920,7 +15014,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15118,7 +15212,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "text/csv; charset=UTF-8": {
                                 "schema": {
@@ -15335,7 +15429,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15417,7 +15511,7 @@
         "/connector-qr/{token}": {
             "get": {
                 "operationId": "connectorQr.show",
-                "summary": "View connector qr",
+                "summary": "Resolve connector QR code",
                 "tags": [
                     "Stations & OCPP"
                 ],
@@ -15433,7 +15527,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15482,13 +15576,13 @@
         "/stations/commissioning/profiles": {
             "get": {
                 "operationId": "stationCommissioning.profiles",
-                "summary": "Profiles station commissioning",
+                "summary": "List commissioning profiles",
                 "tags": [
                     "Stations & OCPP"
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15537,7 +15631,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "",
+                        "description": "Resource created.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15664,7 +15758,7 @@
                 ],
                 "responses": {
                     "202": {
-                        "description": "",
+                        "description": "Request accepted for processing.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15791,7 +15885,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15934,7 +16028,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -16154,7 +16248,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -16464,7 +16558,7 @@
         "/stations/{station}/documents": {
             "get": {
                 "operationId": "assetDocument.stationIndex",
-                "summary": "Station Index asset document",
+                "summary": "List station documents",
                 "tags": [
                     "Stations & OCPP"
                 ],
@@ -16481,7 +16575,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -16581,7 +16675,7 @@
             },
             "post": {
                 "operationId": "assetDocument.stationStore",
-                "summary": "Station Store asset document",
+                "summary": "Upload station document",
                 "tags": [
                     "Stations & OCPP"
                 ],
@@ -16844,7 +16938,7 @@
         "/stations/{station}/commands": {
             "get": {
                 "operationId": "ocppSupervision.index",
-                "summary": "List ocpp supervisions",
+                "summary": "List station command history",
                 "tags": [
                     "Stations & OCPP"
                 ],
@@ -16957,7 +17051,7 @@
         "/stations/{station}/commands/reset": {
             "post": {
                 "operationId": "ocppSupervision.reset",
-                "summary": "Reset password",
+                "summary": "Reset station",
                 "tags": [
                     "Stations & OCPP"
                 ],
@@ -17086,7 +17180,7 @@
         "/stations/{station}/maintenance": {
             "put": {
                 "operationId": "ocppSupervision.maintenance",
-                "summary": "Maintenance ocpp supervision",
+                "summary": "Change station maintenance mode",
                 "tags": [
                     "Stations & OCPP"
                 ],
@@ -17113,7 +17207,7 @@
                 },
                 "responses": {
                     "202": {
-                        "description": "",
+                        "description": "Request accepted for processing.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -17168,6 +17262,102 @@
                 }
             }
         },
+        "/simulation-lab/stations": {
+            "get": {
+                "operationId": "ocppSimulator.index",
+                "summary": "List simulated stations",
+                "tags": [
+                    "Stations & OCPP"
+                ],
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 50
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `StationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "allOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/StationResource"
+                                                    },
+                                                    {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "organization",
+                                                            "connectors"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/stations/{station}/simulator": {
             "get": {
                 "operationId": "ocppSimulator.show",
@@ -17200,7 +17390,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -17477,7 +17667,7 @@
         "/stations/{station}/simulator/actions": {
             "post": {
                 "operationId": "ocppSimulator.store",
-                "summary": "Create ocpp simulator",
+                "summary": "Submit simulator action",
                 "tags": [
                     "Stations & OCPP"
                 ],
@@ -17550,7 +17740,7 @@
         "/stations/{station}/connectors/{connector}/charging-terminal/actions": {
             "post": {
                 "operationId": "clientChargingTerminal.store",
-                "summary": "Create client charging terminal",
+                "summary": "Submit client terminal action",
                 "tags": [
                     "Stations & OCPP"
                 ],
@@ -17632,7 +17822,7 @@
         "/stations/{station}/connectors/{connector}/charging-terminal/actions/{action}": {
             "get": {
                 "operationId": "clientChargingTerminal.show",
-                "summary": "View client charging terminal",
+                "summary": "Get client terminal action status",
                 "tags": [
                     "Stations & OCPP"
                 ],
@@ -17736,7 +17926,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -17879,7 +18069,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -17939,7 +18129,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -18048,7 +18238,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -18107,7 +18297,7 @@
         "/notifications/{userNotification}/read": {
             "patch": {
                 "operationId": "userNotification.read",
-                "summary": "Read user notification",
+                "summary": "Mark notification as read",
                 "tags": [
                     "Workspace"
                 ],
@@ -18163,13 +18353,13 @@
         "/notifications/read-all": {
             "post": {
                 "operationId": "userNotification.readAll",
-                "summary": "Read All user notification",
+                "summary": "Mark all notifications as read",
                 "tags": [
                     "Workspace"
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -18196,7 +18386,7 @@
         "/notifications/read-context": {
             "post": {
                 "operationId": "userNotification.readContext",
-                "summary": "Read Context user notification",
+                "summary": "Mark contextual notifications as read",
                 "tags": [
                     "Workspace"
                 ],
@@ -18220,7 +18410,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Successful response.",
                         "content": {
                             "application/json": {
                                 "schema": {

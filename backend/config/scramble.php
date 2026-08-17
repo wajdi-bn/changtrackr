@@ -122,7 +122,10 @@ MARKDOWN,
      * ],
      * ```
      */
-    'servers' => null,
+    'servers' => [
+        'Production' => env('API_PUBLIC_URL', 'https://api.chargetrackr.me/api'),
+        'Local development' => 'http://localhost:8000/api',
+    ],
 
     /**
      * Determines how Scramble stores the descriptions of enum cases.
